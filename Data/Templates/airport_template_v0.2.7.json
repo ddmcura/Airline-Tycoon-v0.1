@@ -1,0 +1,43 @@
+{
+  "XX": {
+    "country": "Country Name",
+    "airports": [
+      {
+        "icao": "XXXX",
+        "iata": "XXX",
+        "name": "Airport Full Name",
+        "city": "City Name",
+        "coordinates": {
+          "lat": 0.0,
+          "lon": 0.0
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+X",
+        "runway_length_m": 0,
+        "runways": 0,
+        "runway_names": [],
+        "total_pax_stands": 0,
+        "total_cargo_stands": 0,
+        "number_of_terminals_pax": 0,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "A",
+        "slots": 0,
+        "avg_taxi_time_min": 0,
+        "population": 0,
+        "cargo_volume_tonnes": 0,
+        "date_opened": "YYYY-MM-DD",
+        "fees": {
+          "base_landing_fee": 0,
+          "mtow_fee": 0,
+          "parking_fee": 0,
+          "atc_fee": 0,
+          "co2_fee": 0,
+          "crew_fee": 0,
+          "departure_fee_per_pax": 0
+        }
+      }
+    ]
+  }
+}

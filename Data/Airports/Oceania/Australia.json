@@ -1,0 +1,115 @@
+{
+  "AU": {
+    "country": "Australia",
+    "airports": [
+      {
+        "icao": "YSSY",
+        "iata": "SYD",
+        "name": "Sydney Kingsford Smith Airport",
+        "city": "Sydney",
+        "coordinates": {
+          "lat": -33.9399,
+          "lon": 151.1753
+        },
+        "airport_class": "international",
+        "airport_size": "mega",
+        "timezone": "GMT+10",
+        "runway_length_m": 3962,
+        "runways": 3,
+        "runway_names": ["07/25", "16R/34L", "16L/34R"],
+        "total_pax_stands": 60,
+        "total_cargo_stands": 8,
+        "number_of_terminals_pax": 3,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "G",
+        "slots": 70,
+        "avg_taxi_time_min": 15,
+        "population": 5312163,
+        "cargo_volume_tonnes": 660000,
+        "date_opened": "1920-01-09",
+        "fees": {
+          "base_landing_fee": 1300,
+          "mtow_fee": 20,
+          "parking_fee": 700,
+          "atc_fee": 1000,
+          "co2_fee": 0.025,
+          "crew_fee": 160,
+          "departure_fee_per_pax": 370
+        }
+      },
+      {
+        "icao": "YMML",
+        "iata": "MEL",
+        "name": "Melbourne Airport",
+        "city": "Melbourne",
+        "coordinates": {
+          "lat": -37.6690,
+          "lon": 144.8410
+        },
+        "airport_class": "international",
+        "airport_size": "large",
+        "timezone": "GMT+10",
+        "runway_length_m": 3657,
+        "runways": 2,
+        "runway_names": ["09/27", "16/34"],
+        "total_pax_stands": 40,
+        "total_cargo_stands": 6,
+        "number_of_terminals_pax": 4,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "F",
+        "slots": 50,
+        "avg_taxi_time_min": 12,
+        "population": 5078193,
+        "cargo_volume_tonnes": 350000,
+        "date_opened": "1970-07-01",
+        "fees": {
+          "base_landing_fee": 1150,
+          "mtow_fee": 18,
+          "parking_fee": 600,
+          "atc_fee": 900,
+          "co2_fee": 0.022,
+          "crew_fee": 150,
+          "departure_fee_per_pax": 340
+        }
+      },
+      {
+        "icao": "YPPH",
+        "iata": "PER",
+        "name": "Perth Airport",
+        "city": "Perth",
+        "coordinates": {
+          "lat": -31.9403,
+          "lon": 115.9672
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 3444,
+        "runways": 2,
+        "runway_names": ["03/21", "06/24"],
+        "total_pax_stands": 24,
+        "total_cargo_stands": 3,
+        "number_of_terminals_pax": 2,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "E",
+        "slots": 30,
+        "avg_taxi_time_min": 9,
+        "population": 2100000,
+        "cargo_volume_tonnes": 150000,
+        "date_opened": "1944-11-30",
+        "fees": {
+          "base_landing_fee": 1000,
+          "mtow_fee": 16,
+          "parking_fee": 550,
+          "atc_fee": 800,
+          "co2_fee": 0.020,
+          "crew_fee": 140,
+          "departure_fee_per_pax": 310
+        }
+      }
+    ]
+  }
+}

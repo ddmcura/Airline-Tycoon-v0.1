@@ -1,0 +1,115 @@
+{
+  "PH": {
+    "country": "Philippines",
+    "airports": [
+      {
+        "icao": "RPLL",
+        "iata": "MNL",
+        "name": "Ninoy Aquino International Airport",
+        "city": "Manila",
+        "coordinates": {
+          "lat": 14.5086,
+          "lon": 121.0198
+        },
+        "airport_class": "international",
+        "airport_size": "mega",
+        "timezone": "GMT+8",
+        "runway_length_m": 3737,
+        "runways": 2,
+        "runway_names": ["06/24", "13/31"],
+        "total_pax_stands": 33,
+        "total_cargo_stands": 6,
+        "number_of_terminals_pax": 4,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "G",
+        "slots": 50,
+        "avg_taxi_time_min": 17,
+        "population": 13923452,
+        "cargo_volume_tonnes": 530000,
+        "date_opened": "1948-07-01",
+        "fees": {
+          "base_landing_fee": 1200,
+          "mtow_fee": 18,
+          "parking_fee": 600,
+          "atc_fee": 950,
+          "co2_fee": 0.02,
+          "crew_fee": 150,
+          "departure_fee_per_pax": 350
+        }
+      },
+      {
+        "icao": "RPVM",
+        "iata": "CEB",
+        "name": "Mactan–Cebu International Airport",
+        "city": "Cebu",
+        "coordinates": {
+          "lat": 10.3075,
+          "lon": 123.9781
+        },
+        "airport_class": "international",
+        "airport_size": "large",
+        "timezone": "GMT+8",
+        "runway_length_m": 3300,
+        "runways": 1,
+        "runway_names": ["04/22"],
+        "total_pax_stands": 20,
+        "total_cargo_stands": 4,
+        "number_of_terminals_pax": 2,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "F",
+        "slots": 35,
+        "avg_taxi_time_min": 10,
+        "population": 922611,
+        "cargo_volume_tonnes": 180000,
+        "date_opened": "1966-05-08",
+        "fees": {
+          "base_landing_fee": 950,
+          "mtow_fee": 16,
+          "parking_fee": 500,
+          "atc_fee": 820,
+          "co2_fee": 0.018,
+          "crew_fee": 140,
+          "departure_fee_per_pax": 300
+        }
+      },
+      {
+        "icao": "RPMD",
+        "iata": "DVO",
+        "name": "Francisco Bangoy International Airport",
+        "city": "Davao",
+        "coordinates": {
+          "lat": 7.1255,
+          "lon": 125.6462
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 3000,
+        "runways": 1,
+        "runway_names": ["05/23"],
+        "total_pax_stands": 13,
+        "total_cargo_stands": 2,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "F",
+        "slots": 30,
+        "avg_taxi_time_min": 6.5,
+        "population": 1841181,
+        "cargo_volume_tonnes": 82000,
+        "date_opened": "1966-12-01",
+        "fees": {
+          "base_landing_fee": 800,
+          "mtow_fee": 14,
+          "parking_fee": 450,
+          "atc_fee": 700,
+          "co2_fee": 0.017,
+          "crew_fee": 130,
+          "departure_fee_per_pax": 280
+        }
+      }
+    ]
+  }
+}
