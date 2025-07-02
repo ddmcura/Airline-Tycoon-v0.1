@@ -1,3 +1,10 @@
+import sys
+import os
+from enable_dev_mode import enable_dev_mode
+enable_dev_mode()
+
+from game.hub_selector import choose_hub
+
 def start_new_game():
     print("Hello there! You must be the new CEO? Please tell me your name?\n")
     while True:
@@ -16,8 +23,9 @@ def start_new_game():
             break
         elif confirm == "n":
             print("Let's try that again.")
-    print(f"{airline_name} is such a cool name! Ok! Moving on, We will need to set up ")
-
-
-
-start_new_game() 
+    print(f"{airline_name} is such a cool name! Ok! Moving on, We will need to set up a Hub where you will start your Airline Journey")
+    selected_airport = choose_hub()
+    print(f"\n🛫 You selected: {selected_airport['name']} in {selected_airport['city']} ({selected_airport['iata']}) ✅")
+    
+if __name__ == "__main__":
+    start_new_game()

@@ -1,4 +1,5 @@
 #Main menu
+from game.new_game import start_new_game
 
 def show_main_menu():
     print("Welcome to Airline Tycoon")
@@ -15,6 +16,7 @@ def main():
         #NEW GAME
         if choice == "1":
             print("Starting a New Game!\n")
+            start_new_game()
 
         elif choice == "2":
             print("Choose a save file from the list below:\n")
