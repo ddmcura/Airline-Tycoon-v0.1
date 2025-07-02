@@ -14,20 +14,20 @@ def main():
         choice = input("Enter Your Choice: ")
         #NEW GAME
         if choice == "1":
-            print("Starting a New Game!")
+            print("Starting a New Game!\n")
 
         elif choice == "2":
-            print("Choose a save file from the list below:")
+            print("Choose a save file from the list below:\n")
 
         elif choice == "3":
-            print("Welcome to the Tutorial!")
+            print("Welcome to the Tutorial!\n")
         
         elif choice == "4":
-            print("Settings:")
+            print("Settings:\n")
 
         elif choice == "5":
-            print("Thank you for playing! Good Bye!")
+            print("Thank you for playing! Good Bye!\n")
             break
-
+        
 
 main()
