@@ -15,7 +15,7 @@ def main():
         choice = input("Enter Your Choice: ")
         #NEW GAME
         if choice == "1":
-            print("Starting a New Game!\n")
+            print("\nStarting a New Game!\n")
             start_new_game()
 
         elif choice == "2":

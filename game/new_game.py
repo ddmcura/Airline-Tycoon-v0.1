@@ -1,6 +1,6 @@
 import sys
 import os
-from enable_dev_mode import enable_dev_mode
+from game.utils.dev import enable_dev_mode
 enable_dev_mode()
 
 from game.hub_selector import choose_hub
@@ -15,7 +15,7 @@ def start_new_game():
         elif confirm == "n":
             print("Let's try that again.")
 
-    print(f"Yes! {ceo_name}. I am Billie, your assistant, let's get started! As the new CEO of this company, what do you want to call your Airline?")
+    print(f"\nYes! {ceo_name}. I am Billie, your assistant, let's get started! As the new CEO of this company, what do you want to call your Airline?\n")
     while True:
         airline_name = input("Input Airline Name: ").strip()
         confirm = input(f"{airline_name}? Is that correct? (Y/N): ").strip()
@@ -23,7 +23,7 @@ def start_new_game():
             break
         elif confirm == "n":
             print("Let's try that again.")
-    print(f"{airline_name} is such a cool name! Ok! Moving on, We will need to set up a Hub where you will start your Airline Journey")
+    print(f"\n{airline_name} is such a cool name! Ok! Moving on, We will need to set up a Hub where you will start your Airline Journey\n")
     selected_airport = choose_hub()
     print(f"\n🛫 You selected: {selected_airport['name']} in {selected_airport['city']} ({selected_airport['iata']}) ✅")
     
