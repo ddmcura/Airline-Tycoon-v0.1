@@ -1,0 +1,37 @@
+📁 Folder Tree:
+
+├── Data
+│   ├── Airports
+│   │   ├── Africa
+│   │   ├── Antartica
+│   │   ├── Asia
+│   │   │   └── philippines.json
+│   │   ├── Europe
+│   │   ├── North America
+│   │   ├── Oceania
+│   │   │   └── Australia.json
+│   │   └── South America
+│   └── Templates
+│       ├── Folder_Tree.txt
+│       ├── airport_template_v0.2.7.json
+│       ├── folder tree template.txt
+│       ├── foldertree.txt
+│       ├── hub_selector.py
+│       └── print_folder_tree.py
+├── README.txt
+├── Saves
+├── game
+│   ├── __init__.py
+│   ├── game_state.py
+│   ├── hub_selector.py
+│   ├── new_game.py
+│   └── utils
+│       ├── __init__.py
+│       ├── dev.py
+│       ├── formatting.py
+│       ├── render.py
+│       └── ui.py
+├── main.py
+├── settings.py
+├── test.py
+└── version.txt

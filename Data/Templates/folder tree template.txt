@@ -1,0 +1,8 @@
+project/
+├── file.py
+├── folder1/
+│   └── inside_file.py
+├── folder2/
+│   ├── file_a.py
+│   └── file_b.py
+└── README.md

@@ -1,5 +1,7 @@
-#Main menu
+#Main menu (root/main.py)
+# This file serves as the entry point for the Airline Tycoon game.
 from game.new_game import start_new_game
+from game.game_state import game_state, save_game, load_game
 
 def show_main_menu():
     print("Welcome to Airline Tycoon")
@@ -17,9 +19,11 @@ def main():
         if choice == "1":
             print("\nStarting a New Game!\n")
             start_new_game()
+            break
 
         elif choice == "2":
             print("Choose a save file from the list below:\n")
+            load_game()
 
         elif choice == "3":
             print("Welcome to the Tutorial!\n")

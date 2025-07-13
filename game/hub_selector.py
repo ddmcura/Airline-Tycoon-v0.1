@@ -1,12 +1,18 @@
+#Choose Hub module (game/hub_selector.py)
+# This module handles the logic for selecting a hub airport in Airline Tycoon.
 import os
 import json
 from tabulate import tabulate
 from game.utils.dev import enable_dev_mode
+from game.game_state import save_game
+from game.utils.airports import add_hub_to_game_state, extract_airport_for_game_state
+
 enable_dev_mode()
 
 from game.utils import paginate, render_country_names, render_airports  # 🌟 simplified!
 
-def choose_hub():
+
+def choose_hub(game_state):
     # Step 1: Select Continent
     continent_path = "data/airports"
     continents = [c for c in os.listdir(continent_path) if os.path.isdir(os.path.join(continent_path, c))]
@@ -61,8 +67,13 @@ def choose_hub():
 
     if selected_airport == "BACK":
         return choose_hub()
+    print(f"\n🛫 You selected: {selected_airport['name']} in {selected_airport['city']} ({selected_airport['iata']}) ✅")
+    # Add this hub to the game state
+    add_hub_to_game_state(game_state, selected_airport, region=chosen_continent, country=selected_country.title())
+    
 
+    # Save the game state after adding the hub
     return selected_airport
-
+    
 if __name__ == "__main__":
     choose_hub()

@@ -1,0 +1,29 @@
+root/
+├── main.py                         # Main entry point to launch the game
+├── test.py                         # Script to test modules independently
+├── README.txt                      # Game description, how to play/run
+├── version.txt                     # Game version info (e.g., v0.1.0)
+│
+├── game/                           # Core game logic and features
+│   ├── __init__.py
+│   ├── new_game.py                 # Handles new game setup flow
+│   ├── hub_selector.py             # Handles airport hub selection
+│   ├── game_state.py               # Central game state dictionary
+│   │
+│   └── utils/                      # Reusable helper functions
+│       ├── __init__.py
+│       ├── formatting.py           # Pretty-printing, tabulate, styling
+│       ├── dev.py                  # Dev mode toggles and flags
+│       ├── render.py               # Render logic for menus or terminals
+│       └── ui.py                   # Input/output UI helpers
+│
+├── Data/                           # Static data files (airports, aircraft, etc.)
+│   ├── Airports/
+│   │   ├── Asia/
+│   │   │   └── philippines.json    # Add more countries later
+│   │   └── (other regions soon)
+│   │
+│   └── Templates/                  # Templates for aircraft, save files, etc.
+│
+└── saves/                          # Auto/manual save data stored here
+    └── (generated at runtime)
