@@ -1,14 +1,14 @@
 {
     "player_info": {
-        "ceo_name": "",
-        "airline_name": ""
+        "ceo_name": "1",
+        "airline_name": "1"
     },
     "settings": {
-        "difficulty": "",
-        "starting_money": 0
+        "difficulty": "hard",
+        "starting_money": 100000000
     },
     "finances": {
-        "cash_on_hand": 0,
+        "cash_on_hand": 100000000,
         "debt": 0
     },
     "hubs": {
