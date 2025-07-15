@@ -1,0 +1,66 @@
+{
+    "player_info": {
+        "ceo_name": "Divina",
+        "airline_name": "Divina Air"
+    },
+    "settings": {
+        "difficulty": "hard",
+        "starting_money": 500000000
+    },
+    "finances": {
+        "cash_on_hand": 500000000,
+        "debt": 0
+    },
+    "hubs": {
+        "Philippines": {
+            "MNL": {
+                "iata": "MNL",
+                "icao": "RPLL",
+                "name": "Ninoy Aquino International Airport",
+                "city": "Manila",
+                "country": "Philippines",
+                "region": "Asia",
+                "timezone": "GMT+8",
+                "coordinates": {
+                    "lat": 14.5086,
+                    "lon": 121.0198
+                },
+                "airport_class": "international",
+                "airport_size": "mega",
+                "runway_length": 3737,
+                "runways": 2,
+                "runway_names": [
+                    "06/24",
+                    "13/31"
+                ],
+                "total_pax_stands": 33,
+                "total_cargo_stands": 6,
+                "number_of_terminals_pax": 4,
+                "number_of_terminals_cargo": 1,
+                "has_cargo_terminal": true,
+                "max_aircraft_class": "G",
+                "slots": 50,
+                "avg_taxi_time_min": 17,
+                "population": 13923452,
+                "cargo_volume_tonnes": 530000,
+                "date_opened": "1948-07-01",
+                "fees": {
+                    "base_landing_fee": 1200,
+                    "mtow_fee": 18,
+                    "parking_fee": 600,
+                    "atc_fee": 950,
+                    "co2_fee": 0.02,
+                    "crew_fee": 150,
+                    "departure_fee_per_pax": 350
+                },
+                "status": "active",
+                "level": 1,
+                "connected_routes": [],
+                "routes": {}
+            }
+        }
+    },
+    "game_time": {
+        "current_date": "1999-06-20"
+    }
+}

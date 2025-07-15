@@ -1,0 +1,229 @@
+{
+  "B737": {
+    "B737MAX": {
+      "manufacturer": "Boeing",
+      "type": "Narrow-body",
+
+      "range_km": 6570,
+      "capacity": 200,
+      "max_payload_kg": 20500,
+      "cargo_capacity_kg": 4300,
+
+      "cruise_speed_kph": 840,
+      "max_speed_kph": 890,
+      "fuel_burn_lph": 2600,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 2100,
+      "crew": { "pilots": 2, "cabin": 4 },
+
+      "cabin_width_m": 3.53,
+      "cabin_length_m": 39.5,
+
+      "base_price": 52000000,
+      "default_layout_price": 6000000,
+      "purchase_price": 58000000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "private_room", "seats": 4 },
+        "business_class": { "seat_type": "lie_flat", "seats": 10 },
+        "economy": { "seat_type": "standard", "seats": 146 }
+      },
+
+      "maintenance_base_cost": 130000,
+      "age_limit_years": 25,
+      "maintenance_checks": {
+        "A": { "interval_hours": 600, "duration_days": 1, "cost": 22000 },
+        "B": { "interval_hours": 1500, "duration_days": 2, "cost": 47000 },
+        "C": { "interval_hours": 6000, "duration_days": 5, "cost": 155000 },
+        "D": { "interval_hours": 24000, "duration_days": 15, "cost": 620000 },
+        "aging_cost_factor": 0.03
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 3600000,
+        "duration_days": 14
+      },
+
+      "production_start_year": 2017,
+      "production_end_year": null,
+
+      "tags": ["short-haul", "fuel-efficient"],
+      "unlock_level": 2,
+
+      "reconfiguration": {
+        "base_fee": 310000,
+        "move_fee_per_seat": 1100,
+        "reconfiguration_duration_days": 3
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 8200000,
+        "conversion_duration_days": 14,
+        "cargo_capacity_kg_after": 22000
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  },
+
+  "B752": {
+    "Boeing_757-200": {
+      "manufacturer": "Boeing",
+      "type": "Narrow-body",
+
+      "range_km": 7225,
+      "capacity": 239,
+      "max_payload_kg": 23000,
+      "cargo_capacity_kg": 5300,
+
+      "cruise_speed_kph": 850,
+      "max_speed_kph": 920,
+      "fuel_burn_lph": 3100,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 2200,
+      "crew": { "pilots": 2, "cabin": 5 },
+
+      "cabin_width_m": 3.54,
+      "cabin_length_m": 37.2,
+
+      "base_price": 44000000,
+      "default_layout_price": 7000000,
+      "purchase_price": 51000000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "private_room", "seats": 6 },
+        "business_class": { "seat_type": "lie_flat", "seats": 16 },
+        "economy": { "seat_type": "standard", "seats": 217 }
+      },
+
+      "maintenance_base_cost": 150000,
+      "age_limit_years": 30,
+      "maintenance_checks": {
+        "A": { "interval_hours": 650, "duration_days": 1, "cost": 25000 },
+        "B": { "interval_hours": 1600, "duration_days": 2, "cost": 50000 },
+        "C": { "interval_hours": 6500, "duration_days": 6, "cost": 180000 },
+        "D": { "interval_hours": 25000, "duration_days": 18, "cost": 650000 },
+        "aging_cost_factor": 0.028
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 4000000,
+        "duration_days": 18
+      },
+
+      "production_start_year": 1982,
+      "production_end_year": 2004,
+
+      "tags": ["medium-haul", "efficient"],
+      "unlock_level": 3,
+
+      "reconfiguration": {
+        "base_fee": 350000,
+        "move_fee_per_seat": 1300,
+        "reconfiguration_duration_days": 4
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 9000000,
+        "conversion_duration_days": 16,
+        "cargo_capacity_kg_after": 26000
+      },
+
+      "can_be_reactivated": true,
+      "reactivation_cost_points": 1200,
+      "reactivation_requirements": {
+        "min_reputation": 50,
+        "min_year": 2025
+      }
+    }
+  },
+
+  "B77W": {
+    "Boeing_777-300ER": {
+      "manufacturer": "Boeing",
+      "type": "Wide-body",
+
+      "range_km": 13650,
+      "capacity": 365,
+      "max_payload_kg": 58000,
+      "cargo_capacity_kg": 17000,
+
+      "cruise_speed_kph": 905,
+      "max_speed_kph": 945,
+      "fuel_burn_lph": 7200,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 3050,
+      "crew": { "pilots": 2, "cabin": 10 },
+
+      "cabin_width_m": 5.87,
+      "cabin_length_m": 63.7,
+
+      "base_price": 320000000,
+      "default_layout_price": 19000000,
+      "purchase_price": 339000000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "private_room", "seats": 10 },
+        "business_class": { "seat_type": "lie_flat", "seats": 60 },
+        "economy": { "seat_type": "standard", "seats": 295 }
+      },
+
+      "maintenance_base_cost": 450000,
+      "age_limit_years": 30,
+      "maintenance_checks": {
+        "A": { "interval_hours": 700, "duration_days": 1, "cost": 52000 },
+        "B": { "interval_hours": 1600, "duration_days": 2, "cost": 110000 },
+        "C": { "interval_hours": 7000, "duration_days": 7, "cost": 350000 },
+        "D": { "interval_hours": 25000, "duration_days": 21, "cost": 1200000 },
+        "aging_cost_factor": 0.025
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 18000000,
+        "duration_days": 30
+      },
+
+      "production_start_year": 2003,
+      "production_end_year": null,
+
+      "tags": ["long-haul", "premium"],
+      "unlock_level": 5,
+
+      "reconfiguration": {
+        "base_fee": 900000,
+        "move_fee_per_seat": 3500,
+        "reconfiguration_duration_days": 7
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 25000000,
+        "conversion_duration_days": 35,
+        "cargo_capacity_kg_after": 65000
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  }
+}

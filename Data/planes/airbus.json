@@ -1,0 +1,229 @@
+{
+  "A320": {
+    "A320-200": {
+      "manufacturer": "Airbus",
+      "type": "Narrow-body",
+
+      "range_km": 6300,
+      "capacity": 180,
+      "max_payload_kg": 19500,
+      "cargo_capacity_kg": 4200,
+
+      "cruise_speed_kph": 840,
+      "max_speed_kph": 890,
+      "fuel_burn_lph": 2500,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 2100,
+      "crew": { "pilots": 2, "cabin": 4 },
+
+      "cabin_width_m": 3.7,
+      "cabin_length_m": 27.5,
+
+      "base_price": 49000000,
+      "default_layout_price": 5500000,
+      "purchase_price": 54500000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "private_room", "seats": 4 },
+        "business_class": { "seat_type": "lie_flat", "seats": 12 },
+        "economy": { "seat_type": "standard", "seats": 138 }
+      },
+
+      "maintenance_base_cost": 120000,
+      "age_limit_years": 25,
+      "maintenance_checks": {
+        "A": { "interval_hours": 600, "duration_days": 1, "cost": 20000 },
+        "B": { "interval_hours": 1500, "duration_days": 2, "cost": 45000 },
+        "C": { "interval_hours": 6000, "duration_days": 5, "cost": 150000 },
+        "D": { "interval_hours": 24000, "duration_days": 15, "cost": 600000 },
+        "aging_cost_factor": 0.03
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 3500000,
+        "duration_days": 14
+      },
+
+      "production_start_year": 1988,
+      "production_end_year": null,
+
+      "tags": ["short-haul", "fuel-efficient"],
+      "unlock_level": 1,
+
+      "reconfiguration": {
+        "base_fee": 300000,
+        "move_fee_per_seat": 1000,
+        "reconfiguration_duration_days": 3
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 8000000,
+        "conversion_duration_days": 14,
+        "cargo_capacity_kg_after": 21000
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  },
+
+  "A330": {
+    "A330-300": {
+      "manufacturer": "Airbus",
+      "type": "Wide-body",
+
+      "range_km": 13400,
+      "capacity": 277,
+      "max_payload_kg": 42000,
+      "cargo_capacity_kg": 12000,
+
+      "cruise_speed_kph": 870,
+      "max_speed_kph": 910,
+      "fuel_burn_lph": 6100,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 2800,
+      "crew": { "pilots": 2, "cabin": 8 },
+
+      "cabin_width_m": 5.3,
+      "cabin_length_m": 45.0,
+
+      "base_price": 238000000,
+      "default_layout_price": 12000000,
+      "purchase_price": 250000000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "private_room", "seats": 6 },
+        "business_class": { "seat_type": "lie_flat", "seats": 32 },
+        "economy": { "seat_type": "standard", "seats": 239 }
+      },
+
+      "maintenance_base_cost": 320000,
+      "age_limit_years": 25,
+      "maintenance_checks": {
+        "A": { "interval_hours": 600, "duration_days": 1, "cost": 35000 },
+        "B": { "interval_hours": 1500, "duration_days": 2, "cost": 90000 },
+        "C": { "interval_hours": 6000, "duration_days": 6, "cost": 270000 },
+        "D": { "interval_hours": 24000, "duration_days": 18, "cost": 900000 },
+        "aging_cost_factor": 0.03
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 10000000,
+        "duration_days": 21
+      },
+
+      "production_start_year": 1994,
+      "production_end_year": null,
+
+      "tags": ["long-haul", "versatile"],
+      "unlock_level": 3,
+
+      "reconfiguration": {
+        "base_fee": 500000,
+        "move_fee_per_seat": 2000,
+        "reconfiguration_duration_days": 5
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 16000000,
+        "conversion_duration_days": 21,
+        "cargo_capacity_kg_after": 45000
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  },
+
+  "A350": {
+    "A350-900": {
+      "manufacturer": "Airbus",
+      "type": "Wide-body",
+
+      "range_km": 16100,
+      "capacity": 350,
+      "max_payload_kg": 55000,
+      "cargo_capacity_kg": 15000,
+
+      "cruise_speed_kph": 910,
+      "max_speed_kph": 945,
+      "fuel_burn_lph": 7000,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 3000,
+      "crew": { "pilots": 2, "cabin": 10 },
+
+      "cabin_width_m": 5.61,
+      "cabin_length_m": 53.0,
+
+      "base_price": 317000000,
+      "default_layout_price": 18000000,
+      "purchase_price": 335000000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "private_room", "seats": 8 },
+        "business_class": { "seat_type": "lie_flat", "seats": 48 },
+        "economy": { "seat_type": "standard", "seats": 294 }
+      },
+
+      "maintenance_base_cost": 400000,
+      "age_limit_years": 30,
+      "maintenance_checks": {
+        "A": { "interval_hours": 700, "duration_days": 1, "cost": 50000 },
+        "B": { "interval_hours": 1600, "duration_days": 2, "cost": 100000 },
+        "C": { "interval_hours": 7000, "duration_days": 7, "cost": 300000 },
+        "D": { "interval_hours": 25000, "duration_days": 21, "cost": 1100000 },
+        "aging_cost_factor": 0.025
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 15000000,
+        "duration_days": 28
+      },
+
+      "production_start_year": 2013,
+      "production_end_year": null,
+
+      "tags": ["ultra-long-haul", "premium"],
+      "unlock_level": 5,
+
+      "reconfiguration": {
+        "base_fee": 800000,
+        "move_fee_per_seat": 3000,
+        "reconfiguration_duration_days": 6
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 22000000,
+        "conversion_duration_days": 30,
+        "cargo_capacity_kg_after": 60000
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  }
+}

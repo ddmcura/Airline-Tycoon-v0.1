@@ -1,0 +1,37 @@
+"standard": {
+  "class": "economy",
+  "display_name": "Standard Economy Seat",
+  "seat_weight_kg": 12,
+  "passenger_weight_kg": 85,
+  "baggage_kg": 20,
+  "price_per_seat": 800,
+
+  "dimensions": {
+    "min_width_m": 0.42,
+    "max_width_m": 0.47,
+    "min_pitch_m": 0.73,
+    "max_pitch_m": 0.78
+  },
+
+  "comfort_base": 1.0,
+  "comfort_formula": {
+    "width_factor": 0.6,
+    "pitch_factor": 0.4,
+    "max_comfort": 1.5
+  }
+}
+
+
+def calculate_comfort_rating(seat_type, width, pitch):
+    dims = seat_type["dimensions"]
+    formula = seat_type["comfort_formula"]
+
+    # Normalize width and pitch into a 0-1 scale
+    width_scale = (width - dims["min_width_m"]) / (dims["max_width_m"] - dims["min_width_m"])
+    pitch_scale = (pitch - dims["min_pitch_m"]) / (dims["max_pitch_m"] - dims["min_pitch_m"])
+
+    width_score = width_scale * formula["width_factor"]
+    pitch_score = pitch_scale * formula["pitch_factor"]
+
+    total_comfort = seat_type["comfort_base"] + width_score + pitch_score
+    return min(total_comfort, formula["max_comfort"])

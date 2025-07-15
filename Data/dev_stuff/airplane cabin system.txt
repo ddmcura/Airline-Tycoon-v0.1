@@ -1,0 +1,197 @@
+// 📁 Airline Tycoon - Aircraft Cabin System + Route Planning Overview
+
+{
+  "aircraft_template": {
+    "required_fields": [
+      "manufacturer",
+      "model",
+      "type",
+      "range_km",
+      "capacity",
+      "max_payload_kg",
+      "cargo_capacity_kg",
+      "cruise_speed_kph",
+      "max_speed_kph",
+      "fuel_burn_lph",
+      "fuel_type",
+      "required_runway_m",
+      "crew",
+      "cabin_width_m",
+      "cabin_length_m",
+      "cabin_area_m2",
+      "base_price",
+      "default_layout_price",
+      "purchase_price",
+      "default_layout",
+      "maintenance_base_cost",
+      "age_limit_years",
+      "production_start_year",
+      "production_end_year",
+      "tags",
+      "unlock_level",
+      "reconfiguration": {
+        "base_fee",
+        "move_fee_per_seat",
+        "reconfiguration_duration_days"
+      },
+      "can_be_reactivated",
+      "reactivation_cost_points",
+      "reactivation_requirements": {
+        "min_reputation",
+        "min_year"
+      }
+    ]
+  },
+
+  "seat_types": {
+    "standard": {
+      "class": "economy",
+      "display_name": "Standard Economy Seat",
+      "area_m2": 0.65,
+      "seat_weight_kg": 12,
+      "passenger_weight_kg": 85,
+      "baggage_kg": 20,
+      "price_per_seat": 800,
+      "comfort_base": 1.0,
+      "comfort_formula": {
+        "width_factor": 0.6,
+        "pitch_factor": 0.4,
+        "max_comfort": 1.5
+      },
+      "dimensions": {
+        "min_width_m": 0.42,
+        "max_width_m": 0.47,
+        "min_pitch_m": 0.73,
+        "max_pitch_m": 0.78
+      }
+    }
+    // ... add other seat types similarly
+  },
+
+  "ife_types": {
+    "none": {
+      "display_name": "No IFE",
+      "comfort_bonus": 0.0,
+      "cost_per_seat": 0,
+      "weight_per_seat_kg": 0
+    },
+    "basic_screen": {
+      "display_name": "Basic Screen (Armrest)",
+      "comfort_bonus": 0.2,
+      "cost_per_seat": 200,
+      "weight_per_seat_kg": 2
+    },
+    "premium_entertainment": {
+      "display_name": "Premium IFE Suite",
+      "comfort_bonus": 0.7,
+      "cost_per_seat": 800,
+      "weight_per_seat_kg": 4
+    }
+    // ... more IFE types as needed
+  },
+
+  "seat_layouts": {
+    "A320_standard_layout": {
+      "aircraft_model": "A320",
+      "layout_name": "Default 2-Class Layout",
+      "first_class": {
+        "seat_type": "private_room",
+        "count": 4,
+        "width_m": 1.2,
+        "pitch_m": 2.6,
+        "ife_type": "premium_entertainment"
+      },
+      "business_class": {
+        "seat_type": "lie_flat",
+        "count": 12,
+        "width_m": 0.6,
+        "pitch_m": 1.9,
+        "ife_type": "premium_entertainment"
+      },
+      "economy": {
+        "seat_type": "standard",
+        "count": 108,
+        "width_m": 0.45,
+        "pitch_m": 0.75,
+        "ife_type": "basic_screen"
+      }
+    }
+  },
+
+  "route_demand_template": {
+    "MNL-NGO": {
+      "distance_km": 2615,
+      "flight_time_hr": 4.5,
+      "demand": {
+        "economy": 0.7,
+        "business": 0.25,
+        "first": 0.05
+      },
+      "comfort_tolerance": 0.3,
+      "ife_expectation": 0.2,
+      "price_sensitivity": 0.8
+    }
+  },
+
+  "route_management": {
+    "route_flow": [
+      "Buy Route",
+      "Buy & Configure Plane",
+      "Schedule Aircraft",
+      "Launch Route",
+      "Monitor Bookings & Performance"
+    ],
+    "booking_simulation": {
+      "pre_launch": true,
+      "daily_forecast": true,
+      "booking_window_days": 30,
+      "booking_response_to": [
+        "seat comfort",
+        "IFE quality",
+        "ticket prices",
+        "route reputation"
+      ]
+    },
+    "route_json_example": {
+      "route_id": "MNL-NGO-Flight001",
+      "origin": "MNL",
+      "destination": "NGO",
+      "aircraft_id": "A320_01",
+      "departure_time": "08:00",
+      "frequency": ["Mon", "Wed", "Fri"],
+      "start_date": "2025-09-01",
+      "booking_open": true,
+      "booking_status": {
+        "first_class": 2,
+        "business_class": 5,
+        "economy": 90
+      },
+      "total_capacity": {
+        "first_class": 4,
+        "business_class": 12,
+        "economy": 120
+      },
+      "current_status": "in_booking_phase",
+      "demand_score": 0.78,
+      "slot_confirmed": true
+    }
+  },
+
+  "gameplay_logic": {
+    "comfort_calculation": "base + width_bonus + pitch_bonus + ife_bonus (capped at max_comfort)",
+    "cargo_remaining_kg": "max_payload_kg - sum((seat + pax + baggage + IFE weight) * seat_count)",
+    "layout_validators": [
+      "cabin area usage",
+      "max_payload",
+      "IFE compatibility"
+    ],
+    "future_upgrades": [
+      "dynamic maintenance costs as aircraft age",
+      "freighter conversion logic",
+      "seat power outlet / IFE maintenance systems",
+      "galley/in-flight service influence",
+      "dynamic passenger loyalty",
+      "event-based booking boosts"
+    ]
+  }
+}

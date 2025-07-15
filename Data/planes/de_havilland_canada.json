@@ -1,0 +1,229 @@
+{
+  "Dash8": {
+    "Q400": {
+      "manufacturer": "De Havilland Canada",
+      "type": "Turboprop",
+
+      "range_km": 1600,
+      "capacity": 78,
+      "max_payload_kg": 9000,
+      "cargo_capacity_kg": 1500,
+
+      "cruise_speed_kph": 670,
+      "max_speed_kph": 667,
+      "fuel_burn_lph": 1200,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 1300,
+      "crew": { "pilots": 2, "cabin": 3 },
+
+      "cabin_width_m": 2.5,
+      "cabin_length_m": 20.0,
+
+      "base_price": 32000000,
+      "default_layout_price": 2000000,
+      "purchase_price": 34000000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "standard", "seats": 0 },
+        "business_class": { "seat_type": "standard", "seats": 0 },
+        "economy": { "seat_type": "standard", "seats": 78 }
+      },
+
+      "maintenance_base_cost": 35000,
+      "age_limit_years": 30,
+      "maintenance_checks": {
+        "A": { "interval_hours": 500, "duration_days": 1, "cost": 5000 },
+        "B": { "interval_hours": 1200, "duration_days": 2, "cost": 12000 },
+        "C": { "interval_hours": 4800, "duration_days": 5, "cost": 45000 },
+        "D": { "interval_hours": 20000, "duration_days": 15, "cost": 150000 },
+        "aging_cost_factor": 0.025
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 4,
+        "cost": 900000,
+        "duration_days": 10
+      },
+
+      "production_start_year": 1999,
+      "production_end_year": null,
+
+      "tags": ["regional", "efficient", "short-runway"],
+      "unlock_level": 1,
+
+      "reconfiguration": {
+        "base_fee": 20000,
+        "move_fee_per_seat": 500,
+        "reconfiguration_duration_days": 1
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 1000000,
+        "conversion_duration_days": 7,
+        "cargo_capacity_kg_after": 8500
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  },
+
+  "DHC6": {
+    "Twin_Otter": {
+      "manufacturer": "De Havilland Canada",
+      "type": "Turboprop",
+
+      "range_km": 1200,
+      "capacity": 19,
+      "max_payload_kg": 3500,
+      "cargo_capacity_kg": 500,
+
+      "cruise_speed_kph": 280,
+      "max_speed_kph": 310,
+      "fuel_burn_lph": 400,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 366,
+      "crew": { "pilots": 2, "cabin": 1 },
+
+      "cabin_width_m": 1.8,
+      "cabin_length_m": 7.0,
+
+      "base_price": 4000000,
+      "default_layout_price": 500000,
+      "purchase_price": 4500000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "standard", "seats": 0 },
+        "business_class": { "seat_type": "standard", "seats": 0 },
+        "economy": { "seat_type": "standard", "seats": 19 }
+      },
+
+      "maintenance_base_cost": 8000,
+      "age_limit_years": 40,
+      "maintenance_checks": {
+        "A": { "interval_hours": 400, "duration_days": 1, "cost": 2000 },
+        "B": { "interval_hours": 1000, "duration_days": 2, "cost": 4500 },
+        "C": { "interval_hours": 4000, "duration_days": 4, "cost": 18000 },
+        "D": { "interval_hours": 15000, "duration_days": 10, "cost": 60000 },
+        "aging_cost_factor": 0.02
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 250000,
+        "duration_days": 7
+      },
+
+      "production_start_year": 1965,
+      "production_end_year": null,
+
+      "tags": ["regional", "short-runway", "utility"],
+      "unlock_level": 1,
+
+      "reconfiguration": {
+        "base_fee": 8000,
+        "move_fee_per_seat": 250,
+        "reconfiguration_duration_days": 1
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 350000,
+        "conversion_duration_days": 5,
+        "cargo_capacity_kg_after": 3200
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  },
+
+  "DHC7": {
+    "Caribou": {
+      "manufacturer": "De Havilland Canada",
+      "type": "Turboprop",
+
+      "range_km": 2100,
+      "capacity": 44,
+      "max_payload_kg": 12000,
+      "cargo_capacity_kg": 2500,
+
+      "cruise_speed_kph": 460,
+      "max_speed_kph": 520,
+      "fuel_burn_lph": 1900,
+      "fuel_type": "Jet A-1",
+
+      "required_runway_m": 1300,
+      "crew": { "pilots": 2, "cabin": 4 },
+
+      "cabin_width_m": 3.0,
+      "cabin_length_m": 15.0,
+
+      "base_price": 17000000,
+      "default_layout_price": 1500000,
+      "purchase_price": 18500000,
+
+      "default_layout": {
+        "first_class": { "seat_type": "standard", "seats": 0 },
+        "business_class": { "seat_type": "standard", "seats": 0 },
+        "economy": { "seat_type": "standard", "seats": 44 }
+      },
+
+      "maintenance_base_cost": 50000,
+      "age_limit_years": 35,
+      "maintenance_checks": {
+        "A": { "interval_hours": 600, "duration_days": 1, "cost": 12000 },
+        "B": { "interval_hours": 1400, "duration_days": 3, "cost": 28000 },
+        "C": { "interval_hours": 5500, "duration_days": 6, "cost": 90000 },
+        "D": { "interval_hours": 22000, "duration_days": 15, "cost": 280000 },
+        "aging_cost_factor": 0.025
+      },
+
+      "overhaul_program": {
+        "can_overhaul": true,
+        "reset_years": 5,
+        "cost": 2200000,
+        "duration_days": 12
+      },
+
+      "production_start_year": 1984,
+      "production_end_year": 1996,
+
+      "tags": ["regional", "rugged", "utility"],
+      "unlock_level": 2,
+
+      "reconfiguration": {
+        "base_fee": 15000,
+        "move_fee_per_seat": 400,
+        "reconfiguration_duration_days": 2
+      },
+
+      "freighter_conversion": {
+        "can_convert": true,
+        "conversion_cost": 1250000,
+        "conversion_duration_days": 10,
+        "cargo_capacity_kg_after": 11000
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  }
+}

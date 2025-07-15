@@ -1,0 +1,63 @@
+{
+    "player_info": {
+        "ceo_name": "Bubu",
+        "airline_name": "Bubu Air"
+    },
+    "settings": {
+        "difficulty": "hard",
+        "starting_money": 100000000
+    },
+    "finances": {
+        "cash_on_hand": 100000000,
+        "debt": 0
+    },
+    "hubs": {
+        "Australia": {
+            "MEL": {
+                "iata": "MEL",
+                "icao": "YMML",
+                "name": "Melbourne Airport",
+                "city": "Melbourne",
+                "country": "Australia",
+                "region": "Oceania",
+                "timezone": "GMT+10",
+                "coordinates": {
+                    "lat": -37.669,
+                    "lon": 144.841
+                },
+                "airport_class": "international",
+                "airport_size": "large",
+                "runway_length": 3657,
+                "runways": 2,
+                "runway_names": [
+                    "09/27",
+                    "16/34"
+                ],
+                "total_pax_stands": 40,
+                "total_cargo_stands": 6,
+                "number_of_terminals_pax": 4,
+                "number_of_terminals_cargo": 1,
+                "has_cargo_terminal": true,
+                "max_aircraft_class": "F",
+                "slots": 50,
+                "avg_taxi_time_min": 12,
+                "population": 5078193,
+                "cargo_volume_tonnes": 350000,
+                "date_opened": "1970-07-01",
+                "fees": {
+                    "base_landing_fee": 1150,
+                    "mtow_fee": 18,
+                    "parking_fee": 600,
+                    "atc_fee": 900,
+                    "co2_fee": 0.022,
+                    "crew_fee": 150,
+                    "departure_fee_per_pax": 340
+                },
+                "status": "active",
+                "level": 1,
+                "connected_routes": [],
+                "routes": {}
+            }
+        }
+    }
+}

@@ -1,0 +1,26 @@
+{
+  "none": {
+    "display_name": "No IFE",
+    "comfort_bonus": 0.0,
+    "cost_per_seat": 0,
+    "weight_per_seat_kg": 0
+  },
+  "basic_screen": {
+    "display_name": "Basic Screen (Armrest)",
+    "comfort_bonus": 0.2,
+    "cost_per_seat": 200,
+    "weight_per_seat_kg": 2
+  },
+  "touchscreen": {
+    "display_name": "Touchscreen + USB",
+    "comfort_bonus": 0.4,
+    "cost_per_seat": 400,
+    "weight_per_seat_kg": 3
+  },
+  "premium_entertainment": {
+    "display_name": "Premium IFE Suite",
+    "comfort_bonus": 0.7,
+    "cost_per_seat": 800,
+    "weight_per_seat_kg": 4
+  }
+}

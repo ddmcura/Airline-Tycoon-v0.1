@@ -45,3 +45,13 @@ def render_airports(airport_list):
         headers=["#", "IATA", "City", "Airport Name", "Class", "Size", "Cargo"],
         tablefmt="fancy_grid"
     )
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def render_aircraft_table(aircraft_subset):
+    table = [
+        [idx+1, ac["model"], f"₱{ac['base_price']:,}", ac["capacity"], f"{ac['range_km']:,} km", f"{ac['cruise_speed_kph']} kph"]
+        for idx, ac in enumerate(aircraft_subset)
+    ]
+    headers = ["#", "Model", "Base Price", "Capacity", "Range", "Cruise Speed"]
+    return tabulate(table, headers, tablefmt="fancy_grid")

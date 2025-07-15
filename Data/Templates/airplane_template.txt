@@ -1,0 +1,105 @@
+{
+  "FAMILY_NAME": {
+    "VARIANT_NAME": {
+      "manufacturer": "",
+      "type": "",
+
+      "range_km": 0,
+      "capacity": 0,
+      "max_payload_kg": 0,
+      "cargo_capacity_kg": 0,
+
+      "cruise_speed_kph": 0,
+      "max_speed_kph": 0,
+      "fuel_burn_lph": 0,
+      "fuel_type": "",
+
+      "required_runway_m": 0,
+      "crew": {
+        "pilots": 0,
+        "cabin": 0
+      },
+
+      "cabin_width_m": 0.0,
+      "cabin_length_m": 0.0,
+
+      "base_price": 0,
+      "default_layout_price": 0,
+      "purchase_price": 0,
+
+      "default_layout": {
+        "first_class": {
+          "seat_type": "",
+          "seats": 0
+        },
+        "business_class": {
+          "seat_type": "",
+          "seats": 0
+        },
+        "economy": {
+          "seat_type": "",
+          "seats": 0
+        }
+      },
+
+      "maintenance_base_cost": 0,
+      "age_limit_years": 0,
+      "maintenance_checks": {
+        "A": {
+          "interval_hours": 0,
+          "duration_days": 0,
+          "cost": 0
+        },
+        "B": {
+          "interval_hours": 0,
+          "duration_days": 0,
+          "cost": 0
+        },
+        "C": {
+          "interval_hours": 0,
+          "duration_days": 0,
+          "cost": 0
+        },
+        "D": {
+          "interval_hours": 0,
+          "duration_days": 0,
+          "cost": 0
+        },
+        "aging_cost_factor": 0.0
+      },
+
+      "overhaul_program": {
+        "can_overhaul": false,
+        "reset_years": 0,
+        "cost": 0,
+        "duration_days": 0
+      },
+
+      "production_start_year": 0,
+      "production_end_year": null,
+
+      "tags": [],
+      "unlock_level": 0,
+
+      "reconfiguration": {
+        "base_fee": 0,
+        "move_fee_per_seat": 0,
+        "reconfiguration_duration_days": 0
+      },
+
+      "freighter_conversion": {
+        "can_convert": false,
+        "conversion_cost": 0,
+        "conversion_duration_days": 0,
+        "cargo_capacity_kg_after": 0
+      },
+
+      "can_be_reactivated": false,
+      "reactivation_cost_points": 0,
+      "reactivation_requirements": {
+        "min_reputation": 0,
+        "min_year": 0
+      }
+    }
+  }
+}

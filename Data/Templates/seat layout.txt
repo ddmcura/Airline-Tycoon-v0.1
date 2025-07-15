@@ -1,0 +1,30 @@
+{
+  "A320_standard_layout": {
+    "aircraft_model": "A320",
+    "layout_name": "Default 2-Class Layout",
+
+    "first_class": {
+      "seat_type": "private_room",
+      "count": 4,
+      "width_m": 1.2,
+      "pitch_m": 2.6,
+      "ife_type": "premium_entertainment"
+    },
+
+    "business_class": {
+      "seat_type": "lie_flat",
+      "count": 12,
+      "width_m": 0.6,
+      "pitch_m": 1.9,
+      "ife_type": "premium_entertainment"
+    },
+
+    "economy": {
+      "seat_type": "standard",
+      "count": 108,
+      "width_m": 0.45,
+      "pitch_m": 0.75,
+      "ife_type": "basic_screen"
+    }
+  }
+}
