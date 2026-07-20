@@ -1,4 +1,10 @@
-"""Basic directional route-demand and price-sensitivity formulas."""
+"""Directional route-demand and price-sensitivity formulas.
+
+The base market is generated from the origin population, then narrowed by the
+share of travellers attracted to the destination and adjusted for distance.
+Additional route modifiers can be supplied later without changing the daily
+simulation contract.
+"""
 
 DIFFICULTY_DEMAND_MULTIPLIERS = {
     "easy": 1.50,
@@ -12,10 +18,95 @@ PRICE_SENSITIVITY = {
     "hard": (0.60, 1.20),
     "extreme": (0.80, 2.00),
 }
-ORIGIN_POPULATION_WEIGHT = 0.65
-DESTINATION_POPULATION_WEIGHT = 0.35
-POPULATION_NORMALIZER = 7_500
-DEMAND_MODEL_VERSION = 2
+
+DEFAULT_DAILY_TRAVEL_RATE = 0.004
+DESTINATION_SHARE_BASE = 0.0108
+DESTINATION_SHARE_SCALE = 0.015
+DESTINATION_POPULATION_SCALE = 2_000_000
+MIN_DESTINATION_SHARE = 0.005
+MAX_DESTINATION_SHARE = 0.05
+DISTANCE_DECAY_KM = 12_000
+MIN_DISTANCE_MULTIPLIER = 0.35
+DEMAND_MODEL_VERSION = 3
+
+
+def _clamp(value, minimum, maximum):
+    return min(maximum, max(minimum, value))
+
+
+def calculate_destination_share(destination_population):
+    """Estimate what share of origin travellers choose this destination.
+
+    Larger destinations attract a larger share, but the square-root curve and
+    cap prevent megacities from consuming an unrealistic portion of every
+    origin market. Routes may override this estimate with
+    ``destination_attractiveness`` when richer airport data is available.
+    """
+    destination_population = max(0, int(destination_population or 0))
+    if destination_population == 0:
+        return MIN_DESTINATION_SHARE
+
+    population_ratio = destination_population / DESTINATION_POPULATION_SCALE
+    estimated_share = DESTINATION_SHARE_BASE + (
+        DESTINATION_SHARE_SCALE * population_ratio**0.5
+    )
+    return _clamp(
+        estimated_share,
+        MIN_DESTINATION_SHARE,
+        MAX_DESTINATION_SHARE,
+    )
+
+
+def calculate_distance_multiplier(distance_km):
+    """Reduce demand gradually as distance increases.
+
+    A 960 km route receives a multiplier of 0.92, matching the MNL-DVO design
+    example while retaining a floor for viable long-haul markets.
+    """
+    distance_km = max(0.0, float(distance_km or 0))
+    return max(
+        MIN_DISTANCE_MULTIPLIER,
+        1.0 - (distance_km / DISTANCE_DECAY_KM),
+    )
+
+
+def calculate_directional_base_demand(
+    origin_population,
+    destination_population,
+    distance_km,
+    travel_rate=DEFAULT_DAILY_TRAVEL_RATE,
+    destination_attractiveness=None,
+):
+    """Calculate the total directional market before airline modifiers.
+
+    Formula::
+
+        origin population
+        x daily travel rate
+        x destination share
+        x distance multiplier
+
+    The origin therefore drives trip generation, while the destination decides
+    how much of that travel market it can attract. This intentionally produces
+    different demand for A->B and B->A.
+    """
+    origin_population = max(0, int(origin_population or 0))
+    destination_population = max(0, int(destination_population or 0))
+    travel_rate = max(0.0, float(travel_rate or 0))
+
+    if destination_attractiveness is None:
+        destination_share = calculate_destination_share(destination_population)
+    else:
+        destination_share = _clamp(
+            float(destination_attractiveness),
+            MIN_DESTINATION_SHARE,
+            MAX_DESTINATION_SHARE,
+        )
+
+    potential_travellers = origin_population * travel_rate
+    distance_multiplier = calculate_distance_multiplier(distance_km)
+    base_demand = potential_travellers * destination_share * distance_multiplier
+    return max(0, round(base_demand))
 
 
 def backfill_route_demand(route, airport_index=None, route_id=None):
@@ -93,22 +184,11 @@ def backfill_route_demand(route, airport_index=None, route_id=None):
             route.get("origin_population", 0),
             route.get("destination_population", 0),
             route.get("distance_km", 0),
+            travel_rate=route.get("daily_travel_rate", DEFAULT_DAILY_TRAVEL_RATE),
+            destination_attractiveness=route.get("destination_attractiveness"),
         )
         route["demand_model_version"] = DEMAND_MODEL_VERSION
     return route["base_daily_demand"]
-
-
-def calculate_directional_base_demand(
-    origin_population, destination_population, distance_km
-):
-    origin_population = max(0, int(origin_population or 0))
-    destination_population = max(0, int(destination_population or 0))
-    population_score = (
-        origin_population * ORIGIN_POPULATION_WEIGHT
-        + destination_population * DESTINATION_POPULATION_WEIGHT
-    )
-    distance_factor = max(1.0, (max(0.0, float(distance_km)) / 500) ** 0.5)
-    return max(0, round(population_score / POPULATION_NORMALIZER / distance_factor))
 
 
 def price_demand_multiplier(difficulty, actual_fare, suggested_fare):
@@ -128,6 +208,7 @@ def price_demand_multiplier(difficulty, actual_fare, suggested_fare):
 
 
 def calculate_adjusted_daily_demand(route, difficulty):
+    """Apply game and airline modifiers to the total directional market."""
     base_demand = route.get("base_daily_demand")
     populations_available = (
         route.get("origin_population") is not None
@@ -148,6 +229,8 @@ def calculate_adjusted_daily_demand(route, difficulty):
             route.get("origin_population", 0),
             route.get("destination_population", 0),
             route.get("distance_km", 0),
+            travel_rate=route.get("daily_travel_rate", DEFAULT_DAILY_TRAVEL_RATE),
+            destination_attractiveness=route.get("destination_attractiveness"),
         )
         route["base_daily_demand"] = base_demand
         route["demand_model_version"] = DEMAND_MODEL_VERSION
@@ -162,4 +245,23 @@ def calculate_adjusted_daily_demand(route, difficulty):
     difficulty_multiplier = DIFFICULTY_DEMAND_MULTIPLIERS.get(
         str(difficulty or "normal").lower(), 1.0
     )
-    return max(0, round(base_demand * difficulty_multiplier * price_multiplier))
+
+    seasonality_multiplier = max(
+        0.0, float(route.get("seasonality_multiplier", 1.0) or 0)
+    )
+    reputation_multiplier = max(
+        0.0, float(route.get("reputation_multiplier", 1.0) or 0)
+    )
+    competition_multiplier = max(
+        0.0, float(route.get("competition_multiplier", 1.0) or 0)
+    )
+
+    adjusted_demand = (
+        base_demand
+        * difficulty_multiplier
+        * price_multiplier
+        * seasonality_multiplier
+        * reputation_multiplier
+        * competition_multiplier
+    )
+    return max(0, round(adjusted_demand))
