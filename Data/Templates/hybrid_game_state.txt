@@ -1,0 +1,132 @@
+{
+  // 🌐 Airline Tycoon Hybrid game_state Structure
+  // 🔥 Hub-centric for gameplay + Global indices for math
+
+  "player_info": {
+    "ceo_name": "John Doe",
+    "airline_name": "SkyFly Airways"
+  },
+
+  "settings": {
+    "difficulty": "Normal",
+    "starting_money": 50000000
+  },
+
+  "finances": {
+    "cash_on_hand": 48750000,
+    "debt": 0,
+    "net_profit": 1250000
+  },
+
+  "game_time": {
+    "current_date": "2025-07-21"
+  },
+
+  // 🏢 Hub-centric structure for gameplay menus
+  "hubs": {
+    "PH": { // ISO country code
+      "MNL": { // IATA code for hub
+        "name": "Ninoy Aquino International Airport",
+        "aircraft": {
+          "RP-C1234": {
+            "model": "Airbus A320",
+            "status": "Active", // Active, Idle, Maintenance
+
+            // 📊 Lifetime stats for this plane
+            "total_flight_hours": 3420,
+            "total_distance_flown_km": 1780000,
+            "total_revenue": 45600000,
+            "total_expenses": 37800000,
+            "net_profit": 7800000,
+            "maintenance_cycles": 7,
+
+            // 🛣 Routes assigned to this plane
+            "assigned_routes": {
+              "MNL-CEB": {
+                "status": "Active",
+                "total_flights": 480,
+                "total_passengers": 57800,
+                "total_cargo_kg": 84000,
+                "total_revenue": 12800000,
+                "total_expenses": 10200000,
+                "net_profit": 2600000,
+                "total_distance_km": 512000,
+
+                // 🕑 Schedules for this route
+                "schedules": [
+                  {"day": 1, "departure": "08:00", "arrival": "09:30"},
+                  {"day": 1, "departure": "14:00", "arrival": "15:30"}
+                ]
+              },
+              "MNL-DVO": {
+                "status": "Planned",
+                "schedules": []
+              }
+            }
+          },
+          "RP-C5678": {
+            "model": "DHC-8 Q400",
+            "status": "Idle",
+            "total_flight_hours": 820,
+            "total_distance_flown_km": 248000,
+            "total_revenue": 12600000,
+            "total_expenses": 9800000,
+            "net_profit": 2800000,
+            "maintenance_cycles": 2,
+            "assigned_routes": {}
+          }
+        },
+
+        // 📊 Hub-level stats (aggregated from aircraft)
+        "total_flight_hours": 4240,
+        "total_revenue": 58200000,
+        "total_expenses": 47600000,
+        "net_profit": 10600000
+      }
+    }
+  },
+
+  // 📂 Global route index for fast math & AI analysis
+  "routes": {
+    "MNL-CEB": {
+      "origin": "MNL",
+      "destination": "CEB",
+      "status": "Active",
+      "assigned_aircraft": ["RP-C1234"],
+      "total_revenue": 12800000,
+      "total_expenses": 10200000,
+      "net_profit": 2600000,
+      "total_flights": 480,
+      "total_passengers": 57800,
+      "total_distance_km": 512000,
+      "schedules": [
+        {"day": 1, "departure": "08:00", "arrival": "09:30"},
+        {"day": 1, "departure": "14:00", "arrival": "15:30"}
+      ]
+    },
+    "MNL-DVO": {
+      "origin": "MNL",
+      "destination": "DVO",
+      "status": "Planned",
+      "assigned_aircraft": [],
+      "total_revenue": 0,
+      "total_expenses": 0,
+      "net_profit": 0,
+      "schedules": []
+    }
+  },
+
+  // 📂 Global fleet index for maintenance & resale logic
+  "fleet": {
+    "RP-C1234": {
+      "base": "MNL",
+      "model": "Airbus A320",
+      "assigned_routes": ["MNL-CEB"]
+    },
+    "RP-C5678": {
+      "base": "MNL",
+      "model": "DHC-8 Q400",
+      "assigned_routes": []
+    }
+  }
+}

@@ -1,120 +1,117 @@
 # New Game Module (game/new_game.py)
 # This module handles the logic for starting a new game in Airline Tycoon.
-import sys
 import os
 import json
-from datetime import datetime
-from tabulate import tabulate
-from game.utils.dev import enable_dev_mode
-enable_dev_mode()
+from game.utils.save_utils import legacy_cleanup
 
-import game_state
+from settings import DEV_MODE, set_difficulty, set_starting_date
+from game import game_state
 from game.hub_selector import choose_hub
-from game_loop import game_loop
-
-def set_difficulty():
-    print("\n🎯 Game Setup Parameters\n")
-    print("Select your starting difficulty:")
-
-    difficulty_table = [
-        [1, "Easy",    "₱500,000,000", "High demand\nCheap expenses"],
-        [2, "Normal",  "₱300,000,000", "Normal demand\nNormal expenses"],
-        [3, "Hard",    "₱100,000,000", "Lower demand\nHigher expenses"],
-        [4, "Extreme", "None", "Very low demand\nVery high expenses\n+ ₱300M Outstanding Loan 💀"],
-        [5, "Sandbox", "Unlimited 💸", "Coming soon..."]
-    ]
-
-    print(tabulate(difficulty_table, headers=["#", "Difficulty", "Starting Money", "Conditions"], tablefmt="fancy_grid"))
-
-    choices = {
-        "1": ("hard", 500_000_000, 0),
-        "2": ("normal", 300_000_000, 0),
-        "3": ("hard", 100_000_000, 0),
-        "4": ("extreme", 0, 300_000_000)
-    }
-
-    choice = ""
-    while choice not in choices:
-        choice = input("Enter your choice (1-4): ").strip()
-        if choice == "5":
-            print("\n🧪 Sandbox mode is not available yet — stay tuned!\n")
-
-    difficulty, initial_money, debt = choices[choice]
-    
-    return initial_money, difficulty, debt
-
-def set_starting_date():
-    default = datetime.now().strftime("%m-%d-%Y")  # 👈 Format: MM-DD-YYYY
-    while True:
-        user_input = input(f"Enter your starting date (MM-DD-YYYY) [default: {default}]: ").strip()
-        if not user_input:
-            return datetime.now().strftime("%Y-%m-%d")  # 👈 Internally store as YYYY-MM-DD
-        
-        try:
-            parsed_date = datetime.strptime(user_input, "%m-%d-%Y")
-            return parsed_date.strftime("%Y-%m-%d")  # 👈 Convert to standard ISO format
-        except ValueError:
-            print("❌ Invalid format. Please use MM-DD-YYYY.")
-
-
+from game.utils.render import clear_screen, slow_print
+from game.game_loop import game_loop
 
 def start_new_game():
+    clear_screen()
     game_state.reset_game_state()
-    print("🔁 game_state ID:", id(game_state.game_state))
+    legacy_cleanup(game_state.game_state)
 
+    if DEV_MODE:
+        print("🔁 game_state ID:", id(game_state.game_state))
+        input("\n Press Enter to continue...")
+
+    clear_screen()
     initial_money, difficulty, debt = set_difficulty()
     start_date = set_starting_date()
-    print("Hello there! You must be the new CEO? Please tell me your name?\n")
+    clear_screen()
+
+    print("🌟 Hello there! You must be the new boss?\n")
+    print("Well I am Billie! Your new executive assistant. So glad to finally meet you!\n")
+    print("First things first... what should I call you?")
     while True:
         ceo_name = input("Input Your Name: ").strip()
-        confirm = input(f"{ceo_name}? Is that correct? (Y/N): ").strip().lower()
+        confirm = input(f"💬{ceo_name}? Love it! Just making sure this is your final answer? (Y/N): ").strip().lower()
         if confirm == "y":
             break
         elif confirm == "n":
             print("Let's try that again.")
-
-    print(f"\nYes! {ceo_name}. I am Billie, your assistant. Let's get started! As the new CEO of this company, what do you want to call your Airline?\n")
+    clear_screen()
+    print(f"\n🔥 {ceo_name}, wow that name's got some power!\n")
+    print("Every sky titan needs a mighty empire in the clouds.\n")
+    print("What should we call your airline?\n")
     while True:
         airline_name = input("Input Airline Name: ").strip()
-        confirm = input(f"{airline_name}? Is that correct? (Y/N): ").strip().lower()
+        confirm = input(f"{airline_name}? Sounds legendary! Let's lock it in? (Y/N): ").strip().lower()
         if confirm == "y":
             break
         elif confirm == "n":
             print("Let's try that again.")
 
-    print(f"\n{airline_name} is such a cool name! Ok! Moving on, we will need to set up a Hub where you will start your Airline Journey\n")
+    print(f"\n{airline_name} is officially on the runway to greatness.\n")
+    print("Time to choose your starting stronghold in this cutthroat industry.")
+    input("\nPress Enter to continue...")
+    clear_screen()
 
+    # 🌟 Inject parent airline into airline_list and set current focus
     game_state.update_game_state({
         "settings": {
             "difficulty": difficulty,
             "starting_money": initial_money
         },
-        "finances": {
-            "cash_on_hand": initial_money,
-            "debt": debt
-        },
         "player_info": {
             "ceo_name": ceo_name,
-            "airline_name": airline_name
+            "airline_name": airline_name,
+            "current_focus": airline_name
+        },
+        "airline_list": {
+            airline_name: {
+                "hubs": {},
+                "routes": {},
+                "fleet": {},
+                "finances": {
+                    "cash_on_hand": initial_money,
+                    "debt": debt
+                },
+                "subsidiaries": {},
+                "ai_mode": "player_controlled"
+            }
         },
         "game_time": {
             "current_date": f"{start_date} 00:00"
         }
     })
 
-    print("🔁 game_state ID:", id(game_state.game_state))
+    if DEV_MODE:
+        print("🔁 game_state ID:", id(game_state.game_state))
+        input("Press Enter to continue...")
 
-    choose_hub()
+    # Loop until player chooses a hub
+    while True:
+        selected_hub = choose_hub(caller="new_game")
+        if selected_hub is None:
+            clear_screen()
+            print(f"😅 Oh {ceo_name}! I think you forgot to choose your main hub yet!")
+            print("Please choose where your home base will be.")
+            input("\nPress Enter to continue...")
+        else:
+            break
 
-    print("\n🔎 FINAL game_state before save:")
-    print(json.dumps(game_state.game_state, indent=2))
-    
-    print("🔁 game_state ID:", id(game_state.game_state))
+    if DEV_MODE:
+        print("\n🔎 FINAL game_state before save:")
+        print(json.dumps(game_state.game_state, indent=2))
+        print("🔁 game_state ID:", id(game_state.game_state))
 
     game_state.autosave()
-    print("\n🧠 DEBUG inside start_new_game:")
-    print(json.dumps(game_state.game_state, indent=2))
-    input("\n✅ Game setup complete! Press Enter...")
+
+    # ✈️ Billie dialogue before entering game loop
+    clear_screen()
+    print(f"💬 Billie: Wow {selected_hub['name']}! How wonderful!")
+    print("💬 Billie: I’m looking forward to watching this airline grow!")
+    input("\nPress Enter to begin your journey...")
+
+    if DEV_MODE:
+        print("\n🧠 DEBUG inside start_new_game:")
+        print(json.dumps(game_state.game_state, indent=2))
+        input("\n✅ Game setup complete! Press Enter...")
 
     game_loop(game_state.game_state)
 
@@ -151,7 +148,6 @@ def load_game_menu():
             break
         else:
             print("❌ Invalid selection. Please try again.")
-
 
 if __name__ == "__main__":
     start_new_game()

@@ -1,0 +1,15 @@
+{
+  "name": "Wings Capital",
+  "services": "rent_to_own_only",
+  "fleet_for_lease": {},
+  "fleet_for_rent_to_own": {
+    "Boeing 777-300ER": {
+      "base_price": 150000000,
+      "terms": [10, 15, 20]
+    },
+    "Airbus A350-900": {
+      "base_price": 155000000,
+      "terms": [10, 15, 25]
+    }
+  }
+}

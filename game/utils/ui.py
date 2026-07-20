@@ -1,4 +1,6 @@
-def paginate(items, page_size=9, render_func=None):
+# game/utils/ui.py
+
+def paginate(items, page_size=9, render_func=None, allow_cancel=True):
     """
     Displays paginated items in the terminal, allowing navigation and selection.
     
@@ -7,9 +9,11 @@ def paginate(items, page_size=9, render_func=None):
         page_size (int): Number of items per page.
         render_func (function, optional): A function that takes a list of items 
                                           and returns a formatted string for display.
+        allow_cancel (bool): Whether to allow canceling with "C".
 
     Returns:
-        The selected item from the list, or the string "BACK" if the user chooses to go back.
+        The selected item from the list, "BACK" if the user chooses to go back,
+        or "CANCEL" if the user chooses to cancel (when allow_cancel=True).
     """
     current_page = 0
     total_pages = (len(items) - 1) // page_size + 1
@@ -26,7 +30,11 @@ def paginate(items, page_size=9, render_func=None):
             for i, item in enumerate(page_items, 1):
                 print(f"{i}. {item}")
 
-        print("\nN: Next | P: Prev | B: Back")
+        footer = "N: Next | P: Prev | B: Back"
+        if allow_cancel:
+            footer += " | C: Cancel"
+        print(f"\n{footer}")
+
         choice = input("Input Choice: ").strip().lower()
 
         if choice == "n" and current_page < total_pages - 1:
@@ -35,6 +43,8 @@ def paginate(items, page_size=9, render_func=None):
             current_page -= 1
         elif choice == "b":
             return "BACK"
+        elif choice == "c" and allow_cancel:
+            return "CANCEL"
         elif choice.isdigit():
             index = int(choice) - 1
             if 0 <= index < len(page_items):

@@ -1,0 +1,1392 @@
+{
+  "PH": {
+    "airports": [
+      {
+        "icao": "RPLL",
+        "iata": "MNL",
+        "name": "Ninoy Aquino International Airport",
+        "historic_names": [
+          {
+            "name": "Manila International Airport",
+            "from": "1948-07-01",
+            "to": "1987-08-17"
+          }
+        ],
+        "city": "Metro Manila",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 14.5086,
+          "lon": 121.0198
+        },
+        "airport_class": "international",
+        "airport_size": "mega",
+        "timezone": "GMT+8",
+        "runway_length_m": 3737,
+        "runways": 2,
+        "runway_names": [
+          "06/24",
+          "13/31"
+        ],
+        "total_pax_stands": 72,
+        "total_cargo_stands": 12,
+        "number_of_terminals_pax": 4,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "G",
+        "slots": 1800,
+        "avg_taxi_time_min": 15,
+        "population": 13500000,
+        "cargo_volume_kg": 620000000,
+        "date_opened": "1948-07-01",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 150000,
+          "mtow_fee": 500,
+          "parking_fee": 2000,
+          "departure_fee_per_pax": 750
+        },
+        "city_type": [
+          "business",
+          "tourist",
+          "luxury"
+        ],
+        "description": "The Philippines' primary gateway and busiest airport, serving as a major hub for both domestic and international flights.",
+        "regional_importance": "global",
+        "hub_potential": "high",
+        "tourism_rating": 5,
+        "business_activity_level": "high",
+        "luxury_travel_score": 5,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPVM",
+        "iata": "CEB",
+        "name": "Mactan-Cebu International Airport",
+        "city": "Cebu City",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 10.3070,
+          "lon": 123.9810
+        },
+        "airport_class": "international",
+        "airport_size": "large",
+        "timezone": "GMT+8",
+        "runway_length_m": 3700,
+        "runways": 2,
+        "runway_names": [
+          "06/24",
+          "13/31"
+        ],
+        "total_pax_stands": 40,
+        "total_cargo_stands": 5,
+        "number_of_terminals_pax": 2,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "F",
+        "slots": 800,
+        "avg_taxi_time_min": 12,
+        "population": 1000000,
+        "cargo_volume_kg": 150000000,
+        "date_opened": "1990-04-01",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 80000,
+          "mtow_fee": 400,
+          "parking_fee": 1500,
+          "departure_fee_per_pax": 500
+        },
+        "city_type": [
+          "tourist",
+          "business"
+        ],
+        "description": "The primary gateway to the Visayas, serving both domestic and international flights.",
+        "regional_importance": "major",
+        "hub_potential": "medium",
+        "tourism_rating": 5,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 4,
+        "holidays": [
+          {
+            "name": "Sinulog Festival",
+            "start_date": "01-18",
+            "end_date": "01-22",
+            "demand_modifier": 1.5
+          }
+        ],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMD",
+        "iata": "DVO",
+        "name": "Francisco Bangoy International Airport",
+        "city": "Davao City",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 7.1250,
+          "lon": 125.6450
+        },
+        "airport_class": "international",
+        "airport_size": "large",
+        "timezone": "GMT+8",
+        "runway_length_m": 3350,
+        "runways": 2,
+        "runway_names": [
+          "05/23",
+          "14/32"
+        ],
+        "total_pax_stands": 20,
+        "total_cargo_stands": 3,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "E",
+        "slots": 400,
+        "avg_taxi_time_min": 10,
+        "population": 1230000,
+        "cargo_volume_kg": 80000000,
+        "date_opened": "1958-03-01",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 70000,
+          "mtow_fee": 350,
+          "parking_fee": 1200,
+          "departure_fee_per_pax": 450
+        },
+        "city_type": [
+          "business",
+          "tourist"
+        ],
+        "description": "Main gateway to Mindanao, with a mix of domestic and limited international flights.",
+        "regional_importance": "major",
+        "hub_potential": "medium",
+        "tourism_rating": 4,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 3,
+        "holidays": [
+          {
+            "name": "Kadayawan Festival",
+            "start_date": "08-09",
+            "end_date": "08-18",
+            "demand_modifier": 1.4
+          }
+        ],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPLC",
+        "iata": "CRK",
+        "name": "Clark International Airport",
+        "city": "Clark Freeport Zone",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 15.1860,
+          "lon": 120.5600
+        },
+        "airport_class": "international",
+        "airport_size": "large",
+        "timezone": "GMT+8",
+        "runway_length_m": 3700,
+        "runways": 1,
+        "runway_names": [
+          "02/20"
+        ],
+        "total_pax_stands": 25,
+        "total_cargo_stands": 4,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 1,
+        "has_cargo_terminal": true,
+        "max_aircraft_class": "F",
+        "slots": 600,
+        "avg_taxi_time_min": 13,
+        "population": 1000000,
+        "cargo_volume_kg": 100000000,
+        "date_opened": "1993-11-01",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 90000,
+          "mtow_fee": 450,
+          "parking_fee": 1600,
+          "departure_fee_per_pax": 550
+        },
+        "city_type": [
+          "business",
+          "tourist"
+        ],
+        "description": "An alternate gateway to Manila, with growing international connectivity and low congestion.",
+        "regional_importance": "major",
+        "hub_potential": "high",
+        "tourism_rating": 4,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 3,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPVI",
+        "iata": "ILO",
+        "name": "Iloilo International Airport",
+        "city": "Iloilo City",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 10.8250,
+          "lon": 122.4980
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2850,
+        "runways": 1,
+        "runway_names": [
+          "02/20"
+        ],
+        "total_pax_stands": 15,
+        "total_cargo_stands": 2,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "E",
+        "slots": 300,
+        "avg_taxi_time_min": 8,
+        "population": 1000000,
+        "cargo_volume_kg": 40000000,
+        "date_opened": "2007-06-14",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 60000,
+          "mtow_fee": 300,
+          "parking_fee": 1000,
+          "departure_fee_per_pax": 400
+        },
+        "city_type": [
+          "tourist",
+          "business"
+        ],
+        "description": "Serves the Iloilo–Panay region, with a modern terminal and growing tourism traffic.",
+        "regional_importance": "regional",
+        "hub_potential": "medium",
+        "tourism_rating": 4,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 3,
+        "holidays": [
+          {
+            "name": "Dinagyang Festival",
+            "start_date": "01-17",
+            "end_date": "01-21",
+            "demand_modifier": 1.5
+          }
+        ],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPVP",
+        "iata": "PPS",
+        "name": "Puerto Princesa International Airport",
+        "city": "Puerto Princesa",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 9.7420,
+          "lon": 118.7590
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2600,
+        "runways": 1,
+        "runway_names": [
+          "09/27"
+        ],
+        "total_pax_stands": 8,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "D",
+        "slots": 150,
+        "avg_taxi_time_min": 7,
+        "population": 307000,
+        "cargo_volume_kg": 15000000,
+        "date_opened": "2017-05-03",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 40000,
+          "mtow_fee": 250,
+          "parking_fee": 800,
+          "departure_fee_per_pax": 300
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Gateway to the famous Palawan island attractions and a major tourism hub.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 5,
+        "business_activity_level": "low",
+        "luxury_travel_score": 3,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMY",
+        "iata": "CGY",
+        "name": "Laguindingan Airport",
+        "city": "Cagayan de Oro",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 8.6120,
+          "lon": 124.4560
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2100,
+        "runways": 1,
+        "runway_names": [
+          "09/27"
+        ],
+        "total_pax_stands": 6,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 100,
+        "avg_taxi_time_min": 6,
+        "population": 700000,
+        "cargo_volume_kg": 20000000,
+        "date_opened": "2013-06-15",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 35000,
+          "mtow_fee": 200,
+          "parking_fee": 700,
+          "departure_fee_per_pax": 250
+        },
+        "city_type": [
+          "business",
+          "tourist"
+        ],
+        "description": "Primary airport serving Northern Mindanao and Cagayan de Oro metro.",
+        "regional_importance": "regional",
+        "hub_potential": "medium",
+        "tourism_rating": 3,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPVB",
+        "iata": "BCD",
+        "name": "Bacolod–Silay Airport",
+        "city": "Bacolod",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 10.7760,
+          "lon": 122.9320
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2100,
+        "runways": 1,
+        "runway_names": [
+          "03/21"
+        ],
+        "total_pax_stands": 4,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 80,
+        "avg_taxi_time_min": 5,
+        "population": 561875,
+        "cargo_volume_kg": 10000000,
+        "date_opened": "2008-01-18",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 30000,
+          "mtow_fee": 180,
+          "parking_fee": 600,
+          "departure_fee_per_pax": 200
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "A modern airport serving the Sugar Bowl of the Philippines, Bacolod region.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 3,
+        "business_activity_level": "low",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPSP",
+        "iata": "TAG",
+        "name": "Bohol–Panglao International Airport",
+        "city": "Tagbilaran / Panglao",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 9.5480,
+          "lon": 123.7800
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2500,
+        "runways": 1,
+        "runway_names": [
+          "04/22"
+        ],
+        "total_pax_stands": 5,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 90,
+        "avg_taxi_time_min": 6,
+        "population": 1130000,
+        "cargo_volume_kg": 12000000,
+        "date_opened": "2018-11-27",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 32000,
+          "mtow_fee": 200,
+          "parking_fee": 650,
+          "departure_fee_per_pax": 220
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Modern gateway to the island paradise of Bohol and Panglao.",
+        "regional_importance": "regional",
+        "hub_potential": "medium",
+        "tourism_rating": 5,
+        "business_activity_level": "low",
+        "luxury_travel_score": 3,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMZ",
+        "iata": "ZAM",
+        "name": "Zamboanga International Airport",
+        "city": "Zamboanga City",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 6.9220,
+          "lon": 122.0600
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2600,
+        "runways": 1,
+        "runway_names": [
+          "09/27"
+        ],
+        "total_pax_stands": 5,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "D",
+        "slots": 100,
+        "avg_taxi_time_min": 7,
+        "population": 861799,
+        "cargo_volume_kg": 17000000,
+        "date_opened": "1945-06-01",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 36000,
+          "mtow_fee": 210,
+          "parking_fee": 750,
+          "departure_fee_per_pax": 230
+        },
+        "city_type": [
+          "business",
+          "tourist"
+        ],
+        "description": "Main airport of Western Mindanao, serving as a key regional hub.",
+        "regional_importance": "regional",
+        "hub_potential": "medium",
+        "tourism_rating": 3,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPVA",
+        "iata": "TAC",
+        "name": "Daniel Z. Romualdez Airport",
+        "city": "Tacloban",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 11.2270,
+          "lon": 125.0270
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2138,
+        "runways": 1,
+        "runway_names": [
+          "18/36"
+        ],
+        "total_pax_stands": 4,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 75,
+        "avg_taxi_time_min": 6,
+        "population": 251000,
+        "cargo_volume_kg": 9000000,
+        "date_opened": "1945-06-20",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 28000,
+          "mtow_fee": 170,
+          "parking_fee": 550,
+          "departure_fee_per_pax": 190
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "The main airport serving Eastern Visayas, vital during relief operations and tourism.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 3,
+        "business_activity_level": "low",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPVK",
+        "iata": "KLO",
+        "name": "Kalibo International Airport",
+        "city": "Kalibo",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 11.6790,
+          "lon": 122.3760
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2400,
+        "runways": 1,
+        "runway_names": [
+          "05/23"
+        ],
+        "total_pax_stands": 3,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 65,
+        "avg_taxi_time_min": 5,
+        "population": 80700,
+        "cargo_volume_kg": 5000000,
+        "date_opened": "1993-04-01",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 26000,
+          "mtow_fee": 160,
+          "parking_fee": 500,
+          "departure_fee_per_pax": 180
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Gateway to Boracay Island, this airport handles both domestic and international flights.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 5,
+        "business_activity_level": "low",
+        "luxury_travel_score": 3,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMR",
+        "iata": "GES",
+        "name": "General Santos International Airport",
+        "city": "General Santos",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 6.0580,
+          "lon": 125.0960
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 3227,
+        "runways": 1,
+        "runway_names": [
+          "17/35"
+        ],
+        "total_pax_stands": 5,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "D",
+        "slots": 85,
+        "avg_taxi_time_min": 8,
+        "population": 697000,
+        "cargo_volume_kg": 14000000,
+        "date_opened": "1996-07-06",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 34000,
+          "mtow_fee": 190,
+          "parking_fee": 650,
+          "departure_fee_per_pax": 210
+        },
+        "city_type": [
+          "business",
+          "tourist"
+        ],
+        "description": "Southern Mindanao’s main airport, serving the tuna capital of the Philippines.",
+        "regional_importance": "regional",
+        "hub_potential": "medium",
+        "tourism_rating": 3,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPME",
+        "iata": "BXU",
+        "name": "Bancasi Airport",
+        "city": "Butuan",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 8.9510,
+          "lon": 125.4780
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2100,
+        "runways": 1,
+        "runway_names": [
+          "12/30"
+        ],
+        "total_pax_stands": 3,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 60,
+        "avg_taxi_time_min": 5,
+        "population": 337000,
+        "cargo_volume_kg": 7000000,
+        "date_opened": "1960-02-14",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 25000,
+          "mtow_fee": 150,
+          "parking_fee": 450,
+          "departure_fee_per_pax": 160
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Butuan’s main airport serving Agusan del Norte and neighboring provinces.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 2,
+        "business_activity_level": "low",
+        "luxury_travel_score": 1,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPBL",
+        "iata": "LGP",
+        "name": "Legazpi Airport",
+        "city": "Legazpi",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 13.1570,
+          "lon": 123.7350
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2280,
+        "runways": 1,
+        "runway_names": [
+          "06/24"
+        ],
+        "total_pax_stands": 3,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 70,
+        "avg_taxi_time_min": 5,
+        "population": 208000,
+        "cargo_volume_kg": 6000000,
+        "date_opened": "1950-11-22",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 24000,
+          "mtow_fee": 140,
+          "parking_fee": 420,
+          "departure_fee_per_pax": 150
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Serves Albay province and famous for its view of Mayon Volcano.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 4,
+        "business_activity_level": "low",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPLI",
+        "iata": "LAO",
+        "name": "Laoag International Airport",
+        "city": "Laoag",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 18.1781,
+          "lon": 120.5308
+        },
+        "airport_class": "international",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2784,
+        "runways": 1,
+        "runway_names": [
+          "04/22"
+        ],
+        "total_pax_stands": 4,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "D",
+        "slots": 70,
+        "avg_taxi_time_min": 6,
+        "population": 112117,
+        "cargo_volume_kg": 8000000,
+        "date_opened": "1982-05-15",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 28000,
+          "mtow_fee": 150,
+          "parking_fee": 500,
+          "departure_fee_per_pax": 180
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Northern Luzon gateway and alternate international airport for Ilocos Norte.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 3,
+        "business_activity_level": "low",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMP",
+        "iata": "PAG",
+        "name": "Pagadian Airport",
+        "city": "Pagadian",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 7.8304,
+          "lon": 123.4453
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 1800,
+        "runways": 1,
+        "runway_names": [
+          "06/24"
+        ],
+        "total_pax_stands": 3,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 60,
+        "avg_taxi_time_min": 5,
+        "population": 306000,
+        "cargo_volume_kg": 5000000,
+        "date_opened": "1972-08-10",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 24000,
+          "mtow_fee": 140,
+          "parking_fee": 450,
+          "departure_fee_per_pax": 160
+        },
+        "city_type": [
+          "business"
+        ],
+        "description": "Mountainous regional airport serving Zamboanga del Sur, with frequent flights to Manila.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 2,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 1,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMG",
+        "iata": "DPL",
+        "name": "Dipolog Airport",
+        "city": "Dipolog",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 8.5897,
+          "lon": 123.3581
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2100,
+        "runways": 1,
+        "runway_names": [
+          "06/24"
+        ],
+        "total_pax_stands": 4,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "D",
+        "slots": 65,
+        "avg_taxi_time_min": 6,
+        "population": 138141,
+        "cargo_volume_kg": 8000000,
+        "date_opened": "1965-03-18",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 26000,
+          "mtow_fee": 150,
+          "parking_fee": 500,
+          "departure_fee_per_pax": 170
+        },
+        "city_type": [
+          "tourist",
+          "business"
+        ],
+        "description": "Domestic hub in Zamboanga del Norte with strong route connectivity to Manila & Cebu.",
+        "regional_importance": "regional",
+        "hub_potential": "medium",
+        "tourism_rating": 3,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMC",
+        "iata": "CBO",
+        "name": "Awang (Cotabato) Airport",
+        "city": "Cotabato",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 7.2040,
+          "lon": 124.2330
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 2100,
+        "runways": 1,
+        "runway_names": [
+          "01/19"
+        ],
+        "total_pax_stands": 5,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "D",
+        "slots": 70,
+        "avg_taxi_time_min": 6,
+        "population": 235000,
+        "cargo_volume_kg": 9000000,
+        "date_opened": "1955-04-22",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 27000,
+          "mtow_fee": 150,
+          "parking_fee": 550,
+          "departure_fee_per_pax": 175
+        },
+        "city_type": [
+          "business"
+        ],
+        "description": "Strategic air gateway in the Bangsamoro region with regular flights to regional hubs.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 2,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 2,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPUY",
+        "iata": "CYZ",
+        "name": "Cauayan Airport",
+        "city": "Cauayan",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 16.9123,
+          "lon": 121.7594
+        },
+        "airport_class": "domestic",
+        "airport_size": "small",
+        "timezone": "GMT+8",
+        "runway_length_m": 1600,
+        "runways": 1,
+        "runway_names": [
+          "07/25"
+        ],
+        "total_pax_stands": 2,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 50,
+        "avg_taxi_time_min": 5,
+        "population": 127000,
+        "cargo_volume_kg": 4000000,
+        "date_opened": "2000-09-12",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 22000,
+          "mtow_fee": 120,
+          "parking_fee": 400,
+          "departure_fee_per_pax": 150
+        },
+        "city_type": [
+          "business"
+        ],
+        "description": "Domestic airport serving Isabela province, with scheduled flights to Manila.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 2,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 1,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPMN",
+        "iata": "TWT",
+        "name": "Sanga-Sanga Airport",
+        "city": "Bongao",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 5.0461,
+          "lon": 119.7424
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 1830,
+        "runways": 1,
+        "runway_names": [
+          "07/25"
+        ],
+        "total_pax_stands": 2,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 50,
+        "avg_taxi_time_min": 5,
+        "population": 106000,
+        "cargo_volume_kg": 3000000,
+        "date_opened": "1974-04-10",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 20000,
+          "mtow_fee": 110,
+          "parking_fee": 350,
+          "departure_fee_per_pax": 140
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Gateway to the southernmost province of Tawi-Tawi, serving Bongao and nearby islands.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 3,
+        "business_activity_level": "low",
+        "luxury_travel_score": 1,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPUT",
+        "iata": "TUG",
+        "name": "Tuguegarao Airport",
+        "city": "Tuguegarao",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 17.6430,
+          "lon": 121.7330
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 1800,
+        "runways": 1,
+        "runway_names": [
+          "08/26"
+        ],
+        "total_pax_stands": 3,
+        "total_cargo_stands": 1,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "C",
+        "slots": 60,
+        "avg_taxi_time_min": 5,
+        "population": 166000,
+        "cargo_volume_kg": 5000000,
+        "date_opened": "1990-03-21",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 23000,
+          "mtow_fee": 130,
+          "parking_fee": 400,
+          "departure_fee_per_pax": 150
+        },
+        "city_type": [
+          "business",
+          "tourist"
+        ],
+        "description": "Main air gateway to Cagayan Valley and northern Luzon provinces.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 2,
+        "business_activity_level": "medium",
+        "luxury_travel_score": 1,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPUN",
+        "iata": "WNP",
+        "name": "Naga Airport",
+        "city": "Naga",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 13.5845,
+          "lon": 123.2698
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 1402,
+        "runways": 1,
+        "runway_names": [
+          "04/22"
+        ],
+        "total_pax_stands": 2,
+        "total_cargo_stands": 0,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "B",
+        "slots": 40,
+        "avg_taxi_time_min": 4,
+        "population": 209000,
+        "cargo_volume_kg": 2000000,
+        "date_opened": "1970-06-18",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 19000,
+          "mtow_fee": 100,
+          "parking_fee": 300,
+          "departure_fee_per_pax": 130
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Small domestic airport serving Naga City and Camarines Sur province.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 2,
+        "business_activity_level": "low",
+        "luxury_travel_score": 1,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      },
+      {
+        "icao": "RPNS",
+        "iata": "IAO",
+        "name": "Sayak Airport",
+        "city": "Del Carmen (Siargao)",
+        "country": "Philippines",
+        "region": "Asia",
+        "coordinates": {
+          "lat": 9.8590,
+          "lon": 126.0130
+        },
+        "airport_class": "domestic",
+        "airport_size": "medium",
+        "timezone": "GMT+8",
+        "runway_length_m": 1300,
+        "runways": 1,
+        "runway_names": [
+          "15/33"
+        ],
+        "total_pax_stands": 3,
+        "total_cargo_stands": 0,
+        "number_of_terminals_pax": 1,
+        "number_of_terminals_cargo": 0,
+        "has_cargo_terminal": false,
+        "max_aircraft_class": "B",
+        "slots": 40,
+        "avg_taxi_time_min": 4,
+        "population": 200000,
+        "cargo_volume_kg": 3000000,
+        "date_opened": "1967-09-14",
+        "date_closed": "",
+        "fees": {
+          "base_landing_fee": 18000,
+          "mtow_fee": 90,
+          "parking_fee": 280,
+          "departure_fee_per_pax": 120
+        },
+        "city_type": [
+          "tourist"
+        ],
+        "description": "Gateway to the surfing paradise of Siargao Island.",
+        "regional_importance": "regional",
+        "hub_potential": "low",
+        "tourism_rating": 5,
+        "business_activity_level": "low",
+        "luxury_travel_score": 3,
+        "holidays": [],
+        "seasonal_demand": {
+          "winter": "moderate",
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": [],
+        "aircraft_registration_prefix": "RP-C"
+      }
+    ]
+  }
+}

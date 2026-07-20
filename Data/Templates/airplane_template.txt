@@ -1,104 +1,78 @@
 {
-  "FAMILY_NAME": {
-    "VARIANT_NAME": {
-      "manufacturer": "",
-      "type": "",
+  // Airbus A320 family (replace "A320" with actual aircraft family)
+  "A320": {
+    // A320-200 model (replace "A320-200" with actual model)
+    "A320-200": {
+      "manufacturer": "", // Manufacturer name
+      "type": "", // Aircraft type (e.g., Narrow-body, Wide-body)
 
-      "range_km": 0,
-      "capacity": 0,
-      "max_payload_kg": 0,
-      "cargo_capacity_kg": 0,
+      "range_km": 0, // Maximum range in kilometers
+      "capacity": 0, // Passenger capacity
+      "max_payload_kg": 0, // Maximum payload in kg
+      "cargo_capacity_kg": 0, // Cargo capacity in kg
 
-      "cruise_speed_kph": 0,
-      "max_speed_kph": 0,
-      "fuel_burn_lph": 0,
-      "fuel_type": "",
+      "cruise_speed_kph": 0, // Cruise speed in kph
+      "max_speed_kph": 0, // Maximum speed in kph
+      "fuel_burn_lph": 0, // Fuel burn in liters per hour
+      "fuel_type": "", // Type of fuel used (e.g., Jet A-1)
 
-      "required_runway_m": 0,
-      "crew": {
-        "pilots": 0,
-        "cabin": 0
-      },
+      "required_runway_m": 0, // Required runway length in meters
+      "crew": { "pilots": 0, "cabin": 0 }, // Crew configuration
 
-      "cabin_width_m": 0.0,
-      "cabin_length_m": 0.0,
+      "cabin_width_m": 0.0, // Cabin width in meters
+      "cabin_length_m": 0.0, // Cabin length in meters
 
-      "base_price": 0,
-      "default_layout_price": 0,
-      "purchase_price": 0,
+      "base_price": 0, // Base price in game currency
+      "default_layout_price": 0, // Cost of default layout
+      "purchase_price": 0, // Purchase price in game
 
       "default_layout": {
-        "first_class": {
-          "seat_type": "",
-          "seats": 0
-        },
-        "business_class": {
-          "seat_type": "",
-          "seats": 0
-        },
-        "economy": {
-          "seat_type": "",
-          "seats": 0
-        }
+        "first_class": { "seat_type": "", "seats": 0 }, // First class layout
+        "business_class": { "seat_type": "", "seats": 0 }, // Business class layout
+        "economy": { "seat_type": "", "seats": 0 } // Economy class layout
       },
 
-      "maintenance_base_cost": 0,
-      "age_limit_years": 0,
+      "maintenance_base_cost": 0, // Base cost for maintenance
+      "age_limit_years": 0, // Age limit in years
       "maintenance_checks": {
-        "A": {
-          "interval_hours": 0,
-          "duration_days": 0,
-          "cost": 0
-        },
-        "B": {
-          "interval_hours": 0,
-          "duration_days": 0,
-          "cost": 0
-        },
-        "C": {
-          "interval_hours": 0,
-          "duration_days": 0,
-          "cost": 0
-        },
-        "D": {
-          "interval_hours": 0,
-          "duration_days": 0,
-          "cost": 0
-        },
-        "aging_cost_factor": 0.0
+        "A": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // A-check
+        "B": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // B-check
+        "C": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // C-check
+        "D": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // D-check
+        "aging_cost_factor": 0.0 // Aging cost factor
       },
 
       "overhaul_program": {
-        "can_overhaul": false,
-        "reset_years": 0,
-        "cost": 0,
-        "duration_days": 0
+        "can_overhaul": false, // Indicates if overhaul is possible
+        "reset_years": 0, // Overhaul resets age every X years
+        "cost": 0, // Cost of overhaul
+        "duration_days": 0 // Duration of overhaul in days
       },
 
-      "production_start_year": 0,
-      "production_end_year": null,
+      "production_start_year": 0, // Production start year
+      "production_end_year": null, // Production end year (null = still in production)
 
-      "tags": [],
-      "unlock_level": 0,
+      "tags": [""], // Tags for gameplay (e.g., short-haul, fuel-efficient)
+      "unlock_level": 0, // Level required to unlock
 
       "reconfiguration": {
-        "base_fee": 0,
-        "move_fee_per_seat": 0,
-        "reconfiguration_duration_days": 0
+        "base_fee": 0, // Base fee for reconfiguration
+        "move_fee_per_seat": 0, // Fee per seat moved
+        "reconfiguration_duration_days": 0 // Duration of reconfiguration
       },
 
       "freighter_conversion": {
-        "can_convert": false,
-        "conversion_cost": 0,
-        "conversion_duration_days": 0,
-        "cargo_capacity_kg_after": 0
+        "can_convert": false, // Indicates if freighter conversion possible
+        "conversion_cost": 0, // Cost of conversion
+        "conversion_duration_days": 0, // Duration of conversion
+        "cargo_capacity_kg_after": 0 // Cargo capacity after conversion
       },
 
-      "can_be_reactivated": false,
-      "reactivation_cost_points": 0,
+      "can_be_reactivated": false, // Indicates if aircraft can be reactivated
+      "reactivation_cost_points": 0, // Reactivation cost in points
       "reactivation_requirements": {
-        "min_reputation": 0,
-        "min_year": 0
+        "min_reputation": 0, // Minimum reputation required
+        "min_year": 0 // Minimum year required
       }
     }
   }

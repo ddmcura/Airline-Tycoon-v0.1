@@ -1,0 +1,48 @@
+# game/gui/kv/dashboard.kv
+
+#:kivy 2.3.0
+
+<DashboardScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 30
+
+        Label:
+            text: "✈️ Airline Tycoon v0.1 ✈️"
+            font_size: 32
+            size_hint_y: 0.2
+            bold: True
+
+        Button:
+            text: "🌟 New Game"
+            font_size: 24
+            size_hint_y: None
+            height: 60
+            on_press: print("[New Game clicked]")
+
+        Button:
+            text: "💾 Load Game"
+            font_size: 24
+            size_hint_y: None
+            height: 60
+            on_press: print("[Load Game clicked]")
+
+        Button:
+            text: "📘 Tutorial (Coming Soon)"
+            font_size: 24
+            size_hint_y: None
+            height: 60
+
+        Button:
+            text: "⚙️ Settings (Coming Soon)"
+            font_size: 24
+            size_hint_y: None
+            height: 60
+
+        Button:
+            text: "🚪 Exit"
+            font_size: 24
+            size_hint_y: None
+            height: 60
+            on_press: app.stop()

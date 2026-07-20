@@ -1,0 +1,243 @@
+#=========
+# airplane.json template starts here (✈️ Aircraft Data Template)
+# This is a **REFERENCE TEMPLATE** for in-game aircraft data.
+# ✅ Use this for Data/planes/*.json (Airbus, Boeing, etc.)
+# ✅ All fields have comments to guide data population.
+# 🚫 Do NOT add actual game data here. Keep it as a blank schema for reference only.
+#=========
+{
+  // Airbus A320 family (replace "A320" with actual aircraft family)
+  "A320": {
+    // A320-200 model (replace "A320-200" with actual model)
+    "A320-200": {
+      "manufacturer": "", // Manufacturer name
+      "type": "", // Aircraft type (e.g., Narrow-body, Wide-body)
+
+      "range_km": 0, // Maximum range in kilometers
+      "capacity": 0, // Passenger capacity
+      "max_payload_kg": 0, // Maximum payload in kg
+      "cargo_capacity_kg": 0, // Cargo capacity in kg
+
+      "cruise_speed_kph": 0, // Cruise speed in kph
+      "max_speed_kph": 0, // Maximum speed in kph
+      "fuel_burn_lph": 0, // Fuel burn in liters per hour
+      "fuel_type": "", // Type of fuel used (e.g., Jet A-1)
+
+      "required_runway_m": 0, // Required runway length in meters
+      "crew": { "pilots": 0, "cabin": 0 }, // Crew configuration
+
+      "cabin_width_m": 0.0, // Cabin width in meters
+      "cabin_length_m": 0.0, // Cabin length in meters
+
+      "base_price": 0, // Base price in game currency
+      "default_layout_price": 0, // Cost of default layout
+      "purchase_price": 0, // Purchase price in game
+
+      "default_layout": {
+        "first_class": { "seat_type": "", "seats": 0 }, // First class layout
+        "business_class": { "seat_type": "", "seats": 0 }, // Business class layout
+        "economy": { "seat_type": "", "seats": 0 } // Economy class layout
+      },
+
+      "maintenance_base_cost": 0, // Base cost for maintenance
+      "age_limit_years": 0, // Age limit in years
+      "maintenance_checks": {
+        "A": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // A-check
+        "B": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // B-check
+        "C": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // C-check
+        "D": { "interval_hours": 0, "duration_days": 0, "cost": 0 }, // D-check
+        "aging_cost_factor": 0.0 // Aging cost factor
+      },
+
+      "overhaul_program": {
+        "can_overhaul": false, // Indicates if overhaul is possible
+        "reset_years": 0, // Overhaul resets age every X years
+        "cost": 0, // Cost of overhaul
+        "duration_days": 0 // Duration of overhaul in days
+      },
+
+      "production_start_year": 0, // Production start year
+      "production_end_year": null, // Production end year (null = still in production)
+
+      "tags": [""], // Tags for gameplay (e.g., short-haul, fuel-efficient)
+      "unlock_level": 0, // Level required to unlock
+
+      "reconfiguration": {
+        "base_fee": 0, // Base fee for reconfiguration
+        "move_fee_per_seat": 0, // Fee per seat moved
+        "reconfiguration_duration_days": 0 // Duration of reconfiguration
+      },
+
+      "freighter_conversion": {
+        "can_convert": false, // Indicates if freighter conversion possible
+        "conversion_cost": 0, // Cost of conversion
+        "conversion_duration_days": 0, // Duration of conversion
+        "cargo_capacity_kg_after": 0 // Cargo capacity after conversion
+      },
+
+      "can_be_reactivated": false, // Indicates if aircraft can be reactivated
+      "reactivation_cost_points": 0, // Reactivation cost in points
+      "reactivation_requirements": {
+        "min_reputation": 0, // Minimum reputation required
+        "min_year": 0 // Minimum year required
+      }
+    }
+  }
+}
+
+
+#=========
+# airport.json template starts here (🛫 Airport Data Template)
+# 📝 RULES FOR AIRPORT JSON POPULATION:
+# - 🚫 Exclude airports with city population <100,000.
+# - 🚫 Exclude private, military, and non-commercial airports.
+# - ✅ Ensure IATA/ICAO codes, names, coordinates, and population are accurate.
+# - ✅ Use realistic assumed data where missing.
+# - ✅ Seasonal demand: if no seasons, set moderate/high (summer = high).
+# - ✅ City-specific holidays only; global/national holidays go to Data/events/holidays.json.
+# - ✅ Populate city_type, hub_potential, and regional_importance.
+# - 🚫 Do NOT include route licensing costs here (computed dynamically).
+#
+# This is a **REFERENCE TEMPLATE** for in-game airport data.
+# ✅ Use this for Data/Airports/*.json (grouped by country ISO code)
+# ✅ All fields include comments for guidance.
+# 🚫 Do NOT populate with real airports. Keep it blank for structure reference.
+#=========
+{
+  "XX": {  // 🌐 ISO code for country (used for flag rendering and country lookups)
+    "airports": [  // 🛫 List of airports in this country
+      {
+        "icao": "",  // 🆔 ICAO airport code (4-letter international standard)
+        "iata": "",  // 🆔 IATA airport code (3-letter common airline code)
+        "name": "",  // 📛 Full airport name
+        "historic_names": [  // 🕰️ List of previous names (optional)
+          {
+            "name": "",          // 📛 Historic name of the airport
+            "from": "YYYY-MM-DD",// 📅 Date this name started
+            "to": "YYYY-MM-DD"   // 📅 Date this name ended
+          }
+        "city": "",  // 🏙 City where the airport is located
+        "country": "",  // 🗺 Country name (kept for compatibility in hub management)
+        "region": "",  // 🌏 Continent or region the airport belongs to
+        "coordinates": {
+          "lat": 0.0,  // 📌 Latitude in decimal degrees
+          "lon": 0.0  // 📌 Longitude in decimal degrees
+        },
+        "airport_class": "",  // 🛂 Airport classification: international or domestic
+        "airport_size": "",  // 🏢 Size category: small, medium, large
+        "timezone": "",  // 🕒 Timezone offset for local time calculations
+        "runway_length_m": 0,  // 🛬 Longest runway length in meters
+        "runways": 0,  // 🛣 Number of runways at the airport
+        "runway_names": [""],  // 🏷 Names of runways (compass headings)
+        "total_pax_stands": 0,  // 🧑‍🤝‍🧑 Total passenger aircraft stands/gates
+        "total_cargo_stands": 0,  // 📦 Total cargo aircraft stands
+        "number_of_terminals_pax": 0,  // 🏢 Number of passenger terminals
+        "number_of_terminals_cargo": 0,  // 🏢 Number of cargo terminals
+        "has_cargo_terminal": false,  // ✅ Indicates if cargo terminal exists
+        "max_aircraft_class": "",  // ✈️ Supports aircraft up to class G (A-G scale)
+        "slots": 0,  // 📆 Total available flight slots for scheduling
+        "avg_taxi_time_min": 0,  // ⏱ Average taxi time in minutes
+        "population": 0,  // 👥 Population of city/metropolitan area
+        "cargo_volume_kg": 0,  // 📦 Annual cargo volume in kilograms
+        "date_opened": "",  // 📅 Date airport opened (YYYY-MM-DD)
+        "date_closed": "",  // 🗓️ Date airport closed (if applicable, YYYY-MM-DD)
+        "fees": {  // 💵 Airport fee structure
+          "base_landing_fee": 0,  // 💰 Base fee for landing
+          "mtow_fee": 0,  // 💰 Fee per metric ton of Maximum Take-Off Weight (MTOW)
+          "parking_fee": 0,  // 💰 Hourly/daily parking fee
+          "departure_fee_per_pax": 0  // 💰 Departure fee per passenger
+        },
+
+        // ===== 🆕 Added Fields for Future Gameplay =====
+        "city_type": ["tourist"],  // 🏝️ City roles: tourist, business, luxury (can be multiple)
+        "description": "",  // 📝 Short description of the airport/city for flavor
+        "regional_importance": "minor",  // 📊 minor, regional, major, global
+        "hub_potential": "medium",  // ✈️ low, medium, high (for hub suitability)
+        "tourism_rating": 3,  // 🌴 Scale 1-5, how much tourism traffic exists
+        "business_activity_level": "low",  // 🏢 low, medium, high for business demand
+        "luxury_travel_score": 2,  // 👑 Scale 1-5, for first class travelers
+        "holidays": [  // 🎉 List of holidays for seasonal demand spikes
+          {
+            "name": "Christmas Season",
+            "start_date": "12-15",
+            "end_date": "01-05",
+            "demand_modifier": 1.5  // 📈 Multiplier for demand during holiday
+          }
+        ],
+        "seasonal_demand": {  // 🍂 Seasonal variations for demand
+          "winter": "low",  // low, moderate, high
+          "spring": "moderate",
+          "summer": "high",
+          "autumn": "moderate"
+        },
+        "closed_seasons": ["winter"],  // 🚧 If airport is closed in certain seasons
+        "aircraft_registration_prefix": "RP-C"  // 🆕 Prefix for aircraft registrations in this country (editable number follows)
+        // ==============================================
+      }
+    ]
+  }
+}
+
+#==
+#Hybrid game_state reference to use for future additions too
+#==
+
+📂 game_state (Hybrid Design - Future Proofed for Subsidiaries)
+
+├── player_info
+│     ├ ceo_name: "John Doe"                   # Name of current CEO
+│     ├ airline_name: "SkyFly Airways"         # Name of parent airline
+│     ├ level: 7                               # Player level (unlocks features)
+│     └ current_focus: "SkyFly Airways"        # Airline currently being managed
+│
+├── airline_list                            # All airlines under player control
+│     ├ SkyFly Airways                         # Parent airline
+│     │     ├ hubs: {...}                      # All hubs for this airline
+│     │     ├ routes: {...}                    # All routes for this airline
+│     │     ├ fleet: {...}                     # All aircraft owned
+│     │     ├ finances: {...}                  # Cash, revenue, expenses
+│     │     ├ subsidiaries:                    # List of owned subsidiaries
+│     │     │     ├ SkyFly Cargo
+│     │     │     └ SkyFly Express
+│     │     └ ai_mode: "player_controlled"     # FUTURE: AI modes for parent airline
+│
+│     ├ SkyFly Cargo                           # Subsidiary example
+│     │     ├ hubs: {...}
+│     │     ├ routes: {...}
+│     │     ├ fleet: {...}
+│     │     ├ finances: {...}
+│     │     ├ parent_company: "SkyFly Airways" # Link back to parent
+│     │     ├ ai_coo:                          # FUTURE: AI COO (Level 5)
+│     │     │     ├ unlocked: true
+│     │     │     ├ active: true
+│     │     │     └ task_queue: [...]           # Player-created tasks for COO to execute
+│     │     ├ ai_ceo:                           # FUTURE: AI CEO (Level 10)
+│     │     │     ├ unlocked: false
+│     │     │     ├ active: false
+│     │     │     └ strategy: null              # e.g., "Low-Cost", "Cargo Focus"
+│     │     └ control_locked: false             # Once true, player can no longer manage
+│
+│     └ SkyFly Express                          # Another Subsidiary
+│           ├ hubs: {...}
+│           ├ routes: {...}
+│           ├ fleet: {...}
+│           ├ finances: {...}
+│           └ parent_company: "SkyFly Airways"
+│
+├── routes                                      # Global route index (fast lookups)
+│     ├ MNL-CEB
+│     │     ├ origin: "MNL"
+│     │     ├ destination: "CEB"
+│     │     ├ assigned_aircraft: ["RP-C1234"]
+│     │     ├ total_revenue: 12_800_000
+│     │     ├ total_expenses: 10_200_000
+│     │     └ schedules: [...]
+│
+├── fleet                                       # Global fleet index
+│     ├ RP-C1234
+│     │     ├ base: "MNL"
+│     │     ├ model: "Airbus A320"
+│     │     └ assigned_routes: ["MNL-CEB"]
+
+
+#====

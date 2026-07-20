@@ -1,0 +1,15 @@
+{
+  "name": "AeroFlex Finance",
+  "services": "lease_only",
+  "fleet_for_lease": {
+    "De Havilland Dash 8 Q400": {
+      "weekly_rate": 1500000,
+      "available_units": 6
+    },
+    "ATR 72-600": {
+      "weekly_rate": 1800000,
+      "available_units": 5
+    }
+  },
+  "fleet_for_rent_to_own": {}
+}

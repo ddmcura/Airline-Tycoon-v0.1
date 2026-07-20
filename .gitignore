@@ -1,0 +1,13 @@
+# Python runtime files
+__pycache__/
+*.py[cod]
+
+# Local game state
+Saves/*.json
+Snapshots/
+
+# Generated developer reference bundles
+Data/dev_stuff/references/
+
+# Editor and operating-system clutter
+.vscode/

@@ -4,26 +4,35 @@ import os
 from datetime import datetime
 import re
 
-# 🧠 Default state structure
+# 🧠 Default state structure (Hybrid Design - Future Proofed for Subsidiaries)
 def default_game_state():
     return {
         "player_info": {
             "ceo_name": "",
-            "airline_name": ""
+            "airline_name": "",
+            "level": 1,
+            "current_focus": ""
+        },
+        "airline_list": {
+            # Example placeholder; actual airline added at game start
+            # "Dabudhi Air": {
+            #     "hubs": {},
+            #     "routes": {},
+            #     "fleet": {},
+            #     "finances": {"money": 0}
+            # }
         },
         "settings": {
             "difficulty": "",
-            "starting_money": 0
-        },
-        "finances": {
-            "cash_on_hand": 0,
-            "debt": 0
+            "starting_money": 0,
+            "base_currency": "USD",
+            "display_currency": "USD"
         },
         "game_time": {
             "current_date": ""
-        },
-        "hubs": {}
+        }
     }
+
 
 # 🎮 Active game state in memory
 game_state = default_game_state()
@@ -33,7 +42,11 @@ last_saved_filename = None
 # 🔄 Reset to default state
 def reset_game_state():
     global game_state
+    display_currency = game_state.get("settings", {}).get(
+        "display_currency", "USD"
+    )
     game_state = default_game_state()
+    game_state["settings"]["display_currency"] = display_currency
 
 # 🔧 Recursive merge of nested dicts
 def deep_update(source, overrides):
@@ -57,7 +70,9 @@ def update_game_state(data: dict):
 # 📁 File path generator
 def get_save_file_path(ceo_name, airline_name):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{ceo_name}_{airline_name}_{timestamp}.json".replace(" ", "_")
+    safe_ceo = re.sub(r"[^a-zA-Z0-9_-]", "_", ceo_name)
+    safe_airline = re.sub(r"[^a-zA-Z0-9_-]", "_", airline_name)
+    filename = f"{safe_ceo}_{safe_airline}_{timestamp}.json"
     return os.path.join("Saves", filename)
 
 # 💾 Save game (new or overwrite)
@@ -81,29 +96,26 @@ def save_game(state=None, filename=None, is_new=False):
     last_saved_filename = filename
 
 # 💾 Autosave using current CEO/Airline (limit 5)
-import re  # Make sure this is at the top of your file if not already imported
-
 def autosave():
     ceo = game_state.get("player_info", {}).get("ceo_name", "unknown_ceo")
     airline = game_state.get("player_info", {}).get("airline_name", "unknown_airline")
+    safe_ceo = re.sub(r"[^a-zA-Z0-9_-]", "_", ceo)
+    safe_airline = re.sub(r"[^a-zA-Z0-9_-]", "_", airline)
     autosave_dir = "Saves"
-    prefix = f"{ceo}_{airline}_autosave_"
+    prefix = f"{safe_ceo}_{safe_airline}_autosave_"
 
-    # Filter autosaves for this ceo/airline
     existing_autosaves = sorted([
         f for f in os.listdir(autosave_dir)
         if f.startswith(prefix) and re.match(rf"{re.escape(prefix)}\d{{8}}_\d{{6}}\.json", f)
     ])
 
-    # Delete oldest if more than 4 exist (we want to keep last 4, and this one will be the 5th)
     if len(existing_autosaves) >= 5:
         oldest = existing_autosaves[0]
         os.remove(os.path.join(autosave_dir, oldest))
         print(f"🗑️ Deleted oldest autosave: {oldest}")
 
-    # New autosave file path with consistent naming
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{ceo}_{airline}_autosave_{timestamp}.json".replace(" ", "_")
+    filename = f"{safe_ceo}_{safe_airline}_autosave_{timestamp}.json"
     autosave_path = os.path.join(autosave_dir, filename)
 
     os.makedirs(os.path.dirname(autosave_path), exist_ok=True)
@@ -111,7 +123,6 @@ def autosave():
         json.dump(game_state, f, indent=4)
 
     print(f"✅ Autosave complete → {autosave_path}")
-
 
 # 📂 Load from file
 def load_game(filename):
@@ -123,8 +134,41 @@ def load_game(filename):
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
             loaded_data = json.load(f)
+
+        # 🩹 Check for legacy save (no airline_list)
+        if "airline_list" not in loaded_data:
+            print("⚠️ Legacy save detected. Converting to hybrid structure...")
+            legacy_airline_name = loaded_data.get("player_info", {}).get("airline_name", "Legacy Airline")
+            loaded_data = {
+                **default_game_state(),
+                "player_info": loaded_data.get("player_info", {}),
+                "airline_list": {
+                    legacy_airline_name: {
+                        "hubs": loaded_data.get("hubs", {}),
+                        "routes": loaded_data.get("routes", {}),
+                        "fleet": loaded_data.get("fleet", {}),
+                        "finances": loaded_data.get("finances", {})
+                    }
+                },
+                "settings": loaded_data.get("settings", {}),
+                "game_time": loaded_data.get("game_time", {})
+            }
+
         deep_update(game_state, loaded_data)
         last_saved_filename = file_path
         print("📂 Game loaded from", file_path)
     else:
         print("⚠️ No Save File Found at", file_path)
+
+# ✈️ Helper: Get active airline
+def get_active_airline(game_state):
+    current_focus = game_state["player_info"].get("current_focus", "")
+    return game_state["airline_list"].get(current_focus, {})
+
+# ✈️ Helper: Set active airline
+def set_active_airline(game_state, airline_name):
+    if airline_name in game_state["airline_list"]:
+        game_state["player_info"]["current_focus"] = airline_name
+        print(f"✅ Active airline switched to: {airline_name}")
+    else:
+        print(f"❌ Airline '{airline_name}' not found in airline_list.")

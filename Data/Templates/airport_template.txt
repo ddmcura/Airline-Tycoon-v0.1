@@ -1,0 +1,42 @@
+{
+  "XX": {  // 🌐 ISO code for country (used for flag rendering and country lookups)
+    "airports": [  // 🛫 List of airports in this country
+      {
+        "icao": "",  // 🆔 ICAO airport code (4-letter international standard)
+        "iata": "",  // 🆔 IATA airport code (3-letter common airline code)
+        "name": "",  // 📛 Full airport name
+        "city": "",  // 🏙 City where the airport is located
+        "country": "",  // 🗺 Country name (kept for compatibility in hub management)
+        "region": "",  // 🌏 Continent or region the airport belongs to
+        "coordinates": {
+          "lat": 0.0,  // 📌 Latitude in decimal degrees
+          "lon": 0.0  // 📌 Longitude in decimal degrees
+        },
+        "airport_class": "",  // 🛂 Airport classification: international or domestic
+        "airport_size": "",  // 🏢 Size category: small, medium, large
+        "timezone": "",  // 🕒 Timezone offset for local time calculations
+        "runway_length_m": 0,  // 🛬 Longest runway length in meters
+        "runways": 0,  // 🛣 Number of runways at the airport
+        "runway_names": [""],  // 🏷 Names of runways (compass headings)
+        "total_pax_stands": 0,  // 🧑‍🤝‍🧑 Total passenger aircraft stands/gates
+        "total_cargo_stands": 0,  // 📦 Total cargo aircraft stands
+        "number_of_terminals_pax": 0,  // 🏢 Number of passenger terminals
+        "number_of_terminals_cargo": 0,  // 🏢 Number of cargo terminals
+        "has_cargo_terminal": false,  // ✅ Indicates if cargo terminal exists
+        "max_aircraft_class": "",  // ✈️ Supports aircraft up to class G (A-G scale)
+        "slots": 0,  // 📆 Total available flight slots for scheduling
+        "avg_taxi_time_min": 0,  // ⏱ Average taxi time in minutes
+        "population": 0,  // 👥 Population of city/metropolitan area
+        "cargo_volume_kg": 0,  // 📦 Annual cargo volume in kilograms
+        "date_opened": "",  // 📅 Date airport opened (YYYY-MM-DD)
+        "date_closed": "",  // 🗓️ Date airport closed (if applicable, YYYY-MM-DD)
+        "fees": {  // 💵 Airport fee structure
+          "base_landing_fee": 0,  // 💰 Base fee for landing
+          "mtow_fee": 0,  // 💰 Fee per metric ton of Maximum Take-Off Weight (MTOW)
+          "parking_fee": 0,  // 💰 Hourly/daily parking fee
+          "departure_fee_per_pax": 0  // 💰 Departure fee per passenger
+        }
+      }
+    ]
+  }
+}

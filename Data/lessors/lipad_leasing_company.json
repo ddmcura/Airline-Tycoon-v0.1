@@ -1,0 +1,24 @@
+{
+  "name": "Lipad Leasing Co.",
+  "services": "both",
+  "fleet_for_lease": {
+    "Airbus A320": {
+      "weekly_rate": 4800000,
+      "available_units": 4
+    },
+    "Boeing 737 MAX 8": {
+      "weekly_rate": 5200000,
+      "available_units": 2
+    }
+  },
+  "fleet_for_rent_to_own": {
+    "Airbus A321neo": {
+      "base_price": 68000000,
+      "terms": [5, 10, 15]
+    },
+    "Boeing 787-8": {
+      "base_price": 120000000,
+      "terms": [10, 15, 20]
+    }
+  }
+}

@@ -1,66 +1,41 @@
-# Airports Module (game/utils/airports.py)
+# game/utils/airports.py
 import json
+import copy
+from game.game_state import get_active_airline
 
-
-def extract_airport_for_game_state(airport_data: dict, region: str, country: str) -> dict:
-    return {
-        "iata": airport_data.get("iata", ""),
-        "icao": airport_data.get("icao", ""),
-        "name": airport_data.get("name", ""),
-        "city": airport_data.get("city", ""),
-        "country": country,
-        "region": region,
-        "timezone": airport_data.get("timezone", ""),
-        "coordinates": {
-            "lat": airport_data.get("coordinates", {}).get("lat", 0.0),
-            "lon": airport_data.get("coordinates", {}).get("lon", 0.0)
-        },
-        "airport_class": airport_data.get("airport_class", ""),
-        "airport_size": airport_data.get("airport_size", ""),
-        "runway_length": airport_data.get("runway_length_m", 0),
-        "runways": airport_data.get("runways", 0),
-        "runway_names": airport_data.get("runway_names", []),
-        "total_pax_stands": airport_data.get("total_pax_stands", 0),
-        "total_cargo_stands": airport_data.get("total_cargo_stands", 0),
-        "number_of_terminals_pax": airport_data.get("number_of_terminals_pax", 0),
-        "number_of_terminals_cargo": airport_data.get("number_of_terminals_cargo", 0),
-        "has_cargo_terminal": airport_data.get("has_cargo_terminal", False),
-        "max_aircraft_class": airport_data.get("max_aircraft_class", ""),
-        "slots": airport_data.get("slots", 0),
-        "avg_taxi_time_min": airport_data.get("avg_taxi_time_min", 0),
-        "population": airport_data.get("population", 0),
-        "cargo_volume_tonnes": airport_data.get("cargo_volume_tonnes", 0),
-        "date_opened": airport_data.get("date_opened", ""),
-        "fees": airport_data.get("fees", {}),
-        "status": "active",   # custom game logic
-        "level": 1,           # game mechanic: level up airport?
-        "connected_routes": [],  # route tracking
-        "routes": {}             # route data
-    }
-
-def add_hub_to_game_state(game_state, airport_data, region, country):
+def extract_airport_for_game_state(airport_data: dict, region: str) -> dict:
     """
-    Extracts and adds a new hub to the game_state dictionary
-    under the correct country and IATA structure.
-    
-    Args:
-        airport_data (dict): Raw airport dictionary from .json file
-        region (str): The region (e.g., 'Asia', 'Europe')
-        country (str): The country name (e.g., 'Philippines')
+    Extracts and prepares a full airport object from airport_data
+    using the template_reference_with_rules.json schema.
+    Injects Airline Tycoon-specific fields for game_state.
     """
-    # Extract the formatted airport data using the extractor
-    hub_data = extract_airport_for_game_state(airport_data, region, country)
+    # Start with a deep copy of airport_data to avoid modifying original
+    hub_data = copy.deepcopy(airport_data)
+
+    # Inject game-specific fields
+    hub_data["region"] = region
+    hub_data["status"] = "active"            # Default hub status
+    hub_data["level"] = 1                     # Default hub level
+    hub_data["connected_routes"] = []         # Routes connected to this hub
+    hub_data["routes"] = {}                    # Routes originating from this hub
+
+    return hub_data
+
+def add_hub_to_game_state(game_state, airport_data, region, iso_code):
+    """
+    Extracts airport details and adds a new hub to the active airline
+    under the correct ISO country code and IATA structure.
+    """
+    hub_data = extract_airport_for_game_state(airport_data, region)
     iata = hub_data["iata"]
 
-    # Ensure the nested structure exists
-    game_state.setdefault("hubs", {})
-    game_state["hubs"].setdefault(country, {})
+    active_airline = get_active_airline(game_state)
 
-    # Insert the hub
-    game_state["hubs"][country][iata] = hub_data
+    # Create nested structure if needed
+    active_airline.setdefault("hubs", {})
+    active_airline["hubs"].setdefault(iso_code, {})
+    active_airline["hubs"][iso_code][iata] = hub_data
 
-    print(f"✅ Hub {iata} added under {country} in game_state.")
+    print(f"✅ Hub {iata} added under {iso_code} in active airline.")
     print("🛠️ DEBUG inside add_hub_to_game_state:")
-    print(json.dumps(game_state["hubs"], indent=2))
-
-
+    print(json.dumps(active_airline["hubs"], indent=2))

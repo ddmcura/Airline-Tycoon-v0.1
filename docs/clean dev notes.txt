@@ -1,0 +1,384 @@
+Here’s your clean, developer-ready dev notes for Airline Tycoon — stripped of brainstorm clutter, synced with your v1.0 direction, and fully copy-pastable for the project files like dev_notes.txt or README.md:
+
+
+---
+
+✈️ Airline Tycoon – Dev Notes (Clean Developer Blueprint with v1.0 Progress Tracker)
+
+
+---
+
+✅ v1.0 Build Progress Tracker
+
+Module	Status	Notes
+
+Fleet Management	🟢 Core Complete	Buy/Sell planes works. Maintenance placeholder.
+Route Management	🟢 Core Complete	Route creation & assignment functional.
+Schedule Management	🟡 In Progress	Basic daily schedule works. Conflict check missing.
+Daily Tick Logic	🟢 Core Complete	Earnings simulation and passenger flow functional.
+Airport Module	🟠 Stub	Licenses & slots planned but not yet implemented.
+Save/Load System	🟢 Functional	Game saves and loads properly.
+UI/UX Improvements	🟡 In Progress	Terminal interface usable. GUI (Kivy) coming.
+Core Game Loop	🟢 Core Complete	Buy → Route → Schedule → Fly loop functional.
+Debug Tools/Dev Mode	🟡 Partial	Debug dashboard available. More tools soon.
+
+
+
+---
+
+✅ Current Focus
+
+Philippines-only core loop complete
+
+Next: Polish schedule system and airport module for 1.0 release.
+
+
+
+---
+
+🧠 Game Flow
+
+Main Menu → Game Start → Core Loop:
+
+1. Hub Management
+
+
+2. Fleet Management
+
+
+3. Global Aircraft Exchange
+
+
+4. Route Management
+
+
+5. Schedule Management
+
+
+6. Airport Module
+
+
+7. Financial Reports
+
+
+8. Save / Load
+
+
+9. Advance One Day
+
+
+
+
+---
+
+🛫 v1.0 Core Loop Plan (Philippines-Only Gameplay)
+
+🎯 Goal:
+Build the playable loop:
+→ Buy planes
+→ Create routes
+→ Schedule flights
+→ Simulate days
+→ Earn cash
+→ Expand
+
+
+---
+
+🛩️ Fleet System
+
+Each plane tracks:
+
+model (e.g., Airbus A320)
+
+status (Idle / Flying / Boarding)
+
+assigned_routes (list)
+
+
+✅ Features:
+
+Buy aircraft (from aircraft_market)
+
+Sell aircraft
+
+
+❌ Skipped for v1.0:
+
+Leasing
+
+Seat reconfiguration
+
+Maintenance cycles
+
+
+
+---
+
+🌐 Route System
+
+Each route has:
+
+origin and destination
+
+ticket_price
+
+assigned_aircraft
+
+base_demand (from airport data)
+
+
+✅ Features:
+
+Create and assign routes
+
+Set base ticket prices
+
+
+
+---
+
+🕑 Schedule System (Simplified)
+
+✅ Features:
+
+Schedule flight time (daily only)
+
+Auto-calculate arrival time
+
+Plane repeats route daily
+
+
+❌ Weekly scheduling & conflict checks deferred for v1.0.
+
+
+---
+
+💸 Daily Tick Logic
+
+Each game day:
+
+Calculate passengers = base demand × random factor
+
+Calculate revenue = passengers × ticket_price
+
+Subtract operating cost
+
+Update aircraft hours & financial stats
+
+Net profit added to cash_on_hand
+
+
+
+---
+
+💰 Ticket Price Formula
+
+Base Economy Fare (2020): $0.12 per km
+
+Multipliers:
+
+Business Class: ×2.2
+
+First Class: ×5.0
+
+
+
+✅ Sample:
+A 1,000 km route =
+
+Economy: $120
+
+Business: $264
+
+First: $600
+
+
+✅ Fare evolves via inflation curve system (future feature).
+
+
+---
+
+📈 Demand Formula
+
+Final_Demand = Base_Demand
+             × City_Type_Modifier
+             × Seasonality_Modifier
+             × Reputation_Modifier
+             × Price_Multiplier
+             × Difficulty_Multiplier
+
+➤ Base Demand Formula
+
+Base_Demand = (Origin_Pop × Destination_Pop) ÷ Distance_Factor
+
+➤ Class Ratios
+
+Route Type	Economy	Business	First
+
+Domestic	92%	7%	1%
+Regional	85%	10%	5%
+Long-Haul	70%	20%	10%
+
+
+➤ Difficulty Scaling
+
+Difficulty	Multiplier
+
+Easy	×1.5
+Normal	×1.0
+Hard	×0.7
+Extreme	×0.5
+
+
+
+---
+
+🔧 Ticket Pricing Control (Future Feature)
+
+Unlocks based on player level:
+
+Level 1: Manual per route
+
+Level 2: Group price adjustment by region/type
+
+Level 3: Full fleet-wide price editing
+
+Level 4: Automatic inflation-adjusted pricing
+
+
+
+---
+
+⛽ Fuel Pricing (Future)
+
+Base price tied to inflation
+
+Future: Add ±50% volatility for daily fluctuation
+
+Fuel depot system allows players to buy in bulk and store at owned hubs
+
+
+
+---
+
+🧠 Inflation Engine (Future-Ready)
+
+Ticket prices, plane costs, salaries, and fuel scale by inflation curve
+
+Based on average historical fares per decade
+
+Allows projecting future and past pricing dynamically
+
+
+
+---
+
+🌟 Prestige System
+
+Stars unlock via milestones
+
+Prestige affects First Class demand
+
+Earn Gems (Prestige Credits)
+
+Used to unlock aircraft, lounges, upgrades
+
+
+
+---
+
+🖥️ GUI Upgrade Plan
+
+✅ Chosen Framework: Kivy
+→ Cross-platform (mobile + desktop)
+
+Map View Features:
+
+World map (Mercator projection)
+
+Airport dots, flight icons
+
+Wraparound scrolling
+
+Planes update in real-time
+
+Performance-optimized for 350+ flights
+
+
+
+---
+🗓️ Flight Scheduling System (Core Structure)
+✅ v1.0 Format (Daily-Only, Simplified):
+
+Each flight is scheduled on a per-aircraft basis
+
+start_time defines when the flight departs
+
+Arrival & turnaround are calculated dynamically
+
+🛩️ Aircraft-Centric Schedule (Primary Source)
+json
+Copy
+Edit
+"fleet": {
+  "RP-C001": {
+    "type": "A320",
+    "schedule": {
+      "Mon": [
+        {"route_id": "MNL-CEB", "start_time": "08:00"},
+        {"route_id": "MNL-DVO", "start_time": "14:00"}
+      ],
+      "Tue": [...]
+    }
+  }
+}
+Prevents overbooking
+
+Enables maintenance blocks, downtime
+
+Clean flight rotation logic
+
+🗺️ Route-Centric Mirror (For UI)
+json
+Copy
+Edit
+"routes": {
+  "MNL-DVO": {
+    ...,
+    "schedule": {
+      "Mon": [
+        {"aircraft_id": "RP-C001", "start_time": "14:00"}
+      ]
+    }
+  }
+}
+Used for route dashboards
+
+Lets players see “Which planes fly this route, and when?”
+
+💡 Why Dual Saving?
+Lets players view schedule by aircraft or by route
+
+Enables expansion into:
+
+Delay systems
+
+Conflicts / collision check
+
+Route profitability summaries
+
+Sets foundation for advanced weekly scheduling (future update)
+
+🧠 Future-Proof Concepts (v1.1+)
+Add "flight_id" to sync edits
+
+Add "arrival_time" once turnarounds are implemented
+
+Add "turnaround_buffer_min" per aircraft type
+
+Add "status" per flight instance (Planned, Delayed, Cancelled)
+
+
+
+This version is perfectly structured for use inside your project files (dev_notes.txt, README.md, or /Data/dev_stuff). Let me know if you want it saved or exported as .md or .txt again!
