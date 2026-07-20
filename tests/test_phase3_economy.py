@@ -2,6 +2,7 @@ import unittest
 
 from game.economy.currency import convert_from_usd, format_money, set_display_currency
 from game.economy.demand import (
+    DEMAND_MODEL_VERSION,
     backfill_route_demand,
     calculate_adjusted_daily_demand,
     calculate_directional_base_demand,
@@ -13,6 +14,26 @@ from tests.test_daily_tick import FixedRandom, make_state
 
 
 class Phase3EconomyTests(unittest.TestCase):
+    def test_regional_market_scale_supports_more_than_one_flight(self):
+        demand = calculate_directional_base_demand(1_230_000, 1_000_000, 400)
+
+        self.assertEqual(demand, 153)
+
+    def test_old_stored_demand_recalculates_for_current_model(self):
+        route = {
+            "origin_population": 1_230_000,
+            "destination_population": 1_000_000,
+            "distance_km": 400,
+            "base_daily_demand": 45,
+            "demand_model_version": 1,
+            "pricing": {"Economy": 100},
+        }
+
+        adjusted = calculate_adjusted_daily_demand(route, "Normal")
+
+        self.assertEqual(adjusted, 153)
+        self.assertEqual(route["demand_model_version"], DEMAND_MODEL_VERSION)
+
     def test_legacy_route_gets_population_and_demand_backfill(self):
         route = {}
         airport_index = {

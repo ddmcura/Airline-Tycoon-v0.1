@@ -1,4 +1,7 @@
-from game.economy.demand import calculate_directional_base_demand
+from game.economy.demand import (
+    DEMAND_MODEL_VERSION,
+    calculate_directional_base_demand,
+)
 from game.route_management.route_calculators import calculate_base_fare, calculate_distance
 
 
@@ -22,6 +25,7 @@ def _direction(origin, destination, distance, route_type, pair_id, reverse_id):
         "base_daily_demand": calculate_directional_base_demand(
             origin_population, destination_population, distance
         ),
+        "demand_model_version": DEMAND_MODEL_VERSION,
         "route_type": route_type,
         "route_pair_id": pair_id,
         "reverse_route_id": reverse_id,

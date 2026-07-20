@@ -13,6 +13,9 @@ PRICE_SENSITIVITY = {
     "extreme": (0.80, 2.00),
 }
 ORIGIN_POPULATION_WEIGHT = 0.65
+DESTINATION_POPULATION_WEIGHT = 0.35
+POPULATION_NORMALIZER = 7_500
+DEMAND_MODEL_VERSION = 2
 
 
 def backfill_route_demand(route, airport_index=None, route_id=None):
@@ -76,17 +79,23 @@ def backfill_route_demand(route, airport_index=None, route_id=None):
     if not route.get("pricing"):
         route["pricing"] = dict(route.get("suggested_pricing", {}))
 
-    if not route.get("base_daily_demand"):
+    populations_available = (
+        route.get("origin_population") is not None
+        and route.get("destination_population") is not None
+        and (
+            route.get("origin_population", 0) > 0
+            or route.get("destination_population", 0) > 0
+        )
+    )
+    model_outdated = route.get("demand_model_version") != DEMAND_MODEL_VERSION
+    if not route.get("base_daily_demand") or (model_outdated and populations_available):
         route["base_daily_demand"] = calculate_directional_base_demand(
             route.get("origin_population", 0),
             route.get("destination_population", 0),
             route.get("distance_km", 0),
         )
+        route["demand_model_version"] = DEMAND_MODEL_VERSION
     return route["base_daily_demand"]
-
-
-DESTINATION_POPULATION_WEIGHT = 0.35
-POPULATION_NORMALIZER = 25_000
 
 
 def calculate_directional_base_demand(
@@ -120,13 +129,28 @@ def price_demand_multiplier(difficulty, actual_fare, suggested_fare):
 
 def calculate_adjusted_daily_demand(route, difficulty):
     base_demand = route.get("base_daily_demand")
-    if base_demand is None:
+    populations_available = (
+        route.get("origin_population") is not None
+        and route.get("destination_population") is not None
+        and (
+            route.get("origin_population", 0) > 0
+            or route.get("destination_population", 0) > 0
+        )
+    )
+    if (
+        base_demand is None
+        or (
+            populations_available
+            and route.get("demand_model_version") != DEMAND_MODEL_VERSION
+        )
+    ):
         base_demand = calculate_directional_base_demand(
             route.get("origin_population", 0),
             route.get("destination_population", 0),
             route.get("distance_km", 0),
         )
         route["base_daily_demand"] = base_demand
+        route["demand_model_version"] = DEMAND_MODEL_VERSION
 
     pricing = route.get("pricing", {})
     suggested = route.get("suggested_pricing", pricing)

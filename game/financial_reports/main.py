@@ -1,5 +1,8 @@
 from game.economy.currency import format_money
-from game.economy.demand import calculate_adjusted_daily_demand
+from game.economy.demand import (
+    backfill_route_demand,
+    calculate_adjusted_daily_demand,
+)
 from game.game_state import get_active_airline
 from game.utils.render import clear_screen
 
@@ -70,6 +73,7 @@ def show_route_report(game_state):
             continue
 
         route_id, route = selected
+        backfill_route_demand(route, route_id=route_id)
         stats = route.get("statistics", {})
         available_seats = stats.get("available_seats", 0)
         load_factor = _percent(stats.get("passengers", 0), available_seats)
