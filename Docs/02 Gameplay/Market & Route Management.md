@@ -24,7 +24,7 @@ This document owns:
 - market presence and competition principles;
 - the route lifecycle and strategic value of markets.
 
-It intentionally leaves passenger generation and booking formulas to Passenger Simulation, aircraft rotations and timing rules to Scheduling, and facilities and license implementation to Hub Management.
+It intentionally leaves passenger generation and booking formulas to Passenger Simulation, aircraft rotations and timing rules to Scheduling, Operating Base and Hub roles to Base & Hub Management, and physical facilities to Airport Management.
 
 ## 2. Market Definition
 
@@ -49,7 +49,7 @@ A route may connect:
 - a hub to a non-hub airport; or
 - airports that are otherwise technically and legally feasible under future network rules.
 
-Passenger connections may occur only through hubs. A non-hub destination can be served normally, but it cannot act as a transfer point unless it has been established as a hub under Hub Management.
+Passenger connections may occur only through Hubs. A non-Hub destination or Operating Base can be served normally, but it cannot act as a transfer point unless that airline has established it as a Hub under Base & Hub Management.
 
 ### 2.3 Derived route categories
 
@@ -63,9 +63,9 @@ Market entry uses distinct layers. Purchasing one layer does not silently grant 
 
 ### 3.1 Domestic rights
 
-The player's starting hub automatically grants domestic operating rights within that hub's country. This provides the initial market from which the airline can build its network.
+The player's starting Operating Base automatically grants domestic operating rights within that Base's country. This provides the initial market from which the airline can build its network even though the starting airport is not yet a Hub.
 
-Domestic rights are country-specific. Opening a hub in another country does not automatically bypass that country's access rules unless the relevant Hub Management design explicitly grants such rights.
+Domestic rights are country-specific. Opening a Base or Hub in another country does not automatically bypass that country's access rules unless a future approved access rule explicitly grants such rights.
 
 ### 3.2 Country access
 
@@ -108,18 +108,18 @@ Slots are tradable assets. The architecture must allow them to be acquired, reta
 
 Temporarily suspending a route does not automatically erase its ownership or associated retained assets. Detailed slot-use requirements, scarcity rules, timing, and scheduling validation belong to Airport Management and Scheduling.
 
-## 5. Hubs, Aircraft, and Network Rules
+## 5. Bases, Hubs, Aircraft, and Network Rules
 
 Routes do not need to run only between hubs. Hub-to-non-hub service is a normal and necessary network pattern.
 
-Hubs have special network and infrastructure roles:
+Operating Bases and Hubs have separate roles:
 
-- passenger connections may occur only at hubs;
-- aircraft are assigned to hubs;
-- an aircraft's weekly rotation starts and ends at its assigned hub; and
-- hub licenses unlock hangars, service infrastructure, and later advanced airport capabilities.
+- aircraft are assigned to Operating Bases, whether or not those Bases are Hubs;
+- an aircraft's rotation begins from and returns to its assigned home Base under the finalized Scheduling rules;
+- passenger connections may occur only at Hubs; and
+- parking, hangars, service infrastructure, and physical airport capabilities remain separate from Hub status.
 
-These points are cross-system constraints, not definitions of hub or scheduling internals. Hub Management owns licenses, facilities, and hub capabilities. Fleet Management owns aircraft assignment. Scheduling owns weekly rotations, timing, validation, and flight construction.
+These points are cross-system constraints, not definitions of Base, Hub, or scheduling internals. Base & Hub Management owns airline airport roles, stationing permission, Hub licenses, connection privileges, and Hub progression. Fleet Management owns each aircraft's home-base assignment. Airport Management owns physical capacity and facilities. Scheduling owns rotations, timing, validation, and flight construction.
 
 ## 6. Market Presence
 
@@ -268,8 +268,8 @@ This system directly interacts with:
 
 - **Passenger Demand, Booking, and Network Simulation** - owns demand, traveler types, itinerary choice, booking scores, capacity fallback, and passenger connections.
 - **Scheduling** - owns flights, frequencies, timing, slots in schedules, and weekly aircraft rotations.
-- **Hub Management** - owns hub licenses, facilities, service infrastructure, and advanced airport capabilities.
-- **Fleet Management** - owns individual aircraft assets, their home-hub assignment relationship, and persistent aircraft configuration. Aircraft Reference Data owns model specifications; Scheduling and other consuming systems evaluate operational feasibility.
+- **Base & Hub Management** - owns Operating Base and Hub roles, aircraft-stationing permission, Hub licenses, passenger-connection privileges, and Hub progression. Physical airport infrastructure remains owned by Airport Management.
+- **Fleet Management** - owns individual aircraft assets, their home-base assignment relationship, and persistent aircraft configuration. Aircraft Reference Data owns model specifications; Scheduling and other consuming systems evaluate operational feasibility.
 - **Airport Management** - owns airport constraints, slot mechanics, fees, and future airport development or ownership.
 - **Finance and Marketing** - own acquisition costs, route economics, advertising spend, and financial reporting.
 
@@ -282,7 +282,8 @@ The following are the core decisions that should not change without redesigning 
 ```text
 Routes are owned airport-pair markets and rights, not flights or demand.
 
-The starting hub grants domestic rights in its country.
+The starting Operating Base grants domestic rights in its country; it does not
+begin with Hub status.
 
 Country access and route rights are separate, paid, and non-resellable.
 
@@ -290,7 +291,8 @@ Permanent closure forfeits a route right and its cost; suspension preserves owne
 
 Slots are separate, tradable operational assets.
 
-Passenger connections occur only through hubs.
+Passenger connections occur only through Hubs. Operating Bases without Hub
+status remain point-to-point.
 
 Market presence combines awareness and operating maturity.
 

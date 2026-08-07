@@ -12,7 +12,7 @@ Buying:
 10 x A320
 ```
 
-creates ten separate aircraft. Each aircraft has its own identity, registration, lifecycle, home hub, configuration, and connected operational information.
+creates ten separate aircraft. Each aircraft has its own identity, registration, lifecycle, home Base, configuration, and connected operational information.
 
 Fleet Management is the player's central management and overview layer for every aircraft the airline owns or controls.
 
@@ -38,7 +38,7 @@ Fleet Management owns:
 - acquisition of delivered aircraft into the fleet;
 - disposal of aircraft from the fleet;
 - aircraft organization, filtering, and grouping;
-- the aircraft-to-home-hub assignment relationship;
+- the aircraft-to-home-base assignment relationship;
 - persistent individual-aircraft configuration, including cabin layout;
 - basic aircraft asset information; and
 - player-facing entry points to related aircraft information.
@@ -64,7 +64,7 @@ An individual aircraft may differ from others of the same model through facts su
 
 - registration;
 - ownership or control arrangement;
-- home hub;
+- home Base;
 - cabin configuration;
 - age;
 - acquisition and delivery information;
@@ -78,11 +78,11 @@ The exact persistent schema must be established in the canonical template refere
 
 | System | Responsibility |
 |---|---|
-| Fleet Management | Establishes that the individual aircraft exists in the airline's controlled fleet and owns its persistent fleet identity, organization, home-hub relationship, and configuration. |
+| Fleet Management | Establishes that the individual aircraft exists in the airline's controlled fleet and owns its persistent fleet identity, organization, home-base relationship, and configuration. |
 | Aircraft Market / Acquisition | Supplies aircraft offers, availability, prices, sellers, lessors, delivery terms, and contract options. |
 | Finance | Validates and records purchases, sales, leases, reconfiguration costs, and other aircraft-related financial transactions. |
 | Aircraft Reference Data | Defines aircraft-model specifications such as physical limits, capacity constraints, range, dimensions, and performance data. |
-| Hub Management | Determines whether an airport is a valid operational base and which capabilities are available there. |
+| Base & Hub Management | Determines whether an airport is a valid Operating Base or Hub and which capabilities are available there. |
 | Scheduling | Assigns scheduled flights and rotations, allocates aircraft time, and validates timetable and rotation feasibility. |
 | Aircraft Operations | Tracks what the aircraft is currently doing and where it is currently located. |
 | Maintenance | Owns condition, checks, service requirements, maintenance history, downtime, and return-to-service rules. |
@@ -118,20 +118,20 @@ Before an aircraft can leave the fleet, connected systems may need to confirm th
 
 The exact resale-value formula, depreciation rules, contract settlement, and aircraft-market behavior remain future Finance and Aircraft Market work.
 
-## 7. Home-Hub Assignment
+## 7. Home-Base Assignment
 
-Each aircraft has an assigned home hub.
+Each aircraft has an assigned home Base. An Operating Base does not need to be a passenger-connection Hub.
 
-Fleet Management owns the persistent aircraft-to-home-hub relationship, while the connected systems enforce its meaning:
+Fleet Management owns the persistent aircraft-to-home-base relationship, while the connected systems enforce its meaning:
 
-- Hub Management determines whether the airport is a valid operational base and what support it provides.
-- Scheduling ensures the aircraft's rotation begins at and eventually returns to its assigned home hub.
+- Base & Hub Management determines whether the airport is a valid Operating Base and what support it provides.
+- Scheduling ensures the aircraft's rotation begins at and eventually returns to its assigned home Base.
 - Aircraft Operations tracks the aircraft's actual current location.
 - Maintenance determines whether required servicing is available or must be planned elsewhere.
 
-An aircraft does not need to return to its home hub after every flight. It may operate a multi-leg rotation as long as the finalized Scheduling rules are satisfied.
+An aircraft does not need to return to its home Base after every flight. It may operate a multi-leg rotation as long as the finalized Scheduling rules are satisfied.
 
-Reassigning an aircraft to another hub must eventually be coordinated with its schedule, actual location, maintenance needs, and the receiving hub's capabilities. The detailed reassignment workflow belongs to later technical design.
+Reassigning an aircraft to another Base must be coordinated with its schedule, actual location, maintenance needs, and the receiving Base's capabilities. The aircraft must physically arrive through a scheduled revenue flight or a positioning flight before the explicit transfer becomes effective. Detailed validation belongs to Base & Hub Management, Scheduling, and later technical design.
 
 ## 8. Schedule-Derived Route Usage
 
@@ -179,7 +179,7 @@ Early-game Fleet Management can emphasize individual aircraft. As the airline gr
 - filtering and sorting;
 - fleet groups;
 - aircraft-model views;
-- home-hub views;
+- home-base views;
 - bulk actions where appropriate;
 - optional automation and delegation; and
 - fleet-level performance summaries.
@@ -213,7 +213,7 @@ The following decisions should not change without redesigning Fleet Management:
 Every aircraft is an individual asset, never merely a quantity.
 
 Fleet Management owns aircraft existence in the controlled fleet, identity,
-organization, home-hub assignment, persistent configuration, acquisition into
+organization, home-base assignment, persistent configuration, acquisition into
 the fleet, and disposal from the fleet.
 
 Scheduling owns what the aircraft is scheduled to do.
