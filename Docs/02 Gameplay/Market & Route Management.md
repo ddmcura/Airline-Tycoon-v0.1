@@ -269,7 +269,7 @@ This system directly interacts with:
 - **Passenger Demand, Booking, and Network Simulation** - owns demand, traveler types, itinerary choice, booking scores, capacity fallback, and passenger connections.
 - **Scheduling** - owns flights, frequencies, timing, slots in schedules, and weekly aircraft rotations.
 - **Hub Management** - owns hub licenses, facilities, service infrastructure, and advanced airport capabilities.
-- **Fleet Management** - owns aircraft assignment, range, configuration, and operational compatibility.
+- **Fleet Management** - owns individual aircraft assets, their home-hub assignment relationship, and persistent aircraft configuration. Aircraft Reference Data owns model specifications; Scheduling and other consuming systems evaluate operational feasibility.
 - **Airport Management** - owns airport constraints, slot mechanics, fees, and future airport development or ownership.
 - **Finance and Marketing** - own acquisition costs, route economics, advertising spend, and financial reporting.
 

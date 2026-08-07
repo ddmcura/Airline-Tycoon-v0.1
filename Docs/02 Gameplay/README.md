@@ -2,10 +2,10 @@
 
 Documentation for player-facing systems, menus, progression, and management decisions.
 
-## Planned documents
+## Documents
 
 - Hub Management.md
-- Fleet Management.md
+- [Fleet Management](./Fleet%20Management.md)
 - [Market & Route Management](./Market%20%26%20Route%20Management.md)
 - Marketplace.md
 - Licensing.md
