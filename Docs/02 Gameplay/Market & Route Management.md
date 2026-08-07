@@ -69,13 +69,30 @@ Domestic rights are country-specific. Opening a Base or Hub in another country d
 
 ### 3.2 Country access
 
-Country access permits the airline to consider markets involving that country. It is purchased separately from individual route rights.
+Country access permits the airline to develop commercial routes involving suitable airports in that country. It is purchased separately from individual route rights.
 
 Progression begins with the starting country's domestic access, then expands through paid regional and international country access. Later tiers may unlock cargo authority and other specialized traffic rights.
 
 Country access is non-resellable. Money spent to obtain it is an entry cost, not an asset that can be sold back.
 
-### 3.3 Route rights
+Country access is the route-development permission for the country. The airline does not need separate Airport Access merely to fly to each suitable airport.
+
+### 3.3 Airport access and airport capability
+
+Airport Access permits the airline to establish a permanent operational or commercial footprint at that airport. It may be required for:
+
+- an Operating Base or Hub;
+- airline lounges or offices;
+- dedicated or contracted parking;
+- hangars and maintenance facilities;
+- airline fuel storage; and
+- other locally controlled airline facilities.
+
+Airport Access does not replace country access, route rights, or slots. Conversely, a normal revenue flight does not require Airport Access when the airline already has the required country access, airport-pair route right, slot or movement permission, and technical capability.
+
+Airport operational capability is separate again. An airport must physically and regulatorily support the intended service. A domestic-only airport cannot handle an international flight until customs, immigration, security, terminal, runway, and other required capabilities exist. A future Airport Management or ownership system may allow the player to fund such a conversion.
+
+### 3.4 Route rights
 
 After the required country access exists, the airline must separately purchase the right to operate each airport-pair market.
 
@@ -86,7 +103,7 @@ This separation creates two deliberate decisions:
 1. whether a country is strategically worth entering; and
 2. which airport-pair markets within that access area are worth owning.
 
-### 3.4 Technical feasibility and player freedom
+### 3.5 Technical feasibility and player freedom
 
 The game may warn the player about weak demand, high costs, poor strategic fit, or limited infrastructure, but it should not prevent the purchase of a poor route merely because the game predicts it will lose money.
 
@@ -115,7 +132,7 @@ Routes do not need to run only between hubs. Hub-to-non-hub service is a normal 
 Operating Bases and Hubs have separate roles:
 
 - aircraft are assigned to Operating Bases, whether or not those Bases are Hubs;
-- an aircraft's rotation begins from and returns to its assigned home Base under the finalized Scheduling rules;
+- an aircraft has planned activity to and from its assigned home Base without an arbitrary weekly or monthly return rule;
 - passenger connections may occur only at Hubs; and
 - parking, hangars, service infrastructure, and physical airport capabilities remain separate from Hub status.
 
@@ -267,7 +284,7 @@ Those details belong to the systems that own them and may evolve without changin
 This system directly interacts with:
 
 - **Passenger Demand, Booking, and Network Simulation** - owns demand, traveler types, itinerary choice, booking scores, capacity fallback, and passenger connections.
-- **Scheduling** - owns flights, frequencies, timing, slots in schedules, and weekly aircraft rotations.
+- **Scheduling** - owns the canonical future timetable, recurrence, specific planned aircraft assignments, positioning plans, effective-dated revisions, and dated flight publication.
 - **Base & Hub Management** - owns Operating Base and Hub roles, aircraft-stationing permission, Hub licenses, passenger-connection privileges, and Hub progression. Physical airport infrastructure remains owned by Airport Management.
 - **Fleet Management** - owns individual aircraft assets, their home-base assignment relationship, and persistent aircraft configuration. Aircraft Reference Data owns model specifications; Scheduling and other consuming systems evaluate operational feasibility.
 - **Airport Management** - owns airport constraints, slot mechanics, fees, and future airport development or ownership.
@@ -286,6 +303,10 @@ The starting Operating Base grants domestic rights in its country; it does not
 begin with Hub status.
 
 Country access and route rights are separate, paid, and non-resellable.
+
+Country access permits route development involving suitable airports. Airport
+Access is instead required for Bases, Hubs, lounges, offices, dedicated parking,
+hangars, fuel storage, and other permanent airline facilities.
 
 Permanent closure forfeits a route right and its cost; suspension preserves ownership.
 

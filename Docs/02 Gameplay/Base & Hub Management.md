@@ -56,7 +56,7 @@ The player's starting airport begins as the airline's first Operating Base, not 
 At the start of the game:
 
 - aircraft may be assigned to and stationed at the starting Base;
-- aircraft rotations may originate and finish there;
+- aircraft schedules may include arrivals, departures, stationing, and support activity there;
 - the Base provides the basic support needed for the starting operation;
 - the player's initial access rights determine which routes may be acquired and operated; and
 - flights remain point-to-point until the player successfully establishes a Hub.
@@ -193,7 +193,7 @@ Exact parking simulation, compatibility, overflow rules, and airport capacity ca
 
 Every aircraft has an assigned home Base. Fleet Management owns this persistent relationship.
 
-Scheduling must eventually ensure that an aircraft's rotation begins from and returns to its assigned home Base according to the finalized rotation period and rules. The aircraft does not need to return after every individual flight.
+The home Base is the aircraft's normal operational anchor, not a mandatory weekly or monthly return checkpoint. Scheduling must include meaningful activity to and from the assigned Base, but an aircraft may operate extended continuous rotations away from it. Required maintenance or other Base-dependent service may be completed at any Operating Base with the correct facilities.
 
 To reassign an aircraft, the player explicitly initiates a home-base transfer. The aircraft must physically arrive at the receiving Base through either:
 
@@ -233,7 +233,7 @@ Closing an Operating Base separately requires aircraft to be reassigned or trans
 | Hub Management | Owns Hub applications, Hub status, passenger-connection permission, Hub XP, Hub levels, and connecting-network benefits. |
 | Market & Route Management | Owns country and market access, route rights, and airport-pair market participation. |
 | Airport Management | Owns physical airport capacity, available stands, gates, terminals, runways, developable space, and airport constraints. |
-| Scheduling | Owns rotations, timetables, positioning flights, aircraft-time allocation, and compliance with home-base return rules. |
+| Scheduling | Owns rotations, timetables, positioning flights, aircraft-time allocation, continuity, and the aircraft's planned activity to and from its home Base. |
 | Aircraft Operations | Owns each aircraft's actual location and current operational state. |
 | Maintenance | Owns servicing requirements, maintenance work, facility compatibility, downtime, and return to service. |
 | Passenger Simulation | Searches for, validates, evaluates, and books connecting itineraries through eligible Hubs. |
@@ -289,8 +289,8 @@ This architecture intentionally does not finalize:
 - parking, gate, terminal, or hangar capacity formulas;
 - detailed facility acquisition and lease mechanics;
 - airport construction or ownership mechanics;
-- schedule and rotation algorithms;
-- exact home-base transfer validation;
+- detailed schedule algorithms and recurrence implementation;
+- exact home-base transfer and remote-operation validation;
 - Hub closure wind-down timing;
 - Hub XP decay or restoration formulas;
 - detailed fuel infrastructure; or
@@ -326,6 +326,10 @@ not an arbitrary aircraft limit tied to Hub level.
 
 Every aircraft has a home Base. A home-base transfer requires an explicit action
 and the aircraft's physical arrival through a revenue or positioning flight.
+
+Home Base is an operational anchor with scheduled activity to and from it, not
+an arbitrary weekly or monthly return requirement. Maintenance may occur at any
+Operating Base with the required facility.
 
 Removing Hub status disables passenger connections and Hub benefits while
 preserving point-to-point operations and, if retained, the Operating Base.

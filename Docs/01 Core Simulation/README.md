@@ -2,11 +2,11 @@
 
 Documentation for the systems that drive the simulated airline world.
 
-## Planned documents
+## Documents
 
 - Passenger Demand & Network Simulation.md
 - Passenger Demand Technical Specification.md
-- Flight Scheduling Architecture.md
+- [Flight Scheduling Architecture](./Flight%20Scheduling%20Architecture.md)
 - Aircraft Operations.md
 - Economy Simulation.md
 

@@ -125,11 +125,11 @@ Each aircraft has an assigned home Base. An Operating Base does not need to be a
 Fleet Management owns the persistent aircraft-to-home-base relationship, while the connected systems enforce its meaning:
 
 - Base & Hub Management determines whether the airport is a valid Operating Base and what support it provides.
-- Scheduling ensures the aircraft's rotation begins at and eventually returns to its assigned home Base.
+- Scheduling ensures the aircraft has meaningful planned activity to and from its assigned home Base while preserving geographic and chronological continuity.
 - Aircraft Operations tracks the aircraft's actual current location.
 - Maintenance determines whether required servicing is available or must be planned elsewhere.
 
-An aircraft does not need to return to its home Base after every flight. It may operate a multi-leg rotation as long as the finalized Scheduling rules are satisfied.
+An aircraft does not need to return to its home Base after every flight or on an arbitrary weekly or monthly cycle. It may operate extended multi-leg rotations, and it may receive maintenance at any Operating Base with the correct facilities. The home Base remains its persistent organizational and operational anchor rather than its only permitted support location.
 
 Reassigning an aircraft to another Base must be coordinated with its schedule, actual location, maintenance needs, and the receiving Base's capabilities. The aircraft must physically arrive through a scheduled revenue flight or a positioning flight before the explicit transfer becomes effective. Detailed validation belongs to Base & Hub Management, Scheduling, and later technical design.
 
@@ -192,7 +192,7 @@ This architecture intentionally does not finalize:
 
 - operational flight phases;
 - availability-calculation rules;
-- schedule structures or rotation algorithms;
+- schedule storage, recurrence implementation, or detailed rotation algorithms;
 - maintenance formulas, checks, and intervals;
 - aircraft-market offer generation;
 - resale values and depreciation;
@@ -217,6 +217,9 @@ organization, home-base assignment, persistent configuration, acquisition into
 the fleet, and disposal from the fleet.
 
 Scheduling owns what the aircraft is scheduled to do.
+
+Home Base is the aircraft's persistent operational anchor. Scheduling provides
+activity to and from it, but does not impose an arbitrary periodic-return rule.
 
 Aircraft Operations owns what it is currently doing and where it is.
 
