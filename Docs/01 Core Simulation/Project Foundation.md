@@ -129,6 +129,16 @@ A simple, complete, usable version of a system is preferable to an ambitious sys
 
 Advanced realism and additional depth can be layered onto a functioning foundation later.
 
+### Stable playable stages
+
+Airline Tycoon is developed through stable playable stages. Each stage introduces the smallest complete addition to the existing gameplay loop, connects it to the systems already in use, and is tested and stabilized before the next layer begins.
+
+The earliest playable stage may be deliberately simple: buy aircraft, assign them to routes, operate those routes, calculate simplified revenue and costs, advance time, and save or load reliably. Once that loop is stable, a system such as seating configuration can be added, connected, tested, and stabilized before another system is chosen.
+
+Architecture documents preserve the complete approved direction. Implementation stages contain only what the game is ready to support now. Future systems may have clean boundaries and extension points without being prematurely simulated.
+
+Every completed stage should remain a playable game rather than becoming a collection of unrelated half-built systems.
+
 ### Modular systems
 
 Major systems should have clear responsibilities and boundaries. Fleet management, route management, scheduling, finance, hubs, passengers, airports, and other packages should be capable of evolving without unnecessary coupling.

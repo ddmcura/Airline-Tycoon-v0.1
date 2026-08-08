@@ -244,25 +244,13 @@ Base & Hub Management coordinates these systems but does not duplicate their sou
 
 ## 13. Airport Expansion Spillover
 
-Airport development is related to Bases and Hubs but remains a separate future Airport Management / Airport Ownership system.
+Airport development is related to Bases and Hubs but belongs to the separate [`Airport Management`](./Airport%20Management.md) architecture.
 
-The approved direction is that airports should not simply gain physical infrastructure from Hub levels. Instead, each airport may have its own:
+Airports do not gain runways, terminals, gates, parking, hangars, fuel facilities, or other physical infrastructure from Hub levels. Each airport instead retains its historical footprint, infrastructure, available land, constraints, and future development potential.
 
-- developed area and existing infrastructure;
-- available expansion land;
-- surrounding-development, terrain, and environmental constraints;
-- maximum practical footprint;
-- runways and runway-upgrade potential;
-- terminals, gates, and remote stands;
-- parking and maintenance areas;
-- fuel and cargo infrastructure; and
-- other future airport assets.
+Airport expansion is strategic placement rather than detailed manual construction. Future player-controlled development uses simple lines, boxes, templates, or anchor points, while an automatic connector handles minor taxiway, apron, gate, service, and internal-routing geometry.
 
-Airports should behave like location-specific development sandboxes with different boundaries. Some may expand easily, while constrained airports may have little normal expansion potential.
-
-Future late-game projects may allow extraordinary expansion through government agreements or airport ownership, including land acquisition, relocation compensation, utility or road relocation, reclamation, demolition, redevelopment, or replacement-airport construction. Such projects should be expensive, slow, and unable to overcome genuinely impossible safety or geographic constraints.
-
-These are preserved architecture directions, not finalized construction mechanics.
+Extraordinary late-game projects may include land acquisition, relocation, reclamation, demolition, redevelopment, or replacement airports. They remain expensive, slow, and unable to overcome genuinely impossible geography or aviation-safety constraints.
 
 ## 14. Fuel Infrastructure Spillover
 

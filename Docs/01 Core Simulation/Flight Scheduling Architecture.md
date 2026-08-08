@@ -395,7 +395,7 @@ Any new persistent fields must first be defined in the canonical template/schema
 
 The following approved directions belong to future owning documents:
 
-- **Airport Management:** exact-time slot allocation, interval-based capacity, facilitated and coordinated airports, international-capability conversion, movement throughput, stands, taxiways, and congestion.
+- **Airport Management:** exact-time scheduling opportunities and slots, capacity forecasts derived from airport infrastructure and expected traffic, facilitated and coordinated airports, international-capability conversion, stands, taxiways, congestion, and the future airport-specific ATC engine. See [`Airport Management`](../02%20Gameplay/Airport%20Management.md).
 - **Aircraft Operations:** actual flight phases, traffic delay, cancellations, substitutions, disruption recovery, and speed-based delay compensation.
 - **Maintenance:** service types, due thresholds, capable facilities, planned downtime, and maintenance recovery.
 - **Passenger Simulation and Booking:** booking horizons, connection search, minimum and maximum layovers, passenger response to timetable changes, and reaccommodation.
