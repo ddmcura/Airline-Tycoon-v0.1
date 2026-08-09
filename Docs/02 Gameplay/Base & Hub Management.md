@@ -34,7 +34,7 @@ An airline may operate routes between any airports for which it holds the requir
 
 ## 3. Point-to-Point Service and Passenger Connections
 
-Non-Hub routes operate point-to-point. Merely serving two routes through the same airport does not create a valid connecting itinerary.
+An airline's non-Hub routes operate point-to-point. Merely serving two routes through the same airport does not let that airline connect passengers between its own flights there.
 
 For example, if an airline operates:
 
@@ -45,7 +45,9 @@ CEB <-> DVO
 
 while CEB is not that airline's Hub, passengers may book each market independently, but they may not book DVO -> CEB -> MNL as one connecting journey with that airline.
 
-After the airline establishes CEB as a Hub, DVO -> CEB -> MNL may become a valid connecting itinerary. Passenger Simulation still determines whether the itinerary is feasible and attractive.
+After the airline establishes CEB as a Hub, DVO -> CEB -> MNL may become a valid same-airline connecting itinerary. Passenger Simulation still determines whether the itinerary is feasible and attractive.
+
+Passenger Simulation may separately evaluate partnered or unpartnered changes between different airlines. An inter-airline transfer at a non-Hub does not grant either airline Hub functionality there: neither airline may use it to connect between two of its own flights unless that airline has established the airport as its Hub.
 
 Hub status creates permission for passenger connections. It does not guarantee demand, suitable schedules, sufficient terminal capacity, or successful bookings.
 
@@ -298,7 +300,8 @@ Bases support and station aircraft. Hubs additionally connect passengers.
 The starting airport is a Base, not a Hub.
 
 Non-Hub to non-Hub routes are permitted when access and route rights exist,
-but passengers cannot connect through a non-Hub.
+but an airline cannot connect passengers between its own flights through a
+non-Hub. An inter-airline transfer does not grant either airline Hub status.
 
 Hub status requires an application and a one-time establishment payment.
 Additional active Hubs become progressively more expensive.

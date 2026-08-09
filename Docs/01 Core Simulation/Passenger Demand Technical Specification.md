@@ -1,0 +1,934 @@
+# Airline Tycoon - Passenger Demand Technical Specification
+
+> **Status:** Approved Stage 1 technical direction. This document translates the approved Passenger Demand, Booking & Network Simulation architecture into formulas, processing rules, performance requirements, and testable behavior for the first generic Economy implementation. Numerical coefficients are configurable prototype values, not permanent balance. This document does not authorize code or schema changes by itself.
+
+## 1. Purpose and Technical Rule
+
+Stage 1 must keep five different quantities separate:
+
+```text
+World Demand
+    asks: How many new people want to book A -> B today?
+
+Booking Engine
+    asks: Can they find an acceptable future journey?
+
+Airline Competition
+    asks: Which available itinerary do they choose?
+
+Capacity
+    asks: How many actually secure seats?
+
+Flight Simulation
+    asks: Who actually travels on the operating day?
+```
+
+The implementation must never collapse these into one per-flight or airline-owned route-demand calculation.
+
+The primary Stage 1 demand output is:
+
+```text
+BaseDailyBookers(origin -> destination)
+```
+
+This is the stable baseline number of **new daily future-trip booking intentions** for one directional airport pair.
+
+It is not:
+
+- passengers assigned to a specific flight;
+- passengers flying today;
+- passengers generated because a route exists;
+- successful bookings;
+- a booking backlog; or
+- a value owned separately by each airline.
+
+## 2. Stage 1 Scope
+
+Stage 1 includes:
+
+- directional airport-pair demand;
+- a world-level `BaseDailyBookers` baseline;
+- one generic Economy passenger group;
+- rolling daily booking cohorts;
+- desired future travel dates;
+- a configurable hard booking horizon;
+- direct and approved connecting itinerary search;
+- one configurable Economy choice profile;
+- an outside option;
+- aggregated batch allocation;
+- atomic multi-leg reservations;
+- deterministic randomness;
+- indexed and cached network processing; and
+- separate booking-intent, successful-booking, and flown-passenger metrics.
+
+Stage 1 does not include:
+
+- Business, First, or Premium Economy demand;
+- detailed traveler purposes;
+- individual passenger objects;
+- automatic retry or backlog behavior;
+- loyalty mechanics;
+- overbooking, cancellations, or no-shows;
+- detailed tourism, business, diaspora, or migration relationships;
+- detailed seasonality or world events;
+- permanent balancing coefficients; or
+- Cargo.
+
+## 3. Directional Demand Pipeline
+
+For every valid directional pair `o -> d`:
+
+```text
+OriginDailyBookingPool(o)
+= OriginPopulation(o)
+  x DailyBookerRate(o)
+
+DestinationPairShare(o -> d)
+= RawPairScore(o -> d)
+  / SUM(RawPairScore(o -> every valid world destination))
+
+BaseDailyBookers(o -> d)
+= OriginDailyBookingPool(o)
+  x DestinationPairShare(o -> d)
+
+ActualDailyBookers(o -> d, today)
+= BaseDailyBookers(o -> d)
+  x DailyDemandMultiplier(o, d, today)
+```
+
+Only after `ActualDailyBookers` is calculated does the system check for a valid future itinerary.
+
+## 4. Origin Daily Booking Pool
+
+The origin pool represents how many residents or locally generated travelers enter the future-trip booking market on an ordinary game day.
+
+```text
+OriginDailyBookingPool(o)
+= OriginPopulation(o)
+  x DailyBookerRate(o)
+```
+
+Example:
+
+```text
+MNL population        = 15,000,000
+DailyBookerRate       = 0.0002
+Origin booking pool   = 3,000 new booking intentions per day
+```
+
+`DailyBookerRate` must be configurable. Stage 1 may use one global prototype value or a small table by city or airport type.
+
+Future origin-side modifiers may include:
+
+- city type;
+- economic strength;
+- historical era;
+- travel culture;
+- airport accessibility;
+- population changes;
+- business activity; and
+- tourism-source strength.
+
+These are extension points, not Stage 1 implementation requirements.
+
+## 5. Destination Pair Share
+
+`DestinationPairShare(o -> d)` is the hidden fraction of the origin's daily booking market that wants destination `d`.
+
+It exists whether or not any route, airline, or schedule currently serves the pair.
+
+### 5.1 Raw pair score
+
+Stage 1 calculates:
+
+```text
+RawPairScore(o -> d)
+= PopulationPull(d)
+  x DistanceWeight(o, d)
+  x DestinationTypeWeight(d)
+  x GeographyWeight(o, d)
+  x RelationshipWeight(o, d)
+```
+
+All components must be positive, configurable, and independently testable.
+
+### 5.2 Population pull
+
+Prototype:
+
+```text
+PopulationPull(d)
+= sqrt(DestinationPopulation(d) / 1,000,000)
+```
+
+This softened curve allows larger destinations to attract more travelers without linear megacity dominance.
+
+Zero or missing population requires an explicit data fallback defined by configuration or validation. It must not silently cause invalid arithmetic.
+
+### 5.3 Distance weight
+
+Prototype:
+
+```text
+DistanceWeight(o, d)
+= 1 / (1 + DistanceKm(o, d) / DistanceScaleKm)
+
+DistanceScaleKm = 2,000
+```
+
+Nearby destinations receive stronger ordinary travel while long-haul markets remain possible. Stage 1 should not apply a large hard minimum floor. Testing may later justify a small floor or another curve.
+
+### 5.4 Destination-type weight
+
+Prototype configuration:
+
+| Destination type | Weight |
+|---|---:|
+| Mega / Global City | 1.40 |
+| Capital / Major City | 1.25 |
+| Major Regional City | 1.10 |
+| Normal City | 1.00 |
+| Small Regional City | 0.80 |
+| Minor City | 0.65 |
+
+These are test values. The airport/city data source must define how a destination maps to a type before implementation.
+
+Tourism-heavy destinations may later receive dedicated tourism inputs rather than having tourism hidden inside this generic type weight.
+
+### 5.5 Geography weight
+
+Prototype:
+
+| Pair geography | Weight |
+|---|---:|
+| Same country | 1.25 |
+| Different country | 1.00 |
+
+The values remain configurable. Later regional, border, island, visa, or political effects must be added deliberately rather than embedded invisibly.
+
+### 5.6 Relationship weight
+
+Stage 1 uses:
+
+```text
+RelationshipWeight(o, d) = 1.0
+```
+
+Future phases may add tourism links, business ties, diaspora, culture, family and worker flows, migration, historical traffic, or regional relationships.
+
+## 6. Full-World Normalization
+
+For each origin, normalize against every valid destination in the represented world:
+
+```text
+DestinationPairShare(o -> d)
+= RawPairScore(o -> d)
+  / SUM(RawPairScore(o -> every valid destination))
+```
+
+The denominator must not be limited to:
+
+- purchased routes;
+- reachable destinations;
+- scheduled destinations;
+- destinations served by the player;
+- destinations served by any airline; or
+- destinations currently inside the booking horizon.
+
+This preserves a stable pair share when the airline network changes. Opening `MNL -> NRT` must not automatically reduce `MNL -> DVO` merely because NRT became reachable.
+
+Pair shares change only when demand-side inputs or the valid represented world change. A deliberate data expansion may therefore create a new demand-model revision and recalculate shares; ordinary route and schedule changes must not.
+
+### 6.1 Valid destination universe
+
+A valid destination must be a represented commercial destination eligible for passenger-demand calculation under current world-data rules. It excludes the origin itself and any location deliberately excluded from passenger markets.
+
+The exact data validation rule belongs to Airport/Data documentation. The demand system consumes the validated universe.
+
+### 6.2 Normalization invariant
+
+For every origin with at least one valid destination:
+
+```text
+SUM(DestinationPairShare(o -> d)) = 1.0
+```
+
+Floating-point tolerance must be defined in tests.
+
+## 7. Base Daily Bookers
+
+After normalization:
+
+```text
+BaseDailyBookers(o -> d)
+= OriginDailyBookingPool(o)
+  x DestinationPairShare(o -> d)
+```
+
+Example:
+
+```text
+OriginDailyBookingPool(MNL)          = 3,000
+DestinationPairShare(MNL -> DVO)     = 0.02
+BaseDailyBookers(MNL -> DVO)         = 60
+```
+
+The baseline is directional and world-owned:
+
+```text
+BaseDailyBookers(MNL -> DVO)
+!= BaseDailyBookers(DVO -> MNL)
+```
+
+An airline route may display or cache a forecast projection, but it must not become the authoritative owner of a separate copy of this demand.
+
+## 8. Actual Daily Bookers
+
+Each game day applies demand-side conditions:
+
+```text
+ActualDailyBookers(o -> d, today)
+= BaseDailyBookers(o -> d)
+  x DailyDemandMultiplier(o, d, today)
+```
+
+Possible current or future multiplier sources include:
+
+- holidays;
+- seasonality;
+- advertising and market-development campaigns;
+- tourism boosts;
+- economic conditions;
+- local, regional, or world events;
+- airline or market buffs; and
+- government or regional effects.
+
+Example:
+
+```text
+BaseDailyBookers       = 60
+Holiday                = 1.50
+Advertising            = 1.20
+Tourism event          = 1.40
+
+ActualDailyBookers
+= 60 x 1.50 x 1.20 x 1.40
+= 151.2 before integer resolution
+```
+
+Large stacked results are architecturally valid. Configuration may later define caps, additive groups, diminishing returns, or stacking categories after balancing tests.
+
+The same commercial effect must not accidentally be counted both as a demand multiplier and as an itinerary-choice input unless the owning design explicitly gives it both responsibilities. For example, route advertising may increase market activity, service awareness, or both, but each effect must be named and configured separately.
+
+## 9. Fractional and Tiny Pair Demand
+
+`BaseDailyBookers` and `ActualDailyBookers` may be fractional.
+
+Example:
+
+```text
+BaseDailyBookers = 0.03 per day
+```
+
+The system must not create fractional passenger objects or process a zero-value batch every day.
+
+Use either:
+
+- deterministic seeded stochastic rounding; or
+- a deterministic fractional accumulator.
+
+The chosen method must preserve the long-run expected value. For example, `0.03` should resolve to approximately one booking intention every 33 days.
+
+### 9.1 Seed requirements
+
+Randomness must be derived from stable inputs such as:
+
+```text
+save simulation seed
+origin airport
+destination airport
+cohort creation date
+purpose-specific random stream identifier
+```
+
+Reloading the same unchanged save must not reroll the cohort.
+
+## 10. Demand Before Network Availability
+
+No flight, route, schedule, airline, capacity, or reachability input may appear in the `BaseDailyBookers` formula.
+
+Required processing order:
+
+```text
+Resolve BaseDailyBookers
+        -> apply today's demand factors
+        -> resolve ActualDailyBookers integer batch
+        -> check for usable future service
+        -> if service exists, enter Booking
+        -> otherwise, no booking attempt
+```
+
+If no itinerary exists, the baseline remains intact. The day's unsuccessful opportunity is not saved as a waiting batch in Stage 1.
+
+## 11. Rolling Daily Booking Cohorts
+
+Stage 1 does not use a fixed cumulative booking curve as its core generator.
+
+Every game day creates a new cohort for each pair whose integer-resolved `ActualDailyBookers` is positive and for which a potentially usable future itinerary exists.
+
+Example:
+
+```text
+MNL -> DVO
+Generic Economy
+Cohort creation date: 12 March 1960
+Count: 60
+```
+
+The cohort:
+
+1. selects or is allocated a desired future travel date;
+2. searches acceptable itineraries around that date;
+3. scores the candidates and outside option;
+4. reserves capacity for successful choices; and
+5. exits daily processing.
+
+Repeated new cohorts naturally create booking accumulation on future flights.
+
+### 11.1 No automatic carry-forward
+
+If a cohort contains 60 bookers and only 45 confirm:
+
+```text
+Successful bookings = 45
+Unsuccessful today  = 15
+```
+
+The 15 do not automatically join tomorrow's cohort. Tomorrow independently generates:
+
+```text
+BaseDailyBookers x tomorrow's demand multiplier
+```
+
+Future passenger types may retry or postpone using explicit probabilities and state. Such behavior must be introduced deliberately and must not become an implicit backlog.
+
+## 12. Booking Horizon and Desired Travel Date
+
+Stage 1 defines:
+
+```text
+MAX_BOOKING_HORIZON_DAYS = 365
+```
+
+This is a configurable hard maximum.
+
+A cohort created on `today` may search only dated flights satisfying:
+
+```text
+today <= departure_date <= today + MAX_BOOKING_HORIZON_DAYS
+```
+
+The system first selects a desired future travel date using a configurable generic Economy lead-time distribution. It then searches within a configurable tolerance around that date.
+
+The exact Stage 1 lead-time distribution and date tolerance remain prototype balancing values, but they must:
+
+- produce rolling accumulation across future departures;
+- avoid sending every cohort to the earliest available flight;
+- avoid uniform selection across all 365 days unless testing supports it;
+- respect schedule availability; and
+- never exceed the global hard maximum.
+
+Future passenger groups may have different preferred lead times while sharing the same hard maximum.
+
+## 13. Stage 1 Itinerary Eligibility
+
+Stage 1 itinerary search reads dated flight instances published by Scheduling.
+
+A candidate must satisfy:
+
+- departure occurs within the permitted desired-date search window;
+- every leg is a published passenger service;
+- origin, destination, and leg order form a continuous journey;
+- all connection times are valid;
+- same-airline transfers occur only through that airline's Hubs;
+- any supported inter-airline transfer follows the approved self-connect or partnership rules;
+- the number of connections does not exceed the configured hard limit;
+- applicable airport, route, and schedule constraints are valid; and
+- capacity can potentially be reserved on every leg.
+
+Frequency receives no direct scoring bonus. More frequency helps only by offering more suitable travel dates, departure times, arrival times, journey durations, or capacity.
+
+## 14. Schedule Indexes and Network Caches
+
+The Booking Engine must not scan every future flight for every directional pair and cohort.
+
+At minimum, the schedule lookup layer must support indexed access by:
+
+- origin airport;
+- departure date or date range;
+- destination airport;
+- airline when required; and
+- Hub or connection eligibility when required.
+
+Recommended conceptual indexes include:
+
+```text
+departures_by_origin_and_date
+direct_services_by_pair_and_date
+hub_departures_by_airline_origin_and_date
+capacity_by_dated_flight_and_product
+```
+
+Exact runtime structures remain an implementation choice as long as their behavior and invalidation are testable.
+
+### 14.1 Structural reachability cache
+
+A structural cache may answer whether a direct or permitted connecting pattern could exist without scanning exact flights repeatedly.
+
+It must not itself confirm bookability. Final booking still validates dated schedules, times, rules, and capacity.
+
+### 14.2 Candidate itinerary-pattern cache
+
+Repeated searches may cache candidate patterns such as:
+
+```text
+DVO -> MNL -> NRT
+airline transfer pattern
+eligible Hub relationships
+```
+
+The cache stores reusable structure, not permanently valid dated reservations.
+
+### 14.3 Network revision invalidation
+
+Route, schedule, Hub, partnership, airport-availability, or other structural changes increment the appropriate network revision and invalidate affected reachability or candidate-pattern caches.
+
+Demand-side input changes use a separate demand-model revision. A schedule edit must not unnecessarily recalculate full-world destination shares.
+
+## 15. Stage 1 Economy Choice Score
+
+Stage 1 uses one configurable generic Economy scoring profile.
+
+Candidate factors may include:
+
+- fare or price;
+- departure-time suitability;
+- arrival-time suitability;
+- difference from desired travel date;
+- total journey time;
+- number and difficulty of connections;
+- number of airline changes;
+- partnered protection versus self-connection;
+- airline reliability;
+- airline reputation;
+- Market Presence and directional route awareness;
+- future product or perk inputs;
+- deterministic random preference; and
+- the outside option.
+
+A conceptual linear utility is acceptable for the prototype:
+
+```text
+Utility(i)
+= w_price       x PriceScore(i)
+  + w_departure x DepartureSuitability(i)
+  + w_arrival   x ArrivalSuitability(i)
+  + w_date      x DesiredDateSuitability(i)
+  + w_duration  x JourneyDurationScore(i)
+  + w_connection x ConnectionScore(i)
+  + w_reliability x ReliabilityScore(i)
+  + w_reputation  x ReputationScore(i)
+  + w_presence    x MarketPresenceScore(i)
+  + RandomPreference(i)
+```
+
+All component scores should use documented ranges before weights are tuned. Exact transformations and weights remain prototype values.
+
+### 15.1 Outside option
+
+The choice set always includes an outside option representing rejection of the available travel choices.
+
+Possible reasons include:
+
+- unacceptable fare;
+- unsuitable date or time;
+- excessive journey duration;
+- too many or poor connections;
+- insufficient capacity;
+- another travel mode;
+- changed plans; or
+- no acceptable service.
+
+A terrible itinerary must not receive the entire cohort merely because it is the only airline option.
+
+## 16. Batch Choice Allocation
+
+Do not simulate each traveler independently.
+
+For a cohort count `N`, convert candidate utilities into non-negative choice weights using a configurable choice function. A softmax-style prototype is acceptable:
+
+```text
+ChoiceWeight(i) = exp(Utility(i) / Temperature)
+
+PassengerShare(i)
+= ChoiceWeight(i)
+  / SUM(ChoiceWeight(all itineraries and outside option))
+```
+
+Then allocate integer batch counts using deterministic rounding that preserves the cohort total.
+
+Example:
+
+```text
+Cohort = 60
+
+Airline A = 42% -> 25
+Airline B = 35% -> 21
+Airline C = 18% -> 11
+Outside   =  5% ->  3
+```
+
+The allocation method must avoid airline-order bias. Changing dictionary or iteration order must not change market results.
+
+## 17. Capacity and Redistribution
+
+Capacity belongs to dated flight instances and sellable products.
+
+If 25 passengers select Airline A but only 10 seats remain:
+
+```text
+Confirm 10 on Airline A
+Unallocated remainder = 15
+```
+
+The remainder is rescored or redistributed across the remaining capacity-bearing options and the outside option.
+
+Redistribution continues until:
+
+- all bookers confirm;
+- all acceptable capacity is exhausted;
+- only the outside option remains; or
+- a configured iteration safety limit is reached.
+
+Stage 1 does not carry the final unsuccessful remainder into tomorrow.
+
+## 18. Atomic Connecting Reservations
+
+A connecting batch must reserve every leg as one transaction.
+
+Example:
+
+```text
+DVO -> MNL capacity = 20
+MNL -> NRT capacity = 13
+Requested batch     = 20
+
+Maximum confirmed connecting batch = 13
+```
+
+The remaining seven must not receive orphan first-leg reservations.
+
+Required behavior:
+
+1. determine the minimum compatible remaining capacity across all legs;
+2. reserve no more than that amount;
+3. commit all leg reservations together;
+4. roll back the entire reservation if any leg commit fails; and
+5. return the unconfirmed remainder to capacity redistribution.
+
+Partnered protection and unpartnered self-connection rules affect choice and passenger rights, but they do not permit orphan capacity reservations.
+
+## 19. Required Daily Processing Order
+
+The passenger pipeline should run in a deterministic order coordinated with Scheduling and Aircraft Operations.
+
+Conceptual order:
+
+1. resolve completed or disrupted prior operations under their owning systems;
+2. apply effective-dated schedule, Hub, partnership, and network changes;
+3. update network revisions and invalidate affected caches;
+4. update demand-model revisions only when demand-side inputs changed;
+5. obtain or calculate `BaseDailyBookers` for relevant directional pairs;
+6. apply today's demand multipliers;
+7. resolve fractional `ActualDailyBookers` into integer batch counts;
+8. discard zero batches without itinerary work;
+9. perform a cheap reachability or service-availability check;
+10. assign desired travel dates within the horizon;
+11. search dated direct and permitted connecting itineraries;
+12. calculate utilities including the outside option;
+13. allocate aggregated batches;
+14. reserve capacity atomically;
+15. redistribute capacity-constrained remainders;
+16. record successful and unsuccessful booking metrics; and
+17. persist confirmed booking batches and updated capacity.
+
+The final code-level call order must remain consistent with the canonical scheduling and operational lifecycle.
+
+## 20. World Scale and Active Pair Processing
+
+Full-world normalization does not require running itinerary search for every pair every day.
+
+The system may precompute or cache demand-side shares, then process daily booking cohorts only for pairs that pass cheap activation checks, such as:
+
+- positive integer-resolved daily bookers; and
+- at least one potentially usable future direct or permitted connecting service.
+
+This preserves dormant pair demand without performing expensive booking work for unavailable journeys.
+
+The engine must avoid:
+
+```text
+every origin
+x every destination
+x every future flight
+x every airline
+```
+
+inside the daily booking loop.
+
+## 21. Conceptual State and Ownership
+
+Exact persistent schema fields require separate approval in the canonical template reference. The technical model nevertheless distinguishes:
+
+### World demand state or derived cache
+
+- demand-model revision;
+- origin booking-pool inputs;
+- normalized directional pair shares;
+- `BaseDailyBookers` values or reproducible derivation inputs;
+- fractional accumulators when that method is selected; and
+- deterministic simulation seed inputs.
+
+### Booking state
+
+- confirmed aggregated booking batches;
+- dated itinerary and leg references;
+- booked product and fare;
+- booked passenger count;
+- booking date;
+- travel date;
+- protection or self-connect status where relevant; and
+- reservation status.
+
+### Derived runtime state
+
+- schedule indexes;
+- structural reachability;
+- candidate itinerary patterns;
+- remaining dated-flight capacity; and
+- score calculation scratch data.
+
+Derived caches should be rebuildable after loading unless persistence provides a demonstrated performance benefit and robust revision validation.
+
+## 22. Metrics
+
+The system must keep these measures distinct:
+
+| Metric | Meaning |
+|---|---|
+| Daily Booking Intent | New `ActualDailyBookers` generated today. |
+| Daily Successful Bookings | Seats newly reserved today for future flights. |
+| Daily Unsuccessful Intent | Today's cohort members who selected or ended in the outside option. |
+| Daily Passengers Flying | Previously booked passengers carried on flights operating today. |
+
+Additional useful Stage 1 metrics include:
+
+- base daily bookers by directional pair;
+- booking conversion rate;
+- direct versus connecting bookings;
+- bookings by airline and itinerary;
+- passengers lost to capacity;
+- passengers rejecting available service;
+- average booking lead time;
+- load already booked by days before departure;
+- cache hits and itinerary-search counts; and
+- top connecting Hubs by confirmed passenger legs.
+
+## 23. Configuration
+
+Prototype values belong in configuration rather than scattered constants.
+
+Conceptual configuration includes:
+
+```text
+daily_booker_rate_default
+daily_booker_rate_by_city_type
+distance_scale_km = 2000
+destination_type_weights
+same_country_weight = 1.25
+international_weight = 1.00
+relationship_weight_default = 1.00
+max_booking_horizon_days = 365
+desired_date_distribution
+desired_date_tolerance_days
+max_connections_stage_1
+minimum_and_maximum_connection_rules
+economy_choice_weights
+outside_option_utility
+choice_temperature
+random_variation_parameters
+allocation_iteration_limit
+```
+
+Changing balancing configuration may require a demand-model version or save migration depending on whether affected values are stored or derived.
+
+## 24. Determinism and Random Streams
+
+Randomness may influence:
+
+- fractional cohort resolution;
+- daily demand variation;
+- desired travel dates;
+- itinerary preference noise; and
+- integer batch allocation ties.
+
+Each purpose should use a stable, separated random stream so adding a new random decision does not silently reroll unrelated outcomes.
+
+Seeds should incorporate the save simulation seed and stable domain identifiers. Tests must verify that:
+
+- the same save and inputs produce the same results;
+- reload does not reroll demand;
+- changing one pair does not reroll unrelated pairs; and
+- iteration order does not alter allocation.
+
+## 25. Required Stage 1 Tests
+
+### 25.1 Formula and normalization
+
+- directional pairs can produce different baselines;
+- destination shares sum to one for each origin;
+- shares use the full valid destination universe;
+- adding a scheduled route does not change pair shares;
+- softened population pull behaves as specified;
+- distance weight declines without a large hard floor;
+- domestic geography weight applies correctly; and
+- relationship weight remains neutral in Stage 1.
+
+### 25.2 Daily cohorts
+
+- `BaseDailyBookers` remains stable when schedules change;
+- daily modifiers change `ActualDailyBookers`, not the baseline;
+- tiny fractional markets preserve their long-run average;
+- reload does not reroll a cohort;
+- no service creates no booking attempt; and
+- unsuccessful bookers do not carry into tomorrow automatically.
+
+### 25.3 Booking horizon and dates
+
+- no search exceeds 365 days;
+- desired dates remain inside the hard horizon;
+- repeated daily cohorts accumulate on future flights;
+- booking intent, successful booking, and flying metrics remain separate; and
+- flights are not all filled by the earliest cohort merely because they exist.
+
+### 25.4 Choice and competition
+
+- all airlines compete for one shared cohort;
+- frequency has no direct bonus;
+- useful timing can make an additional flight attractive;
+- the outside option can beat a terrible itinerary;
+- a new competitor affects new bookings but not confirmed bookings;
+- allocation preserves the original cohort total; and
+- iteration order does not change results.
+
+### 25.5 Capacity and connections
+
+- direct bookings cannot exceed remaining capacity;
+- full preferred service redistributes the remainder;
+- connecting capacity equals the minimum available capacity across legs;
+- an atomic failure leaves no orphan reservation;
+- same-airline connections require the airline's Hub;
+- inter-airline transfers obey the approved transfer rules; and
+- connection limits prevent uncontrolled search.
+
+### 25.6 Performance
+
+- schedule indexes avoid full-list scans for each cohort;
+- unchanged caches are reused;
+- relevant network changes invalidate affected caches;
+- schedule changes do not rebuild demand-side normalization unnecessarily; and
+- representative world and timetable sizes remain within the agreed processing budget.
+
+## 26. Migration From the Current Playable Model
+
+The current implementation stores directional `base_daily_demand` on airline route records and allocates passengers during the daily flight tick. That remains historical implementation input, not the final ownership model.
+
+A future code migration should proceed in stable stages:
+
+1. introduce world-level directional `BaseDailyBookers` calculation and tests;
+2. keep existing daily flight allocation available behind a compatibility boundary;
+3. introduce dated booking capacity and rolling cohorts for direct Economy service;
+4. switch flight-day passengers to confirmed booking batches;
+5. add approved connecting search and atomic reservations;
+6. remove obsolete route-owned authority only after saves and reports migrate safely.
+
+This document does not authorize that code migration yet.
+
+## 27. Deferred Technical Decisions
+
+The following remain deliberately open until implementation planning or testing requires them:
+
+- exact `DailyBookerRate` values and city-type table;
+- missing-population fallback;
+- exact destination-type mapping;
+- demand-multiplier stacking and caps;
+- stochastic rounding versus fractional accumulators;
+- generic Economy lead-time distribution;
+- desired-date tolerance;
+- Stage 1 maximum connection count;
+- exact connection-time formulas;
+- score transformations and weights;
+- outside-option calibration;
+- choice temperature and allocation rounding;
+- persistent schema fields;
+- cache data structures and invalidation granularity;
+- save-migration mechanics;
+- processing performance budget; and
+- exact report and interface presentation.
+
+These are not permission to replace the approved model with per-flight demand, route-owned demand, or reachable-only normalization.
+
+## 28. Final Stage 1 Rules
+
+```text
+BaseDailyBookers is the stable directional baseline number of new people who
+decide each day to seek a future trip from one airport to another.
+
+OriginDailyBookingPool equals origin population times DailyBookerRate.
+
+DestinationPairShare equals a pair's RawPairScore divided by the score sum for
+the full valid destination universe, whether or not those destinations are
+reachable, served, scheduled, or known to the player.
+
+RawPairScore initially uses softened population pull, distance weight,
+destination type, geography, and a neutral relationship weight.
+
+ActualDailyBookers equals BaseDailyBookers times the current day's configurable
+demand modifiers.
+
+Demand is calculated before network availability. Routes and schedules do not
+create or renormalize the underlying pair demand.
+
+Every day creates a new generic Economy booking cohort. Failed Stage 1 bookers
+do not automatically carry into tomorrow.
+
+The global hard maximum booking horizon is configurable and begins at 365 days.
+The rolling daily cohort pipeline replaces a fixed cumulative fill curve.
+
+Passenger cohorts select desired future dates, score dated itineraries and the
+outside option, and reserve available capacity in aggregated batches.
+
+Frequency receives no direct bonus. It helps only by providing useful timing,
+dates, connections, or capacity.
+
+Connecting reservations are atomic across all legs. No orphan leg reservation
+may be created.
+
+All randomness is deterministic for the save, pair, date, and random purpose.
+
+The engine uses schedule indexes, reachability and itinerary-pattern caches,
+Hub-limited search, hard connection limits, and network-revision invalidation.
+
+Daily booking intent, successful bookings, and passengers flying are separate
+metrics and must never be treated as the same number.
+```

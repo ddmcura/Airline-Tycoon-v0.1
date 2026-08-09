@@ -49,7 +49,7 @@ A route may connect:
 - a hub to a non-hub airport; or
 - airports that are otherwise technically and legally feasible under future network rules.
 
-Passenger connections may occur only through Hubs. A non-Hub destination or Operating Base can be served normally, but it cannot act as a transfer point unless that airline has established it as a Hub under Base & Hub Management.
+An airline may intentionally connect passengers between its own flights only through its Hubs. A non-Hub destination or Operating Base can be served normally, but it cannot provide that airline's connecting-passenger functionality unless the airline has established it as a Hub under Base & Hub Management. Passenger Simulation may separately evaluate partnered or unpartnered changes between different airlines; such an inter-airline transfer does not grant either airline Hub functionality at the transfer airport.
 
 ### 2.3 Derived route categories
 
@@ -133,7 +133,7 @@ Operating Bases and Hubs have separate roles:
 
 - aircraft are assigned to Operating Bases, whether or not those Bases are Hubs;
 - an aircraft has planned activity to and from its assigned home Base without an arbitrary weekly or monthly return rule;
-- passenger connections may occur only at Hubs; and
+- an airline may connect passengers between its own flights only at its Hubs; and
 - parking, hangars, service infrastructure, and physical airport capabilities remain separate from Hub status.
 
 These points are cross-system constraints, not definitions of Base, Hub, or scheduling internals. Base & Hub Management owns airline airport roles, stationing permission, Hub licenses, connection privileges, and Hub progression. Fleet Management owns each aircraft's home-base assignment. Airport Management owns physical capacity and facilities. Scheduling owns rotations, timing, validation, and flight construction.
@@ -312,8 +312,9 @@ Permanent closure forfeits a route right and its cost; suspension preserves owne
 
 Slots are separate, tradable operational assets.
 
-Passenger connections occur only through Hubs. Operating Bases without Hub
-status remain point-to-point.
+An airline connects passengers between its own flights only through its Hubs.
+Operating Bases without Hub status do not provide that airline's connection
+functionality. Inter-airline transfers do not grant either airline Hub status.
 
 Market presence combines awareness and operating maturity.
 
