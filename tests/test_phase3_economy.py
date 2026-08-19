@@ -14,24 +14,27 @@ from tests.test_daily_tick import FixedRandom, make_state
 
 
 class Phase3EconomyTests(unittest.TestCase):
-    def test_regional_market_scale_supports_more_than_one_flight(self):
+    def test_model_3_destination_led_regional_demand(self):
         demand = calculate_directional_base_demand(1_230_000, 1_000_000, 400)
 
-        self.assertEqual(demand, 153)
+        # Model 3 applies origin travel rate, destination share, then distance.
+        self.assertEqual(DEMAND_MODEL_VERSION, 3)
+        self.assertEqual(demand, 102)
 
-    def test_old_stored_demand_recalculates_for_current_model(self):
+    def test_model_2_stored_demand_recalculates_with_model_3(self):
         route = {
             "origin_population": 1_230_000,
             "destination_population": 1_000_000,
             "distance_km": 400,
-            "base_daily_demand": 45,
-            "demand_model_version": 1,
+            "base_daily_demand": 153,
+            "demand_model_version": 2,
             "pricing": {"Economy": 100},
         }
 
         adjusted = calculate_adjusted_daily_demand(route, "Normal")
 
-        self.assertEqual(adjusted, 153)
+        self.assertEqual(adjusted, 102)
+        self.assertEqual(route["base_daily_demand"], 102)
         self.assertEqual(route["demand_model_version"], DEMAND_MODEL_VERSION)
 
     def test_legacy_route_gets_population_and_demand_backfill(self):
