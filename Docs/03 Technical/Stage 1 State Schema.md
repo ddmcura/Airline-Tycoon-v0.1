@@ -3,15 +3,15 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-and 1. It supersedes the hybrid `game_state` example in
+through 2. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
 
 Milestone 1 constructs and validates this in-memory, JSON-compatible envelope.
-Exact file writing, loading, migrations, event execution, demand generation,
-booking, flight publication, aircraft operations, and transaction posting are
-not implemented by this schema milestone.
+Milestone 2 adds authoritative clock advancement and generic event execution.
+Exact file writing, loading, migrations, demand generation, booking, flight
+publication, aircraft operations, and transaction posting are not implemented.
 
 ## Representation rules
 
@@ -42,10 +42,16 @@ stage_1_envelope
 │   └── world_created_at_utc: UTC timestamp
 ├── simulation                                    # authoritative
 │   ├── time_utc: UTC timestamp
-│   ├── clock_state: "PAUSED"
-│   ├── event_order_cursor: non-negative integer
+│   ├── clock_state: "PAUSED"|"NORMAL"|"FAST"|"FAST_FORWARD"
+│   ├── event_order_cursor: next non-negative event sequence
+│   ├── fast_forward
+│   │   └── target_time_utc: UTC timestamp or null
+│   ├── operation_revisions: {owner entity ID: non-negative integer}
 │   └── configuration
-│       └── difficulty: string
+│       ├── difficulty: string
+│       └── clock_ratios
+│           ├── NORMAL: positive integer simulation seconds per real second
+│           └── FAST: positive integer simulation seconds per real second
 ├── deterministic_state                           # authoritative
 │   ├── world_seed: non-negative integer
 │   ├── streams: dictionary
@@ -70,6 +76,7 @@ stage_1_envelope
 │   ├── itineraries: {itinerary_id: itinerary}
 │   ├── active_aircraft_operations: {dated_flight_id: operation}
 │   ├── pending_events: {event_id: event}
+│   ├── event_history: {event_id: resolved event}
 │   ├── financial_accounts: {account_id: account}
 │   ├── transactions: {transaction_id: transaction}
 │   └── history
@@ -128,7 +135,11 @@ transaction
 
 pending_event
   event_id, event_type, due_at_utc, owner_type, owner_id,
-  operation_revision, order_key, payload
+  operation_revision, order_key [priority, sequence], payload, status PENDING
+
+resolved_event
+  all pending-event fields, terminal status
+  (COMPLETED|CANCELLED|SUPERSEDED|STALE), resolved_at_utc
 ```
 
 `active_aircraft_operations` is keyed by dated-flight ID in Milestone 1 and may
@@ -151,6 +162,40 @@ Every airline has one three-letter uppercase base accounting currency. Its
 minimal account foundation contains exactly one each of `cash`,
 `aircraft_assets`, `debt`, `unflown_tickets`, `passenger_revenue`, and
 `operating_expenses`; all belong to that airline and use its base currency.
+
+## Clock and event contract
+
+- New worlds start at their supplied canonical UTC timestamp in `PAUSED` mode.
+- `NORMAL` and `FAST` ratios are exact positive integers. Wall-clock readings,
+  sleep calls, render frames, and local time never advance authority.
+- `FAST_FORWARD` requires an explicit UTC target at or after current simulation
+  time. Reaching, stopping, or blocking fast-forward returns the clock to
+  `PAUSED`; loading behavior remains deferred to the exact-save milestone.
+- Scheduling assigns `order_key = [priority, event_order_cursor]`, then advances
+  the persisted cursor. Sequence values are never reused in the save lineage.
+- Queue order is `(due_at_utc, priority, sequence, event_id)`. Dictionary order
+  is irrelevant. A heap or other queue index is derived and rebuildable.
+- Pending events have `PENDING` status. Resolution moves the immutable event ID
+  to `event_history` with one terminal status and `resolved_at_utc`; an event ID
+  cannot exist in both collections.
+- `operation_revisions` is keyed by immutable owner entity ID. A pending event
+  with an older revision is archived as `STALE` without invoking its handler.
+- Event payloads are JSON-compatible data only. Handler registrations, Python
+  callables, iterators, heap nodes, and other runtime objects are never stored.
+- A handler executes against an isolated candidate world. Its event and time
+  changes commit only after validation. Failure leaves that event transaction
+  unchanged and pending, blocks advancement at the failed event, and is retried
+  only by another explicit processing command.
+- Handler return value is `None`; the validated candidate is the result. Handler
+  context cannot mutate the runtime registry, kernel-owned clock facts, event
+  identity/order, or pre-existing pending and terminal event records. It may
+  request `PAUSED`; new work is scheduled through the event API.
+- Commit detaches the validated candidate again; references retained by a
+  handler cannot mutate live authority after the transaction.
+- Runtime-only per-command total and generated-event limits prevent unbounded
+  same-timestamp self-scheduling. Hitting either leaves the next event pending
+  and requires an explicit continuation command; limits are not authoritative
+  save data.
 
 ## Authoritative, derived, runtime, and compatibility data
 

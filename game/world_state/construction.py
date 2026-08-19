@@ -1,6 +1,5 @@
 """Non-interactive construction and schema-only entity creation."""
 
-from datetime import datetime, timezone
 import hashlib
 import json
 
@@ -8,24 +7,11 @@ from .ids import allocate_id, new_allocator_state
 from .money import major_to_minor
 from .schema import (
     DEFAULT_GAME_VERSION,
+    DEFAULT_CLOCK_RATIOS,
     DEFAULT_REFERENCE_DATA_VERSION,
     SAVE_SCHEMA_VERSION,
 )
-
-
-def normalize_utc_timestamp(value, field_name="timestamp"):
-    if isinstance(value, str):
-        candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
-        try:
-            value = datetime.fromisoformat(candidate)
-        except ValueError as exc:
-            raise ValueError(f"{field_name} must be an ISO-8601 UTC timestamp") from exc
-    if not isinstance(value, datetime) or value.tzinfo is None:
-        raise ValueError(f"{field_name} must include a UTC offset")
-    normalized = value.astimezone(timezone.utc)
-    if normalized.microsecond:
-        raise ValueError(f"{field_name} must use whole-second precision")
-    return normalized.strftime("%Y-%m-%dT%H:%M:%SZ")
+from .timestamps import normalize_utc_timestamp
 
 
 def _required_text(value, field_name):
@@ -255,6 +241,7 @@ def _empty_world_state():
         "itineraries": {},
         "active_aircraft_operations": {},
         "pending_events": {},
+        "event_history": {},
         "financial_accounts": {},
         "transactions": {},
         "history": {"operations": [], "financial": [], "world_events": []},
@@ -328,7 +315,12 @@ def create_new_world(
             "time_utc": simulation_time,
             "clock_state": "PAUSED",
             "event_order_cursor": 0,
-            "configuration": {"difficulty": difficulty},
+            "fast_forward": {"target_time_utc": None},
+            "operation_revisions": {},
+            "configuration": {
+                "difficulty": difficulty,
+                "clock_ratios": dict(DEFAULT_CLOCK_RATIOS),
+            },
         },
         "deterministic_state": {
             "world_seed": simulation_seed,

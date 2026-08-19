@@ -65,7 +65,10 @@ def allocate_id(envelope, entity_type):
     collection = envelope.get("world_state", {}).get(collection_name)
     if not isinstance(collection, dict):
         raise ValueError(f"Envelope does not contain a valid {collection_name} collection")
-    if entity_id in collection:
+    if entity_id in collection or (
+        entity_type == "event"
+        and entity_id in envelope.get("world_state", {}).get("event_history", {})
+    ):
         raise ValueError(f"ID allocator collision for {entity_id}")
     next_by_type[entity_type] = number + 1
     return entity_id

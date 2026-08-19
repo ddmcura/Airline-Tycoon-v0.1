@@ -5,6 +5,13 @@ DEFAULT_GAME_VERSION = "0.1"
 DEFAULT_REFERENCE_DATA_VERSION = "stage1-reference-v1"
 MAX_ENTITY_ID_NUMBER = 999_999_999_999
 
+CLOCK_STATES = frozenset({"PAUSED", "NORMAL", "FAST", "FAST_FORWARD"})
+DEFAULT_CLOCK_RATIOS = {"NORMAL": 1, "FAST": 60}
+PENDING_EVENT_STATUS = "PENDING"
+TERMINAL_EVENT_STATUSES = frozenset(
+    {"COMPLETED", "CANCELLED", "SUPERSEDED", "STALE"}
+)
+
 ENTITY_TYPES = (
     "airline",
     "aircraft",
@@ -69,6 +76,7 @@ WORLD_ROOTS = frozenset(
         "itineraries",
         "active_aircraft_operations",
         "pending_events",
+        "event_history",
         "financial_accounts",
         "transactions",
         "history",

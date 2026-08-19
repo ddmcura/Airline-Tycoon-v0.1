@@ -1,7 +1,6 @@
 """Strict, side-effect-free validation for Stage 1 authoritative worlds."""
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Mapping
 
 from .ids import parse_entity_id
@@ -10,14 +9,19 @@ from .schema import (
     ACCOUNT_CATEGORIES,
     AIRLINE_CONTROL_TYPES,
     AIRLINE_OWNER_TYPES,
+    CLOCK_STATES,
     ENVELOPE_ROOTS,
     ENTITY_COLLECTIONS,
     ENTITY_TYPES,
     MAX_ENTITY_ID_NUMBER,
+    PENDING_EVENT_STATUS,
     REQUIRED_ACCOUNT_CODES,
     SAVE_SCHEMA_VERSION,
+    TERMINAL_EVENT_STATUSES,
     WORLD_ROOTS,
 )
+from .serialization import json_compatibility_error
+from .timestamps import is_canonical_utc
 
 
 @dataclass(frozen=True)
@@ -56,13 +60,7 @@ class ValidationResult:
 
 
 def _canonical_utc(value):
-    if not isinstance(value, str) or not value.endswith("Z"):
-        return False
-    try:
-        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
-    except ValueError:
-        return False
-    return parsed.microsecond == 0 and parsed.strftime("%Y-%m-%dT%H:%M:%SZ") == value
+    return is_canonical_utc(value)
 
 
 def _currency_code(value):
@@ -119,10 +117,14 @@ class _Validator:
         if not isinstance(self.envelope, Mapping):
             self.add("invalid_envelope", "$", "world envelope must be a dictionary")
             return False
+        serialization_error = json_compatibility_error(self.envelope)
+        if serialization_error:
+            path, message = serialization_error
+            self.add("not_json_compatible", path, message)
         for key in ENVELOPE_ROOTS:
             if key not in self.envelope:
                 self.add("missing_root", f"$.{key}", "required root is missing")
-        for key in sorted(set(self.envelope) - ENVELOPE_ROOTS):
+        for key in sorted(set(self.envelope) - ENVELOPE_ROOTS, key=repr):
             self.add("unknown_root", f"$.{key}", "field is not part of schema version 1")
         metadata = self.require_mapping(self.envelope.get("metadata"), "$.metadata")
         schema_version = metadata.get("save_schema_version")
@@ -134,13 +136,36 @@ class _Validator:
 
         simulation = self.require_mapping(self.envelope.get("simulation"), "$.simulation")
         self.require_timestamp(simulation, "time_utc", "$.simulation")
-        if simulation.get("clock_state") != "PAUSED":
-            self.add("invalid_clock_state", "$.simulation.clock_state", "Milestone 1 worlds must start PAUSED")
+        clock_state = simulation.get("clock_state")
+        if not isinstance(clock_state, str) or clock_state not in CLOCK_STATES:
+            self.add("invalid_clock_state", "$.simulation.clock_state", "must be a canonical clock mode")
         cursor = simulation.get("event_order_cursor")
         if isinstance(cursor, bool) or not isinstance(cursor, int) or cursor < 0:
             self.add("invalid_event_cursor", "$.simulation.event_order_cursor", "must be a non-negative integer")
         configuration = self.require_mapping(simulation.get("configuration"), "$.simulation.configuration")
         self.require_text(configuration, "difficulty", "$.simulation.configuration")
+        ratios = self.require_mapping(configuration.get("clock_ratios"), "$.simulation.configuration.clock_ratios")
+        for mode in ("NORMAL", "FAST"):
+            ratio = ratios.get(mode)
+            if isinstance(ratio, bool) or not isinstance(ratio, int) or ratio < 1:
+                self.add("invalid_clock_ratio", f"$.simulation.configuration.clock_ratios.{mode}", "must be a positive integer")
+        for mode in sorted(set(ratios) - {"NORMAL", "FAST"}, key=repr):
+            self.add("unknown_clock_ratio", f"$.simulation.configuration.clock_ratios.{mode}", "ratio is not part of the Stage 1 clock")
+        fast_forward = self.require_mapping(simulation.get("fast_forward"), "$.simulation.fast_forward")
+        target = fast_forward.get("target_time_utc")
+        if clock_state == "FAST_FORWARD":
+            if not _canonical_utc(target):
+                self.add("invalid_fast_forward_target", "$.simulation.fast_forward.target_time_utc", "FAST_FORWARD requires a canonical UTC target")
+            elif _canonical_utc(simulation.get("time_utc")) and target < simulation["time_utc"]:
+                self.add("invalid_fast_forward_target", "$.simulation.fast_forward.target_time_utc", "target cannot precede simulation time")
+        elif target is not None:
+            self.add("invalid_fast_forward_target", "$.simulation.fast_forward.target_time_utc", "target must be null outside FAST_FORWARD")
+        revisions = self.require_mapping(simulation.get("operation_revisions"), "$.simulation.operation_revisions")
+        for owner_id, revision in revisions.items():
+            if not isinstance(owner_id, str):
+                self.add("invalid_revision_owner", "$.simulation.operation_revisions", "owner IDs must be strings")
+            if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0:
+                self.add("invalid_revision", f"$.simulation.operation_revisions.{owner_id}", "must be a non-negative integer")
 
         deterministic = self.require_mapping(self.envelope.get("deterministic_state"), "$.deterministic_state")
         seed = deterministic.get("world_seed")
@@ -151,7 +176,7 @@ class _Validator:
         for key in WORLD_ROOTS:
             if key not in self.world:
                 self.add("missing_world_root", f"$.world_state.{key}", "required world root is missing")
-        for key in sorted(set(self.world) - WORLD_ROOTS):
+        for key in sorted(set(self.world) - WORLD_ROOTS, key=repr):
             self.add("unknown_world_root", f"$.world_state.{key}", "field is not part of schema version 1")
         self.require_mapping(self.envelope.get("ui_state"), "$.ui_state")
         return True
@@ -194,6 +219,29 @@ class _Validator:
                     else:
                         seen_primary_ids[record_id] = entity_type
 
+        event_history = self.require_mapping(
+            self.world.get("event_history"), "$.world_state.event_history"
+        )
+        for key, record in event_history.items():
+            path = f"$.world_state.event_history.{key}"
+            if not isinstance(key, str) or not isinstance(record, Mapping):
+                self.add("invalid_entity", path, "resolved event must be a keyed dictionary", "event", str(key))
+                continue
+            event_id = record.get("event_id")
+            if event_id != key:
+                self.add("id_key_mismatch", f"{path}.event_id", "record ID must equal its collection key", "event", str(event_id))
+            parsed = parse_entity_id(event_id, "event")
+            if parsed is None:
+                self.add("malformed_id", f"{path}.event_id", "must be a valid event ID", "event", str(event_id))
+            else:
+                max_issued["event"] = max(max_issued["event"], parsed[1])
+            if isinstance(event_id, str):
+                previous = seen_primary_ids.get(event_id)
+                if previous is not None:
+                    self.add("duplicate_id", f"{path}.event_id", f"ID is already used by {previous}", "event", event_id)
+                else:
+                    seen_primary_ids[event_id] = "event_history"
+
         deterministic = self.envelope.get("deterministic_state", {})
         allocator = self.require_mapping(deterministic.get("id_allocator"), "$.deterministic_state.id_allocator")
         next_by_type = self.require_mapping(allocator.get("next_by_type"), "$.deterministic_state.id_allocator.next_by_type")
@@ -210,7 +258,7 @@ class _Validator:
             elif value <= max_issued[entity_type]:
                 self.add("id_allocator_collision", path, "next value would collide with an issued ID")
         unknown = set(next_by_type) - set(ENTITY_TYPES)
-        for entity_type in sorted(unknown):
+        for entity_type in sorted(unknown, key=repr):
             self.add("unknown_id_namespace", f"$.deterministic_state.id_allocator.next_by_type.{entity_type}", "namespace is not part of schema version 1")
 
     def validate_structure(self):
@@ -236,6 +284,7 @@ class _Validator:
         accounts = valid_records(world.get("financial_accounts"), "$.world_state.financial_accounts")
         transactions = valid_records(world.get("transactions"), "$.world_state.transactions")
         events = valid_records(world.get("pending_events"), "$.world_state.pending_events")
+        event_history = valid_records(world.get("event_history"), "$.world_state.event_history")
         operations = self.require_mapping(world.get("active_aircraft_operations"), "$.world_state.active_aircraft_operations")
 
         primary = self.require_ref(player, "primary_airline_id", airlines, "$.world_state.player", "player", "player")
@@ -281,11 +330,11 @@ class _Validator:
             if not _currency_code(record.get("base_currency")):
                 self.add("invalid_currency", f"{path}.base_currency", "must be a three-letter uppercase currency code", "airline", airline_id)
             control = record.get("control_type")
-            if control not in AIRLINE_CONTROL_TYPES:
+            if not isinstance(control, str) or control not in AIRLINE_CONTROL_TYPES:
                 self.add("invalid_control", f"{path}.control_type", "must be PLAYER or AI", "airline", airline_id)
             owner_type = record.get("owner_type")
             owner_id = record.get("owner_id")
-            if owner_type not in AIRLINE_OWNER_TYPES:
+            if not isinstance(owner_type, str) or owner_type not in AIRLINE_OWNER_TYPES:
                 self.add("invalid_ownership", f"{path}.owner_type", "invalid owner type", "airline", airline_id)
             elif owner_type == "PLAYER" and owner_id != "player":
                 self.add("invalid_ownership", f"{path}.owner_id", "PLAYER ownership must reference player", "airline", airline_id)
@@ -467,7 +516,8 @@ class _Validator:
             currency = record.get("currency")
             if not _currency_code(currency):
                 self.add("invalid_currency", f"{path}.currency", "must be a three-letter uppercase currency code", "account", account_id)
-            if record.get("category") not in ACCOUNT_CATEGORIES:
+            category = record.get("category")
+            if not isinstance(category, str) or category not in ACCOUNT_CATEGORIES:
                 self.add("invalid_account_category", f"{path}.category", "unknown account category", "account", account_id)
             if not is_minor_amount(record.get("balance_minor")):
                 self.add("invalid_money", f"{path}.balance_minor", "must be an integer minor-unit amount", "account", account_id)
@@ -535,10 +585,16 @@ class _Validator:
             "dated_flight": flights,
             "booking": bookings,
         }
-        for event_id, record in events.items():
-            path = f"$.world_state.pending_events.{event_id}"
+        revisions = self.envelope.get("simulation", {}).get("operation_revisions", {})
+        simulation_time = self.envelope.get("simulation", {}).get("time_utc")
+        cursor = self.envelope.get("simulation", {}).get("event_order_cursor")
+        seen_sequences = {}
+
+        def validate_event(event_id, record, path, pending):
             self.require_text(record, "event_type", path, "event", event_id)
-            self.require_timestamp(record, "due_at_utc", path, "event", event_id)
+            due = self.require_timestamp(record, "due_at_utc", path, "event", event_id)
+            if pending and due and _canonical_utc(simulation_time) and due < simulation_time:
+                self.add("event_scheduled_in_past", f"{path}.due_at_utc", "pending event cannot precede simulation time", "event", event_id)
             owner_type = record.get("owner_type")
             owner_id = record.get("owner_id")
             if (
@@ -551,17 +607,66 @@ class _Validator:
             revision = record.get("operation_revision")
             if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0:
                 self.add("invalid_revision", f"{path}.operation_revision", "must be a non-negative integer", "event", event_id)
+            elif isinstance(owner_id, str):
+                current_revision = revisions.get(owner_id) if isinstance(revisions, Mapping) else None
+                if current_revision is None:
+                    self.add("missing_operation_revision", f"$.simulation.operation_revisions.{owner_id}", "event owner must have a persisted revision", "event", event_id)
+                elif isinstance(current_revision, int) and revision > current_revision:
+                    self.add("invalid_revision", f"{path}.operation_revision", "cannot exceed the owner's current revision", "event", event_id)
             order_key = record.get("order_key")
             if (
                 not isinstance(order_key, list)
-                or not order_key
+                or len(order_key) != 2
                 or any(
-                    isinstance(value, bool) or not isinstance(value, (int, str))
+                    isinstance(value, bool) or not isinstance(value, int) or value < 0
                     for value in order_key
                 )
             ):
-                self.add("invalid_event_order", f"{path}.order_key", "must be a non-empty list of integer/string stable keys", "event", event_id)
-            self.require_mapping(record.get("payload"), f"{path}.payload")
+                self.add("invalid_event_order", f"{path}.order_key", "must be [non-negative priority, non-negative sequence]", "event", event_id)
+            else:
+                sequence = order_key[1]
+                previous = seen_sequences.get(sequence)
+                if previous is not None:
+                    self.add("duplicate_event_order", f"{path}.order_key", f"sequence is already used by {previous}", "event", event_id)
+                else:
+                    seen_sequences[sequence] = event_id
+                if isinstance(cursor, int) and sequence >= cursor:
+                    self.add("invalid_event_cursor", f"{path}.order_key", "sequence must be below the next ordering cursor", "event", event_id)
+            payload = self.require_mapping(record.get("payload"), f"{path}.payload")
+            payload_error = json_compatibility_error(payload)
+            if payload_error:
+                _payload_path, message = payload_error
+                self.add("not_json_compatible", f"{path}.payload", message, "event", event_id)
+            expected_statuses = {PENDING_EVENT_STATUS} if pending else TERMINAL_EVENT_STATUSES
+            status = record.get("status")
+            if not isinstance(status, str) or status not in expected_statuses:
+                self.add("invalid_event_status", f"{path}.status", f"must be one of {sorted(expected_statuses)}", "event", event_id)
+            if pending:
+                if "resolved_at_utc" in record:
+                    self.add("invalid_event_status", f"{path}.resolved_at_utc", "pending event cannot have a resolution timestamp", "event", event_id)
+            else:
+                resolved_at = self.require_timestamp(record, "resolved_at_utc", path, "event", event_id)
+                if resolved_at and _canonical_utc(simulation_time) and resolved_at > simulation_time:
+                    self.add("invalid_event_resolution", f"{path}.resolved_at_utc", "cannot be later than simulation time", "event", event_id)
+                if (
+                    resolved_at
+                    and due
+                    and isinstance(status, str)
+                    and status in {"COMPLETED", "STALE"}
+                    and resolved_at != due
+                ):
+                    self.add("invalid_event_resolution", f"{path}.resolved_at_utc", "completed and stale events resolve at their due timestamp", "event", event_id)
+
+        for event_id, record in events.items():
+            validate_event(event_id, record, f"$.world_state.pending_events.{event_id}", True)
+        for event_id, record in event_history.items():
+            validate_event(event_id, record, f"$.world_state.event_history.{event_id}", False)
+
+        valid_owner_ids = set().union(*(set(target) for target in owner_targets.values()))
+        if isinstance(revisions, Mapping):
+            for owner_id in revisions:
+                if isinstance(owner_id, str) and owner_id not in valid_owner_ids:
+                    self.add("dangling_reference", f"$.simulation.operation_revisions.{owner_id}", "revision owner does not exist")
 
         for key, record in operations.items():
             path = f"$.world_state.active_aircraft_operations.{key}"
@@ -613,8 +718,15 @@ class _Validator:
             "route_id",
         }
 
-        def walk(value, path):
+        stack = [(self.world, "$.world_state")]
+        seen_containers = set()
+        while stack:
+            value, path = stack.pop()
             if isinstance(value, Mapping):
+                marker = id(value)
+                if marker in seen_containers:
+                    continue
+                seen_containers.add(marker)
                 for key, nested in value.items():
                     child_path = f"{path}.{key}"
                     if key in forbidden:
@@ -628,12 +740,14 @@ class _Validator:
                         and not _canonical_utc(nested)
                     ):
                         self.add("invalid_timestamp", child_path, "authoritative timestamp must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
-                    walk(nested, child_path)
+                    stack.append((nested, child_path))
             elif isinstance(value, list):
+                marker = id(value)
+                if marker in seen_containers:
+                    continue
+                seen_containers.add(marker)
                 for index, nested in enumerate(value):
-                    walk(nested, f"{path}[{index}]")
-
-        walk(self.world, "$.world_state")
+                    stack.append((nested, f"{path}[{index}]"))
 
     def run(self):
         if self.validate_root():

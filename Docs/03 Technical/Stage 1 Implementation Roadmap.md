@@ -196,7 +196,7 @@ ID allocator. It must not call the legacy day tick or add file save/reload work.
 ### Work
 
 - Store an exact authoritative UTC simulation timestamp.
-- Add `PAUSED`, `NORMAL`, `FAST`, and `FAST FORWARD` clock modes with configurable ratios.
+- Add `PAUSED`, `NORMAL`, `FAST`, and `FAST_FORWARD` clock modes with configurable ratios.
 - Keep single-player time frozen while paused or closed.
 - Implement a deterministic priority event queue.
 - Order equal-time events using a stable tie-breaker.
@@ -209,6 +209,61 @@ ID allocator. It must not call the legacy day tick or add file save/reload work.
 - Pausing and reloading do not advance time.
 - Equal inputs produce equal event order.
 - Thousands of no-op test events can be processed without render-frame polling.
+
+### Implemented contract
+
+Milestone 2 is implemented on the authoritative Stage 1 envelope. New worlds
+open at their supplied whole-second UTC timestamp in `PAUSED`; `NORMAL` and
+`FAST` advance only from explicit real-duration commands using persisted integer
+ratios, while `FAST_FORWARD` requires an explicit UTC target and returns to
+`PAUSED` when it reaches the target, stops, or blocks. No wall clock, sleeping,
+render frame, offline progress, legacy day tick, or `current_focus` value drives
+authoritative time. `advance_to` and real-duration advancement obey `PAUSED`;
+the separately named next-event and through-target commands are explicit manual
+stepping primitives and may advance a paused world for tests or orchestration.
+
+Pending events remain serializable authority. They are ordered by
+`(due_at_utc, priority, persisted sequence, event_id)` and transition exactly
+once into terminal event history. The persisted sequence and event-ID allocator
+are monotonic across pending and historical events; the runtime heap is derived
+and rebuildable. Owner-keyed operation revisions deterministically archive old
+work as `STALE` without dispatching it.
+
+Handlers are registered in a runtime-only `EventHandlerRegistry`. A mutating
+handler receives an isolated candidate envelope and detached event command; the
+completed event and candidate world commit only after full validation. Handler,
+unknown-type, or result-validation failure leaves the failing transaction
+unchanged and pending, returns structured diagnostics, and blocks later work.
+Handlers return `None`, cannot access the live registry through their context,
+and cannot take ownership of clock time/configuration, event identity/order, or
+pre-existing pending and terminal event records. They may request `PAUSED` and
+schedule new work through the context API. Per-command total and generated-event limits
+block pathological same-time self-scheduling with resumable diagnostics instead
+of allowing an infinite processing call. Commit takes a final detached copy, so
+a handler-retained candidate reference cannot mutate the live world afterward.
+Calling a processing command again is the explicit retry policy; failures are
+never silently bypassed. Runtime stop conditions inspect a detached snapshot
+after each committed event and cannot write back to authority. The built-in
+`NO_OP` handler uses an equivalent validated lifecycle transition without
+copying the entire world, permitting efficient large queues.
+
+The generic mutating-handler path deliberately copies and validates the whole
+candidate world. This is the clearest Milestone 2 atomicity boundary, but it is
+not the final scale strategy for dense domain traffic. Later milestones should
+profile domain handlers and may introduce validated command deltas, persistent
+data structures, or domain-scoped candidate fragments without weakening atomic
+commit semantics. Terminal-history retention and whole-world validation must be
+profiled and compacted only under the later approved history rules.
+
+The non-interactive public API in `game.simulation` provides clock ratio and mode
+configuration, explicit-duration and direct-target advancement, next-event and
+through-target processing, fast-forward start/run/stop, scheduling,
+cancellation, supersession, operation-revision updates, handler registration,
+and rebuilding the derived queue index.
+
+Repeating publication, dated flights, demand, bookings, aircraft operations,
+financial postings, exact disk save/reload, legacy migration, and interface
+clock controls remain deferred to Milestone 3 or later as assigned below.
 
 ## Milestone 3 — Publishing Dated Flights
 

@@ -142,6 +142,7 @@ class Stage1WorldConstructionTests(unittest.TestCase):
             "itineraries",
             "active_aircraft_operations",
             "pending_events",
+            "event_history",
             "transactions",
         ):
             self.assertEqual(state[collection], {})
@@ -528,6 +529,7 @@ class Stage1ValidationTests(unittest.TestCase):
             ],
         }
         event_id = allocate_id(world, "event")
+        world["simulation"]["operation_revisions"][flight_id] = 0
         state["pending_events"][event_id] = {
             "event_id": event_id,
             "event_type": "TEST_ONLY",
@@ -535,9 +537,11 @@ class Stage1ValidationTests(unittest.TestCase):
             "owner_type": "dated_flight",
             "owner_id": flight_id,
             "operation_revision": 0,
-            "order_key": [0, event_id],
+            "order_key": [0, 0],
             "payload": {},
+            "status": "PENDING",
         }
+        world["simulation"]["event_order_cursor"] = 1
         state["active_aircraft_operations"][flight_id] = {
             "dated_flight_id": flight_id,
             "aircraft_id": aircraft_id,

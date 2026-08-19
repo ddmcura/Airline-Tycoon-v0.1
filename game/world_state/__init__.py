@@ -8,11 +8,11 @@ from .construction import (
     add_connection,
     add_directional_market,
     create_new_world,
-    normalize_utc_timestamp,
 )
 from .ids import allocate_id
 from .money import major_to_minor, minor_to_decimal
 from .validation import ValidationIssue, ValidationResult, validate_world
+from .timestamps import normalize_utc_timestamp
 
 __all__ = (
     "ValidationIssue",
