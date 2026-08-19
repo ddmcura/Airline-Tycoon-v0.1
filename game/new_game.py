@@ -6,7 +6,6 @@ authoritative construction lives in :func:`game.world_state.create_new_world`.
 
 # New Game Module (game/new_game.py)
 # This module handles the logic for starting a new game in Airline Tycoon.
-import os
 import json
 from game.utils.save_utils import legacy_cleanup
 
@@ -122,8 +121,7 @@ def start_new_game():
     game_loop(game_state.game_state)
 
 def load_game_menu():
-    save_dir = "Saves"
-    save_files = [f for f in os.listdir(save_dir) if f.endswith(".json")]
+    save_files = game_state.list_save_files()
 
     if not save_files:
         print("⚠️ No save files found.")

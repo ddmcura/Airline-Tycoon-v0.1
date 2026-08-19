@@ -46,6 +46,23 @@ def default_game_state():
 game_state = default_game_state()
 # 📁 Track last saved file
 last_saved_filename = None
+SAVE_DIRECTORY = "Saves"
+
+
+def ensure_save_directory():
+    """Create and return the active legacy save directory."""
+    os.makedirs(SAVE_DIRECTORY, exist_ok=True)
+    return SAVE_DIRECTORY
+
+
+def list_save_files():
+    """Return legacy JSON saves, treating an absent directory as empty."""
+    save_dir = ensure_save_directory()
+    try:
+        return [filename for filename in os.listdir(save_dir) if filename.endswith(".json")]
+    except FileNotFoundError:
+        # Tolerate the directory being removed between creation and listing.
+        return []
 
 # 🔄 Reset to default state
 def reset_game_state():
@@ -81,7 +98,7 @@ def get_save_file_path(ceo_name, airline_name):
     safe_ceo = re.sub(r"[^a-zA-Z0-9_-]", "_", ceo_name)
     safe_airline = re.sub(r"[^a-zA-Z0-9_-]", "_", airline_name)
     filename = f"{safe_ceo}_{safe_airline}_{timestamp}.json"
-    return os.path.join("Saves", filename)
+    return os.path.join(ensure_save_directory(), filename)
 
 # 💾 Save game (new or overwrite)
 def save_game(state=None, filename=None, is_new=False):
@@ -95,7 +112,9 @@ def save_game(state=None, filename=None, is_new=False):
         airline = state["player_info"].get("airline_name", "unknown_airline")
         filename = get_save_file_path(ceo, airline)
 
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    save_parent = os.path.dirname(filename)
+    if save_parent:
+        os.makedirs(save_parent, exist_ok=True)
 
     print("🧠 DEBUG - Saving to:", filename)
     with open(filename, "w", encoding="utf-8") as f:
@@ -111,7 +130,7 @@ def autosave():
     airline = game_state.get("player_info", {}).get("airline_name", "unknown_airline")
     safe_ceo = re.sub(r"[^a-zA-Z0-9_-]", "_", ceo)
     safe_airline = re.sub(r"[^a-zA-Z0-9_-]", "_", airline)
-    autosave_dir = "Saves"
+    autosave_dir = ensure_save_directory()
     prefix = f"{safe_ceo}_{safe_airline}_autosave_"
 
     existing_autosaves = sorted([
@@ -128,7 +147,6 @@ def autosave():
     filename = f"{safe_ceo}_{safe_airline}_autosave_{timestamp}.json"
     autosave_path = os.path.join(autosave_dir, filename)
 
-    os.makedirs(os.path.dirname(autosave_path), exist_ok=True)
     with open(autosave_path, "w", encoding="utf-8") as f:
         json.dump(game_state, f, indent=4)
 
@@ -140,7 +158,7 @@ def load_game(filename):
     global game_state, last_saved_filename
     reset_game_state()
 
-    file_path = os.path.join("Saves", filename)
+    file_path = os.path.join(ensure_save_directory(), filename)
 
     if os.path.exists(file_path):
         with open(file_path, "r", encoding="utf-8") as f:
