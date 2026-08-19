@@ -179,8 +179,13 @@
 }
 
 #==
-#Hybrid game_state reference to use for future additions too
+# LEGACY HYBRID game_state reference (compatibility-only)
 #==
+# New authoritative Stage 1 state MUST follow:
+# Docs/03 Technical/Stage 1 State Schema.md
+# The hybrid example below remains only for existing CLI/read compatibility.
+# Do not add new authoritative fields to it and do not use names, registrations,
+# current_focus, route-owned demand, or weekly blocks as authoritative identity.
 
 📂 game_state (Hybrid Design - Future Proofed for Subsidiaries)
 

@@ -1,3 +1,5 @@
+"""Legacy formatted-date and day-advance compatibility helpers."""
+
 # game/utils/time_utils.py
 from datetime import datetime, timedelta
 
@@ -15,6 +17,7 @@ def get_formatted_time(game_state):
 
 
 def advance_game_day(game_state, rng=None):
+    """LEGACY: advance the hybrid day tick; not an authoritative world clock."""
     date_str = game_state['game_time']['current_date']
 
     try:

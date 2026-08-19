@@ -1,9 +1,12 @@
-"""Directional route-demand and price-sensitivity formulas.
+"""LEGACY route-owned demand and price-sensitivity formulas.
 
 The base market is generated from the origin population, then narrowed by the
 share of travellers attracted to the destination and adjusted for distance.
 Additional route modifiers can be supplied later without changing the daily
 simulation contract.
+
+These functions remain characterized for the current CLI but do not implement
+the approved world-owned Stage 1 booking-demand architecture.
 """
 
 DIFFICULTY_DEMAND_MULTIPLIERS = {
@@ -110,7 +113,7 @@ def calculate_directional_base_demand(
 
 
 def backfill_route_demand(route, airport_index=None, route_id=None):
-    """Upgrade a pre-demand-model route in place using bundled airport data."""
+    """LEGACY: mutate route-owned demand using bundled airport data."""
     if airport_index is None:
         from game.utils.airport_lookup import load_airport_index
 
@@ -208,7 +211,7 @@ def price_demand_multiplier(difficulty, actual_fare, suggested_fare):
 
 
 def calculate_adjusted_daily_demand(route, difficulty):
-    """Apply game and airline modifiers to the total directional market."""
+    """LEGACY: calculate and possibly mutate route-owned daily demand."""
     base_demand = route.get("base_daily_demand")
     populations_available = (
         route.get("origin_population") is not None

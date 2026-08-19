@@ -162,6 +162,35 @@ IDs must not be recycled within a save lineage.
 - The world can contain more than one airline without changing the active simulation boundary.
 - No continuous simulation is required yet.
 
+## Milestones 0-1 implementation status (2026-08-20)
+
+Milestones 0 and 1 are implemented as a separate authoritative foundation in
+`game/world_state/`. The concrete schema is
+`Docs/03 Technical/Stage 1 State Schema.md`.
+
+- `create_new_world(...)` is the non-interactive construction entry point.
+- `validate_world(envelope)` returns structured errors and never repairs input.
+- Persisted monotonic namespace allocators produce immutable internal IDs.
+- Authoritative amounts use integer minor units in explicit cash, asset,
+  liability, revenue, and expense accounts.
+- `ui_state.current_focus_airline_id` is presentation state only.
+- `build_legacy_read_projection(...)` returns a detached, one-way view for old
+  readers; the current CLI remains deliberately on its legacy path.
+- The hybrid state, direct save/load, route-owned demand, weekly-block daily
+  execution, operating-day passenger generation, and direct profit mutation are
+  marked legacy/non-authoritative and remain characterized rather than removed.
+
+The untouched baseline runner reported 29 passes, two existing legacy-demand
+assertion failures, and one import error because `tabulate` was unavailable.
+`pytest` was also unavailable, so the standard-library `unittest` runner was
+used. The original 27 Milestone 0-1 tests and 11 review-strengthening
+tests all pass. After this increment the same full runner reports 67 passes with
+those same two failures and one environment error.
+
+Milestone 2 should consume this envelope's exact paused UTC timestamp,
+`event_order_cursor`, deterministic state, pending-event ownership, and persisted
+ID allocator. It must not call the legacy day tick or add file save/reload work.
+
 ## Milestone 2 — Continuous Clock and Event Kernel
 
 ### Work

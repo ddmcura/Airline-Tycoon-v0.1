@@ -1,4 +1,9 @@
-"""Simulate scheduled flights and their financial results for one game day."""
+"""LEGACY daily whole-flight simulation retained for characterization.
+
+This route-owned-demand, operating-day passenger generation, and direct-profit
+mutation path is non-authoritative. New Stage 1 world construction never calls
+it; later milestones replace it through dated events and bookings.
+"""
 
 from random import Random
 
@@ -120,7 +125,7 @@ def _record_deadhead(aircraft, result):
 
 
 def simulate_airline_day(game_state, current_dt, rng=None):
-    """Run all flights scheduled for current_dt and return a daily summary."""
+    """LEGACY: resolve one focused airline's weekly blocks for one whole day."""
     rng = rng or Random()
     airline = get_active_airline(game_state)
     routes = airline.get("routes", {})

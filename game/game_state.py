@@ -1,3 +1,10 @@
+"""Legacy hybrid game state and save path.
+
+This module remains available to the current CLI. It is non-authoritative for
+new Stage 1 simulation code; use :mod:`game.world_state` for new world state.
+Do not adapt the recursive loader into the authoritative save implementation.
+"""
+
 # game/game_state.py
 import json
 import os
@@ -6,6 +13,7 @@ import re
 
 # 🧠 Default state structure (Hybrid Design - Future Proofed for Subsidiaries)
 def default_game_state():
+    """Return the compatibility-only, name-keyed legacy state shape."""
     return {
         "player_info": {
             "ceo_name": "",
@@ -77,6 +85,7 @@ def get_save_file_path(ceo_name, airline_name):
 
 # 💾 Save game (new or overwrite)
 def save_game(state=None, filename=None, is_new=False):
+    """LEGACY: directly write the hybrid state; not the Stage 1 save path."""
     global game_state, last_saved_filename
     if state is None:
         state = game_state
@@ -97,6 +106,7 @@ def save_game(state=None, filename=None, is_new=False):
 
 # 💾 Autosave using current CEO/Airline (limit 5)
 def autosave():
+    """LEGACY: rotating hybrid autosave; not safe authoritative persistence."""
     ceo = game_state.get("player_info", {}).get("ceo_name", "unknown_ceo")
     airline = game_state.get("player_info", {}).get("airline_name", "unknown_airline")
     safe_ceo = re.sub(r"[^a-zA-Z0-9_-]", "_", ceo)
@@ -126,6 +136,7 @@ def autosave():
 
 # 📂 Load from file
 def load_game(filename):
+    """LEGACY: recursive/default-style hybrid loader; not Stage 1 restore."""
     global game_state, last_saved_filename
     reset_game_state()
 
@@ -162,6 +173,7 @@ def load_game(filename):
 
 # ✈️ Helper: Get active airline
 def get_active_airline(game_state):
+    """LEGACY UI focus lookup; never use this to choose simulation scope."""
     current_focus = game_state["player_info"].get("current_focus", "")
     return game_state["airline_list"].get(current_focus, {})
 

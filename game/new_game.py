@@ -1,3 +1,9 @@
+"""Interactive legacy new-game menu.
+
+The current CLI intentionally remains on its hybrid path. Non-interactive,
+authoritative construction lives in :func:`game.world_state.create_new_world`.
+"""
+
 # New Game Module (game/new_game.py)
 # This module handles the logic for starting a new game in Airline Tycoon.
 import os
