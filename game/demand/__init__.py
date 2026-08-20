@@ -1,14 +1,22 @@
 """Non-interactive authoritative Stage 1 world-demand API."""
 
+from .activation import (
+    ActivationWindow,
+    DemandActivationProvider,
+    DirectPublishedServiceActivationProvider,
+    discover_active_market_ids,
+)
 from .model import (
     CohortResolution,
     DemandBuildResult,
     DemandIndexes,
     DemandIssue,
     DemandRevisionResult,
+    OriginDemandNormalization,
     PairDemand,
     WorldCohortResult,
     calculate_origin_daily_booking_pool,
+    calculate_pair_demand,
     calculate_raw_pair_score,
     calculate_world_demand,
     compose_daily_multipliers,
@@ -17,27 +25,35 @@ from .model import (
     rebuild_demand_indexes,
     recalculate_origin_demand,
     resolve_daily_cohort,
+    resolve_active_daily_cohorts,
     resolve_world_daily_cohorts,
     revise_demand_model,
 )
 
 __all__ = (
+    "ActivationWindow",
     "CohortResolution",
+    "DemandActivationProvider",
     "DemandBuildResult",
     "DemandIndexes",
     "DemandIssue",
     "DemandRevisionResult",
+    "DirectPublishedServiceActivationProvider",
+    "OriginDemandNormalization",
     "PairDemand",
     "WorldCohortResult",
     "calculate_origin_daily_booking_pool",
+    "calculate_pair_demand",
     "calculate_raw_pair_score",
     "calculate_world_demand",
     "compose_daily_multipliers",
+    "discover_active_market_ids",
     "eligible_airport_ids",
     "get_base_daily_bookers",
     "rebuild_demand_indexes",
     "recalculate_origin_demand",
     "resolve_daily_cohort",
+    "resolve_active_daily_cohorts",
     "resolve_world_daily_cohorts",
     "revise_demand_model",
 )

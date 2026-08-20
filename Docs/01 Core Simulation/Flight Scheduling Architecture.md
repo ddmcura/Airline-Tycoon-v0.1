@@ -496,3 +496,18 @@ Milestone 3 does not generate demand or bookings, reserve seats, activate an
 aircraft operation, post finances, call the legacy daily tick, or write through
 the legacy weekly schedule dictionaries. Those behaviors remain deferred to
 Milestone 4 and later milestones.
+
+### Milestone 4.5A demand activation consumer
+
+Demand now consumes the rebuildable dated-flight index through a runtime
+activation-provider boundary. A direct directional market is selected only
+when a structurally usable published `PASSENGER`/`ECONOMY` occurrence is inside
+the caller's explicit UTC horizon and has an active connection plus valid
+schedule traceability. `PLANNED` and `OPERATIONALLY_LOCKED` occurrences qualify;
+deadhead, cancelled, completed, superseded, malformed, and out-of-window work
+does not. Remaining capacity is not part of this structural activation test.
+
+This consumer does not add schedule authority, rewrite flight status, search
+connections, reserve capacity, or change demand normalization. Future Booking
+may supply a narrower horizon and combine additional permitted-itinerary
+providers without changing Scheduling's ownership.

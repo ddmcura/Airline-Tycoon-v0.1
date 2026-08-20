@@ -405,6 +405,42 @@ Milestone 4 does not search itineraries, activate service, reserve capacity,
 create bookings, carry unsuccessful intent forward, invoke operations, or post
 money. Those behaviors remain deferred to Milestone 5 or their later owners.
 
+## Milestone 4.5A — Compact Demand Derivation
+
+### Implemented contract
+
+Milestone 4.5A is a demand-side runtime optimization and does not authorize
+Milestone 5 behavior or schema.
+
+- Full-universe Model 3 normalization is retained as one compact record per
+  eligible origin: origin pool, exact denominator, residual destination, and
+  exact residual share. Rich directional score/share/baseline projections are
+  reproduced only when requested.
+- The 50-digit Decimal pipeline, `0.001` km distance quantization, largest-score
+  residual selection, immutable destination-ID tie break, configuration and
+  input fingerprints, revision rules, and keyed daily rounding contract are
+  unchanged. Unserved destinations remain in every applicable denominator.
+- Direct active-market discovery is runtime-only and reads usable published
+  dated `PASSENGER`/`ECONOMY` service in an explicit horizon. Route rights and
+  connections alone do not activate work. Deadhead, cancelled, superseded,
+  malformed, and out-of-window service is excluded; remaining capacity is not
+  consulted. Results use stable immutable market-ID order.
+- `DemandActivationProvider` separates sparse work discovery from demand
+  authority. Milestone 5 may add permitted connecting-pattern providers and
+  Booking-owned horizon rules without changing normalization.
+- The transitional active daily command accepts only the current simulation
+  date. Opening service therefore creates no historical backlog; losing the
+  last usable occurrence affects only future processing. The compatibility
+  whole-world cohort command remains available.
+- `processed_cohorts` remains authoritative. No Booking checkpoint, outcome,
+  metric, itinerary search, capacity reservation, passenger operation,
+  financial posting, or speculative Booking field is introduced.
+
+The approved follow-up is an atomic Demand-to-Booking daily transaction with a
+Booking-owned checkpoint and sparse outcome metrics. Its schema, marker
+migration, equivalent no-reroll proof, and removal of `processed_cohorts` are
+deferred in full to Milestone 5.
+
 ## Milestone 5 — Booking Pipeline
 
 ### Work

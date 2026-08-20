@@ -3,7 +3,7 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-through 4. It supersedes the hybrid `game_state` example in
+through 4.5A. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
@@ -12,8 +12,10 @@ Milestone 1 constructs and validates this in-memory, JSON-compatible envelope.
 Milestone 2 adds authoritative clock advancement and generic event execution.
 Milestone 3 adds repeating schedule definitions and bounded publication of
 dated flights. Milestone 4 adds world-owned directional passenger demand and
-idempotent daily intent resolution. Exact file writing, loading, migrations,
-booking, aircraft operations, and transaction posting are not implemented.
+idempotent daily intent resolution. Milestone 4.5A compacts only rebuildable
+demand derivation and adds runtime active-market discovery; it adds no
+persistent fields. Exact file writing, loading, migrations, booking, aircraft
+operations, and transaction posting are not implemented.
 
 ## Representation rules
 
@@ -309,6 +311,53 @@ Marker growth is therefore directional pairs times processed days. Safe
 compaction needs a later approved schema with an equivalent no-reroll proof and
 is not part of Milestone 4.
 
+### Milestone 4.5A compact derivation and activation contract
+
+Milestone 4.5A changes runtime derivation only. For each eligible origin, the
+runtime demand index retains its exact `OriginDailyBookingPool`, full-universe
+normalization denominator, committed residual destination, and exact residual
+share. Distance, `RawPairScore`, non-residual share, and `BaseDailyBookers` for
+one directional market are recalculated on demand with the same 50-digit
+Decimal contexts, distance quantization, residual rule, and immutable-ID tie
+break as Milestone 4. A mapping-compatible runtime projection preserves the
+existing pair lookup API without retaining one rich object per directional
+pair. These summaries, projections, source fingerprints, and lookup indexes are
+rebuildable runtime state and remain excluded from persistence.
+
+The denominator still includes every revision-eligible represented destination
+other than the origin, including unserved destinations. Direct-service
+activation is a separate runtime selection step and is never a formula input.
+The default activation provider reads published dated flights inside an
+explicit inclusive UTC window. A market activates only when at least one
+structurally usable `PASSENGER`/`ECONOMY` occurrence is `PLANNED` or
+`OPERATIONALLY_LOCKED` and retains valid schedule, aircraft, airline,
+connection, market, time, fare, and positive published-capacity traceability.
+Both endpoints must also remain eligible in the revision-pinned demand
+universe.
+Deadhead, cancelled, completed, superseded, malformed, out-of-window, or
+otherwise unusable occurrences do not activate demand processing. Remaining
+sellable capacity is deliberately not an activation input: a published full
+service still makes the market relevant to Booking's later capacity and
+outside-option decision. Results are deduplicated and returned in immutable
+market-ID order.
+
+`DemandActivationProvider` is a runtime-only boundary. Milestone 5 may combine
+the direct provider with permitted connecting-pattern providers and its own
+booking-horizon policy. Milestone 4.5A implements neither connecting discovery
+nor itinerary validation. Its transitional active daily command resolves only
+the current simulation date, so publishing service never backfills historical
+days. Removing the last usable occurrence removes only future active work and
+does not delete an existing marker.
+
+`processed_cohorts` remains Demand-owned persistent continuation authority for
+Milestone 4.5A. The approved later design is an atomic Demand-to-Booking daily
+transaction in which Booking owns the checkpoint and sparse booking outcome
+metrics. Defining those fields, migrating existing markers, proving equivalent
+no-reroll continuation, and then removing `processed_cohorts` are explicitly
+deferred to Milestone 5. No Booking checkpoint, Booking outcome, Booking metric,
+capacity reservation, history-compaction, or connecting-itinerary field is
+added by Milestone 4.5A.
+
 ### Milestone 3 schedule-definition contract
 
 One schedule definition identifies one repeating movement plan. Its revision
@@ -479,7 +528,9 @@ minimal account foundation contains exactly one each of `cash`,
   identity and traceability; other airport-local presentation values are
   derived from the stored UTC instants and named airport time zones.
 - World-demand origin pools, raw pair scores, normalized shares, base daily
-  bookers, source fingerprints, and pair/origin indexes are derived/runtime-only.
+  bookers, compact per-origin normalization summaries, source fingerprints,
+  active-market provider results, and pair/origin indexes are
+  derived/runtime-only.
   Persisting them under `demand_state` is a schema error. Processed daily cohort
   outcomes and the input-fingerprint validation witness are authority and are
   not silently repaired.
@@ -502,4 +553,5 @@ minimal account foundation contains exactly one each of `cash`,
   `game.scheduling.rebuild_dated_flight_indexes(envelope)`
 - Build/recalculate one origin or the whole world, retrieve a directional
   baseline, compose daily multipliers, resolve one or all daily cohorts, rebuild
-  runtime demand indexes, and revise inputs: `game.demand` Milestone 4 API
+  runtime demand indexes, revise inputs, discover active markets, and resolve
+  the current active daily set: `game.demand` Milestone 4/4.5A API

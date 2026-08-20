@@ -1038,3 +1038,49 @@ schedules, or future flights.
 Desired travel dates, service activation, itinerary search, the outside option,
 choice and competition, capacity reservation, booking records and receipts, and
 unsuccessful-intent handling remain Milestone 5 work.
+
+## 30. Milestone 4.5A compact-demand reconciliation
+
+Milestone 4.5A preserves the Section 3 through 10 formula pipeline exactly but
+changes its rebuildable runtime representation. Initialization retains one
+compact normalization summary per eligible origin: `OriginDailyBookingPool`,
+the score denominator over the complete eligible destination universe, the
+committed residual destination, and its exact conserved share. A requested
+directional pair recalculates the same quantized distance and `RawPairScore` and
+then derives its share and `BaseDailyBookers` on demand. The residual pair uses
+the retained exact residual. This avoids materializing a rich demand object for
+every directional pair while keeping all finite Decimal values and identities
+exactly equal to the committed Model 3 implementation.
+
+Unserved destinations still contribute to normalization. Schedule publication,
+route rights, connections, fare, capacity availability, and network changes do
+not enter the compact summary, its source witness, or any Model 3 formula.
+
+Milestone 4.5A also implements the cheap activation step described in Sections
+10 and 20. The default runtime provider returns directional market IDs for
+usable direct published passenger occurrences inside an explicit inclusive UTC
+window. It excludes deadheads, cancelled or superseded occurrences, malformed
+traceability, and unusable or out-of-window service. It does not inspect
+remaining capacity, because a full flight must still enter Booking's future
+capacity fallback/outside-option decision. Connections or route rights without
+a dated passenger occurrence do not activate work. Both endpoints must remain
+eligible in the revision-pinned demand universe. IDs are deduplicated and sorted
+by immutable market identity.
+
+Activation is a runtime work-selection result, never demand authority. The
+provider interface allows Milestone 5 to union direct service with separately
+approved connecting-pattern discovery and apply Booking-owned horizon rules.
+No connecting provider, itinerary search, desired-date selection, reservation,
+outcome metric, or Booking state is implemented here.
+
+The new active daily entry point is deliberately prospective: it resolves only
+the current simulation date. Publishing service cannot backfill missed days,
+and deactivation does not delete an already resolved marker. The pre-existing
+pair and whole-world cohort commands remain compatibility behavior.
+
+`processed_cohorts` therefore remains transitional Demand-owned authority in
+Milestone 4.5A. The approved Milestone 5 direction is to commit demand intent
+and Booking processing atomically under a Booking-owned daily checkpoint with
+sparse outcome metrics. The persistent schema, marker migration, historical
+continuation proof, and removal or compaction of `processed_cohorts` are all
+deferred to that milestone.

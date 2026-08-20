@@ -7,10 +7,11 @@ this module are deterministic runtime derivations.
 
 from __future__ import annotations
 
+from collections.abc import Mapping as MappingABC
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal, ROUND_HALF_EVEN, localcontext
+from decimal import Decimal, ROUND_HALF_EVEN, getcontext, localcontext
 from fractions import Fraction
 import hashlib
 import json
@@ -83,6 +84,103 @@ class PairDemand:
 
 
 @dataclass(frozen=True)
+class OriginDemandNormalization:
+    """Compact retained derivation for one full-universe origin."""
+
+    origin_airport_id: str
+    origin_daily_booking_pool: Decimal
+    normalization_denominator: Decimal
+    residual_destination_airport_id: str
+    residual_destination_pair_share: Decimal
+
+
+class _MarketsByOrigin(MappingABC):
+    """Immutable on-demand origin view over directional-market identities."""
+
+    def __init__(self, eligible_airport_ids, market_by_pair):
+        self._eligible_airport_ids = tuple(eligible_airport_ids)
+        self._market_by_pair = market_by_pair
+
+    def __getitem__(self, origin_airport_id):
+        if (
+            origin_airport_id not in self._eligible_airport_ids
+            or len(self._eligible_airport_ids) < 2
+        ):
+            raise KeyError(origin_airport_id)
+        return tuple(
+            self._market_by_pair[(origin_airport_id, destination_airport_id)]
+            for destination_airport_id in self._eligible_airport_ids
+            if destination_airport_id != origin_airport_id
+        )
+
+    def __iter__(self):
+        if len(self._eligible_airport_ids) < 2:
+            return iter(())
+        return iter(self._eligible_airport_ids)
+
+    def __len__(self):
+        return len(self._eligible_airport_ids) if len(self._eligible_airport_ids) > 1 else 0
+
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        return dict(self.items()) == dict(other.items())
+
+
+class _PairDemandByMarket(MappingABC):
+    """Mapping-compatible PairDemand projection calculated exactly on demand."""
+
+    def __init__(
+        self,
+        *,
+        airports,
+        configuration,
+        pair_by_market,
+        normalization_by_origin,
+    ):
+        self._airports = MappingProxyType(
+            {
+                airport_id: MappingProxyType(dict(airport))
+                for airport_id, airport in sorted(airports.items())
+            }
+        )
+        frozen_configuration = deepcopy(configuration)
+        frozen_configuration["destination_type_weight_bps"] = MappingProxyType(
+            dict(frozen_configuration["destination_type_weight_bps"])
+        )
+        self._configuration = MappingProxyType(frozen_configuration)
+        self._pair_by_market = MappingProxyType(dict(sorted(pair_by_market.items())))
+        self._normalization_by_origin = normalization_by_origin
+
+    def __getitem__(self, market_id):
+        origin_airport_id, destination_airport_id = self._pair_by_market[market_id]
+        return _pair_demand_from_compact_derivation(
+            market_id=market_id,
+            origin_airport_id=origin_airport_id,
+            destination_airport_id=destination_airport_id,
+            airports=self._airports,
+            configuration=self._configuration,
+            normalization_by_origin=self._normalization_by_origin,
+        )
+
+    def __iter__(self):
+        return iter(self._pair_by_market)
+
+    def __len__(self):
+        return len(self._pair_by_market)
+
+    def __eq__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        if len(self) != len(other):
+            return False
+        try:
+            return all(self[market_id] == other[market_id] for market_id in self)
+        except KeyError:
+            return False
+
+
+@dataclass(frozen=True)
 class DemandIndexes:
     """Disposable, immutable demand derivation for one model revision."""
 
@@ -95,6 +193,9 @@ class DemandIndexes:
     by_market: Mapping[str, PairDemand]
     market_by_pair: Mapping[tuple[str, str], str]
     markets_by_origin: Mapping[str, tuple[str, ...]]
+    normalization_by_origin: Mapping[str, OriginDemandNormalization] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def pair(self, origin_airport_id, destination_airport_id):
         market_id = self.market_by_pair.get(
@@ -223,9 +324,16 @@ def _distance_km(origin, destination):
     )
     haversine = min(1.0, max(0.0, haversine))
     kilometres = 6_371 * 2 * math.asin(math.sqrt(haversine))
-    return Decimal(str(kilometres)).quantize(
-        Decimal("0.001"), rounding=ROUND_HALF_EVEN
-    )
+    decimal_kilometres = Decimal(str(kilometres))
+    if getcontext().prec >= _SCORE_PRECISION:
+        return decimal_kilometres.quantize(
+            Decimal("0.001"), rounding=ROUND_HALF_EVEN
+        )
+    with localcontext() as context:
+        context.prec = _SCORE_PRECISION
+        return decimal_kilometres.quantize(
+            Decimal("0.001"), rounding=ROUND_HALF_EVEN
+        )
 
 
 def calculate_origin_daily_booking_pool(envelope, origin_airport_id):
@@ -277,6 +385,110 @@ def _raw_pair_score(configuration, origin, destination, *, distance=None):
             * geography_weight
             * relationship_weight
         )
+
+
+def _derive_origin_normalizations(envelope):
+    """Retain only the facts needed to reproduce every rich pair exactly."""
+    airports = envelope["world_state"]["airports"]
+    eligible = _eligible_airport_ids(envelope)
+    configuration = envelope["simulation"]["configuration"]["demand"]
+    normalizations = {}
+    with localcontext() as context:
+        context.prec = _SCORE_PRECISION
+        for origin_airport_id in eligible:
+            destinations = tuple(
+                destination_airport_id
+                for destination_airport_id in eligible
+                if destination_airport_id != origin_airport_id
+            )
+            if not destinations:
+                continue
+            raw_scores = [
+                _raw_pair_score(
+                    configuration,
+                    airports[origin_airport_id],
+                    airports[destination_airport_id],
+                )
+                for destination_airport_id in destinations
+            ]
+            denominator = sum(raw_scores, Decimal(0))
+            if denominator <= 0:
+                raise ValueError(
+                    f"origin {origin_airport_id} has no positive pair scores"
+                )
+            direct_shares = [raw_score / denominator for raw_score in raw_scores]
+            residual_index = max(
+                range(len(destinations)),
+                key=lambda index: (raw_scores[index], destinations[index]),
+            )
+            with localcontext() as conservation_context:
+                conservation_context.prec = (
+                    _SCORE_PRECISION + len(str(len(direct_shares))) + 2
+                )
+                other_total = sum(
+                    (
+                        share
+                        for index, share in enumerate(direct_shares)
+                        if index != residual_index
+                    ),
+                    Decimal(0),
+                )
+                residual_share = Decimal(1) - other_total
+            if residual_share < 0 or any(share < 0 for share in direct_shares):
+                raise ArithmeticError("normalization produced a negative pair share")
+            origin_pool = (
+                Decimal(airports[origin_airport_id]["population"])
+                * Decimal(configuration["daily_booker_rate_ppm"])
+                / _PPM
+            )
+            normalizations[origin_airport_id] = OriginDemandNormalization(
+                origin_airport_id=origin_airport_id,
+                origin_daily_booking_pool=origin_pool,
+                normalization_denominator=denominator,
+                residual_destination_airport_id=destinations[residual_index],
+                residual_destination_pair_share=residual_share,
+            )
+    return MappingProxyType(dict(sorted(normalizations.items())))
+
+
+def _pair_demand_from_compact_derivation(
+    *,
+    market_id,
+    origin_airport_id,
+    destination_airport_id,
+    airports,
+    configuration,
+    normalization_by_origin,
+):
+    normalization = normalization_by_origin[origin_airport_id]
+    distance = _distance_km(
+        airports[origin_airport_id], airports[destination_airport_id]
+    )
+    raw_score = _raw_pair_score(
+        configuration,
+        airports[origin_airport_id],
+        airports[destination_airport_id],
+        distance=distance,
+    )
+    with localcontext() as context:
+        context.prec = _SCORE_PRECISION
+        share = (
+            normalization.residual_destination_pair_share
+            if destination_airport_id
+            == normalization.residual_destination_airport_id
+            else raw_score / normalization.normalization_denominator
+        )
+        baseline = normalization.origin_daily_booking_pool * share
+    return PairDemand(
+        market_id=market_id,
+        origin_airport_id=origin_airport_id,
+        destination_airport_id=destination_airport_id,
+        origin_daily_booking_pool=normalization.origin_daily_booking_pool,
+        distance_km=distance,
+        raw_pair_score=raw_score,
+        destination_pair_share=share,
+        base_daily_bookers=baseline,
+    )
 
 
 def calculate_raw_pair_score(envelope, origin_airport_id, destination_airport_id):
@@ -347,6 +559,58 @@ def _source_fingerprint(envelope):
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _compact_indexes_match_world(indexes, envelope, fingerprint, eligible):
+    """Reject stale, aliased, or malformed disposable compact cache objects."""
+    configuration = envelope["simulation"]["configuration"]["demand"]
+    demand_state = envelope["world_state"]["demand_state"]
+    if (
+        not isinstance(indexes, DemandIndexes)
+        or indexes.source_fingerprint != fingerprint
+        or indexes.lineage_id != envelope["metadata"]["lineage_id"]
+        or indexes.model_version != configuration["model_version"]
+        or indexes.model_revision != demand_state["demand_model_revision"]
+        or indexes.universe_date != demand_state["universe_date"]
+        or indexes.eligible_airport_ids != eligible
+        or not isinstance(indexes.by_market, _PairDemandByMarket)
+        or not isinstance(indexes.markets_by_origin, _MarketsByOrigin)
+        or indexes.by_market._normalization_by_origin
+        is not indexes.normalization_by_origin
+        or indexes.markets_by_origin._market_by_pair is not indexes.market_by_pair
+        or indexes.markets_by_origin._eligible_airport_ids != eligible
+    ):
+        return False
+
+    expected_origins = eligible if len(eligible) > 1 else ()
+    expected_pair_count = len(eligible) * max(0, len(eligible) - 1)
+    if (
+        tuple(indexes.normalization_by_origin) != expected_origins
+        or len(indexes.by_market._pair_by_market) != expected_pair_count
+        or len(indexes.by_market) != expected_pair_count
+    ):
+        return False
+    eligible_set = frozenset(eligible)
+    for origin_airport_id, normalization in indexes.normalization_by_origin.items():
+        if (
+            not isinstance(normalization, OriginDemandNormalization)
+            or normalization.origin_airport_id != origin_airport_id
+            or not isinstance(normalization.origin_daily_booking_pool, Decimal)
+            or not normalization.origin_daily_booking_pool.is_finite()
+            or normalization.origin_daily_booking_pool < 0
+            or not isinstance(normalization.normalization_denominator, Decimal)
+            or not normalization.normalization_denominator.is_finite()
+            or normalization.normalization_denominator <= 0
+            or normalization.residual_destination_airport_id not in eligible_set
+            or normalization.residual_destination_airport_id == origin_airport_id
+            or not isinstance(normalization.residual_destination_pair_share, Decimal)
+            or not normalization.residual_destination_pair_share.is_finite()
+            or not Decimal(0)
+            <= normalization.residual_destination_pair_share
+            <= Decimal(1)
+        ):
+            return False
+    return True
+
+
 def _derive_indexes(envelope, fingerprint=None):
     state = envelope["world_state"]
     airports = state["airports"]
@@ -355,78 +619,25 @@ def _derive_indexes(envelope, fingerprint=None):
         (market["origin_airport_id"], market["destination_airport_id"]): market_id
         for market_id, market in state["directional_markets"].items()
     }
-    by_market = {}
-    markets_by_origin = {}
     configuration = envelope["simulation"]["configuration"]["demand"]
-    with localcontext() as context:
-        context.prec = _SCORE_PRECISION
-        for origin_id in eligible:
-            destinations = tuple(
-                destination_id
-                for destination_id in eligible
-                if destination_id != origin_id
-            )
-            if not destinations:
-                continue
-            distances = [
-                _distance_km(airports[origin_id], airports[destination_id])
-                for destination_id in destinations
-            ]
-            raw_scores = [
-                _raw_pair_score(
-                    configuration,
-                    airports[origin_id],
-                    airports[destination_id],
-                    distance=distance,
-                )
-                for destination_id, distance in zip(destinations, distances)
-            ]
-            total = sum(raw_scores, Decimal(0))
-            if total <= 0:
-                raise ValueError(f"origin {origin_id} has no positive pair scores")
-            shares = [raw_score / total for raw_score in raw_scores]
-            residual_index = max(
-                range(len(destinations)),
-                key=lambda index: (raw_scores[index], destinations[index]),
-            )
-            with localcontext() as conservation_context:
-                conservation_context.prec = (
-                    _SCORE_PRECISION + len(str(len(shares))) + 2
-                )
-                other_total = sum(
-                    (
-                        share
-                        for index, share in enumerate(shares)
-                        if index != residual_index
-                    ),
-                    Decimal(0),
-                )
-                shares[residual_index] = Decimal(1) - other_total
-            if any(share < 0 for share in shares):
-                raise ArithmeticError("normalization produced a negative pair share")
-            origin_pool = (
-                Decimal(airports[origin_id]["population"])
-                * Decimal(configuration["daily_booker_rate_ppm"])
-                / _PPM
-            )
-            origin_market_ids = []
-            for destination_id, distance, raw_score, share in zip(
-                destinations, distances, raw_scores, shares
-            ):
-                market_id = market_by_pair[(origin_id, destination_id)]
-                pair = PairDemand(
-                    market_id=market_id,
-                    origin_airport_id=origin_id,
-                    destination_airport_id=destination_id,
-                    origin_daily_booking_pool=origin_pool,
-                    distance_km=distance,
-                    raw_pair_score=raw_score,
-                    destination_pair_share=share,
-                    base_daily_bookers=origin_pool * share,
-                )
-                by_market[market_id] = pair
-                origin_market_ids.append(market_id)
-            markets_by_origin[origin_id] = tuple(origin_market_ids)
+    normalization_by_origin = _derive_origin_normalizations(envelope)
+    eligible_set = frozenset(eligible)
+    pair_by_market = {
+        market_id: pair
+        for pair, market_id in market_by_pair.items()
+        if pair[0] in eligible_set
+        and pair[1] in eligible_set
+        and pair[0] != pair[1]
+    }
+    frozen_market_by_pair = MappingProxyType(
+        dict(sorted(market_by_pair.items(), key=lambda item: item[0]))
+    )
+    by_market = _PairDemandByMarket(
+        airports=airports,
+        configuration=configuration,
+        pair_by_market=pair_by_market,
+        normalization_by_origin=normalization_by_origin,
+    )
     demand_state = state["demand_state"]
     return DemandIndexes(
         lineage_id=envelope["metadata"]["lineage_id"],
@@ -435,11 +646,10 @@ def _derive_indexes(envelope, fingerprint=None):
         universe_date=demand_state["universe_date"],
         source_fingerprint=fingerprint or _source_fingerprint(envelope),
         eligible_airport_ids=eligible,
-        by_market=MappingProxyType(dict(sorted(by_market.items()))),
-        market_by_pair=MappingProxyType(
-            dict(sorted(market_by_pair.items(), key=lambda item: item[0]))
-        ),
-        markets_by_origin=MappingProxyType(dict(sorted(markets_by_origin.items()))),
+        by_market=by_market,
+        market_by_pair=frozen_market_by_pair,
+        markets_by_origin=_MarketsByOrigin(eligible, frozen_market_by_pair),
+        normalization_by_origin=normalization_by_origin,
     )
 
 
@@ -472,17 +682,8 @@ def calculate_world_demand(envelope, *, indexes=None):
             "REJECTED", issues=_validation_issues(validation)
         )
     fingerprint = _source_fingerprint(envelope)
-    configuration = envelope["simulation"]["configuration"]["demand"]
-    demand_state = envelope["world_state"]["demand_state"]
-    if (
-        isinstance(indexes, DemandIndexes)
-        and indexes.source_fingerprint == fingerprint
-        and indexes.lineage_id == envelope["metadata"]["lineage_id"]
-        and indexes.model_version == configuration["model_version"]
-        and indexes.model_revision == demand_state["demand_model_revision"]
-        and indexes.universe_date == demand_state["universe_date"]
-        and indexes.eligible_airport_ids == _eligible_airport_ids(envelope)
-    ):
+    eligible = _eligible_airport_ids(envelope)
+    if _compact_indexes_match_world(indexes, envelope, fingerprint, eligible):
         return DemandBuildResult("COMPLETED", indexes, cache_reused=True)
 
     candidate = deepcopy(envelope)
@@ -544,13 +745,25 @@ def recalculate_origin_demand(envelope, origin_airport_id, *, indexes=None):
 def get_base_daily_bookers(
     envelope, origin_airport_id, destination_airport_id, *, indexes=None
 ):
+    return calculate_pair_demand(
+        envelope,
+        origin_airport_id,
+        destination_airport_id,
+        indexes=indexes,
+    ).base_daily_bookers
+
+
+def calculate_pair_demand(
+    envelope, origin_airport_id, destination_airport_id, *, indexes=None
+):
+    """Calculate one exact rich Model 3 projection from compact origin facts."""
     result = calculate_world_demand(envelope, indexes=indexes)
     if not result.succeeded:
         raise ValueError(result.issues[0].message if result.issues else "demand failed")
     pair = result.indexes.pair(origin_airport_id, destination_airport_id)
     if pair is None:
         raise ValueError("directional pair is not in the eligible demand universe")
-    return pair.base_daily_bookers
+    return pair
 
 
 def _compose_daily_multipliers(configuration, multipliers=None):
@@ -764,6 +977,137 @@ def resolve_world_daily_cohorts(
     resolutions = []
     try:
         for market_id in sorted(build.indexes.by_market):
+            cohort_key = f"{market_id}@{cohort_date}"
+            record = records.get(cohort_key)
+            reused = record is not None
+            if record is None:
+                record = _cohort_record(
+                    candidate,
+                    build.indexes,
+                    market_id,
+                    cohort_date,
+                    multipliers_by_market.get(market_id),
+                )
+                records[cohort_key] = record
+            resolutions.append(
+                CohortResolution(
+                    market_id,
+                    cohort_date,
+                    record["actual_daily_bookers"],
+                    reused,
+                    record["demand_model_revision"],
+                )
+            )
+    except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
+        return WorldCohortResult(
+            "REJECTED",
+            cohort_date,
+            issues=(DemandIssue("INVALID_MULTIPLIERS", str(exc)),),
+        )
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return WorldCohortResult(
+            "REJECTED", cohort_date, issues=_validation_issues(validation)
+        )
+    _replace_envelope(envelope, candidate)
+    return WorldCohortResult("COMPLETED", cohort_date, tuple(resolutions))
+
+
+def resolve_active_daily_cohorts(
+    envelope,
+    cohort_date,
+    *,
+    multipliers_by_market=None,
+    indexes=None,
+    activation_start_utc=None,
+    activation_end_utc=None,
+    activation_providers=None,
+    dated_flight_indexes=None,
+):
+    """Resolve only today's markets activated by published usable service.
+
+    This transitional Milestone 4.5A command still writes the existing Demand-
+    owned ``processed_cohorts`` markers.  It never backfills an earlier date and
+    never creates Booking state.
+    """
+    from .activation import discover_active_market_ids
+
+    try:
+        _canonical_date(cohort_date)
+    except ValueError as exc:
+        return WorldCohortResult(
+            "REJECTED", str(cohort_date), issues=(DemandIssue("INVALID_DATE", str(exc)),)
+        )
+    multipliers_by_market = (
+        {} if multipliers_by_market is None else multipliers_by_market
+    )
+    if not isinstance(multipliers_by_market, Mapping):
+        return WorldCohortResult(
+            "REJECTED",
+            cohort_date,
+            issues=(DemandIssue("INVALID_MULTIPLIERS", "must be a market mapping"),),
+        )
+    validation = validate_world(envelope)
+    if not validation.is_valid:
+        return WorldCohortResult(
+            "REJECTED", cohort_date, issues=_validation_issues(validation)
+        )
+    simulation_date = envelope["simulation"]["time_utc"][:10]
+    if cohort_date != simulation_date:
+        return WorldCohortResult(
+            "REJECTED",
+            cohort_date,
+            issues=(
+                DemandIssue(
+                    "NON_PROSPECTIVE_COHORT",
+                    "active demand processing is limited to the current simulation UTC date",
+                ),
+            ),
+        )
+
+    candidate = deepcopy(envelope)
+    build = calculate_world_demand(candidate, indexes=indexes)
+    if not build.succeeded:
+        return WorldCohortResult("REJECTED", cohort_date, issues=build.issues)
+    try:
+        active_market_ids = tuple(
+            market_id
+            for market_id in discover_active_market_ids(
+                candidate,
+                start_utc=activation_start_utc,
+                end_utc=activation_end_utc,
+                providers=activation_providers,
+                dated_flight_indexes=dated_flight_indexes,
+            )
+            if market_id in build.indexes.by_market
+        )
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        return WorldCohortResult(
+            "REJECTED",
+            cohort_date,
+            issues=(DemandIssue("INVALID_ACTIVATION_WINDOW", str(exc)),),
+        )
+    unknown_markets = [
+        key
+        for key in multipliers_by_market
+        if not isinstance(key, str) or key not in active_market_ids
+    ]
+    if unknown_markets:
+        return WorldCohortResult(
+            "REJECTED",
+            cohort_date,
+            issues=(
+                DemandIssue(
+                    "INVALID_MULTIPLIERS",
+                    f"modifier markets are not active: {sorted(map(repr, unknown_markets))}",
+                ),
+            ),
+        )
+
+    records = candidate["world_state"]["demand_state"]["processed_cohorts"]
+    resolutions = []
+    try:
+        for market_id in active_market_ids:
             cohort_key = f"{market_id}@{cohort_date}"
             record = records.get(cohort_key)
             reused = record is not None

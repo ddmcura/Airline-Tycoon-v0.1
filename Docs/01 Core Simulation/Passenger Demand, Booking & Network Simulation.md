@@ -559,3 +559,25 @@ airline-controlled revenue-versus-risk policy.
 The architecture is implemented through stable playable stages. Technical
 formulas, schemas, algorithms, and future-system mechanics are designed later.
 ```
+
+## Milestone 4.5A implementation boundary (2026-08-20)
+
+The implemented demand runtime now retains compact per-origin full-universe
+normalization facts and reconstructs exact directional Model 3 projections on
+demand. This representation does not change hidden potential, and unserved
+destinations remain in normalization.
+
+Direct active-market discovery is exposed through a rebuildable provider
+boundary over usable published dated passenger service in an explicit horizon.
+Its result selects sparse current-day work only; it neither creates nor
+renormalizes demand. Route rights or connections without service do not
+activate, while remaining capacity does not deactivate a published market.
+Connecting-pattern discovery and Booking horizon policy remain unimplemented
+provider extensions for Milestone 5.
+
+The current `processed_cohorts` collection remains transitional Demand-owned
+continuation authority. The approved future transition is an atomic
+Demand-to-Booking daily transaction with a Booking-owned checkpoint and sparse
+outcome metrics. No such state is added in Milestone 4.5A; checkpoint creation,
+marker migration, equivalent no-reroll proof, history compaction, and marker
+removal are deferred to Milestone 5.
