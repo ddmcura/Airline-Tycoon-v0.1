@@ -3,7 +3,7 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-through 3. It supersedes the hybrid `game_state` example in
+through 4. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
@@ -11,7 +11,8 @@ migrate the CLI and saved games.
 Milestone 1 constructs and validates this in-memory, JSON-compatible envelope.
 Milestone 2 adds authoritative clock advancement and generic event execution.
 Milestone 3 adds repeating schedule definitions and bounded publication of
-dated flights. Exact file writing, loading, migrations, demand generation,
+dated flights. Milestone 4 adds world-owned directional passenger demand and
+idempotent daily intent resolution. Exact file writing, loading, migrations,
 booking, aircraft operations, and transaction posting are not implemented.
 
 ## Representation rules
@@ -53,6 +54,18 @@ stage_1_envelope
 │       ├── scheduling
 │       │   ├── publication_horizon_days: positive integer
 │       │   └── minimum_turnaround_seconds: non-negative integer
+│       ├── demand
+│       │   ├── model_version: 3
+│       │   ├── configuration_version: non-empty string
+│       │   ├── revision: positive integer
+│       │   ├── daily_booker_rate_ppm: non-negative integer
+│       │   ├── distance_scale_km: positive integer
+│       │   ├── destination_type_weight_bps: complete type-to-positive-integer map
+│       │   ├── same_country_weight_bps: positive integer
+│       │   ├── international_weight_bps: positive integer
+│       │   ├── relationship_weight_bps: positive integer
+│       │   ├── daily_multiplier_min_bps: non-negative integer
+│       │   └── daily_multiplier_max_bps: integer >= minimum
 │       └── clock_ratios
 │           ├── NORMAL: positive integer simulation seconds per real second
 │           └── FAST: positive integer simulation seconds per real second
@@ -74,8 +87,11 @@ stage_1_envelope
 │   ├── schedule_definitions: {schedule_id: schedule}
 │   ├── dated_flights: {dated_flight_id: dated_flight}
 │   ├── demand_state
-│   │   ├── market_demand: {market_id: demand facts}
-│   │   └── fractional_accumulators: {market_id: value}
+│   │   ├── demand_model_revision: positive integer
+│   │   ├── universe_date: YYYY-MM-DD
+│   │   ├── input_fingerprint: lowercase SHA-256 text
+│   │   ├── rounding_policy: "KEYED_SHA256_FRACTION_V1"
+│   │   └── processed_cohorts: {"<market_id>@<YYYY-MM-DD>": processed cohort}
 │   ├── bookings: {booking_id: booking}
 │   ├── itineraries: {itinerary_id: itinerary}
 │   ├── active_aircraft_operations: {dated_flight_id: operation}
@@ -97,7 +113,10 @@ stage_1_envelope
 
 ```text
 airport
-  airport_id, reference_code, display_name, iata_code, icao_code, timezone
+  airport_id, reference_code, display_name, iata_code, icao_code, timezone,
+  passenger_demand_eligible, population, latitude_microdegrees,
+  longitude_microdegrees, country_reference, demand_destination_type,
+  active_from_date, active_until_date, demand_input_revision
 
 airline
   airline_id, display_name, base_currency, control_type (PLAYER|AI), owner_type
@@ -162,7 +181,133 @@ pending_event
 resolved_event
   all pending-event fields, terminal status
   (COMPLETED|CANCELLED|SUPERSEDED|STALE), resolved_at_utc
+
+processed_demand_cohort
+  cohort_key, market_id, cohort_date, demand_model_revision,
+  daily_multipliers_bps, composite_multiplier_ppm, actual_daily_bookers,
+  rounding_policy, resolution_fingerprint
 ```
+
+### Milestone 4 world-demand contract
+
+Passenger demand uses the approved Model 3 pipeline. `OriginDailyBookingPool`
+is origin population times the configured `daily_booker_rate_ppm`.
+`RawPairScore` is destination population pull times distance, destination type,
+geography, and neutral relationship weights. `DestinationPairShare` divides
+that score by the score total for every eligible destination in the represented
+world. `BaseDailyBookers` is the origin pool times that share. These four
+quantities are deterministic derived values, not persisted copies.
+
+Population and coefficients enter the formula as integers and score, pool,
+normalization, and baseline arithmetic uses a fixed 50-digit Decimal context.
+Great-circle distance is derived from integer microdegree coordinates with the
+haversine formula and half-even quantized to `0.001` km before Decimal score
+arithmetic. Binary floating point is confined to that non-authoritative
+trigonometric intermediate; no score, share, baseline, multiplier, or cohort
+outcome is stored as binary floating point.
+
+All direct score quotients are calculated before numeric conservation is
+applied. The fixed-precision residual goes once to the destination with the
+largest raw score, with immutable destination ID breaking an exact tie. Shares
+therefore remain non-negative and their stored finite Decimal values sum
+mathematically to one exactly (consumers must not re-sum them in a lower
+precision context). They do not favor the last iterated destination. No
+eligible destination creates no pair and does
+not redistribute the unused origin pool. Exactly one eligible destination
+intentionally has share one and receives the complete origin pool.
+
+An airport is eligible on the revision-pinned `universe_date` only when
+`passenger_demand_eligible` is true, its population is a positive integer, its
+microdegree coordinates and stable country reference are valid, its destination
+type is supported, `active_from_date` is null or no later than the date, and
+`active_until_date` is null or later than the date. The closure date is the
+first inactive date. The origin itself is excluded. Unserved, unreachable, and
+player-unknown eligible airports remain in the denominator. Stage 1 advances
+historical activity only through an explicit revision of the canonical UTC
+universe date; local-day historical transitions are deferred.
+
+Reference airport demand inputs are snapshotted into airport authority. Missing
+population, coordinates, country, or destination type makes a reference
+ineligible by default; an explicitly eligible malformed record is invalid.
+Bundled `regional_importance`/`airport_size` data maps to the six canonical
+destination types at the construction boundary. Airline, connection, schedule,
+dated-flight, fare, capacity, awareness, and UI state are not formula inputs.
+
+`demand.model_version` identifies the formula family.
+`demand.configuration_version` identifies the prototype coefficient set.
+`demand.revision`, `demand_state.demand_model_revision`, and every changed
+airport's `demand_input_revision` make input changes explicit. Configuration or
+reference-input changes commit atomically with a one-step revision increment.
+`demand_state.universe_date` pins historical airport eligibility for the whole
+revision. Crossing an airport opening or closure boundary requires an explicit
+revision that advances this date; wall-clock or cohort processing never changes
+the normalization universe implicitly. `input_fingerprint` covers the demand
+configuration, universe date, and every airport demand input; validation
+rejects direct input edits that bypass the revision/construction boundaries.
+Runtime demand indexes carry their source fingerprint and revision; a mismatch
+causes deterministic rebuild. Existing directional markets remain immutable
+identity records when an airport later becomes ineligible, because connections
+or history may still reference them. A later explicit reopening revision reuses
+those identities; recalculation creates only pairs that never existed.
+
+Daily multipliers use integer basis points. The neutral value is `10000`.
+Supported categories are `date_season`, `holiday`, `world`, and `other`; missing
+categories are neutral and values must be within the configured inclusive
+range. Categories compose by multiplication in that canonical order. All four
+integer factors are multiplied exactly before one 50-digit Decimal division by
+`10000^4`; there is no category-by-category rounding. The derived composite is
+recorded in integer parts per million using half-even rounding.
+Negative, floating, boolean, unknown, non-finite, or otherwise malformed values
+are rejected before mutation. Airline-side price, reputation, advertising,
+frequency, product, and presence are deliberately excluded.
+
+Fractional daily intent uses stateless purpose-keyed stochastic rounding. The
+SHA-256 input contains the world seed, immutable market ID, cohort date, model
+version, configuration version, canonical multipliers, and the policy name.
+The global demand revision is recorded on the cohort but deliberately is not a
+draw input: an airport-only or universe revision changes mathematical
+thresholds without rerolling the independent sample for every existing pair.
+The integer part is
+always retained and the fractional part is selected by the keyed threshold.
+The 256-bit draw uses rejection sampling before reduction to the exact Decimal
+fraction denominator, eliminating modulo/threshold bias; the extraordinarily
+rare retry appends a fixed domain separator and an unsigned counter. This
+preserves the long-run expectation without processing-order dependence or a
+mutable fractional accumulator. The resolved count and marker are persisted
+once per market/date. Reprocessing returns the stored outcome and cannot reroll
+or double-consume state. No unsuccessful-booker backlog is stored.
+
+Each processed marker carries a `resolution_fingerprint` using
+`STAGE1_DEMAND_COHORT_SHA256_JSON_V1`. It covers the world seed and every other
+stored cohort field using the same canonical-JSON rules as the input witness.
+Validation therefore detects a silently edited outcome, multiplier, identity,
+revision, or rounding policy even after later demand revisions make historical
+formula reconstruction unavailable. Like the input witness it is an integrity
+check, not an authenticity signature.
+
+`processed_cohorts` and the demand/configuration versions are persistent
+continuation authority. Airport inputs and directional-market identities are
+authoritative reference snapshots. `input_fingerprint` is a persisted,
+continuation-critical validation witness: its bytes are reproducible, but the
+stored value is authoritative because reload validation uses it to reject
+input edits that bypass an explicit revision. Raw scores, origin pools, shares,
+baselines, distances, normalization tables, source fingerprints, and indexes
+are runtime-derived and must not be serialized under `demand_state`. Rebuild
+never creates a cohort, consumes randomness, scans service, or invokes Booking.
+
+The input witness is SHA-256 over UTF-8 canonical JSON identified by
+`STAGE1_DEMAND_INPUT_SHA256_JSON_V1`: keys are sorted, separators contain no
+whitespace, non-ASCII text is escaped, and non-finite or non-JSON inputs are
+rejected. It is an integrity/revision witness, not a security signature;
+changing this canonicalization or hash requires save-migration review.
+
+One processed marker is retained for every resolved market/date, including a
+zero result. A revision never deletes or rerolls earlier markers; unprocessed
+dates use the current revision. Cohort dates may precede or follow
+`universe_date`, while eligibility stays pinned to that revision's universe.
+Marker growth is therefore directional pairs times processed days. Safe
+compaction needs a later approved schema with an equivalent no-reroll proof and
+is not part of Milestone 4.
 
 ### Milestone 3 schedule-definition contract
 
@@ -333,6 +478,11 @@ minimal account foundation contains exactly one each of `cash`,
   `scheduled_departure_local_date` is retained only as authoritative recurrence
   identity and traceability; other airport-local presentation values are
   derived from the stored UTC instants and named airport time zones.
+- World-demand origin pools, raw pair scores, normalized shares, base daily
+  bookers, source fingerprints, and pair/origin indexes are derived/runtime-only.
+  Persisting them under `demand_state` is a schema error. Processed daily cohort
+  outcomes and the input-fingerprint validation witness are authority and are
+  not silently repaired.
 - `build_legacy_read_projection()` returns a detached compatibility-only copy
   shaped for old readers. Mutating it cannot mutate the authoritative envelope.
 - `game/game_state.py`, `game/simulation/daily_tick.py`, route-owned demand, and
@@ -350,3 +500,6 @@ minimal account foundation contains exactly one each of `cash`,
   `game.scheduling` non-interactive Milestone 3 API
 - Rebuild runtime dated-flight indexes:
   `game.scheduling.rebuild_dated_flight_indexes(envelope)`
+- Build/recalculate one origin or the whole world, retrieve a directional
+  baseline, compose daily multipliers, resolve one or all daily cohorts, rebuild
+  runtime demand indexes, and revise inputs: `game.demand` Milestone 4 API

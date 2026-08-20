@@ -2,15 +2,22 @@
 
 import hashlib
 import json
+from copy import deepcopy
+from datetime import date
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 
 from .ids import allocate_id, new_allocator_state
+from .demand_fingerprint import calculate_demand_input_fingerprint
 from .money import major_to_minor
 from .schema import (
     DEFAULT_GAME_VERSION,
     DEFAULT_CLOCK_RATIOS,
+    DEFAULT_DEMAND_CONFIGURATION,
     DEFAULT_MINIMUM_TURNAROUND_SECONDS,
     DEFAULT_PUBLICATION_HORIZON_DAYS,
     DEFAULT_REFERENCE_DATA_VERSION,
+    DEMAND_DESTINATION_TYPES,
+    DEMAND_ROUNDING_POLICY,
     SAVE_SCHEMA_VERSION,
 )
 from .timestamps import normalize_utc_timestamp
@@ -29,6 +36,57 @@ def _currency_code(value):
     return value
 
 
+def _optional_local_date(value, field_name):
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be null or canonical YYYY-MM-DD")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(
+            f"{field_name} must be null or canonical YYYY-MM-DD"
+        ) from exc
+    if parsed.isoformat() != value:
+        raise ValueError(f"{field_name} must be null or canonical YYYY-MM-DD")
+    return value
+
+
+def _microdegrees(value, field_name, minimum, maximum):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError(f"{field_name} must be a finite coordinate")
+    try:
+        coordinate = Decimal(str(value))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a finite coordinate") from exc
+    if not coordinate.is_finite() or coordinate < minimum or coordinate > maximum:
+        raise ValueError(f"{field_name} is outside the supported range")
+    return int((coordinate * 1_000_000).to_integral_value(rounding=ROUND_HALF_EVEN))
+
+
+def _destination_type(airport_reference):
+    explicit = airport_reference.get("demand_destination_type")
+    if explicit is not None:
+        return str(explicit).strip().upper() or None
+    importance = str(airport_reference.get("regional_importance") or "").lower()
+    size = str(airport_reference.get("airport_size") or "").lower()
+    if importance == "global" or size == "mega":
+        return "MEGA_GLOBAL_CITY"
+    if importance == "major":
+        return "CAPITAL_MAJOR_CITY"
+    if importance == "regional" and size == "large":
+        return "MAJOR_REGIONAL_CITY"
+    if importance == "regional" and size == "medium":
+        return "NORMAL_CITY"
+    if importance == "regional" and size == "small":
+        return "SMALL_REGIONAL_CITY"
+    if importance == "minor":
+        return "MINOR_CITY"
+    return None
+
+
 def _add_account(envelope, airline_id, code, category, currency, balance_minor):
     account_id = allocate_id(envelope, "account")
     envelope["world_state"]["financial_accounts"][account_id] = {
@@ -42,8 +100,7 @@ def _add_account(envelope, airline_id, code, category, currency, balance_minor):
     return account_id
 
 
-def add_airport_reference(envelope, airport_reference):
-    """Add one immutable airport reference record and return its internal ID."""
+def _add_airport_reference_in_place(envelope, airport_reference):
     if isinstance(airport_reference, str):
         airport_reference = {"reference_code": airport_reference}
     if not isinstance(airport_reference, dict):
@@ -59,7 +116,88 @@ def add_airport_reference(envelope, airport_reference):
         for airport in envelope["world_state"]["airports"].values()
     ):
         raise ValueError("airport reference_code must be unique")
+
+    population = airport_reference.get("population")
+    if population is not None:
+        if isinstance(population, bool) or not isinstance(population, int):
+            raise ValueError("starting_airport.population must be an integer or null")
+        if population < 0:
+            raise ValueError("starting_airport.population must be non-negative")
+    coordinates = airport_reference.get("coordinates")
+    if coordinates is not None and not isinstance(coordinates, dict):
+        raise ValueError("starting_airport.coordinates must be a dictionary or null")
+    coordinates = coordinates or {}
+    latitude = _microdegrees(
+        airport_reference.get("latitude", coordinates.get("lat")),
+        "starting_airport.latitude",
+        Decimal("-90"),
+        Decimal("90"),
+    )
+    longitude = _microdegrees(
+        airport_reference.get("longitude", coordinates.get("lon")),
+        "starting_airport.longitude",
+        Decimal("-180"),
+        Decimal("180"),
+    )
+    country_reference = airport_reference.get("country_reference")
+    if country_reference is None:
+        country_reference = airport_reference.get("country_code")
+    if country_reference is None and airport_reference.get("country"):
+        country_reference = str(airport_reference["country"]).strip().upper()
+    if country_reference is not None:
+        country_reference = _required_text(
+            country_reference, "starting_airport.country_reference"
+        ).upper()
+    destination_type = _destination_type(airport_reference)
+    if destination_type is not None and destination_type not in DEMAND_DESTINATION_TYPES:
+        raise ValueError("starting_airport.demand_destination_type is unsupported")
+    active_from = _optional_local_date(
+        airport_reference.get("active_from_date", airport_reference.get("date_opened")),
+        "starting_airport.active_from_date",
+    )
+    active_until = _optional_local_date(
+        airport_reference.get("active_until_date", airport_reference.get("date_closed")),
+        "starting_airport.active_until_date",
+    )
+    if active_from and active_until and active_until <= active_from:
+        raise ValueError("airport active_until_date must follow active_from_date")
+    complete_demand_inputs = (
+        isinstance(population, int)
+        and population > 0
+        and latitude is not None
+        and longitude is not None
+        and country_reference is not None
+        and destination_type is not None
+    )
+    requested_eligibility = airport_reference.get("passenger_demand_eligible")
+    if requested_eligibility is None:
+        demand_eligible = complete_demand_inputs
+    elif type(requested_eligibility) is not bool:
+        raise ValueError("passenger_demand_eligible must be a boolean")
+    else:
+        demand_eligible = requested_eligibility
+    if demand_eligible and not complete_demand_inputs:
+        raise ValueError(
+            "passenger-demand-eligible airports require positive population, "
+            "coordinates, country_reference, and demand_destination_type"
+        )
+
+    demand_configuration = envelope.get("simulation", {}).get(
+        "configuration", {}
+    ).get("demand", {})
+    demand_state = envelope.get("world_state", {}).get("demand_state", {})
+    demand_revision = demand_configuration.get("revision", 1)
+    should_increment_demand_revision = demand_eligible and any(
+        airport.get("passenger_demand_eligible")
+        for airport in envelope["world_state"]["airports"].values()
+    )
+    if should_increment_demand_revision:
+        demand_revision += 1
     airport_id = allocate_id(envelope, "airport")
+    if should_increment_demand_revision:
+        demand_configuration["revision"] = demand_revision
+        if isinstance(demand_state, dict):
+            demand_state["demand_model_revision"] = demand_revision
     iata = airport_reference.get("iata")
     icao = airport_reference.get("icao")
     envelope["world_state"]["airports"][airport_id] = {
@@ -69,7 +207,44 @@ def add_airport_reference(envelope, airport_reference):
         "iata_code": str(iata).upper() if iata else (reference_code if len(reference_code) == 3 else None),
         "icao_code": str(icao).upper() if icao else (reference_code if len(reference_code) == 4 else None),
         "timezone": str(airport_reference.get("timezone") or "UTC"),
+        "passenger_demand_eligible": demand_eligible,
+        "population": population,
+        "latitude_microdegrees": latitude,
+        "longitude_microdegrees": longitude,
+        "country_reference": country_reference,
+        "demand_destination_type": destination_type,
+        "active_from_date": active_from,
+        "active_until_date": active_until,
+        "demand_input_revision": demand_revision,
     }
+    demand_state["input_fingerprint"] = calculate_demand_input_fingerprint(envelope)
+    return airport_id
+
+
+def add_airport_reference(envelope, airport_reference):
+    """Atomically add one immutable airport reference record."""
+    candidate = deepcopy(envelope)
+    airport_id = _add_airport_reference_in_place(candidate, airport_reference)
+
+    candidate_demand = candidate["simulation"]["configuration"]["demand"]
+    candidate_state = candidate["world_state"]["demand_state"]
+    envelope["world_state"]["airports"][airport_id] = deepcopy(
+        candidate["world_state"]["airports"][airport_id]
+    )
+    envelope["deterministic_state"]["id_allocator"]["next_by_type"][
+        "airport"
+    ] = candidate["deterministic_state"]["id_allocator"]["next_by_type"][
+        "airport"
+    ]
+    envelope["simulation"]["configuration"]["demand"][
+        "revision"
+    ] = candidate_demand["revision"]
+    envelope["world_state"]["demand_state"][
+        "demand_model_revision"
+    ] = candidate_state["demand_model_revision"]
+    envelope["world_state"]["demand_state"][
+        "input_fingerprint"
+    ] = candidate_state["input_fingerprint"]
     return airport_id
 
 
@@ -238,7 +413,13 @@ def _empty_world_state():
         "connections": {},
         "schedule_definitions": {},
         "dated_flights": {},
-        "demand_state": {"market_demand": {}, "fractional_accumulators": {}},
+        "demand_state": {
+            "demand_model_revision": 1,
+            "universe_date": None,
+            "input_fingerprint": "",
+            "rounding_policy": DEMAND_ROUNDING_POLICY,
+            "processed_cohorts": {},
+        },
         "bookings": {},
         "itineraries": {},
         "active_aircraft_operations": {},
@@ -326,6 +507,7 @@ def create_new_world(
                     "publication_horizon_days": DEFAULT_PUBLICATION_HORIZON_DAYS,
                     "minimum_turnaround_seconds": DEFAULT_MINIMUM_TURNAROUND_SECONDS,
                 },
+                "demand": deepcopy(DEFAULT_DEMAND_CONFIGURATION),
             },
         },
         "deterministic_state": {
@@ -340,6 +522,7 @@ def create_new_world(
             "filters": {},
         },
     }
+    envelope["world_state"]["demand_state"]["universe_date"] = simulation_time[:10]
     airport_id = add_airport_reference(envelope, starting_airport)
     airline_id = add_airline(
         envelope,

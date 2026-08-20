@@ -9,6 +9,45 @@ CLOCK_STATES = frozenset({"PAUSED", "NORMAL", "FAST", "FAST_FORWARD"})
 DEFAULT_CLOCK_RATIOS = {"NORMAL": 1, "FAST": 60}
 DEFAULT_PUBLICATION_HORIZON_DAYS = 90
 DEFAULT_MINIMUM_TURNAROUND_SECONDS = 30 * 60
+DEMAND_MODEL_VERSION = 3
+DEMAND_CONFIGURATION_VERSION = "stage1-model3-prototype-v1"
+DEMAND_ROUNDING_POLICY = "KEYED_SHA256_FRACTION_V1"
+DEMAND_DESTINATION_TYPES = (
+    "MEGA_GLOBAL_CITY",
+    "CAPITAL_MAJOR_CITY",
+    "MAJOR_REGIONAL_CITY",
+    "NORMAL_CITY",
+    "SMALL_REGIONAL_CITY",
+    "MINOR_CITY",
+)
+DEMAND_MULTIPLIER_CATEGORIES = (
+    "date_season",
+    "holiday",
+    "world",
+    "other",
+)
+DEFAULT_DEMAND_CONFIGURATION = {
+    "model_version": DEMAND_MODEL_VERSION,
+    "configuration_version": DEMAND_CONFIGURATION_VERSION,
+    "revision": 1,
+    # The legacy Model 3 prototype rate is retained; the approved specification
+    # replaces its unnormalised pair-share and distance formulas.
+    "daily_booker_rate_ppm": 4_000,
+    "distance_scale_km": 2_000,
+    "destination_type_weight_bps": {
+        "MEGA_GLOBAL_CITY": 14_000,
+        "CAPITAL_MAJOR_CITY": 12_500,
+        "MAJOR_REGIONAL_CITY": 11_000,
+        "NORMAL_CITY": 10_000,
+        "SMALL_REGIONAL_CITY": 8_000,
+        "MINOR_CITY": 6_500,
+    },
+    "same_country_weight_bps": 12_500,
+    "international_weight_bps": 10_000,
+    "relationship_weight_bps": 10_000,
+    "daily_multiplier_min_bps": 0,
+    "daily_multiplier_max_bps": 100_000,
+}
 PENDING_EVENT_STATUS = "PENDING"
 TERMINAL_EVENT_STATUSES = frozenset(
     {"COMPLETED", "CANCELLED", "SUPERSEDED", "STALE"}

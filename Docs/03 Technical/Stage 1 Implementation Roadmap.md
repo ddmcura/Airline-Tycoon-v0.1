@@ -336,6 +336,75 @@ posting remain deferred.
 - A pair with no service retains potential demand but creates no booking attempt.
 - Repeated runs from the same state produce the same integer cohorts.
 
+### Implemented contract
+
+Milestone 4 is implemented in the authoritative `game.demand` boundary. The
+canonical fields and classifications are defined in
+`Docs/03 Technical/Stage 1 State Schema.md`.
+
+- Model 3 formula ownership now follows the approved passenger-demand technical
+  specification: origin pool, softened destination population pull, rational
+  distance decay, destination type, domestic/international geography, neutral
+  relationship weight, full-world normalization, and directional baseline.
+  The legacy route-owned Model 3 API remains unchanged as a compatibility
+  characterization only.
+- The retained prototype daily-booker rate is 4,000 parts per million (0.004).
+  The old `102` DVO-to-one-million-population expectation came from applying an
+  unnormalised capped destination share and linear distance floor. It remains a
+  legacy expectation, not an authoritative result. With only one eligible
+  destination its authoritative share is one, so the DVO baseline is its 4,920
+  person origin pool.
+- Airport reference snapshots contain integer population and microdegree
+  coordinates, stable country reference, destination type, historical active
+  dates, explicit passenger-demand eligibility, and input revision. Missing
+  required inputs make an airport ineligible by default; claiming eligibility
+  with incomplete inputs is invalid.
+- One demand revision pins a UTC `universe_date`. Every eligible represented
+  airport other than the origin is in the denominator, including airports with
+  no connection, schedule, dated flight, capacity, or player awareness.
+  Historical opening and closure boundary changes require an explicit revision.
+- Directional market IDs are created atomically in stable origin/destination-ID
+  order. Opening, publishing, or closing airline service does not create,
+  remove, or renormalize baseline demand.
+- Runtime demand indexes contain origin pools, distances, raw scores, exact-sum
+  shares, baselines, pair/origin lookups, and a source fingerprint. The Decimal
+  residual goes to the largest score with an immutable-ID tie break, avoiding
+  insertion-order and last-pair bias. They are
+  immutable, reproducible, disposable, and excluded from save authority.
+- Daily multiplier inputs use integer basis points in canonical order:
+  `date_season`, `holiday`, `world`, then `other`. Missing values are neutral
+  `10000`; configured Stage 1 values range from zero through `100000`. Factors
+  are multiplied exactly before one fixed-precision division; there is no
+  intermediate category rounding. Airline-side commercial and service-choice
+  factors are excluded.
+- Fractional intent uses `KEYED_SHA256_FRACTION_V1`, keyed by world seed,
+  immutable market ID, cohort date, model/configuration versions, demand
+  multipliers, and purpose. The applied revision is stored but excluded from
+  the draw, so airport/universe revisions alter thresholds without rerolling
+  existing-pair samples. Exact-denominator rejection sampling removes modulo
+  bias. This preserves long-run expectation without a mutable accumulator,
+  dictionary-order dependence, or reload rerolls. The resolved integer and
+  market/date idempotency marker are persistent authority. A versioned
+  canonical-JSON integrity witness detects silent marker edits across revisions.
+- Public non-interactive entry points build or recalculate the world and one
+  origin, retrieve baselines, calculate formula components, compose
+  multipliers, resolve one or all daily cohorts, rebuild derived indexes, and
+  atomically revise demand inputs.
+- Full baseline construction is quadratic in eligible airports. Cache reuse is
+  linear in reference/identity fingerprint size; daily cohort resolution is
+  linear in directional pairs. No path scans airlines, connections, schedules,
+  or future flights to establish demand.
+
+The persisted input fingerprint is a continuation-critical validation witness,
+not a disposable cache, even though its bytes are reproducible. Processed
+markers are also continuation authority and grow as directional pairs times
+days; Milestone 4 does not compact them because deletion would permit a
+historical reroll without a later schema providing an equivalent proof.
+
+Milestone 4 does not search itineraries, activate service, reserve capacity,
+create bookings, carry unsuccessful intent forward, invoke operations, or post
+money. Those behaviors remain deferred to Milestone 5 or their later owners.
+
 ## Milestone 5 — Booking Pipeline
 
 ### Work

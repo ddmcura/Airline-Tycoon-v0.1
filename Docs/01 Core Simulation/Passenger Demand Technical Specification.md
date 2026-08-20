@@ -932,3 +932,109 @@ Hub-limited search, hard connection limits, and network-revision invalidation.
 Daily booking intent, successful bookings, and passengers flying are separate
 metrics and must never be treated as the same number.
 ```
+
+## 29. Milestone 4 implementation reconciliation (2026-08-20)
+
+The authoritative implementation is `game.demand`; persistent fields and
+numeric representations are defined by the canonical Stage 1 State Schema.
+
+The approved formula in Sections 3 through 7 supersedes the legacy
+`game.economy.demand` pair-local calculation. The legacy function remains for
+the current CLI and its characterization tests: it uses a 0.004 origin travel
+rate, a capped destination-share estimate, and a linear distance floor. The
+authoritative model retains 0.004 as the prototype `daily_booker_rate_ppm` but
+uses square-root population pull, `1 / (1 + distance / 2000)`, configured
+destination and geography weights, a neutral relationship weight, and the full
+eligible denominator. Therefore the legacy `102` example is deliberately not
+an authoritative full-universe expectation. In a two-airport represented world
+the sole destination share is one and the 1,230,000-person origin pool is 4,920.
+
+Stage 1 pair validity is revision-pinned. Both endpoints must be explicitly
+passenger-demand eligible, have positive integer population, finite in-range
+microdegree coordinates, a stable country reference, a supported destination
+type, and be active on `demand_state.universe_date`. `active_from_date` is the
+first active date and `active_until_date` is the first inactive date. The same
+airport is never its own destination. Missing inputs make a reference
+ineligible unless a caller explicitly claims eligibility, in which case
+validation rejects the incomplete record. Unserved and unreachable airports
+remain eligible. Bundled reference importance maps as follows:
+
+| Reference classification | Demand destination type |
+|---|---|
+| `global` or `mega` | `MEGA_GLOBAL_CITY` |
+| `major` | `CAPITAL_MAJOR_CITY` |
+| `regional` + `large` | `MAJOR_REGIONAL_CITY` |
+| `regional` + `medium` | `NORMAL_CITY` |
+| `regional` + `small` | `SMALL_REGIONAL_CITY` |
+| `minor` | `MINOR_CITY` |
+
+Daily multipliers are integer basis points. The supported canonical composition
+order is date/season, holiday, world, and explicitly supplied other demand-side
+effect. Each missing category is neutral `10000`; values outside the configured
+inclusive zero-to-`100000` prototype range, negative values, floats, booleans,
+unknown categories, and malformed structures are rejected before mutation.
+Composition multiplies all four integer factors exactly and then performs one
+50-digit Decimal division by `10000^4`; it does not round between categories.
+The persisted diagnostic composite is half-even rounded to integer parts per
+million. Price, advertising, reputation, market presence, schedules, perks,
+and capacity are not Milestone 4 demand multipliers.
+
+The selected tiny-market policy is stateless deterministic fractional
+resolution named `KEYED_SHA256_FRACTION_V1`. It always retains the integer part
+and compares a purpose-keyed SHA-256 draw against the exact fractional
+threshold. Inputs include world seed, immutable market ID, cohort date, model
+version, configuration version, and canonical multipliers. The applied demand
+revision is stored on the cohort but is not a draw input, so an airport-only or
+universe revision changes the mathematical threshold without rerolling every
+existing pair's independent sample. A 256-bit draw is rejection-sampled before
+reduction to the exact Decimal denominator; a rejected draw retries with a
+fixed domain separator and unsigned counter, so modulo bias is not introduced.
+It therefore preserves long-run expected value without a mutable accumulator,
+processing-order dependency, or reload reroll. The resolved result and one
+market/date marker are persisted; repeated processing returns that result even
+if a caller later supplies different modifiers. A versioned canonical-JSON
+SHA-256 resolution fingerprint covers the world seed and stored marker
+contents, so validation detects silent edits even when an older revision can no
+longer be reconstructed.
+
+Airport inputs, directional-market identity, demand/configuration versions,
+universe date, rounding policy, and resolved cohorts are persistent authority.
+Origin pools, rounded great-circle distance, raw scores, exact-sum shares,
+baselines, source fingerprints, and indexes are reproducible derived values.
+The stored input fingerprint is instead a continuation-critical authoritative
+validation witness, even though its bytes are reproducible: it makes a direct
+edit distinguishable from an approved revision after reload. It uses SHA-256
+over version-tagged canonical UTF-8 JSON with sorted keys, compact separators,
+escaped non-ASCII text, and rejection of non-finite or non-JSON values. A demand
+revision commits configuration/reference changes atomically and invalidates a
+runtime cache by revision/fingerprint mismatch without deleting prior cohort
+outcomes or immutable market identities.
+
+Fixed-precision share residual is assigned to the largest raw score, with an
+immutable-ID tie break, rather than the last iterated pair. A sole valid
+destination intentionally receives the complete origin pool. An origin with no
+valid destination creates no pair and does not carry or redistribute the unused
+pool.
+Closed pair identities remain for history and are reused after an explicit
+reopening revision.
+
+Processed markers grow as directional pairs times processed days and remain in
+Milestone 4 to prevent historical rerolls. Cohort dates on either side of the
+pinned universe date are permitted; eligibility still uses the revision-pinned
+universe. Compaction requires a later schema that preserves an equivalent
+continuation proof.
+
+The public API provides `calculate_world_demand`,
+`recalculate_origin_demand`, `calculate_origin_daily_booking_pool`,
+`calculate_raw_pair_score`, `get_base_daily_bookers`,
+`compose_daily_multipliers`, `resolve_daily_cohort`,
+`resolve_world_daily_cohorts`, `rebuild_demand_indexes`, and
+`revise_demand_model`. Full construction is O(eligible airports squared),
+unchanged reuse fingerprints reference/market authority, and the whole-world
+daily command is O(eligible directional pairs). No demand path multiplies this
+work by airlines,
+schedules, or future flights.
+
+Desired travel dates, service activation, itinerary search, the outside option,
+choice and competition, capacity reservation, booking records and receipts, and
+unsuccessful-intent handling remain Milestone 5 work.

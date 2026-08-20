@@ -2,10 +2,16 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
+from functools import reduce
+from operator import mul
 from typing import Mapping
 from zoneinfo import ZoneInfoNotFoundError
 
 from .ids import parse_entity_id
+from .demand_fingerprint import (
+    calculate_demand_cohort_fingerprint,
+    calculate_demand_input_fingerprint,
+)
 from .money import is_minor_amount
 from .schema import (
     ACCOUNT_CATEGORIES,
@@ -13,6 +19,10 @@ from .schema import (
     AIRLINE_OWNER_TYPES,
     CLOCK_STATES,
     DATED_FLIGHT_STATUSES,
+    DEMAND_DESTINATION_TYPES,
+    DEMAND_MODEL_VERSION,
+    DEMAND_MULTIPLIER_CATEGORIES,
+    DEMAND_ROUNDING_POLICY,
     ENVELOPE_ROOTS,
     ENTITY_COLLECTIONS,
     ENTITY_TYPES,
@@ -238,6 +248,112 @@ class _Validator:
                 "$.simulation.configuration.scheduling.minimum_turnaround_seconds",
                 "must be a non-negative integer number of seconds",
             )
+        demand_configuration = self.require_mapping(
+            configuration.get("demand"),
+            "$.simulation.configuration.demand",
+        )
+        demand_configuration_fields = {
+            "model_version",
+            "configuration_version",
+            "revision",
+            "daily_booker_rate_ppm",
+            "distance_scale_km",
+            "destination_type_weight_bps",
+            "same_country_weight_bps",
+            "international_weight_bps",
+            "relationship_weight_bps",
+            "daily_multiplier_min_bps",
+            "daily_multiplier_max_bps",
+        }
+        for field in sorted(set(demand_configuration) - demand_configuration_fields, key=repr):
+            self.add(
+                "unknown_authoritative_field",
+                f"$.simulation.configuration.demand.{field}",
+                "field is not part of the Stage 1 demand configuration",
+            )
+        if demand_configuration.get("model_version") != DEMAND_MODEL_VERSION or isinstance(
+            demand_configuration.get("model_version"), bool
+        ):
+            self.add(
+                "unsupported_demand_model",
+                "$.simulation.configuration.demand.model_version",
+                f"must equal {DEMAND_MODEL_VERSION}",
+            )
+        self.require_text(
+            demand_configuration,
+            "configuration_version",
+            "$.simulation.configuration.demand",
+        )
+        demand_revision = demand_configuration.get("revision")
+        if (
+            isinstance(demand_revision, bool)
+            or not isinstance(demand_revision, int)
+            or demand_revision < 1
+        ):
+            self.add(
+                "invalid_demand_revision",
+                "$.simulation.configuration.demand.revision",
+                "must be a positive integer",
+            )
+        for field, minimum in (
+            ("daily_booker_rate_ppm", 0),
+            ("distance_scale_km", 1),
+            ("same_country_weight_bps", 1),
+            ("international_weight_bps", 1),
+            ("relationship_weight_bps", 1),
+            ("daily_multiplier_min_bps", 0),
+            ("daily_multiplier_max_bps", 0),
+        ):
+            value = demand_configuration.get(field)
+            if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+                self.add(
+                    "invalid_demand_configuration",
+                    f"$.simulation.configuration.demand.{field}",
+                    f"must be an integer greater than or equal to {minimum}",
+                )
+        minimum_multiplier = demand_configuration.get("daily_multiplier_min_bps")
+        maximum_multiplier = demand_configuration.get("daily_multiplier_max_bps")
+        if (
+            isinstance(minimum_multiplier, int)
+            and not isinstance(minimum_multiplier, bool)
+            and isinstance(maximum_multiplier, int)
+            and not isinstance(maximum_multiplier, bool)
+            and maximum_multiplier < minimum_multiplier
+        ):
+            self.add(
+                "invalid_demand_configuration",
+                "$.simulation.configuration.demand.daily_multiplier_max_bps",
+                "must be greater than or equal to the minimum multiplier",
+            )
+        if (
+            isinstance(minimum_multiplier, int)
+            and not isinstance(minimum_multiplier, bool)
+            and isinstance(maximum_multiplier, int)
+            and not isinstance(maximum_multiplier, bool)
+            and not minimum_multiplier <= 10_000 <= maximum_multiplier
+        ):
+            self.add(
+                "invalid_demand_configuration",
+                "$.simulation.configuration.demand",
+                "the configured multiplier range must include neutral 10000",
+            )
+        type_weights = self.require_mapping(
+            demand_configuration.get("destination_type_weight_bps"),
+            "$.simulation.configuration.demand.destination_type_weight_bps",
+        )
+        if set(type_weights) != set(DEMAND_DESTINATION_TYPES):
+            self.add(
+                "invalid_demand_configuration",
+                "$.simulation.configuration.demand.destination_type_weight_bps",
+                "must contain exactly the canonical destination types",
+            )
+        for destination_type, weight in type_weights.items():
+            if isinstance(weight, bool) or not isinstance(weight, int) or weight < 1:
+                self.add(
+                    "invalid_demand_configuration",
+                    f"$.simulation.configuration.demand.destination_type_weight_bps.{destination_type}",
+                    "weights must be positive integer basis points",
+                )
         fast_forward = self.require_mapping(simulation.get("fast_forward"), "$.simulation.fast_forward")
         target = fast_forward.get("target_time_utc")
         if clock_state == "FAST_FORWARD":
@@ -392,6 +508,31 @@ class _Validator:
         airport_reference_codes = {}
         for airport_id, record in airports.items():
             path = f"$.world_state.airports.{airport_id}"
+            allowed_airport_fields = {
+                "airport_id",
+                "reference_code",
+                "display_name",
+                "iata_code",
+                "icao_code",
+                "timezone",
+                "passenger_demand_eligible",
+                "population",
+                "latitude_microdegrees",
+                "longitude_microdegrees",
+                "country_reference",
+                "demand_destination_type",
+                "active_from_date",
+                "active_until_date",
+                "demand_input_revision",
+            }
+            for field in sorted(set(record) - allowed_airport_fields, key=repr):
+                self.add(
+                    "unknown_authoritative_field",
+                    f"{path}.{field}",
+                    "field is not part of the canonical Stage 1 airport schema",
+                    "airport",
+                    airport_id,
+                )
             reference_code = self.require_text(record, "reference_code", path, "airport", airport_id)
             self.require_text(record, "display_name", path, "airport", airport_id)
             airport_timezone = self.require_text(
@@ -420,6 +561,134 @@ class _Validator:
                     expected_length = 3 if field == "iata_code" else 4
                     if len(record[field]) != expected_length or record[field] != record[field].upper():
                         self.add("malformed_required_field", f"{path}.{field}", f"must be an uppercase {expected_length}-character code", "airport", airport_id)
+            demand_eligible = record.get("passenger_demand_eligible")
+            if type(demand_eligible) is not bool:
+                self.add(
+                    "invalid_demand_eligibility",
+                    f"{path}.passenger_demand_eligible",
+                    "must be a boolean",
+                    "airport",
+                    airport_id,
+                )
+            population = record.get("population")
+            if population is not None and (
+                isinstance(population, bool)
+                or not isinstance(population, int)
+                or population < 0
+            ):
+                self.add(
+                    "invalid_population",
+                    f"{path}.population",
+                    "must be null or a non-negative integer",
+                    "airport",
+                    airport_id,
+                )
+            latitude = record.get("latitude_microdegrees")
+            longitude = record.get("longitude_microdegrees")
+            if latitude is not None and (
+                isinstance(latitude, bool)
+                or not isinstance(latitude, int)
+                or not -90_000_000 <= latitude <= 90_000_000
+            ):
+                self.add(
+                    "invalid_coordinates",
+                    f"{path}.latitude_microdegrees",
+                    "must be null or an integer from -90000000 through 90000000",
+                    "airport",
+                    airport_id,
+                )
+            if longitude is not None and (
+                isinstance(longitude, bool)
+                or not isinstance(longitude, int)
+                or not -180_000_000 <= longitude <= 180_000_000
+            ):
+                self.add(
+                    "invalid_coordinates",
+                    f"{path}.longitude_microdegrees",
+                    "must be null or an integer from -180000000 through 180000000",
+                    "airport",
+                    airport_id,
+                )
+            country_reference = record.get("country_reference")
+            if country_reference is not None and (
+                not isinstance(country_reference, str)
+                or not country_reference.strip()
+            ):
+                self.add(
+                    "invalid_country_reference",
+                    f"{path}.country_reference",
+                    "must be null or a non-empty stable reference",
+                    "airport",
+                    airport_id,
+                )
+            destination_type = record.get("demand_destination_type")
+            if destination_type is not None and destination_type not in DEMAND_DESTINATION_TYPES:
+                self.add(
+                    "invalid_destination_type",
+                    f"{path}.demand_destination_type",
+                    f"must be null or one of {list(DEMAND_DESTINATION_TYPES)}",
+                    "airport",
+                    airport_id,
+                )
+            for field in ("active_from_date", "active_until_date"):
+                value = record.get(field)
+                if value is not None and not _local_date(value):
+                    self.add(
+                        "invalid_local_date",
+                        f"{path}.{field}",
+                        "must be null or canonical YYYY-MM-DD",
+                        "airport",
+                        airport_id,
+                    )
+            active_from = record.get("active_from_date")
+            active_until = record.get("active_until_date")
+            if _local_date(active_from) and _local_date(active_until) and active_until <= active_from:
+                self.add(
+                    "invalid_active_window",
+                    path,
+                    "active_until_date must follow active_from_date",
+                    "airport",
+                    airport_id,
+                )
+            input_revision = record.get("demand_input_revision")
+            current_demand_revision = self.envelope.get("simulation", {}).get(
+                "configuration", {}
+            ).get("demand", {}).get("revision")
+            if (
+                isinstance(input_revision, bool)
+                or not isinstance(input_revision, int)
+                or input_revision < 1
+                or (
+                    isinstance(current_demand_revision, int)
+                    and input_revision > current_demand_revision
+                )
+            ):
+                self.add(
+                    "invalid_demand_revision",
+                    f"{path}.demand_input_revision",
+                    "must be a positive revision no newer than the demand model",
+                    "airport",
+                    airport_id,
+                )
+            if demand_eligible is True and not (
+                isinstance(population, int)
+                and not isinstance(population, bool)
+                and population > 0
+                and isinstance(latitude, int)
+                and not isinstance(latitude, bool)
+                and isinstance(longitude, int)
+                and not isinstance(longitude, bool)
+                and isinstance(country_reference, str)
+                and bool(country_reference.strip())
+                and destination_type in DEMAND_DESTINATION_TYPES
+            ):
+                self.add(
+                    "invalid_demand_eligibility",
+                    path,
+                    "eligible airports require positive population, coordinates, country reference, and destination type",
+                    "airport",
+                    airport_id,
+                )
 
         for airline_id, record in airlines.items():
             path = f"$.world_state.airlines.{airline_id}"
@@ -505,6 +774,18 @@ class _Validator:
         market_pairs = {}
         for market_id, record in markets.items():
             path = f"$.world_state.directional_markets.{market_id}"
+            for field in sorted(
+                set(record)
+                - {"market_id", "origin_airport_id", "destination_airport_id"},
+                key=repr,
+            ):
+                self.add(
+                    "unknown_authoritative_field",
+                    f"{path}.{field}",
+                    "field is not part of the canonical Stage 1 directional-market schema",
+                    "market",
+                    market_id,
+                )
             origin = self.require_ref(record, "origin_airport_id", airports, path, "market", market_id)
             destination = self.require_ref(record, "destination_airport_id", airports, path, "market", market_id)
             if origin is not None and origin == destination:
@@ -1443,11 +1724,320 @@ class _Validator:
                 self.add("invalid_revision", f"{path}.revision", "must be a non-negative integer", "operation", str(key))
 
         demand = self.require_mapping(world.get("demand_state"), "$.world_state.demand_state")
-        for field in ("market_demand", "fractional_accumulators"):
-            values = self.require_mapping(demand.get(field), f"$.world_state.demand_state.{field}")
-            for market_id in values:
-                if market_id not in markets:
-                    self.add("dangling_reference", f"$.world_state.demand_state.{field}.{market_id}", "market does not exist")
+        demand_fields = {
+            "demand_model_revision",
+            "universe_date",
+            "input_fingerprint",
+            "rounding_policy",
+            "processed_cohorts",
+        }
+        for field in sorted(set(demand) - demand_fields, key=repr):
+            code = (
+                "derived_demand_cache_persisted"
+                if field
+                in {
+                    "market_demand",
+                    "fractional_accumulators",
+                    "origin_pools",
+                    "raw_pair_scores",
+                    "destination_pair_shares",
+                    "base_daily_bookers",
+                    "indexes",
+                    "cache",
+                }
+                else "unknown_authoritative_field"
+            )
+            self.add(
+                code,
+                f"$.world_state.demand_state.{field}",
+                "field is not persistent Milestone 4 demand authority",
+                "demand",
+            )
+        demand_revision = demand.get("demand_model_revision")
+        configured_demand_revision = self.envelope.get("simulation", {}).get(
+            "configuration", {}
+        ).get("demand", {}).get("revision")
+        if (
+            isinstance(demand_revision, bool)
+            or not isinstance(demand_revision, int)
+            or demand_revision < 1
+        ):
+            self.add(
+                "invalid_demand_revision",
+                "$.world_state.demand_state.demand_model_revision",
+                "must be a positive integer",
+                "demand",
+            )
+        elif demand_revision != configured_demand_revision:
+            self.add(
+                "inconsistent_demand_revision",
+                "$.world_state.demand_state.demand_model_revision",
+                "must equal simulation.configuration.demand.revision",
+                "demand",
+            )
+        if not _local_date(demand.get("universe_date")):
+            self.add(
+                "invalid_local_date",
+                "$.world_state.demand_state.universe_date",
+                "must be canonical YYYY-MM-DD",
+                "demand",
+            )
+        input_fingerprint = demand.get("input_fingerprint")
+        if (
+            not isinstance(input_fingerprint, str)
+            or len(input_fingerprint) != 64
+            or any(character not in "0123456789abcdef" for character in input_fingerprint)
+        ):
+            self.add(
+                "invalid_demand_input_fingerprint",
+                "$.world_state.demand_state.input_fingerprint",
+                "must be lowercase SHA-256 text",
+                "demand",
+            )
+        else:
+            try:
+                expected_fingerprint = calculate_demand_input_fingerprint(
+                    self.envelope
+                )
+            except (KeyError, OverflowError, RecursionError, TypeError, ValueError):
+                expected_fingerprint = None
+                self.add(
+                    "invalid_demand_fingerprint_input",
+                    "$.world_state.demand_state.input_fingerprint",
+                    "demand inputs cannot be encoded by the canonical fingerprint contract",
+                    "demand",
+                )
+            if expected_fingerprint is not None and input_fingerprint != expected_fingerprint:
+                self.add(
+                    "inconsistent_demand_revision",
+                    "$.world_state.demand_state.input_fingerprint",
+                    "demand inputs changed outside an explicit revision boundary",
+                    "demand",
+                )
+        if demand.get("rounding_policy") != DEMAND_ROUNDING_POLICY:
+            self.add(
+                "invalid_demand_rounding_policy",
+                "$.world_state.demand_state.rounding_policy",
+                f"must equal {DEMAND_ROUNDING_POLICY}",
+                "demand",
+            )
+        cohorts = self.require_mapping(
+            demand.get("processed_cohorts"),
+            "$.world_state.demand_state.processed_cohorts",
+        )
+        cohort_fields = {
+            "cohort_key",
+            "market_id",
+            "cohort_date",
+            "demand_model_revision",
+            "daily_multipliers_bps",
+            "composite_multiplier_ppm",
+            "actual_daily_bookers",
+            "rounding_policy",
+            "resolution_fingerprint",
+        }
+        for cohort_key, record in cohorts.items():
+            path = f"$.world_state.demand_state.processed_cohorts.{cohort_key}"
+            if not isinstance(cohort_key, str) or not isinstance(record, Mapping):
+                self.add(
+                    "invalid_demand_cohort",
+                    path,
+                    "cohort must be a string-keyed dictionary",
+                    "demand_cohort",
+                    str(cohort_key),
+                )
+                continue
+            for field in sorted(set(record) - cohort_fields, key=repr):
+                self.add(
+                    "unknown_authoritative_field",
+                    f"{path}.{field}",
+                    "field is not part of a processed demand cohort",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            if record.get("cohort_key") != cohort_key:
+                self.add(
+                    "id_key_mismatch",
+                    f"{path}.cohort_key",
+                    "cohort_key must equal its collection key",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            market_id = record.get("market_id")
+            if not isinstance(market_id, str) or market_id not in markets:
+                self.add(
+                    "dangling_reference",
+                    f"{path}.market_id",
+                    "must reference an existing directional market",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            cohort_date = record.get("cohort_date")
+            if not _local_date(cohort_date):
+                self.add(
+                    "invalid_local_date",
+                    f"{path}.cohort_date",
+                    "must be canonical YYYY-MM-DD",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            if isinstance(market_id, str) and _local_date(cohort_date):
+                expected_key = f"{market_id}@{cohort_date}"
+                if cohort_key != expected_key:
+                    self.add(
+                        "invalid_demand_cohort_key",
+                        f"{path}.cohort_key",
+                        "must equal market_id@cohort_date",
+                        "demand_cohort",
+                        cohort_key,
+                    )
+            record_revision = record.get("demand_model_revision")
+            if (
+                isinstance(record_revision, bool)
+                or not isinstance(record_revision, int)
+                or record_revision < 1
+                or (
+                    isinstance(demand_revision, int)
+                    and record_revision > demand_revision
+                )
+            ):
+                self.add(
+                    "invalid_demand_revision",
+                    f"{path}.demand_model_revision",
+                    "must identify a positive applied demand revision",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            multipliers = self.require_mapping(
+                record.get("daily_multipliers_bps"),
+                f"{path}.daily_multipliers_bps",
+            )
+            if set(multipliers) != set(DEMAND_MULTIPLIER_CATEGORIES):
+                self.add(
+                    "invalid_demand_multipliers",
+                    f"{path}.daily_multipliers_bps",
+                    "must contain exactly the canonical multiplier categories",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            configured_min = self.envelope.get("simulation", {}).get(
+                "configuration", {}
+            ).get("demand", {}).get("daily_multiplier_min_bps")
+            configured_max = self.envelope.get("simulation", {}).get(
+                "configuration", {}
+            ).get("demand", {}).get("daily_multiplier_max_bps")
+            for category, value in multipliers.items():
+                if (
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    or (
+                        record_revision == demand_revision
+                        and (
+                            not isinstance(configured_min, int)
+                            or not isinstance(configured_max, int)
+                            or value < configured_min
+                            or value > configured_max
+                        )
+                    )
+                ):
+                    self.add(
+                        "invalid_demand_multipliers",
+                        f"{path}.daily_multipliers_bps.{category}",
+                        "must be an integer basis-point value in the configured range",
+                        "demand_cohort",
+                        cohort_key,
+                    )
+            if (
+                set(multipliers) == set(DEMAND_MULTIPLIER_CATEGORIES)
+                and all(
+                    isinstance(multipliers.get(category), int)
+                    and not isinstance(multipliers.get(category), bool)
+                    and multipliers[category] >= 0
+                    for category in DEMAND_MULTIPLIER_CATEGORIES
+                )
+            ):
+                numerator = (
+                    reduce(
+                        mul,
+                        (
+                            multipliers[category]
+                            for category in DEMAND_MULTIPLIER_CATEGORIES
+                        ),
+                        1,
+                    )
+                    * 1_000_000
+                )
+                denominator = 10_000 ** len(DEMAND_MULTIPLIER_CATEGORIES)
+                expected_composite, remainder = divmod(numerator, denominator)
+                comparison = remainder * 2 - denominator
+                if comparison > 0 or (
+                    comparison == 0 and expected_composite % 2 == 1
+                ):
+                    expected_composite += 1
+                if record.get("composite_multiplier_ppm") != expected_composite:
+                    self.add(
+                        "inconsistent_demand_cohort",
+                        f"{path}.composite_multiplier_ppm",
+                        "must be the half-even parts-per-million composition of the stored multipliers",
+                        "demand_cohort",
+                        cohort_key,
+                    )
+            for field in ("composite_multiplier_ppm", "actual_daily_bookers"):
+                value = record.get(field)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                    self.add(
+                        "invalid_demand_cohort",
+                        f"{path}.{field}",
+                        "must be a non-negative integer",
+                        "demand_cohort",
+                        cohort_key,
+                    )
+            if record.get("rounding_policy") != DEMAND_ROUNDING_POLICY:
+                self.add(
+                    "invalid_demand_rounding_policy",
+                    f"{path}.rounding_policy",
+                    f"must equal {DEMAND_ROUNDING_POLICY}",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            resolution_fingerprint = record.get("resolution_fingerprint")
+            if (
+                not isinstance(resolution_fingerprint, str)
+                or len(resolution_fingerprint) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in resolution_fingerprint
+                )
+            ):
+                self.add(
+                    "invalid_demand_cohort_fingerprint",
+                    f"{path}.resolution_fingerprint",
+                    "must be lowercase SHA-256 text",
+                    "demand_cohort",
+                    cohort_key,
+                )
+            else:
+                try:
+                    expected_resolution_fingerprint = (
+                        calculate_demand_cohort_fingerprint(self.envelope, record)
+                    )
+                except (
+                    KeyError,
+                    OverflowError,
+                    RecursionError,
+                    TypeError,
+                    ValueError,
+                ):
+                    expected_resolution_fingerprint = None
+                if expected_resolution_fingerprint != resolution_fingerprint:
+                    self.add(
+                        "inconsistent_demand_cohort_fingerprint",
+                        f"{path}.resolution_fingerprint",
+                        "stored cohort contents do not match their integrity witness",
+                        "demand_cohort",
+                        cohort_key,
+                    )
         history = self.require_mapping(world.get("history"), "$.world_state.history")
         for field in ("operations", "financial", "world_events"):
             if not isinstance(history.get(field), list):
