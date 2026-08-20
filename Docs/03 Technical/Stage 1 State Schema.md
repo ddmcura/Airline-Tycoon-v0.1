@@ -3,15 +3,16 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-through 2. It supersedes the hybrid `game_state` example in
+through 3. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
 
 Milestone 1 constructs and validates this in-memory, JSON-compatible envelope.
 Milestone 2 adds authoritative clock advancement and generic event execution.
-Exact file writing, loading, migrations, demand generation, booking, flight
-publication, aircraft operations, and transaction posting are not implemented.
+Milestone 3 adds repeating schedule definitions and bounded publication of
+dated flights. Exact file writing, loading, migrations, demand generation,
+booking, aircraft operations, and transaction posting are not implemented.
 
 ## Representation rules
 
@@ -49,6 +50,9 @@ stage_1_envelope
 │   ├── operation_revisions: {owner entity ID: non-negative integer}
 │   └── configuration
 │       ├── difficulty: string
+│       ├── scheduling
+│       │   ├── publication_horizon_days: positive integer
+│       │   └── minimum_turnaround_seconds: non-negative integer
 │       └── clock_ratios
 │           ├── NORMAL: positive integer simulation seconds per real second
 │           └── FAST: positive integer simulation seconds per real second
@@ -111,12 +115,30 @@ connection
   connection_id, airline_id, market_id, status
 
 schedule_definition
-  schedule_id, airline_id, connection_id, planned_aircraft_id, status,
-  recurrence, effective_from_utc, effective_until_utc
+  schedule_id, airline_id, status (DRAFT|ACTIVE|RETIRED), current_revision,
+  revisions: {positive decimal revision key: schedule_revision}
+
+schedule_revision
+  revision, effective_from_local_date, effective_until_local_date,
+  connection_id or null, planned_aircraft_id, origin_airport_id,
+  destination_airport_id, service_type (PASSENGER|DEADHEAD), recurrence,
+  capacity, fare_offer, passenger_service_classification
+
+recurrence
+  frequency (WEEKLY), weekdays (sorted unique integers where Monday is 0),
+  departure_local_time, departure_local_fold, arrival_local_time,
+  arrival_day_offset, arrival_local_fold
+
+fare_offer
+  currency, amount_minor
 
 dated_flight
-  dated_flight_id, schedule_id, airline_id, connection_id,
-  planned_aircraft_id, scheduled_off_block_utc, scheduled_in_block_utc, status
+  dated_flight_id, occurrence_key, schedule_id, schedule_revision, airline_id,
+  connection_id or null, planned_aircraft_id, origin_airport_id,
+  destination_airport_id, service_type, scheduled_departure_local_date,
+  scheduled_off_block_utc, scheduled_in_block_utc, capacity, fare_offer,
+  passenger_service_classification, status, published_at_utc,
+  superseded_by_schedule_revision or null
 
 itinerary
   itinerary_id, airline_id, dated_flight_ids
@@ -141,6 +163,108 @@ resolved_event
   all pending-event fields, terminal status
   (COMPLETED|CANCELLED|SUPERSEDED|STALE), resolved_at_utc
 ```
+
+### Milestone 3 schedule-definition contract
+
+One schedule definition identifies one repeating movement plan. Its revision
+records are immutable effective-dated plan versions. Revision dictionary keys
+are canonical positive decimal strings (`"1"`, `"2"`, ...), equal the nested
+`revision` value, and are contiguous through `current_revision`.
+
+Local effective dates and recurrence dates use ISO `YYYY-MM-DD`. Local movement
+times use whole-second `HH:MM:SS`. `departure_local_fold` and
+`arrival_local_fold` are `0` or `1`. For an ambiguous local time, fold `0`
+selects the first occurrence and fold `1` selects the second. An unambiguous
+local time requires fold `0`; fold `1` is invalid rather than ignored. A local
+time that does not exist under the airport's named IANA time-zone rules is
+invalid for both folds and is never shifted. Authoritative expansion loads the
+project-pinned first-party `tzdata` release exclusively; a missing package or
+zone is a validation failure and never falls back to a host-local time-zone
+database. `arrival_day_offset` is the
+destination-local arrival-date offset from the origin-local departure date and
+may be negative for date-line crossings. The resulting UTC arrival must always
+be later than UTC departure.
+
+An active revision applies on and after `effective_from_local_date` and through
+its inclusive `effective_until_local_date`, or indefinitely when that field is
+null. Adjacent revisions do not overlap or leave an internal gap: revising a
+schedule closes the prior revision on the day before the new effective date.
+Future dates before the replacement boundary retain the prior revision.
+
+Passenger revisions require an `ACTIVE` airline connection whose directional
+market endpoints exactly match `origin_airport_id` and
+`destination_airport_id`. They require positive `capacity`, an airline-currency
+non-negative integer-minor-unit `fare_offer`, and the Stage 1
+`ECONOMY` passenger-service classification. Deadhead revisions are explicit
+non-passenger movements: `connection_id` is null, `capacity` and fare are zero,
+and classification is `NON_PASSENGER`. A continuity failure never creates a
+deadhead implicitly.
+
+### Milestone 3 publication contract
+
+The rolling publication interval is closed at both ends:
+`simulation.time_utc <= scheduled_off_block_utc <= target_horizon_utc`. A
+command target cannot exceed the configured maximum of simulation time plus
+`publication_horizon_days`. Recurrence expansion considers only the bounded
+local-date range capable of intersecting that UTC interval and never expands an
+indefinite future. Increasing the configured horizon exposes new occurrences.
+Reducing it narrows later publication commands but does not delete or supersede
+already published authority; only an effective schedule revision or retirement
+can supersede unlocked future work.
+
+`occurrence_key` is the canonical string
+`<schedule_id>@<scheduled_departure_local_date>`. It is unique across dated
+flights and deliberately excludes the revision: an unlocked occurrence revised
+for the same schedule and local date keeps its immutable dated-flight ID.
+Publication allocates IDs in deterministic `(scheduled_off_block_utc,
+schedule_id, local date)` order. Repeated and overlapping publication commands
+therefore cannot duplicate an occurrence.
+
+Only `PLANNED` and `SUPERSEDED` dated flights without an active aircraft
+operation are revision-mutable. A future
+unlocked occurrence that still exists under a replacement revision is updated
+in place and retains its dated-flight ID. An unlocked occurrence removed by a
+revision becomes `SUPERSEDED`; it may return to `PLANNED` under a later revision
+before operational lock. `OPERATIONALLY_LOCKED`, `COMPLETED`, and `CANCELLED`
+occurrences are never rewritten by schedule revision. Their copied schedule
+revision, planned assignment, endpoints, times, capacity, fare, and service
+classification remain historical authority. A locked occurrence also occupies
+its occurrence key, preventing stale work from recreating it. Milestone 3 does
+not originate operational cancellations; it preserves a `CANCELLED` occurrence
+created through an authorized boundary and excludes it from active direct-
+service indexes.
+
+Schedule IDs participate in `simulation.operation_revisions`. The value equals
+the schedule's `current_revision`. Publication commands may carry expected
+schedule revisions; a mismatch is reported as stale and performs no mutation.
+Any later scheduled publication event using the generic event kernel is subject
+to the same owner-revision invalidation. Milestone 3 performs ordinary
+publication synchronously and does not persist routine publication events.
+
+### Milestone 3 aircraft-continuity contract
+
+Publication validates each aircraft's future dated sequence in canonical UTC
+order. Assignments may not overlap, must allow at least
+`minimum_turnaround_seconds`, and must depart from the prior arrival airport.
+The first future assignment must depart from the aircraft's authoritative
+`current_airport_id`. Ownership and all entity references must resolve. A
+geographic break produces a structured `REPOSITIONING_REQUIRED` conflict; it
+does not move the aircraft or create a hidden movement.
+
+The scheduling domain also expands active definitions virtually across the
+requested window before commit so conflicts between newly exposed occurrences
+are rejected atomically. Draft definitions may remain incomplete plans, but
+only active definitions publish.
+
+### Milestone 3 derived indexes
+
+The dated-flight index is runtime-only and rebuildable from
+`world_state.dated_flights`. It provides deterministic ordered access by
+origin, directional market, airline, planned aircraft, schedule definition, and
+occurrence key. Index ordering is `(scheduled_off_block_utc,
+dated_flight_id)`. No index is stored in the envelope, and rebuilding indexes
+does not publish flights, advance time, invoke demand or booking, start an
+aircraft operation, post money, or consume randomness.
 
 `active_aircraft_operations` is keyed by dated-flight ID in Milestone 1 and may
 contain the linked `dated_flight_id`, `aircraft_id`, state, revision, and exact
@@ -205,6 +329,10 @@ minimal account foundation contains exactly one each of `cash`,
   change world ownership, simulation scope, or save scope.
 - Search indexes, lookup caches, formatted money, local timestamps, screen rows,
   and map positions are derived/runtime-only.
+- Dated-flight indexes and publication command results are derived/runtime-only.
+  `scheduled_departure_local_date` is retained only as authoritative recurrence
+  identity and traceability; other airport-local presentation values are
+  derived from the stored UTC instants and named airport time zones.
 - `build_legacy_read_projection()` returns a detached compatibility-only copy
   shaped for old readers. Mutating it cannot mutate the authoritative envelope.
 - `game/game_state.py`, `game/simulation/daily_tick.py`, route-owned demand, and
@@ -218,3 +346,7 @@ minimal account foundation contains exactly one each of `cash`,
 - Allocate an ID: `game.world_state.allocate_id(envelope, entity_type)`
 - Build detached legacy view:
   `game.world_state.build_legacy_read_projection(envelope)`
+- Create/validate/revise schedule definitions and publish dated occurrences:
+  `game.scheduling` non-interactive Milestone 3 API
+- Rebuild runtime dated-flight indexes:
+  `game.scheduling.rebuild_dated_flight_indexes(envelope)`

@@ -447,3 +447,52 @@ what actually happens without rewriting the planned timetable.
 Scalable scheduling tools and decision forecasts are architectural requirements,
 not optional polish reserved only for small-airline workflows.
 ```
+
+## Stage 1 Milestone 3 implemented contract (2026-08-20)
+
+Milestone 3 implements the first authoritative scheduling slice in
+`game.scheduling`. The canonical fields and classifications are defined in
+`Docs/03 Technical/Stage 1 State Schema.md`.
+
+- A schedule definition is a repeating plan with contiguous, immutable,
+  effective-local-date revisions. Only `ACTIVE` definitions are eligible for
+  publication; `DRAFT` and `RETIRED` definitions remain plans.
+- Stage 1 recurrence is weekly on selected origin-local weekdays. Departure and
+  arrival intent stores whole-second local time, an explicit local-date offset,
+  and PEP 495 fold selection. Fold `0` selects the first ambiguous occurrence,
+  fold `1` selects the second, and unambiguous times require fold `0`.
+  Python `zoneinfo`, backed exclusively by the pinned first-party `tzdata`
+  package, resolves named airport time zones independently of the host's local
+  database. Nonexistent local times are rejected for both folds rather than
+  shifted.
+- Publication is synchronous domain work bounded by the inclusive UTC interval
+  from current simulation time through a caller-supplied target no later than
+  the configured rolling horizon. No infinite rule is expanded beyond that
+  interval.
+- Occurrence identity is `<schedule ID>@<origin-local departure date>` plus an
+  immutable allocated dated-flight ID. Publication order is stable, repeated
+  and overlapping commands are idempotent, and extending the configured horizon
+  adds only newly exposed occurrences.
+- An unlocked occurrence revised for the same local date keeps its dated-flight
+  ID and receives copied facts from the new revision. Removed unlocked work is
+  explicitly `SUPERSEDED`. Operationally locked, completed, or cancelled work
+  is never rewritten. Expected-revision command checks and the Milestone 2
+  schedule-owner operation revision prevent stale publication work.
+- Publication validates airline/aircraft/connection ownership, market endpoints,
+  capacity, integer-minor-unit fares, UTC chronology, aircraft overlap, minimum
+  turnaround, and geographic continuity before atomic commit. A discontinuity
+  returns `REPOSITIONING_REQUIRED`; deadheads use an explicit `DEADHEAD`
+  schedule definition with no passenger capacity, fare, or route connection.
+- Runtime indexes rebuild deterministically by origin, directional market,
+  airline, aircraft, schedule, and occurrence key. They are disposable and are
+  never persisted.
+- Public non-interactive entry points are
+  `create_schedule_definition`, `validate_schedule_definition`,
+  `publish_occurrences_through`, `publish_configured_window`,
+  `extend_publication_window`, `revise_future_schedule`, and
+  `rebuild_dated_flight_indexes`.
+
+Milestone 3 does not generate demand or bookings, reserve seats, activate an
+aircraft operation, post finances, call the legacy daily tick, or write through
+the legacy weekly schedule dictionaries. Those behaviors remain deferred to
+Milestone 4 and later milestones.

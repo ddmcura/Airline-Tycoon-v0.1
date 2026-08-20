@@ -8,6 +8,8 @@ from .money import major_to_minor
 from .schema import (
     DEFAULT_GAME_VERSION,
     DEFAULT_CLOCK_RATIOS,
+    DEFAULT_MINIMUM_TURNAROUND_SECONDS,
+    DEFAULT_PUBLICATION_HORIZON_DAYS,
     DEFAULT_REFERENCE_DATA_VERSION,
     SAVE_SCHEMA_VERSION,
 )
@@ -320,6 +322,10 @@ def create_new_world(
             "configuration": {
                 "difficulty": difficulty,
                 "clock_ratios": dict(DEFAULT_CLOCK_RATIOS),
+                "scheduling": {
+                    "publication_horizon_days": DEFAULT_PUBLICATION_HORIZON_DAYS,
+                    "minimum_turnaround_seconds": DEFAULT_MINIMUM_TURNAROUND_SECONDS,
+                },
             },
         },
         "deterministic_state": {

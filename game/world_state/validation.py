@@ -1,7 +1,9 @@
 """Strict, side-effect-free validation for Stage 1 authoritative worlds."""
 
 from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Mapping
+from zoneinfo import ZoneInfoNotFoundError
 
 from .ids import parse_entity_id
 from .money import is_minor_amount
@@ -10,18 +12,23 @@ from .schema import (
     AIRLINE_CONTROL_TYPES,
     AIRLINE_OWNER_TYPES,
     CLOCK_STATES,
+    DATED_FLIGHT_STATUSES,
     ENVELOPE_ROOTS,
     ENTITY_COLLECTIONS,
     ENTITY_TYPES,
     MAX_ENTITY_ID_NUMBER,
+    PASSENGER_SERVICE_CLASSIFICATIONS,
     PENDING_EVENT_STATUS,
     REQUIRED_ACCOUNT_CODES,
     SAVE_SCHEMA_VERSION,
+    SCHEDULE_SERVICE_TYPES,
+    SCHEDULE_STATUSES,
     TERMINAL_EVENT_STATUSES,
     WORLD_ROOTS,
 )
 from .serialization import json_compatibility_error
-from .timestamps import is_canonical_utc
+from .timezones import load_named_timezone
+from .timestamps import is_canonical_utc, parse_canonical_utc
 
 
 @dataclass(frozen=True)
@@ -71,6 +78,55 @@ def _currency_code(value):
         and value.isalpha()
         and value == value.upper()
     )
+
+
+def _local_date(value):
+    if not isinstance(value, str):
+        return False
+    try:
+        return date.fromisoformat(value).isoformat() == value
+    except ValueError:
+        return False
+
+
+def _local_time(value):
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = time.fromisoformat(value)
+    except ValueError:
+        return False
+    return (
+        parsed.tzinfo is None
+        and parsed.microsecond == 0
+        and parsed.strftime("%H:%M:%S") == value
+    )
+
+
+def _named_timezone(value):
+    if not isinstance(value, str) or not value:
+        return False
+    try:
+        load_named_timezone(value)
+    except (ZoneInfoNotFoundError, ValueError):
+        return False
+    return True
+
+
+def _resolved_local_utc(local_date, local_time, fold, timezone_name):
+    """Return canonical UTC for valid named local intent, otherwise ``None``."""
+    if not _local_date(local_date) or not _local_time(local_time):
+        return None
+    if isinstance(fold, bool) or fold not in (0, 1) or not _named_timezone(timezone_name):
+        return None
+    zone = load_named_timezone(timezone_name)
+    naive = datetime.combine(date.fromisoformat(local_date), time.fromisoformat(local_time))
+    aware = naive.replace(tzinfo=zone, fold=fold)
+    resolved = aware.astimezone(timezone.utc)
+    round_trip = resolved.astimezone(zone)
+    if round_trip.replace(tzinfo=None) != naive or round_trip.fold != fold:
+        return None
+    return resolved.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class _Validator:
@@ -151,6 +207,37 @@ class _Validator:
                 self.add("invalid_clock_ratio", f"$.simulation.configuration.clock_ratios.{mode}", "must be a positive integer")
         for mode in sorted(set(ratios) - {"NORMAL", "FAST"}, key=repr):
             self.add("unknown_clock_ratio", f"$.simulation.configuration.clock_ratios.{mode}", "ratio is not part of the Stage 1 clock")
+        scheduling = self.require_mapping(
+            configuration.get("scheduling"),
+            "$.simulation.configuration.scheduling",
+        )
+        horizon = scheduling.get("publication_horizon_days")
+        if isinstance(horizon, bool) or not isinstance(horizon, int) or horizon < 1:
+            self.add(
+                "invalid_publication_horizon",
+                "$.simulation.configuration.scheduling.publication_horizon_days",
+                "must be a positive integer number of days",
+            )
+        elif _canonical_utc(simulation.get("time_utc")):
+            try:
+                parse_canonical_utc(simulation["time_utc"]) + timedelta(days=horizon)
+            except OverflowError:
+                self.add(
+                    "invalid_publication_horizon",
+                    "$.simulation.configuration.scheduling.publication_horizon_days",
+                    "extends beyond the supported timestamp range",
+                )
+        turnaround = scheduling.get("minimum_turnaround_seconds")
+        if (
+            isinstance(turnaround, bool)
+            or not isinstance(turnaround, int)
+            or turnaround < 0
+        ):
+            self.add(
+                "invalid_turnaround",
+                "$.simulation.configuration.scheduling.minimum_turnaround_seconds",
+                "must be a non-negative integer number of seconds",
+            )
         fast_forward = self.require_mapping(simulation.get("fast_forward"), "$.simulation.fast_forward")
         target = fast_forward.get("target_time_utc")
         if clock_state == "FAST_FORWARD":
@@ -307,7 +394,17 @@ class _Validator:
             path = f"$.world_state.airports.{airport_id}"
             reference_code = self.require_text(record, "reference_code", path, "airport", airport_id)
             self.require_text(record, "display_name", path, "airport", airport_id)
-            self.require_text(record, "timezone", path, "airport", airport_id)
+            airport_timezone = self.require_text(
+                record, "timezone", path, "airport", airport_id
+            )
+            if airport_timezone and not _named_timezone(airport_timezone):
+                self.add(
+                    "invalid_timezone",
+                    f"{path}.timezone",
+                    "must be an available named IANA timezone",
+                    "airport",
+                    airport_id,
+                )
             if reference_code:
                 if reference_code != reference_code.upper():
                     self.add("malformed_required_field", f"{path}.reference_code", "must be uppercase", "airport", airport_id)
@@ -434,44 +531,703 @@ class _Validator:
                 else:
                     airline_markets[pair] = connection_id
 
+        schedule_revisions = {}
+
+        def reject_unknown_fields(record, allowed, path, entity_type, entity_id):
+            for field in sorted(set(record) - set(allowed), key=repr):
+                self.add(
+                    "unknown_authoritative_field",
+                    f"{path}.{field}",
+                    "field is not part of the canonical Stage 1 schema",
+                    entity_type,
+                    entity_id,
+                )
+
+        def validate_fare_offer(fare, path, airline_id, entity_type, entity_id):
+            fare = self.require_mapping(fare, path)
+            reject_unknown_fields(
+                fare,
+                {"currency", "amount_minor"},
+                path,
+                entity_type,
+                entity_id,
+            )
+            amount = fare.get("amount_minor")
+            if not is_minor_amount(amount) or amount < 0:
+                self.add(
+                    "invalid_fare_offer",
+                    f"{path}.amount_minor",
+                    "must be a non-negative integer minor-unit amount",
+                    entity_type,
+                    entity_id,
+                )
+            currency = fare.get("currency")
+            if not _currency_code(currency):
+                self.add(
+                    "invalid_fare_offer",
+                    f"{path}.currency",
+                    "must be a three-letter uppercase currency code",
+                    entity_type,
+                    entity_id,
+                )
+            elif airline_id and currency != airlines[airline_id].get("base_currency"):
+                self.add(
+                    "invalid_fare_offer",
+                    f"{path}.currency",
+                    "must match the scheduled airline's base currency",
+                    entity_type,
+                    entity_id,
+                )
+            return fare
+
         for schedule_id, record in schedules.items():
             path = f"$.world_state.schedule_definitions.{schedule_id}"
-            airline_id = self.require_ref(record, "airline_id", airlines, path, "schedule", schedule_id)
-            connection_id = self.require_ref(record, "connection_id", connections, path, "schedule", schedule_id)
-            planned = self.require_ref(record, "planned_aircraft_id", aircraft, path, "schedule", schedule_id, optional=True)
-            self.require_text(record, "status", path, "schedule", schedule_id)
-            self.require_mapping(record.get("recurrence"), f"{path}.recurrence")
-            self.require_timestamp(record, "effective_from_utc", path, "schedule", schedule_id)
-            self.require_timestamp(record, "effective_until_utc", path, "schedule", schedule_id, optional=True)
-            start = record.get("effective_from_utc")
-            end = record.get("effective_until_utc")
-            if _canonical_utc(start) and _canonical_utc(end) and start >= end:
-                self.add("invalid_timestamp_order", path, "effective_until_utc must be after effective_from_utc", "schedule", schedule_id)
-            if connection_id and airline_id and connections[connection_id].get("airline_id") != airline_id:
-                self.add("invalid_ownership", f"{path}.connection_id", "connection belongs to another airline", "schedule", schedule_id)
-            if planned and airline_id and aircraft[planned].get("airline_id") != airline_id:
-                self.add("invalid_ownership", f"{path}.planned_aircraft_id", "aircraft belongs to another airline", "schedule", schedule_id)
+            reject_unknown_fields(
+                record,
+                {
+                    "schedule_id",
+                    "airline_id",
+                    "status",
+                    "current_revision",
+                    "revisions",
+                },
+                path,
+                "schedule",
+                schedule_id,
+            )
+            airline_id = self.require_ref(
+                record, "airline_id", airlines, path, "schedule", schedule_id
+            )
+            status = record.get("status")
+            if not isinstance(status, str) or status not in SCHEDULE_STATUSES:
+                self.add(
+                    "invalid_schedule_status",
+                    f"{path}.status",
+                    f"must be one of {sorted(SCHEDULE_STATUSES)}",
+                    "schedule",
+                    schedule_id,
+                )
+            current_revision = record.get("current_revision")
+            if (
+                isinstance(current_revision, bool)
+                or not isinstance(current_revision, int)
+                or current_revision < 1
+                or current_revision > MAX_ENTITY_ID_NUMBER
+            ):
+                self.add(
+                    "invalid_revision",
+                    f"{path}.current_revision",
+                    "must be a positive integer",
+                    "schedule",
+                    schedule_id,
+                )
+                current_revision = 0
+            revisions = self.require_mapping(record.get("revisions"), f"{path}.revisions")
+            expected_keys = {str(number) for number in range(1, len(revisions) + 1)}
+            if current_revision != len(revisions) or set(revisions) != expected_keys:
+                self.add(
+                    "invalid_revision_sequence",
+                    f"{path}.revisions",
+                    "revision keys must be contiguous canonical decimal strings through current_revision",
+                    "schedule",
+                    schedule_id,
+                )
+            previous_start = None
+            previous_end = None
+            valid_revisions = {}
+            for revision_key in sorted(
+                revisions,
+                key=lambda value: int(value)
+                if isinstance(value, str) and value.isdigit()
+                else MAX_ENTITY_ID_NUMBER + 1,
+            ):
+                revision = self.require_mapping(
+                    revisions.get(revision_key), f"{path}.revisions.{revision_key}"
+                )
+                revision_path = f"{path}.revisions.{revision_key}"
+                reject_unknown_fields(
+                    revision,
+                    {
+                        "revision",
+                        "effective_from_local_date",
+                        "effective_until_local_date",
+                        "connection_id",
+                        "planned_aircraft_id",
+                        "origin_airport_id",
+                        "destination_airport_id",
+                        "service_type",
+                        "recurrence",
+                        "capacity",
+                        "fare_offer",
+                        "passenger_service_classification",
+                    },
+                    revision_path,
+                    "schedule",
+                    schedule_id,
+                )
+                revision_number = revision.get("revision")
+                if (
+                    isinstance(revision_number, bool)
+                    or not isinstance(revision_number, int)
+                    or str(revision_number) != revision_key
+                    or revision_number < 1
+                ):
+                    self.add(
+                        "invalid_revision",
+                        f"{revision_path}.revision",
+                        "must equal its positive canonical revision key",
+                        "schedule",
+                        schedule_id,
+                    )
+                else:
+                    valid_revisions[revision_number] = revision
 
+                start_text = revision.get("effective_from_local_date")
+                end_text = revision.get("effective_until_local_date")
+                if not _local_date(start_text):
+                    self.add(
+                        "invalid_local_date",
+                        f"{revision_path}.effective_from_local_date",
+                        "must be canonical YYYY-MM-DD",
+                        "schedule",
+                        schedule_id,
+                    )
+                if end_text is not None and not _local_date(end_text):
+                    self.add(
+                        "invalid_local_date",
+                        f"{revision_path}.effective_until_local_date",
+                        "must be null or canonical YYYY-MM-DD",
+                        "schedule",
+                        schedule_id,
+                    )
+                if _local_date(start_text) and _local_date(end_text) and start_text > end_text:
+                    self.add(
+                        "invalid_effective_window",
+                        revision_path,
+                        "effective end date cannot precede its start date",
+                        "schedule",
+                        schedule_id,
+                    )
+                if previous_start is not None and _local_date(start_text):
+                    if start_text <= previous_start:
+                        self.add(
+                            "invalid_revision_sequence",
+                            f"{revision_path}.effective_from_local_date",
+                            "revision effective dates must increase",
+                            "schedule",
+                            schedule_id,
+                        )
+                    expected_previous_end = (
+                        date.fromisoformat(start_text) - timedelta(days=1)
+                    ).isoformat()
+                    if previous_end != expected_previous_end:
+                        self.add(
+                            "invalid_revision_sequence",
+                            f"{revision_path}.effective_from_local_date",
+                            "the prior revision must end on the preceding local date",
+                            "schedule",
+                            schedule_id,
+                        )
+                if _local_date(start_text):
+                    previous_start = start_text
+                previous_end = end_text
+
+                planned = self.require_ref(
+                    revision,
+                    "planned_aircraft_id",
+                    aircraft,
+                    revision_path,
+                    "schedule",
+                    schedule_id,
+                )
+                origin = self.require_ref(
+                    revision,
+                    "origin_airport_id",
+                    airports,
+                    revision_path,
+                    "schedule",
+                    schedule_id,
+                )
+                destination = self.require_ref(
+                    revision,
+                    "destination_airport_id",
+                    airports,
+                    revision_path,
+                    "schedule",
+                    schedule_id,
+                )
+                if origin and destination and origin == destination:
+                    self.add(
+                        "invalid_schedule_endpoints",
+                        revision_path,
+                        "origin and destination must differ",
+                        "schedule",
+                        schedule_id,
+                    )
+                if planned and airline_id and aircraft[planned].get("airline_id") != airline_id:
+                    self.add(
+                        "invalid_ownership",
+                        f"{revision_path}.planned_aircraft_id",
+                        "aircraft belongs to another airline",
+                        "schedule",
+                        schedule_id,
+                    )
+
+                service_type = revision.get("service_type")
+                if (
+                    not isinstance(service_type, str)
+                    or service_type not in SCHEDULE_SERVICE_TYPES
+                ):
+                    self.add(
+                        "invalid_service_type",
+                        f"{revision_path}.service_type",
+                        f"must be one of {sorted(SCHEDULE_SERVICE_TYPES)}",
+                        "schedule",
+                        schedule_id,
+                    )
+                connection_id = revision.get("connection_id")
+                if connection_id is not None and (
+                    not isinstance(connection_id, str) or connection_id not in connections
+                ):
+                    self.add(
+                        "dangling_reference",
+                        f"{revision_path}.connection_id",
+                        "must be null or reference an existing connection",
+                        "schedule",
+                        schedule_id,
+                    )
+                    connection_id = None
+                if connection_id and airline_id and connections[connection_id].get("airline_id") != airline_id:
+                    self.add(
+                        "invalid_ownership",
+                        f"{revision_path}.connection_id",
+                        "connection belongs to another airline",
+                        "schedule",
+                        schedule_id,
+                    )
+                if connection_id and origin and destination:
+                    market_id = connections[connection_id].get("market_id")
+                    market = markets.get(market_id, {})
+                    if (
+                        market.get("origin_airport_id") != origin
+                        or market.get("destination_airport_id") != destination
+                    ):
+                        self.add(
+                            "inconsistent_reference",
+                            f"{revision_path}.connection_id",
+                            "connection market must match schedule endpoints",
+                            "schedule",
+                            schedule_id,
+                        )
+
+                recurrence = self.require_mapping(
+                    revision.get("recurrence"), f"{revision_path}.recurrence"
+                )
+                reject_unknown_fields(
+                    recurrence,
+                    {
+                        "frequency",
+                        "weekdays",
+                        "departure_local_time",
+                        "departure_local_fold",
+                        "arrival_local_time",
+                        "arrival_day_offset",
+                        "arrival_local_fold",
+                    },
+                    f"{revision_path}.recurrence",
+                    "schedule",
+                    schedule_id,
+                )
+                if recurrence.get("frequency") != "WEEKLY":
+                    self.add(
+                        "invalid_recurrence",
+                        f"{revision_path}.recurrence.frequency",
+                        "Milestone 3 supports WEEKLY recurrence",
+                        "schedule",
+                        schedule_id,
+                    )
+                weekdays = recurrence.get("weekdays")
+                if (
+                    not isinstance(weekdays, list)
+                    or not weekdays
+                    or any(
+                        isinstance(value, bool)
+                        or not isinstance(value, int)
+                        or value < 0
+                        or value > 6
+                        for value in weekdays
+                    )
+                    or weekdays != sorted(set(weekdays))
+                ):
+                    self.add(
+                        "invalid_recurrence",
+                        f"{revision_path}.recurrence.weekdays",
+                        "must be sorted unique weekday integers from Monday=0 through Sunday=6",
+                        "schedule",
+                        schedule_id,
+                    )
+                for field in ("departure_local_time", "arrival_local_time"):
+                    if not _local_time(recurrence.get(field)):
+                        self.add(
+                            "invalid_local_time",
+                            f"{revision_path}.recurrence.{field}",
+                            "must be whole-second HH:MM:SS",
+                            "schedule",
+                            schedule_id,
+                        )
+                for field in ("departure_local_fold", "arrival_local_fold"):
+                    if recurrence.get(field) not in (0, 1) or isinstance(
+                        recurrence.get(field), bool
+                    ):
+                        self.add(
+                            "invalid_local_fold",
+                            f"{revision_path}.recurrence.{field}",
+                            "must be 0 or 1",
+                            "schedule",
+                            schedule_id,
+                        )
+                day_offset = recurrence.get("arrival_day_offset")
+                if (
+                    isinstance(day_offset, bool)
+                    or not isinstance(day_offset, int)
+                    or day_offset < -7
+                    or day_offset > 7
+                ):
+                    self.add(
+                        "invalid_recurrence",
+                        f"{revision_path}.recurrence.arrival_day_offset",
+                        "must be an integer from -7 through 7",
+                        "schedule",
+                        schedule_id,
+                    )
+
+                capacity = revision.get("capacity")
+                if isinstance(capacity, bool) or not isinstance(capacity, int) or capacity < 0:
+                    self.add(
+                        "invalid_capacity",
+                        f"{revision_path}.capacity",
+                        "must be a non-negative integer",
+                        "schedule",
+                        schedule_id,
+                    )
+                fare = validate_fare_offer(
+                    revision.get("fare_offer"),
+                    f"{revision_path}.fare_offer",
+                    airline_id,
+                    "schedule",
+                    schedule_id,
+                )
+                classification = revision.get("passenger_service_classification")
+                if (
+                    not isinstance(classification, str)
+                    or classification not in PASSENGER_SERVICE_CLASSIFICATIONS
+                ):
+                    self.add(
+                        "invalid_passenger_service_classification",
+                        f"{revision_path}.passenger_service_classification",
+                        f"must be one of {sorted(PASSENGER_SERVICE_CLASSIFICATIONS)}",
+                        "schedule",
+                        schedule_id,
+                    )
+                valid_capacity = (
+                    isinstance(capacity, int) and not isinstance(capacity, bool)
+                )
+                if service_type == "PASSENGER" and (
+                    connection_id is None
+                    or connections.get(connection_id, {}).get("status") != "ACTIVE"
+                    or not valid_capacity
+                    or capacity < 1
+                    or classification != "ECONOMY"
+                ):
+                    self.add(
+                        "invalid_passenger_service",
+                        revision_path,
+                        "passenger service requires an active connection, positive capacity, and ECONOMY classification",
+                        "schedule",
+                        schedule_id,
+                    )
+                if service_type == "DEADHEAD" and (
+                    connection_id is not None
+                    or capacity != 0
+                    or classification != "NON_PASSENGER"
+                    or fare.get("amount_minor") != 0
+                ):
+                    self.add(
+                        "invalid_deadhead_service",
+                        revision_path,
+                        "deadhead requires no connection, zero capacity and fare, and NON_PASSENGER classification",
+                        "schedule",
+                        schedule_id,
+                    )
+            if (
+                current_revision in valid_revisions
+                and valid_revisions[current_revision].get(
+                    "effective_until_local_date"
+                )
+                is not None
+            ):
+                self.add(
+                    "invalid_revision_sequence",
+                    f"{path}.revisions.{current_revision}.effective_until_local_date",
+                    "the current revision must have an open-ended effective window",
+                    "schedule",
+                    schedule_id,
+                )
+            persisted_schedule_revision = self.envelope.get("simulation", {}).get(
+                "operation_revisions", {}
+            ).get(schedule_id)
+            if persisted_schedule_revision != current_revision:
+                self.add(
+                    "invalid_revision",
+                    f"$.simulation.operation_revisions.{schedule_id}",
+                    "schedule operation revision must equal current_revision",
+                    "schedule",
+                    schedule_id,
+                )
+            schedule_revisions[schedule_id] = valid_revisions
+
+        occurrence_keys = {}
         for flight_id, record in flights.items():
             path = f"$.world_state.dated_flights.{flight_id}"
+            reject_unknown_fields(
+                record,
+                {
+                    "dated_flight_id",
+                    "occurrence_key",
+                    "schedule_id",
+                    "schedule_revision",
+                    "airline_id",
+                    "connection_id",
+                    "planned_aircraft_id",
+                    "origin_airport_id",
+                    "destination_airport_id",
+                    "service_type",
+                    "scheduled_departure_local_date",
+                    "scheduled_off_block_utc",
+                    "scheduled_in_block_utc",
+                    "capacity",
+                    "fare_offer",
+                    "passenger_service_classification",
+                    "status",
+                    "published_at_utc",
+                    "superseded_by_schedule_revision",
+                },
+                path,
+                "dated_flight",
+                flight_id,
+            )
             airline_id = self.require_ref(record, "airline_id", airlines, path, "dated_flight", flight_id)
             schedule_id = self.require_ref(record, "schedule_id", schedules, path, "dated_flight", flight_id)
-            connection_id = self.require_ref(record, "connection_id", connections, path, "dated_flight", flight_id)
-            planned = self.require_ref(record, "planned_aircraft_id", aircraft, path, "dated_flight", flight_id, optional=True)
+            connection_id = record.get("connection_id")
+            if connection_id is not None and (
+                not isinstance(connection_id, str) or connection_id not in connections
+            ):
+                self.add("dangling_reference", f"{path}.connection_id", "must be null or reference an existing connection", "dated_flight", flight_id)
+                connection_id = None
+            planned = self.require_ref(record, "planned_aircraft_id", aircraft, path, "dated_flight", flight_id)
+            origin = self.require_ref(record, "origin_airport_id", airports, path, "dated_flight", flight_id)
+            destination = self.require_ref(record, "destination_airport_id", airports, path, "dated_flight", flight_id)
             start = self.require_timestamp(record, "scheduled_off_block_utc", path, "dated_flight", flight_id)
             end = self.require_timestamp(record, "scheduled_in_block_utc", path, "dated_flight", flight_id)
-            self.require_text(record, "status", path, "dated_flight", flight_id)
             if start and end and start >= end:
                 self.add("invalid_timestamp_order", path, "scheduled arrival must be after departure", "dated_flight", flight_id)
-            for related, related_id, label in ((schedules, schedule_id, "schedule"), (connections, connection_id, "connection"), (aircraft, planned, "aircraft")):
-                if related_id and airline_id and related[related_id].get("airline_id") != airline_id:
-                    self.add("invalid_ownership", f"{path}.{label}_id", f"{label} belongs to another airline", "dated_flight", flight_id)
-            if (
-                schedule_id
-                and connection_id
-                and schedules[schedule_id].get("connection_id") != connection_id
+            local_date = record.get("scheduled_departure_local_date")
+            if not _local_date(local_date):
+                self.add("invalid_local_date", f"{path}.scheduled_departure_local_date", "must be canonical YYYY-MM-DD", "dated_flight", flight_id)
+            occurrence_key = self.require_text(record, "occurrence_key", path, "dated_flight", flight_id)
+            if schedule_id and _local_date(local_date):
+                expected_key = f"{schedule_id}@{local_date}"
+                if occurrence_key != expected_key:
+                    self.add("invalid_occurrence_key", f"{path}.occurrence_key", "must equal schedule_id@scheduled_departure_local_date", "dated_flight", flight_id)
+            if occurrence_key:
+                previous = occurrence_keys.get(occurrence_key)
+                if previous is not None:
+                    self.add("duplicate_occurrence", f"{path}.occurrence_key", f"occurrence is already represented by {previous}", "dated_flight", flight_id)
+                else:
+                    occurrence_keys[occurrence_key] = flight_id
+
+            revision_number = record.get("schedule_revision")
+            revision = (
+                schedule_revisions.get(schedule_id, {}).get(revision_number)
+                if isinstance(revision_number, int)
+                and not isinstance(revision_number, bool)
+                else None
+            )
+            if revision is None:
+                self.add("dangling_revision", f"{path}.schedule_revision", "must reference a retained schedule revision", "dated_flight", flight_id)
+            status = record.get("status")
+            if not isinstance(status, str) or status not in DATED_FLIGHT_STATUSES:
+                self.add("invalid_dated_flight_status", f"{path}.status", f"must be one of {sorted(DATED_FLIGHT_STATUSES)}", "dated_flight", flight_id)
+            self.require_timestamp(record, "published_at_utc", path, "dated_flight", flight_id)
+            superseded_by = record.get("superseded_by_schedule_revision")
+            if superseded_by is not None and (
+                isinstance(superseded_by, bool)
+                or not isinstance(superseded_by, int)
+                or superseded_by < 1
+                or superseded_by not in schedule_revisions.get(schedule_id, {})
             ):
-                self.add("inconsistent_reference", f"{path}.connection_id", "must match the schedule's connection", "dated_flight", flight_id)
+                self.add("dangling_revision", f"{path}.superseded_by_schedule_revision", "must be null or reference a retained schedule revision", "dated_flight", flight_id)
+
+            service_type = record.get("service_type")
+            if (
+                not isinstance(service_type, str)
+                or service_type not in SCHEDULE_SERVICE_TYPES
+            ):
+                self.add("invalid_service_type", f"{path}.service_type", "invalid dated-flight service type", "dated_flight", flight_id)
+            capacity = record.get("capacity")
+            if isinstance(capacity, bool) or not isinstance(capacity, int) or capacity < 0:
+                self.add("invalid_capacity", f"{path}.capacity", "must be a non-negative integer", "dated_flight", flight_id)
+            fare = validate_fare_offer(record.get("fare_offer"), f"{path}.fare_offer", airline_id, "dated_flight", flight_id)
+            classification = record.get("passenger_service_classification")
+            if (
+                not isinstance(classification, str)
+                or classification not in PASSENGER_SERVICE_CLASSIFICATIONS
+            ):
+                self.add("invalid_passenger_service_classification", f"{path}.passenger_service_classification", "invalid Stage 1 passenger classification", "dated_flight", flight_id)
+            if origin and destination and origin == destination:
+                self.add("invalid_schedule_endpoints", path, "origin and destination must differ", "dated_flight", flight_id)
+            if planned and airline_id and aircraft[planned].get("airline_id") != airline_id:
+                self.add("invalid_ownership", f"{path}.planned_aircraft_id", "aircraft belongs to another airline", "dated_flight", flight_id)
+            if connection_id and airline_id and connections[connection_id].get("airline_id") != airline_id:
+                self.add("invalid_ownership", f"{path}.connection_id", "connection belongs to another airline", "dated_flight", flight_id)
+            if revision is not None:
+                trace_fields = (
+                    "connection_id",
+                    "planned_aircraft_id",
+                    "origin_airport_id",
+                    "destination_airport_id",
+                    "service_type",
+                    "capacity",
+                    "fare_offer",
+                    "passenger_service_classification",
+                )
+                for field in trace_fields:
+                    if record.get(field) != revision.get(field):
+                        self.add("inconsistent_schedule_trace", f"{path}.{field}", "must equal the referenced schedule revision", "dated_flight", flight_id)
+                recurrence = revision.get("recurrence", {})
+                day_offset = recurrence.get("arrival_day_offset")
+                if (
+                    origin
+                    and destination
+                    and _local_date(local_date)
+                    and isinstance(day_offset, int)
+                    and not isinstance(day_offset, bool)
+                ):
+                    departure_expected = _resolved_local_utc(
+                        local_date,
+                        recurrence.get("departure_local_time"),
+                        recurrence.get("departure_local_fold"),
+                        airports[origin].get("timezone"),
+                    )
+                    try:
+                        arrival_local_date = (
+                            date.fromisoformat(local_date)
+                            + timedelta(days=day_offset)
+                        ).isoformat()
+                    except OverflowError:
+                        arrival_expected = None
+                    else:
+                        arrival_expected = _resolved_local_utc(
+                            arrival_local_date,
+                            recurrence.get("arrival_local_time"),
+                            recurrence.get("arrival_local_fold"),
+                            airports[destination].get("timezone"),
+                        )
+                    if departure_expected is None or arrival_expected is None:
+                        self.add(
+                            "invalid_local_occurrence",
+                            path,
+                            "local schedule intent must resolve through named airport timezone rules",
+                            "dated_flight",
+                            flight_id,
+                        )
+                    else:
+                        if start != departure_expected:
+                            self.add(
+                                "inconsistent_schedule_time",
+                                f"{path}.scheduled_off_block_utc",
+                                "must equal the referenced local departure intent",
+                                "dated_flight",
+                                flight_id,
+                            )
+                        if end != arrival_expected:
+                            self.add(
+                                "inconsistent_schedule_time",
+                                f"{path}.scheduled_in_block_utc",
+                                "must equal the referenced local arrival intent",
+                                "dated_flight",
+                                flight_id,
+                            )
+
+        minimum_turnaround = self.envelope.get("simulation", {}).get(
+            "configuration", {}
+        ).get("scheduling", {}).get("minimum_turnaround_seconds")
+        simulation_time = self.envelope.get("simulation", {}).get("time_utc")
+        if isinstance(minimum_turnaround, int) and not isinstance(
+            minimum_turnaround, bool
+        ) and minimum_turnaround >= 0 and _canonical_utc(simulation_time):
+            active_statuses = {"PLANNED", "OPERATIONALLY_LOCKED"}
+            future_by_aircraft = {aircraft_id: [] for aircraft_id in aircraft}
+            for record in flights.values():
+                aircraft_id = record.get("planned_aircraft_id")
+                if (
+                    isinstance(aircraft_id, str)
+                    and aircraft_id in future_by_aircraft
+                    and isinstance(record.get("status"), str)
+                    and record.get("status") in active_statuses
+                    and _canonical_utc(record.get("scheduled_off_block_utc"))
+                    and record["scheduled_off_block_utc"] >= simulation_time
+                ):
+                    future_by_aircraft[aircraft_id].append(record)
+            for aircraft_id, aircraft_record in aircraft.items():
+                future = sorted(
+                    future_by_aircraft[aircraft_id],
+                    key=lambda item: (
+                        item["scheduled_off_block_utc"],
+                        item.get("dated_flight_id", ""),
+                    ),
+                )
+                previous = None
+                expected_origin = aircraft_record.get("current_airport_id")
+                for record in future:
+                    flight_id = record.get("dated_flight_id")
+                    path = f"$.world_state.dated_flights.{flight_id}"
+                    if record.get("origin_airport_id") != expected_origin:
+                        location = expected_origin or "an unknown location"
+                        self.add(
+                            "physical_discontinuity",
+                            f"{path}.origin_airport_id",
+                            f"aircraft is expected at {location}; explicit repositioning is required",
+                            "dated_flight",
+                            flight_id,
+                        )
+                    if previous is not None and _canonical_utc(
+                        previous.get("scheduled_in_block_utc")
+                    ):
+                        gap = (
+                            parse_canonical_utc(record["scheduled_off_block_utc"])
+                            - parse_canonical_utc(
+                                previous["scheduled_in_block_utc"]
+                            )
+                        ).total_seconds()
+                        if gap < 0:
+                            self.add(
+                                "aircraft_overlap",
+                                path,
+                                f"overlaps {previous.get('dated_flight_id')}",
+                                "dated_flight",
+                                flight_id,
+                            )
+                        elif gap < minimum_turnaround:
+                            self.add(
+                                "insufficient_turnaround",
+                                path,
+                                f"requires at least {minimum_turnaround} seconds after {previous.get('dated_flight_id')}",
+                                "dated_flight",
+                                flight_id,
+                            )
+                    previous = record
+                    expected_origin = record.get("destination_airport_id")
 
         for itinerary_id, record in itineraries.items():
             path = f"$.world_state.itineraries.{itinerary_id}"
@@ -582,6 +1338,7 @@ class _Validator:
             "airline": airlines,
             "aircraft": aircraft,
             "connection": connections,
+            "schedule": schedules,
             "dated_flight": flights,
             "booking": bookings,
         }

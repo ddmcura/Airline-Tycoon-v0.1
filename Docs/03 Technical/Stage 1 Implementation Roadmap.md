@@ -283,6 +283,40 @@ clock controls remain deferred to Milestone 3 or later as assigned below.
 - Editing a future schedule follows explicit revision rules.
 - A dated flight exists before demand or operations interact with it.
 
+### Implemented contract
+
+Milestone 3 is implemented in the authoritative `game.scheduling` boundary.
+Effective-dated schedule revisions retain weekly origin-local intent, named
+airport time zones, explicit DST folds and arrival-local date offsets. Bounded
+publication copies the selected revision into identifiable dated flights with
+canonical UTC off-block/in-block timestamps, immutable ID and occurrence key,
+airline/connection/aircraft/endpoints, capacity, integer-minor-unit fare offer,
+and the Stage 1 passenger-service classification.
+
+Publication and revision are atomic. Occurrence keys make repeated and
+overlapping windows idempotent; deterministic ordering makes equal worlds and
+commands allocate equal IDs. Unlocked future occurrences update in place,
+removed plans become `SUPERSEDED`, and operationally locked or historical
+occurrences retain their original copied revision. Schedule IDs use the
+Milestone 2 operation-revision mechanism so stale scheduled work cannot execute.
+
+Aircraft plans are validated in UTC order for ownership, overlap, minimum
+turnaround, and geographic continuity. Discontinuity returns a structured
+explicit-deadhead requirement and never teleports an aircraft. Runtime indexes
+by origin, directional market, airline, aircraft, schedule, and occurrence key
+are rebuilt from dated-flight authority and are not persisted.
+
+The public API creates and validates schedule definitions, publishes through a
+target or configured horizon, extends the horizon, revises future schedules,
+returns structured publication/conflict results, and rebuilds indexes. It is
+non-interactive and has no dependency on CLI, rendering, demand, booking,
+aircraft-operation execution, finance, the daily tick, or legacy weekly
+schedule authority.
+
+Milestone 4 demand pools, passenger generation, booking cohorts, capacity
+reservation, itinerary search, aircraft-operation activation, and financial
+posting remain deferred.
+
 ## Milestone 4 — Stage 1 World Demand
 
 ### Work

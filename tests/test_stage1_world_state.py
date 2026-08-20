@@ -409,7 +409,7 @@ class Stage1ValidationTests(unittest.TestCase):
             **deepcopy(state["directional_markets"][market_id]),
             "market_id": duplicate_market_id,
         }
-        connection_id = add_connection(world, airline_id, market_id)
+        connection_id = add_connection(world, airline_id, market_id, status="ACTIVE")
         with self.assertRaises(ValueError):
             add_connection(world, airline_id, market_id)
         duplicate_connection_id = allocate_id(world, "connection")
@@ -475,29 +475,61 @@ class Stage1ValidationTests(unittest.TestCase):
         )
         aircraft_id = add_aircraft(world, airline_id, "RP-C1001", "A320", home_airport_id=origin_id)
         market_id = add_directional_market(world, origin_id, destination_id)
-        connection_id = add_connection(world, airline_id, market_id)
+        connection_id = add_connection(world, airline_id, market_id, status="ACTIVE")
 
         schedule_id = allocate_id(world, "schedule")
         state["schedule_definitions"][schedule_id] = {
             "schedule_id": schedule_id,
             "airline_id": airline_id,
-            "connection_id": connection_id,
-            "planned_aircraft_id": aircraft_id,
             "status": "ACTIVE",
-            "recurrence": {"kind": "ONCE"},
-            "effective_from_utc": "2026-08-21T00:00:00Z",
-            "effective_until_utc": None,
+            "current_revision": 1,
+            "revisions": {
+                "1": {
+                    "revision": 1,
+                    "effective_from_local_date": "2026-08-21",
+                    "effective_until_local_date": None,
+                    "connection_id": connection_id,
+                    "planned_aircraft_id": aircraft_id,
+                    "origin_airport_id": origin_id,
+                    "destination_airport_id": destination_id,
+                    "service_type": "PASSENGER",
+                    "recurrence": {
+                        "frequency": "WEEKLY",
+                        "weekdays": [4],
+                        "departure_local_time": "09:00:00",
+                        "departure_local_fold": 0,
+                        "arrival_local_time": "10:30:00",
+                        "arrival_day_offset": 0,
+                        "arrival_local_fold": 0,
+                    },
+                    "capacity": 180,
+                    "fare_offer": {"currency": "USD", "amount_minor": 12_500},
+                    "passenger_service_classification": "ECONOMY",
+                }
+            },
         }
+        world["simulation"]["operation_revisions"][schedule_id] = 1
         flight_id = allocate_id(world, "dated_flight")
         state["dated_flights"][flight_id] = {
             "dated_flight_id": flight_id,
+            "occurrence_key": f"{schedule_id}@2026-08-21",
             "schedule_id": schedule_id,
+            "schedule_revision": 1,
             "airline_id": airline_id,
             "connection_id": connection_id,
             "planned_aircraft_id": aircraft_id,
+            "origin_airport_id": origin_id,
+            "destination_airport_id": destination_id,
+            "service_type": "PASSENGER",
+            "scheduled_departure_local_date": "2026-08-21",
             "scheduled_off_block_utc": "2026-08-21T01:00:00Z",
             "scheduled_in_block_utc": "2026-08-21T02:30:00Z",
+            "capacity": 180,
+            "fare_offer": {"currency": "USD", "amount_minor": 12_500},
+            "passenger_service_classification": "ECONOMY",
             "status": "PLANNED",
+            "published_at_utc": "2026-08-20T04:30:00Z",
+            "superseded_by_schedule_revision": None,
         }
         itinerary_id = allocate_id(world, "itinerary")
         state["itineraries"][itinerary_id] = {
@@ -554,10 +586,10 @@ class Stage1ValidationTests(unittest.TestCase):
         self.assertTrue(result.is_valid, result.as_dict())
 
         invalid_window = deepcopy(world)
-        invalid_window["world_state"]["schedule_definitions"][schedule_id][
-            "effective_until_utc"
-        ] = "2026-08-20T23:59:59Z"
-        self.assertIn("invalid_timestamp_order", issue_codes(invalid_window))
+        invalid_window["world_state"]["schedule_definitions"][schedule_id]["revisions"]["1"][
+            "effective_until_local_date"
+        ] = "2026-08-20"
+        self.assertIn("invalid_effective_window", issue_codes(invalid_window))
 
         inconsistent = deepcopy(world)
         other_airport_id = add_airport_reference(inconsistent, "DVO")
@@ -566,7 +598,7 @@ class Stage1ValidationTests(unittest.TestCase):
         inconsistent["world_state"]["dated_flights"][flight_id][
             "connection_id"
         ] = other_connection_id
-        self.assertIn("inconsistent_reference", issue_codes(inconsistent))
+        self.assertIn("inconsistent_schedule_trace", issue_codes(inconsistent))
 
     def test_dangling_schedule_and_event_references_are_rejected(self):
         world = make_world()
@@ -574,13 +606,34 @@ class Stage1ValidationTests(unittest.TestCase):
         world["world_state"]["schedule_definitions"][schedule_id] = {
             "schedule_id": schedule_id,
             "airline_id": "airline-000000000999",
-            "connection_id": "connection-000000000999",
-            "planned_aircraft_id": None,
             "status": "ACTIVE",
-            "recurrence": {},
-            "effective_from_utc": "2026-08-21T00:00:00Z",
-            "effective_until_utc": None,
+            "current_revision": 1,
+            "revisions": {
+                "1": {
+                    "revision": 1,
+                    "effective_from_local_date": "2026-08-21",
+                    "effective_until_local_date": None,
+                    "connection_id": "connection-000000000999",
+                    "planned_aircraft_id": "aircraft-000000000999",
+                    "origin_airport_id": "airport-000000000999",
+                    "destination_airport_id": "airport-000000000998",
+                    "service_type": "PASSENGER",
+                    "recurrence": {
+                        "frequency": "WEEKLY",
+                        "weekdays": [4],
+                        "departure_local_time": "09:00:00",
+                        "departure_local_fold": 0,
+                        "arrival_local_time": "10:00:00",
+                        "arrival_day_offset": 0,
+                        "arrival_local_fold": 0,
+                    },
+                    "capacity": 100,
+                    "fare_offer": {"currency": "USD", "amount_minor": 1_000},
+                    "passenger_service_classification": "ECONOMY",
+                }
+            },
         }
+        world["simulation"]["operation_revisions"][schedule_id] = 1
         event_id = allocate_id(world, "event")
         world["world_state"]["pending_events"][event_id] = {
             "event_id": event_id,

@@ -164,8 +164,16 @@ def set_clock_mode(envelope, mode):
 
 
 def set_operation_revision(envelope, owner_id, revision):
-    _require_event_owner(envelope, None, owner_id)
+    owner_type = _require_event_owner(envelope, None, owner_id)
     revision = _nonnegative_int(revision, "revision")
+    if owner_type == "schedule":
+        schedule_revision = envelope["world_state"]["schedule_definitions"][
+            owner_id
+        ].get("current_revision")
+        if revision != schedule_revision:
+            raise ValueError(
+                "schedule operation revision must equal its authoritative current_revision"
+            )
     revisions = envelope["simulation"]["operation_revisions"]
     current = revisions.get(owner_id, 0)
     if revision < current:
@@ -180,6 +188,7 @@ def _owner_collections(envelope):
         "airline": world["airlines"],
         "aircraft": world["aircraft"],
         "connection": world["connections"],
+        "schedule": world["schedule_definitions"],
         "dated_flight": world["dated_flights"],
         "booking": world["bookings"],
     }
