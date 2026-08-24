@@ -2,7 +2,12 @@
 
 import re
 
-from .schema import ENTITY_COLLECTIONS, ENTITY_TYPES, MAX_ENTITY_ID_NUMBER
+from .schema import (
+    ENTITY_TYPES,
+    MAX_ENTITY_ID_NUMBER,
+    SCHEMA2_ENTITY_COLLECTIONS,
+    SCHEMA2_ENTITY_TYPES,
+)
 
 
 _ID_PATTERN = re.compile(r"^(?P<entity_type>[a-z_]+)-(?P<number>[0-9]{12})$")
@@ -14,7 +19,7 @@ def new_allocator_state():
 
 
 def format_entity_id(entity_type, number):
-    if entity_type not in ENTITY_TYPES:
+    if entity_type not in SCHEMA2_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
     if (
         isinstance(number, bool)
@@ -34,7 +39,7 @@ def parse_entity_id(value, expected_type=None):
     if not match:
         return None
     entity_type = match.group("entity_type")
-    if entity_type not in ENTITY_TYPES:
+    if entity_type not in SCHEMA2_ENTITY_TYPES:
         return None
     if expected_type is not None and entity_type != expected_type:
         return None
@@ -46,7 +51,7 @@ def parse_entity_id(value, expected_type=None):
 
 def allocate_id(envelope, entity_type):
     """Allocate once from authoritative state; allocated numbers are not reused."""
-    if entity_type not in ENTITY_TYPES:
+    if entity_type not in SCHEMA2_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
     try:
         next_by_type = envelope["deterministic_state"]["id_allocator"]["next_by_type"]
@@ -61,7 +66,7 @@ def allocate_id(envelope, entity_type):
     ):
         raise ValueError(f"Invalid allocator value for {entity_type}")
     entity_id = format_entity_id(entity_type, number)
-    collection_name = ENTITY_COLLECTIONS[entity_type][0]
+    collection_name = SCHEMA2_ENTITY_COLLECTIONS[entity_type][0]
     collection = envelope.get("world_state", {}).get(collection_name)
     if not isinstance(collection, dict):
         raise ValueError(f"Envelope does not contain a valid {collection_name} collection")

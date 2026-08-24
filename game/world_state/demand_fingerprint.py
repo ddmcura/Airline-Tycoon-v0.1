@@ -6,6 +6,24 @@ import json
 
 DEMAND_INPUT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_INPUT_SHA256_JSON_V1"
 DEMAND_COHORT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_COHORT_SHA256_JSON_V1"
+MODEL4_COHORT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_COHORT_SHA256_JSON_V2"
+MODEL4_REVISION_CONTEXT_FINGERPRINT_CONTRACT = (
+    "STAGE1_MODEL4_REVISION_CONTEXT_SHA256_JSON_V1"
+)
+
+MODEL3_CONFIGURATION_FINGERPRINT_FIELDS = (
+    "model_version",
+    "configuration_version",
+    "revision",
+    "daily_booker_rate_ppm",
+    "distance_scale_km",
+    "destination_type_weight_bps",
+    "same_country_weight_bps",
+    "international_weight_bps",
+    "relationship_weight_bps",
+    "daily_multiplier_min_bps",
+    "daily_multiplier_max_bps",
+)
 
 
 AIRPORT_DEMAND_FINGERPRINT_FIELDS = (
@@ -39,9 +57,15 @@ def _fingerprint(material, label):
 
 def calculate_demand_input_fingerprint(envelope):
     state = envelope["world_state"]
+    configuration = envelope["simulation"]["configuration"]["demand"]
+    if envelope.get("metadata", {}).get("save_schema_version") == 2:
+        configuration = {
+            field: configuration[field]
+            for field in MODEL3_CONFIGURATION_FINGERPRINT_FIELDS
+        }
     material = {
         "fingerprint_contract": DEMAND_INPUT_FINGERPRINT_CONTRACT,
-        "configuration": envelope["simulation"]["configuration"]["demand"],
+        "configuration": configuration,
         "universe_date": state["demand_state"]["universe_date"],
         "airports": {
             airport_id: {
@@ -65,3 +89,30 @@ def calculate_demand_cohort_fingerprint(envelope, cohort_record):
         },
     }
     return _fingerprint(material, "demand cohort fingerprint")
+
+
+def calculate_model4_revision_context_fingerprint(context):
+    material = {
+        "fingerprint_contract": MODEL4_REVISION_CONTEXT_FINGERPRINT_CONTRACT,
+        "revision_context": {
+            key: context[key]
+            for key in sorted(context)
+            if key != "context_fingerprint"
+        },
+    }
+    return _fingerprint(material, "Model 4 revision context fingerprint")
+
+
+def calculate_model4_cohort_fingerprint(envelope, wrapper):
+    payload = wrapper["payload"]
+    material = {
+        "fingerprint_contract": MODEL4_COHORT_FINGERPRINT_CONTRACT,
+        "world_seed": envelope["deterministic_state"]["world_seed"],
+        "contract": wrapper["contract"],
+        "cohort": {
+            key: payload[key]
+            for key in sorted(payload)
+            if key != "resolution_fingerprint"
+        },
+    }
+    return _fingerprint(material, "Model 4 cohort fingerprint")

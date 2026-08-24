@@ -1,6 +1,8 @@
 """Concrete constants for the authoritative Stage 1 world schema."""
 
 SAVE_SCHEMA_VERSION = 1
+LATEST_SAVE_SCHEMA_VERSION = 2
+SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2})
 DEFAULT_GAME_VERSION = "0.1"
 DEFAULT_REFERENCE_DATA_VERSION = "stage1-reference-v1"
 MAX_ENTITY_ID_NUMBER = 999_999_999_999
@@ -12,6 +14,42 @@ DEFAULT_MINIMUM_TURNAROUND_SECONDS = 30 * 60
 DEMAND_MODEL_VERSION = 3
 DEMAND_CONFIGURATION_VERSION = "stage1-model3-prototype-v1"
 DEMAND_ROUNDING_POLICY = "KEYED_SHA256_FRACTION_V1"
+MODEL3_PROCESSED_COHORT_V1 = "MODEL3_PROCESSED_COHORT_V1"
+MODEL4_TRAVEL_SCOPE_COHORT_V1 = "MODEL4_TRAVEL_SCOPE_COHORT_V1"
+PROCESSED_COHORT_SCHEMA_VERSION = 2
+TRAVEL_SCOPE_POLICY = "ORIGIN_COUNTRY_TRAVEL_SCOPE_ENVELOPE_V1"
+TRAVEL_SCOPE_CONFIGURATION_VERSION = "stage1-alpha-v1"
+MARKET_PACK_CONFIGURATION_CONTRACT = "MARKET_PACK_CONFIGURATION_V1"
+MARKET_PACK_CONFIGURATION_VERSION = "stage1-empty-v1"
+TRAVEL_SCOPES = (
+    "DOMESTIC",
+    "HOME_REGION_INTERNATIONAL",
+    "REST_OF_WORLD_INTERNATIONAL",
+)
+TRAVEL_SCOPE_PROFILE_FIELDS = (
+    "domestic_weight_bps",
+    "home_region_international_weight_bps",
+    "rest_of_world_international_weight_bps",
+)
+DEFAULT_TRAVEL_SCOPE_PROFILE = {
+    "domestic_weight_bps": 6_500,
+    "home_region_international_weight_bps": 2_500,
+    "rest_of_world_international_weight_bps": 1_000,
+}
+DEFAULT_MARKET_PACK_CONFIGURATION = {
+    "contract": MARKET_PACK_CONFIGURATION_CONTRACT,
+    "configuration_version": MARKET_PACK_CONFIGURATION_VERSION,
+    "revision": 1,
+    "market_pack_ids": [],
+}
+DEFAULT_TRAVEL_SCOPE_CONFIGURATION = {
+    "policy": TRAVEL_SCOPE_POLICY,
+    "configuration_version": TRAVEL_SCOPE_CONFIGURATION_VERSION,
+    "revision": 1,
+    "reference_snapshot_version": None,
+    "default_profile": DEFAULT_TRAVEL_SCOPE_PROFILE,
+    "country_overrides": {},
+}
 DEMAND_DESTINATION_TYPES = (
     "MEGA_GLOBAL_CITY",
     "CAPITAL_MAJOR_CITY",
@@ -68,6 +106,8 @@ ENTITY_TYPES = (
     "account",
 )
 
+SCHEMA2_ENTITY_TYPES = ENTITY_TYPES + ("region", "country")
+
 ENTITY_COLLECTIONS = {
     "airline": ("airlines", "airline_id"),
     "aircraft": ("aircraft", "aircraft_id"),
@@ -81,6 +121,12 @@ ENTITY_COLLECTIONS = {
     "transaction": ("transactions", "transaction_id"),
     "event": ("pending_events", "event_id"),
     "account": ("financial_accounts", "account_id"),
+}
+
+SCHEMA2_ENTITY_COLLECTIONS = {
+    **ENTITY_COLLECTIONS,
+    "region": ("regions", "region_id"),
+    "country": ("countries", "country_id"),
 }
 
 WORLD_COLLECTIONS = tuple(
@@ -129,3 +175,5 @@ WORLD_ROOTS = frozenset(
         "history",
     }
 )
+
+SCHEMA2_WORLD_ROOTS = WORLD_ROOTS | frozenset({"regions", "countries"})

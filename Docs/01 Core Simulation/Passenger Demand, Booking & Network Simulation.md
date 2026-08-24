@@ -581,3 +581,37 @@ Demand-to-Booking daily transaction with a Booking-owned checkpoint and sparse
 outcome metrics. No such state is added in Milestone 4.5A; checkpoint creation,
 marker migration, equivalent no-reroll proof, history compaction, and marker
 removal are deferred to Milestone 5.
+
+## Milestone 4.5B-1 architecture boundary
+
+Model 4 introduces an authority hierarchy between the origin pool and airport
+destinations:
+
+```text
+OriginDailyBookingPool
+    -> versioned travel-scope envelope
+    -> country allocation inside international scopes
+    -> pure region aggregation
+    -> country-local airport allocation
+```
+
+The schema foundation identifies regions and countries with immutable IDs,
+maps airports to country IDs, and records whether an airport participates in
+the later demand allocator. A region is only a grouping and aggregation result;
+it cannot own a competing demand formula. The versioned Alpha V1 travel-scope
+profile is `6500` domestic, `2500` home-region international, and `1000`
+rest-of-world international basis points. Complete country overrides are keyed
+by immutable country ID. Neutral country attractiveness and relationship values
+are `10000`.
+
+This is a safe staged boundary, not Model 4 activation. Schema-2 worlds continue
+to calculate Model 3 exactly. Historical and newly produced Model 3 cohorts use
+a versioned wrapper without changing the V1 payload or fingerprint material.
+No Model 4 revision context or cohort may be active, and no production command
+can switch the demand model to 4. Service, airline, route, schedule, capacity,
+pack lifecycle, player ownership, and UI focus never affect normalization.
+
+4.5B-2 owns the numerical scope/country/airport derivation and atomic Model
+3-to-4 activation. 4.5B-3 owns pack materialization and lifecycle. Booking,
+capacity commitments, connections, operations, finance, save/reload, and
+compaction remain outside this increment.

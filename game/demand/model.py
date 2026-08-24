@@ -29,6 +29,7 @@ from game.world_state.schema import (
     DEMAND_MODEL_VERSION,
     DEMAND_MULTIPLIER_CATEGORIES,
     DEMAND_ROUNDING_POLICY,
+    MODEL3_PROCESSED_COHORT_V1,
 )
 from game.world_state.validation import validate_world
 
@@ -883,6 +884,18 @@ def _cohort_record(envelope, indexes, market_id, cohort_date, multipliers):
     return record
 
 
+def _wrap_model3_cohort(envelope, record):
+    if envelope.get("metadata", {}).get("save_schema_version") == 2:
+        return {"contract": MODEL3_PROCESSED_COHORT_V1, "payload": record}
+    return record
+
+
+def _unwrap_model3_cohort(envelope, record):
+    if envelope.get("metadata", {}).get("save_schema_version") == 2:
+        return record["payload"]
+    return record
+
+
 def resolve_daily_cohort(
     envelope, market_id, cohort_date, *, multipliers=None, indexes=None
 ):
@@ -896,6 +909,7 @@ def resolve_daily_cohort(
         "processed_cohorts", {}
     ).get(cohort_key)
     if isinstance(existing, Mapping):
+        existing = _unwrap_model3_cohort(envelope, existing)
         return CohortResolution(
             market_id,
             cohort_date,
@@ -913,7 +927,7 @@ def resolve_daily_cohort(
     )
     candidate["world_state"]["demand_state"]["processed_cohorts"][
         cohort_key
-    ] = record
+    ] = _wrap_model3_cohort(candidate, record)
     validation = validate_world(candidate)
     if not validation.is_valid:
         raise ValueError("resolved cohort failed authoritative validation")
@@ -981,14 +995,17 @@ def resolve_world_daily_cohorts(
             record = records.get(cohort_key)
             reused = record is not None
             if record is None:
-                record = _cohort_record(
+                payload = _cohort_record(
                     candidate,
                     build.indexes,
                     market_id,
                     cohort_date,
                     multipliers_by_market.get(market_id),
                 )
-                records[cohort_key] = record
+                records[cohort_key] = _wrap_model3_cohort(candidate, payload)
+                record = payload
+            else:
+                record = _unwrap_model3_cohort(candidate, record)
             resolutions.append(
                 CohortResolution(
                     market_id,
@@ -1112,14 +1129,17 @@ def resolve_active_daily_cohorts(
             record = records.get(cohort_key)
             reused = record is not None
             if record is None:
-                record = _cohort_record(
+                payload = _cohort_record(
                     candidate,
                     build.indexes,
                     market_id,
                     cohort_date,
                     multipliers_by_market.get(market_id),
                 )
-                records[cohort_key] = record
+                records[cohort_key] = _wrap_model3_cohort(candidate, payload)
+                record = payload
+            else:
+                record = _unwrap_model3_cohort(candidate, record)
             resolutions.append(
                 CohortResolution(
                     market_id,

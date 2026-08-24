@@ -441,6 +441,41 @@ Booking-owned checkpoint and sparse outcome metrics. Its schema, marker
 migration, equivalent no-reroll proof, and removal of `processed_cohorts` are
 deferred in full to Milestone 5.
 
+## Milestone 4.5B-1 — Travel-Scope Schema and Migration Foundation
+
+### Implemented contract
+
+- Add schema-2 immutable region/country identities and allocator namespaces,
+  airport `country_id` and `demand_allocation_member`, versioned empty
+  market-pack configuration, and the versioned Alpha V1 travel-scope policy.
+- Validate exact complete scope profiles, immutable references, unique external
+  codes, country dates and neutral demand fields, collection/payload key
+  agreement, JSON compatibility, and all new revision and fingerprint fields.
+- Wrap existing and newly resolved Model 3 payloads as
+  `MODEL3_PROCESSED_COHORT_V1` in the single
+  `<market_id>@<YYYY-MM-DD>` keyspace. Preserve payload fields and
+  `STAGE1_DEMAND_COHORT_SHA256_JSON_V1` inputs exactly.
+- Define the `MODEL4_TRAVEL_SCOPE_COHORT_V1` V2 validation contract and Model 4
+  revision-context structure without creating either while Model 3 is active.
+- Provide explicit atomic schema-1-to-2 migration from supplied approved
+  snapshot data. Validate source, fingerprints, mappings, detached candidate,
+  allocator restoration, and final authority before replacement; never guess
+  or partially repair a source.
+- Keep Model 3 as the only active and command-reachable calculation.
+  `model3_terminal_demand_revision` remains null until the later atomic
+  transition, and Model 4 activation attempts are rejected.
+
+### Explicit deferrals
+
+- 4.5B-2: numerical travel-scope allocation, country gravity, pure region
+  amounts, country-local airport allocation, Model 4 cohorts, and atomic Model
+  3-to-4 activation.
+- 4.5B-3: global airport-pack data, materialization, enable, disable, and
+  re-enable lifecycle.
+- Milestone 5 and later: Booking checkpoints, reservations, connecting
+  itineraries, operations, finance, save/reload orchestration, and history
+  compaction.
+
 ## Milestone 5 — Booking Pipeline
 
 ### Work

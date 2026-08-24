@@ -1084,3 +1084,52 @@ and Booking processing atomically under a Booking-owned daily checkpoint with
 sparse outcome metrics. The persistent schema, marker migration, historical
 continuation proof, and removal or compaction of `processed_cohorts` are all
 deferred to that milestone.
+
+## 31. Milestone 4.5B-1 travel-scope and compatibility foundation
+
+Model 4 will refine the pipeline after `OriginDailyBookingPool` through a
+versioned origin-country travel-scope envelope. The only canonical scopes are
+`DOMESTIC`, `HOME_REGION_INTERNATIONAL`, and
+`REST_OF_WORLD_INTERNATIONAL`. Policy
+`ORIGIN_COUNTRY_TRAVEL_SCOPE_ENVELOPE_V1` uses one Alpha V1 default profile of
+`6500`, `2500`, and `1000` basis points respectively, with optional complete
+immutable-country-ID overrides. Every profile is non-negative integer basis
+points summing to `10000`. Country attractiveness and relationship prototype
+defaults are neutral `10000`.
+
+Region is a pure sum of its member-country results. It owns no independent
+formula, pool, coefficient, or randomness. Country and region identities are
+immutable internal IDs; external codes and names are reference/display
+attributes. Airline, player, route, service, schedule, pack status, capacity,
+and `current_focus` do not enter scope or country normalization.
+
+This increment supplies schema and migration authority only. A schema-1 world
+is fully validated before an explicit migration consumes an approved snapshot.
+The detached candidate adds region/country records and allocator namespaces,
+maps every airport explicitly to `country_id`, records
+`demand_allocation_member`, installs versioned empty market-pack and
+travel-scope configuration, and is fully validated before atomic replacement.
+Ambiguous, missing, malformed, non-JSON, or fingerprint-corrupt input is a
+structured failure with no source mutation.
+
+Schema 2 keeps Model 3 active. Existing V1 markers are wrapped as
+`MODEL3_PROCESSED_COHORT_V1` with their payload unchanged. New Model 3 markers
+use the same wrapper. The wrapper is excluded from the existing
+`STAGE1_DEMAND_COHORT_SHA256_JSON_V1` input, so historical witnesses and
+outcomes remain byte-identical and no historical configuration metadata is
+invented. The single keyspace remains `<market_id>@<YYYY-MM-DD>`.
+
+`MODEL4_TRAVEL_SCOPE_COHORT_V1`, its V2 witness contract, and versioned Model 4
+revision-context fields are defined for validation, but they cannot become
+active in 4.5B-1. While `demand.model_version` is 3,
+`model3_terminal_demand_revision` is null, the Model 4 context collection is
+empty, and any Model 4 cohort or attempted model-version change is rejected.
+The first context and terminal Model 3 revision belong to the later atomic
+4.5B-2 activation.
+
+Travel-scope numerical allocation, country gravity, region aggregation amounts,
+country-local airport allocation, and Model 4 cohort creation are deferred to
+4.5B-2. Pack materialization and enable/disable/re-enable lifecycle are deferred
+to 4.5B-3. Booking checkpoints, reservations, connections, operations, finance,
+save/reload orchestration, and history compaction remain deferred to their
+approved later milestones.

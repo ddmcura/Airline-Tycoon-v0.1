@@ -4,13 +4,14 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from functools import reduce
 from operator import mul
-from typing import Mapping
 from zoneinfo import ZoneInfoNotFoundError
 
 from .ids import parse_entity_id
 from .demand_fingerprint import (
     calculate_demand_cohort_fingerprint,
     calculate_demand_input_fingerprint,
+    calculate_model4_cohort_fingerprint,
+    calculate_model4_revision_context_fingerprint,
 )
 from .money import is_minor_amount
 from .schema import (
@@ -23,17 +24,27 @@ from .schema import (
     DEMAND_MODEL_VERSION,
     DEMAND_MULTIPLIER_CATEGORIES,
     DEMAND_ROUNDING_POLICY,
+    DEFAULT_TRAVEL_SCOPE_PROFILE,
     ENVELOPE_ROOTS,
     ENTITY_COLLECTIONS,
     ENTITY_TYPES,
+    MARKET_PACK_CONFIGURATION_CONTRACT,
     MAX_ENTITY_ID_NUMBER,
+    MODEL3_PROCESSED_COHORT_V1,
+    MODEL4_TRAVEL_SCOPE_COHORT_V1,
     PASSENGER_SERVICE_CLASSIFICATIONS,
     PENDING_EVENT_STATUS,
+    PROCESSED_COHORT_SCHEMA_VERSION,
     REQUIRED_ACCOUNT_CODES,
-    SAVE_SCHEMA_VERSION,
+    SCHEMA2_ENTITY_COLLECTIONS,
+    SCHEMA2_ENTITY_TYPES,
+    SCHEMA2_WORLD_ROOTS,
     SCHEDULE_SERVICE_TYPES,
     SCHEDULE_STATUSES,
+    SUPPORTED_SAVE_SCHEMA_VERSIONS,
     TERMINAL_EVENT_STATUSES,
+    TRAVEL_SCOPE_POLICY,
+    TRAVEL_SCOPE_PROFILE_FIELDS,
     WORLD_ROOTS,
 )
 from .serialization import json_compatibility_error
@@ -144,12 +155,13 @@ class _Validator:
         self.envelope = envelope
         self.errors = []
         self.world = {}
+        self.schema_version = None
 
     def add(self, code, path, message, entity_type=None, entity_id=None):
         self.errors.append(ValidationIssue(code, path, message, entity_type, entity_id))
 
     def require_mapping(self, value, path):
-        if not isinstance(value, Mapping):
+        if type(value) is not dict:
             self.add("invalid_type", path, "must be a dictionary")
             return {}
         return value
@@ -179,8 +191,218 @@ class _Validator:
             return None
         return value
 
+    def _validate_scope_profile(self, profile, path, *, require_alpha_default=False):
+        profile = self.require_mapping(profile, path)
+        if set(profile) != set(TRAVEL_SCOPE_PROFILE_FIELDS):
+            self.add(
+                "invalid_travel_scope_profile",
+                path,
+                "must contain exactly the three canonical travel-scope weights",
+            )
+            return
+        total = 0
+        valid = True
+        for field in TRAVEL_SCOPE_PROFILE_FIELDS:
+            value = profile.get(field)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                valid = False
+                self.add(
+                    "invalid_travel_scope_profile",
+                    f"{path}.{field}",
+                    "must be a non-negative integer basis-point weight",
+                )
+            else:
+                total += value
+        if valid and total != 10_000:
+            self.add(
+                "invalid_travel_scope_profile",
+                path,
+                "the three canonical weights must sum to 10000",
+            )
+        if require_alpha_default and dict(profile) != DEFAULT_TRAVEL_SCOPE_PROFILE:
+            self.add(
+                "invalid_travel_scope_profile",
+                path,
+                "the Alpha V1 default must be exactly 6500/2500/1000",
+            )
+
+    def _validate_schema2_demand_configuration(self, demand_configuration):
+        market_path = "$.simulation.configuration.demand.market_pack_configuration"
+        market = self.require_mapping(
+            demand_configuration.get("market_pack_configuration"), market_path
+        )
+        expected_market_fields = {
+            "contract", "configuration_version", "revision", "market_pack_ids"
+        }
+        if set(market) != expected_market_fields:
+            self.add(
+                "invalid_market_pack_configuration",
+                market_path,
+                f"fields must be exactly {sorted(expected_market_fields)}",
+            )
+        if market.get("contract") != MARKET_PACK_CONFIGURATION_CONTRACT:
+            self.add("invalid_market_pack_configuration", f"{market_path}.contract", f"must equal {MARKET_PACK_CONFIGURATION_CONTRACT}")
+        self.require_text(market, "configuration_version", market_path)
+        revision = market.get("revision")
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+            self.add("invalid_market_pack_configuration", f"{market_path}.revision", "must be a positive integer")
+        if market.get("market_pack_ids") != []:
+            self.add(
+                "premature_market_pack_activation",
+                f"{market_path}.market_pack_ids",
+                "4.5B-1 supports only the versioned empty pack configuration",
+            )
+
+        travel_path = "$.simulation.configuration.demand.travel_scope_configuration"
+        travel = self.require_mapping(
+            demand_configuration.get("travel_scope_configuration"), travel_path
+        )
+        expected_travel_fields = {
+            "policy",
+            "configuration_version",
+            "revision",
+            "reference_snapshot_version",
+            "default_profile",
+            "country_overrides",
+        }
+        if set(travel) != expected_travel_fields:
+            self.add(
+                "invalid_travel_scope_configuration",
+                travel_path,
+                f"fields must be exactly {sorted(expected_travel_fields)}",
+            )
+        if travel.get("policy") != TRAVEL_SCOPE_POLICY:
+            self.add("invalid_travel_scope_policy", f"{travel_path}.policy", f"must equal {TRAVEL_SCOPE_POLICY}")
+        for field in ("configuration_version", "reference_snapshot_version"):
+            self.require_text(travel, field, travel_path)
+        revision = travel.get("revision")
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+            self.add("invalid_travel_scope_configuration", f"{travel_path}.revision", "must be a positive integer")
+        self._validate_scope_profile(
+            travel.get("default_profile"),
+            f"{travel_path}.default_profile",
+            require_alpha_default=True,
+        )
+        overrides = self.require_mapping(
+            travel.get("country_overrides"), f"{travel_path}.country_overrides"
+        )
+        for country_id, profile in overrides.items():
+            if not isinstance(country_id, str):
+                self.add("invalid_travel_scope_override", f"{travel_path}.country_overrides", "override keys must be immutable country IDs")
+                continue
+            self._validate_scope_profile(
+                profile, f"{travel_path}.country_overrides.{country_id}"
+            )
+
+    def _validate_model4_revision_contexts(self, demand):
+        contexts = self.require_mapping(
+            demand.get("model4_revision_contexts"),
+            "$.world_state.demand_state.model4_revision_contexts",
+        )
+        fields = {
+            "revision_context_id",
+            "demand_model_version",
+            "demand_model_revision",
+            "universe_date",
+            "travel_scope_configuration_version",
+            "travel_scope_revision",
+            "market_pack_configuration_version",
+            "market_pack_revision",
+            "country_reference_snapshot_version",
+            "model4_input_fingerprint",
+            "context_fingerprint",
+        }
+        for context_id, context in contexts.items():
+            path = f"$.world_state.demand_state.model4_revision_contexts.{context_id}"
+            if not isinstance(context_id, str) or type(context) is not dict:
+                self.add("invalid_model4_revision_context", path, "must be a string-keyed mapping")
+                continue
+            if set(context) != fields:
+                self.add("invalid_model4_revision_context", path, f"fields must be exactly {sorted(fields)}")
+            if context.get("revision_context_id") != context_id:
+                self.add("id_key_mismatch", f"{path}.revision_context_id", "must equal the collection key")
+            if context.get("demand_model_version") != 4 or isinstance(context.get("demand_model_version"), bool):
+                self.add("invalid_model4_revision_context", f"{path}.demand_model_version", "must equal 4")
+            for field in ("demand_model_revision", "travel_scope_revision", "market_pack_revision"):
+                value = context.get(field)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                    self.add("invalid_model4_revision_context", f"{path}.{field}", "must be a positive integer")
+            if not _local_date(context.get("universe_date")):
+                self.add("invalid_local_date", f"{path}.universe_date", "must be canonical YYYY-MM-DD")
+            for field in (
+                "travel_scope_configuration_version",
+                "market_pack_configuration_version",
+                "country_reference_snapshot_version",
+            ):
+                self.require_text(context, field, path)
+            for field in ("model4_input_fingerprint", "context_fingerprint"):
+                value = context.get(field)
+                if not isinstance(value, str) or len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+                    self.add("invalid_model4_revision_context_fingerprint", f"{path}.{field}", "must be lowercase SHA-256 text")
+            if isinstance(context.get("context_fingerprint"), str):
+                try:
+                    expected = calculate_model4_revision_context_fingerprint(context)
+                except (KeyError, OverflowError, RecursionError, TypeError, ValueError):
+                    expected = None
+                if expected != context.get("context_fingerprint"):
+                    self.add("inconsistent_model4_revision_context_fingerprint", f"{path}.context_fingerprint", "stored context does not match its integrity witness")
+        return contexts
+
+    def _validate_model4_cohort(self, wrapper, cohort_key, markets, contexts, path):
+        payload = self.require_mapping(wrapper.get("payload"), f"{path}.payload")
+        fields = {
+            "cohort_key",
+            "market_id",
+            "cohort_date",
+            "demand_model_revision",
+            "revision_context_id",
+            "travel_scope_bookers",
+            "actual_daily_bookers",
+            "rounding_policy",
+            "resolution_fingerprint",
+        }
+        if set(payload) != fields:
+            self.add("invalid_demand_cohort", f"{path}.payload", f"fields must be exactly {sorted(fields)}", "demand_cohort", str(cohort_key))
+        if payload.get("cohort_key") != cohort_key:
+            self.add("id_key_mismatch", f"{path}.payload.cohort_key", "must equal the collection key", "demand_cohort", str(cohort_key))
+        market_id = payload.get("market_id")
+        cohort_date = payload.get("cohort_date")
+        if not isinstance(market_id, str) or market_id not in markets:
+            self.add("dangling_reference", f"{path}.payload.market_id", "must reference an existing directional market", "demand_cohort", str(cohort_key))
+        if not _local_date(cohort_date):
+            self.add("invalid_local_date", f"{path}.payload.cohort_date", "must be canonical YYYY-MM-DD", "demand_cohort", str(cohort_key))
+        if isinstance(market_id, str) and _local_date(cohort_date) and cohort_key != f"{market_id}@{cohort_date}":
+            self.add("invalid_demand_cohort_key", f"{path}.payload.cohort_key", "must equal market_id@cohort_date", "demand_cohort", str(cohort_key))
+        context_id = payload.get("revision_context_id")
+        if not isinstance(context_id, str) or context_id not in contexts:
+            self.add("dangling_reference", f"{path}.payload.revision_context_id", "must reference a Model 4 revision context", "demand_cohort", str(cohort_key))
+        revision = payload.get("demand_model_revision")
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+            self.add("invalid_demand_revision", f"{path}.payload.demand_model_revision", "must be a positive integer", "demand_cohort", str(cohort_key))
+        elif isinstance(context_id, str) and context_id in contexts and revision != contexts[context_id].get("demand_model_revision"):
+            self.add("inconsistent_demand_revision", f"{path}.payload.demand_model_revision", "must equal its revision context", "demand_cohort", str(cohort_key))
+        scopes = self.require_mapping(payload.get("travel_scope_bookers"), f"{path}.payload.travel_scope_bookers")
+        canonical_scopes = {"DOMESTIC", "HOME_REGION_INTERNATIONAL", "REST_OF_WORLD_INTERNATIONAL"}
+        if set(scopes) != canonical_scopes:
+            self.add("invalid_travel_scope_cohort", f"{path}.payload.travel_scope_bookers", "must contain exactly the three canonical scopes", "demand_cohort", str(cohort_key))
+        for scope, value in scopes.items():
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                self.add("invalid_travel_scope_cohort", f"{path}.payload.travel_scope_bookers.{scope}", "must be a non-negative integer", "demand_cohort", str(cohort_key))
+        for field in ("actual_daily_bookers",):
+            value = payload.get(field)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                self.add("invalid_demand_cohort", f"{path}.payload.{field}", "must be a non-negative integer", "demand_cohort", str(cohort_key))
+        if payload.get("rounding_policy") != DEMAND_ROUNDING_POLICY:
+            self.add("invalid_demand_rounding_policy", f"{path}.payload.rounding_policy", f"must equal {DEMAND_ROUNDING_POLICY}", "demand_cohort", str(cohort_key))
+        try:
+            expected = calculate_model4_cohort_fingerprint(self.envelope, wrapper)
+        except (KeyError, OverflowError, RecursionError, TypeError, ValueError):
+            expected = None
+        if payload.get("resolution_fingerprint") != expected:
+            self.add("inconsistent_demand_cohort_fingerprint", f"{path}.payload.resolution_fingerprint", "stored Model 4 cohort does not match the V2 integrity witness", "demand_cohort", str(cohort_key))
+
     def validate_root(self):
-        if not isinstance(self.envelope, Mapping):
+        if type(self.envelope) is not dict:
             self.add("invalid_envelope", "$", "world envelope must be a dictionary")
             return False
         serialization_error = json_compatibility_error(self.envelope)
@@ -194,8 +416,13 @@ class _Validator:
             self.add("unknown_root", f"$.{key}", "field is not part of schema version 1")
         metadata = self.require_mapping(self.envelope.get("metadata"), "$.metadata")
         schema_version = metadata.get("save_schema_version")
-        if isinstance(schema_version, bool) or schema_version != SAVE_SCHEMA_VERSION:
-            self.add("unsupported_schema_version", "$.metadata.save_schema_version", f"must equal {SAVE_SCHEMA_VERSION}")
+        if (
+            type(schema_version) is not int
+            or schema_version not in SUPPORTED_SAVE_SCHEMA_VERSIONS
+        ):
+            self.add("unsupported_schema_version", "$.metadata.save_schema_version", f"must be one of {sorted(SUPPORTED_SAVE_SCHEMA_VERSIONS)}")
+        else:
+            self.schema_version = schema_version
         for field in ("game_version", "reference_data_version", "lineage_id"):
             self.require_text(metadata, field, "$.metadata")
         self.require_timestamp(metadata, "world_created_at_utc", "$.metadata")
@@ -265,6 +492,10 @@ class _Validator:
             "daily_multiplier_min_bps",
             "daily_multiplier_max_bps",
         }
+        if self.schema_version == 2:
+            demand_configuration_fields.update(
+                {"market_pack_configuration", "travel_scope_configuration"}
+            )
         for field in sorted(set(demand_configuration) - demand_configuration_fields, key=repr):
             self.add(
                 "unknown_authoritative_field",
@@ -354,6 +585,8 @@ class _Validator:
                     f"$.simulation.configuration.demand.destination_type_weight_bps.{destination_type}",
                     "weights must be positive integer basis points",
                 )
+        if self.schema_version == 2:
+            self._validate_schema2_demand_configuration(demand_configuration)
         fast_forward = self.require_mapping(simulation.get("fast_forward"), "$.simulation.fast_forward")
         target = fast_forward.get("target_time_utc")
         if clock_state == "FAST_FORWARD":
@@ -376,18 +609,25 @@ class _Validator:
             self.add("invalid_seed", "$.deterministic_state.world_seed", "must be a non-negative integer")
         self.require_mapping(deterministic.get("streams"), "$.deterministic_state.streams")
         self.world = self.require_mapping(self.envelope.get("world_state"), "$.world_state")
-        for key in WORLD_ROOTS:
+        world_roots = SCHEMA2_WORLD_ROOTS if self.schema_version == 2 else WORLD_ROOTS
+        for key in world_roots:
             if key not in self.world:
                 self.add("missing_world_root", f"$.world_state.{key}", "required world root is missing")
-        for key in sorted(set(self.world) - WORLD_ROOTS, key=repr):
-            self.add("unknown_world_root", f"$.world_state.{key}", "field is not part of schema version 1")
+        for key in sorted(set(self.world) - world_roots, key=repr):
+            self.add("unknown_world_root", f"$.world_state.{key}", f"field is not part of schema version {self.schema_version}")
         self.require_mapping(self.envelope.get("ui_state"), "$.ui_state")
         return True
 
     def validate_collections_and_ids(self):
         seen_primary_ids = {}
-        max_issued = {entity_type: 0 for entity_type in ENTITY_TYPES}
-        for entity_type, (collection_name, id_field) in ENTITY_COLLECTIONS.items():
+        entity_types = SCHEMA2_ENTITY_TYPES if self.schema_version == 2 else ENTITY_TYPES
+        entity_collections = (
+            SCHEMA2_ENTITY_COLLECTIONS
+            if self.schema_version == 2
+            else ENTITY_COLLECTIONS
+        )
+        max_issued = {entity_type: 0 for entity_type in entity_types}
+        for entity_type, (collection_name, id_field) in entity_collections.items():
             path = f"$.world_state.{collection_name}"
             if collection_name not in self.world:
                 self.add("missing_collection", path, "required authoritative collection is missing")
@@ -399,7 +639,7 @@ class _Validator:
                 if not isinstance(key, str):
                     self.add("invalid_collection_key", record_path, "entity collection keys must be strings", entity_type)
                     continue
-                if not isinstance(record, Mapping):
+                if type(record) is not dict:
                     self.add("invalid_entity", record_path, "entity record must be a dictionary", entity_type, key)
                     continue
                 record_id = record.get(id_field)
@@ -427,7 +667,7 @@ class _Validator:
         )
         for key, record in event_history.items():
             path = f"$.world_state.event_history.{key}"
-            if not isinstance(key, str) or not isinstance(record, Mapping):
+            if not isinstance(key, str) or type(record) is not dict:
                 self.add("invalid_entity", path, "resolved event must be a keyed dictionary", "event", str(key))
                 continue
             event_id = record.get("event_id")
@@ -448,7 +688,7 @@ class _Validator:
         deterministic = self.envelope.get("deterministic_state", {})
         allocator = self.require_mapping(deterministic.get("id_allocator"), "$.deterministic_state.id_allocator")
         next_by_type = self.require_mapping(allocator.get("next_by_type"), "$.deterministic_state.id_allocator.next_by_type")
-        for entity_type in ENTITY_TYPES:
+        for entity_type in entity_types:
             value = next_by_type.get(entity_type)
             path = f"$.deterministic_state.id_allocator.next_by_type.{entity_type}"
             if (
@@ -460,9 +700,9 @@ class _Validator:
                 self.add("invalid_id_allocator", path, "next value must be a positive integer")
             elif value <= max_issued[entity_type]:
                 self.add("id_allocator_collision", path, "next value would collide with an issued ID")
-        unknown = set(next_by_type) - set(ENTITY_TYPES)
+        unknown = set(next_by_type) - set(entity_types)
         for entity_type in sorted(unknown, key=repr):
-            self.add("unknown_id_namespace", f"$.deterministic_state.id_allocator.next_by_type.{entity_type}", "namespace is not part of schema version 1")
+            self.add("unknown_id_namespace", f"$.deterministic_state.id_allocator.next_by_type.{entity_type}", f"namespace is not part of schema version {self.schema_version}")
 
     def validate_structure(self):
         world = self.world
@@ -473,9 +713,23 @@ class _Validator:
 
         def valid_records(value, path):
             collection = self.require_mapping(value, path)
-            return {key: record for key, record in collection.items() if isinstance(key, str) and isinstance(record, Mapping)}
+            return {
+                key: record
+                for key, record in collection.items()
+                if isinstance(key, str) and type(record) is dict
+            }
 
         airports = valid_records(world.get("airports"), "$.world_state.airports")
+        regions = (
+            valid_records(world.get("regions"), "$.world_state.regions")
+            if self.schema_version == 2
+            else {}
+        )
+        countries = (
+            valid_records(world.get("countries"), "$.world_state.countries")
+            if self.schema_version == 2
+            else {}
+        )
         airlines = valid_records(world.get("airlines"), "$.world_state.airlines")
         aircraft = valid_records(world.get("aircraft"), "$.world_state.aircraft")
         markets = valid_records(world.get("directional_markets"), "$.world_state.directional_markets")
@@ -489,6 +743,71 @@ class _Validator:
         events = valid_records(world.get("pending_events"), "$.world_state.pending_events")
         event_history = valid_records(world.get("event_history"), "$.world_state.event_history")
         operations = self.require_mapping(world.get("active_aircraft_operations"), "$.world_state.active_aircraft_operations")
+
+        if self.schema_version == 2:
+            region_codes = {}
+            for region_id, record in regions.items():
+                path = f"$.world_state.regions.{region_id}"
+                allowed = {"region_id", "external_reference_code", "display_name"}
+                for field in sorted(set(record) - allowed, key=repr):
+                    self.add("unknown_authoritative_field", f"{path}.{field}", "field is not part of the immutable region schema", "region", region_id)
+                code = self.require_text(record, "external_reference_code", path, "region", region_id)
+                self.require_text(record, "display_name", path, "region", region_id)
+                if code:
+                    previous = region_codes.get(code)
+                    if previous is not None:
+                        self.add("duplicate_external_reference_code", f"{path}.external_reference_code", f"already used by {previous}", "region", region_id)
+                    else:
+                        region_codes[code] = region_id
+
+            country_codes = {}
+            for country_id, record in countries.items():
+                path = f"$.world_state.countries.{country_id}"
+                allowed = {
+                    "country_id",
+                    "region_id",
+                    "external_reference_code",
+                    "display_name",
+                    "effective_from_date",
+                    "effective_until_date",
+                    "demand_attractiveness_bps",
+                    "relationship_weight_bps",
+                }
+                for field in sorted(set(record) - allowed, key=repr):
+                    self.add("unknown_authoritative_field", f"{path}.{field}", "field is not part of the immutable country schema", "country", country_id)
+                region_id = record.get("region_id")
+                if not isinstance(region_id, str) or region_id not in regions:
+                    self.add("dangling_reference", f"{path}.region_id", "must reference an immutable region ID", "country", country_id)
+                code = self.require_text(record, "external_reference_code", path, "country", country_id)
+                self.require_text(record, "display_name", path, "country", country_id)
+                if code:
+                    previous = country_codes.get(code)
+                    if previous is not None:
+                        self.add("duplicate_external_reference_code", f"{path}.external_reference_code", f"already used by {previous}", "country", country_id)
+                    else:
+                        country_codes[code] = country_id
+                for field in ("effective_from_date", "effective_until_date"):
+                    value = record.get(field)
+                    if value is not None and not _local_date(value):
+                        self.add("invalid_local_date", f"{path}.{field}", "must be null or canonical YYYY-MM-DD", "country", country_id)
+                effective_from = record.get("effective_from_date")
+                effective_until = record.get("effective_until_date")
+                if _local_date(effective_from) and _local_date(effective_until) and effective_until <= effective_from:
+                    self.add("invalid_effective_window", path, "effective_until_date must follow effective_from_date", "country", country_id)
+                for field in ("demand_attractiveness_bps", "relationship_weight_bps"):
+                    value = record.get(field)
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, int)
+                        or value != 10_000
+                    ):
+                        self.add("invalid_country_demand_field", f"{path}.{field}", "must remain the neutral integer basis-point value 10000 in 4.5B-1", "country", country_id)
+
+            overrides = self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("travel_scope_configuration", {}).get("country_overrides", {})
+            if type(overrides) is dict:
+                for country_id in overrides:
+                    if not isinstance(country_id, str) or country_id not in countries:
+                        self.add("dangling_reference", f"$.simulation.configuration.demand.travel_scope_configuration.country_overrides.{country_id}", "override key must reference an immutable country ID")
 
         primary = self.require_ref(player, "primary_airline_id", airlines, "$.world_state.player", "player", "player")
         if primary and airlines.get(primary, {}).get("control_type") != "PLAYER":
@@ -525,6 +844,10 @@ class _Validator:
                 "active_until_date",
                 "demand_input_revision",
             }
+            if self.schema_version == 2:
+                allowed_airport_fields.update(
+                    {"country_id", "demand_allocation_member"}
+                )
             for field in sorted(set(record) - allowed_airport_fields, key=repr):
                 self.add(
                     "unknown_authoritative_field",
@@ -621,6 +944,18 @@ class _Validator:
                     "airport",
                     airport_id,
                 )
+            if self.schema_version == 2:
+                country_id = record.get("country_id")
+                if not isinstance(country_id, str) or country_id not in countries:
+                    self.add("dangling_reference", f"{path}.country_id", "must reference an immutable country ID", "airport", airport_id)
+                elif (
+                    isinstance(country_reference, str)
+                    and countries[country_id].get("external_reference_code")
+                    != country_reference
+                ):
+                    self.add("inconsistent_country_identity", f"{path}.country_id", "country_id and legacy country_reference must identify the same snapshot country", "airport", airport_id)
+                if type(record.get("demand_allocation_member")) is not bool:
+                    self.add("invalid_demand_allocation_member", f"{path}.demand_allocation_member", "must be a boolean", "airport", airport_id)
             destination_type = record.get("demand_destination_type")
             if destination_type is not None and destination_type not in DEMAND_DESTINATION_TYPES:
                 self.add(
@@ -1597,7 +1932,7 @@ class _Validator:
             amounts_valid = True
             for index, entry in enumerate(entries):
                 entry_path = f"{path}.entries[{index}]"
-                if not isinstance(entry, Mapping):
+                if type(entry) is not dict:
                     self.add("invalid_transaction", entry_path, "entry must be a dictionary", "transaction", transaction_id)
                     amounts_valid = False
                     continue
@@ -1646,7 +1981,7 @@ class _Validator:
             if isinstance(revision, bool) or not isinstance(revision, int) or revision < 0:
                 self.add("invalid_revision", f"{path}.operation_revision", "must be a non-negative integer", "event", event_id)
             elif isinstance(owner_id, str):
-                current_revision = revisions.get(owner_id) if isinstance(revisions, Mapping) else None
+                current_revision = revisions.get(owner_id) if type(revisions) is dict else None
                 if current_revision is None:
                     self.add("missing_operation_revision", f"$.simulation.operation_revisions.{owner_id}", "event owner must have a persisted revision", "event", event_id)
                 elif isinstance(current_revision, int) and revision > current_revision:
@@ -1701,14 +2036,14 @@ class _Validator:
             validate_event(event_id, record, f"$.world_state.event_history.{event_id}", False)
 
         valid_owner_ids = set().union(*(set(target) for target in owner_targets.values()))
-        if isinstance(revisions, Mapping):
+        if type(revisions) is dict:
             for owner_id in revisions:
                 if isinstance(owner_id, str) and owner_id not in valid_owner_ids:
                     self.add("dangling_reference", f"$.simulation.operation_revisions.{owner_id}", "revision owner does not exist")
 
         for key, record in operations.items():
             path = f"$.world_state.active_aircraft_operations.{key}"
-            if not isinstance(record, Mapping):
+            if type(record) is not dict:
                 self.add("invalid_entity", path, "operation must be a dictionary", "operation", str(key))
                 continue
             if key not in flights or record.get("dated_flight_id") != key:
@@ -1731,6 +2066,14 @@ class _Validator:
             "rounding_policy",
             "processed_cohorts",
         }
+        if self.schema_version == 2:
+            demand_fields.update(
+                {
+                    "processed_cohort_schema_version",
+                    "model3_terminal_demand_revision",
+                    "model4_revision_contexts",
+                }
+            )
         for field in sorted(set(demand) - demand_fields, key=repr):
             code = (
                 "derived_demand_cache_persisted"
@@ -1821,6 +2164,15 @@ class _Validator:
                 f"must equal {DEMAND_ROUNDING_POLICY}",
                 "demand",
             )
+        contexts = {}
+        if self.schema_version == 2:
+            if demand.get("processed_cohort_schema_version") != PROCESSED_COHORT_SCHEMA_VERSION or isinstance(demand.get("processed_cohort_schema_version"), bool):
+                self.add("invalid_processed_cohort_schema_version", "$.world_state.demand_state.processed_cohort_schema_version", f"must equal {PROCESSED_COHORT_SCHEMA_VERSION}", "demand")
+            if demand.get("model3_terminal_demand_revision") is not None:
+                self.add("premature_model4_activation", "$.world_state.demand_state.model3_terminal_demand_revision", "must remain null until the atomic Model 3 to Model 4 activation", "demand")
+            contexts = self._validate_model4_revision_contexts(demand)
+            if contexts:
+                self.add("premature_model4_activation", "$.world_state.demand_state.model4_revision_contexts", "must remain empty while active demand model version is 3", "demand")
         cohorts = self.require_mapping(
             demand.get("processed_cohorts"),
             "$.world_state.demand_state.processed_cohorts",
@@ -1838,7 +2190,7 @@ class _Validator:
         }
         for cohort_key, record in cohorts.items():
             path = f"$.world_state.demand_state.processed_cohorts.{cohort_key}"
-            if not isinstance(cohort_key, str) or not isinstance(record, Mapping):
+            if not isinstance(cohort_key, str) or type(record) is not dict:
                 self.add(
                     "invalid_demand_cohort",
                     path,
@@ -1847,6 +2199,23 @@ class _Validator:
                     str(cohort_key),
                 )
                 continue
+            if self.schema_version == 2:
+                wrapper_fields = {"contract", "payload"}
+                for field in sorted(set(record) - wrapper_fields, key=repr):
+                    self.add("unknown_authoritative_field", f"{path}.{field}", "field is not part of a processed-cohort wrapper", "demand_cohort", cohort_key)
+                contract = record.get("contract")
+                if contract not in {
+                    MODEL3_PROCESSED_COHORT_V1,
+                    MODEL4_TRAVEL_SCOPE_COHORT_V1,
+                }:
+                    self.add("unknown_processed_cohort_contract", f"{path}.contract", "must name one of the two supported cohort contracts", "demand_cohort", cohort_key)
+                    continue
+                if contract == MODEL4_TRAVEL_SCOPE_COHORT_V1:
+                    self._validate_model4_cohort(record, cohort_key, markets, contexts, path)
+                    self.add("premature_model4_activation", path, "Model 4 cohorts cannot exist while Model 3 is active", "demand_cohort", cohort_key)
+                    continue
+                record = self.require_mapping(record.get("payload"), f"{path}.payload")
+                path = f"{path}.payload"
             for field in sorted(set(record) - cohort_fields, key=repr):
                 self.add(
                     "unknown_authoritative_field",
@@ -2050,7 +2419,7 @@ class _Validator:
         selected_screen = ui.get("selected_screen")
         if selected_screen is not None and not isinstance(selected_screen, str):
             self.add("invalid_type", "$.ui_state.selected_screen", "must be null or a string")
-        if not isinstance(ui.get("filters"), Mapping):
+        if type(ui.get("filters")) is not dict:
             self.add("invalid_type", "$.ui_state.filters", "must be a dictionary")
 
     def validate_no_name_references_or_float_money(self):
@@ -2069,7 +2438,7 @@ class _Validator:
         seen_containers = set()
         while stack:
             value, path = stack.pop()
-            if isinstance(value, Mapping):
+            if type(value) is dict:
                 marker = id(value)
                 if marker in seen_containers:
                     continue
@@ -2088,7 +2457,7 @@ class _Validator:
                     ):
                         self.add("invalid_timestamp", child_path, "authoritative timestamp must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
                     stack.append((nested, child_path))
-            elif isinstance(value, list):
+            elif type(value) is list:
                 marker = id(value)
                 if marker in seen_containers:
                     continue

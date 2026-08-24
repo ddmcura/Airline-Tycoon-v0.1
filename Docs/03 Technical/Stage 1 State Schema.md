@@ -3,7 +3,7 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-through 4.5A. It supersedes the hybrid `game_state` example in
+through 4.5B-1. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
@@ -14,8 +14,11 @@ Milestone 3 adds repeating schedule definitions and bounded publication of
 dated flights. Milestone 4 adds world-owned directional passenger demand and
 idempotent daily intent resolution. Milestone 4.5A compacts only rebuildable
 demand derivation and adds runtime active-market discovery; it adds no
-persistent fields. Exact file writing, loading, migrations, booking, aircraft
-operations, and transaction posting are not implemented.
+persistent fields. Milestone 4.5B-1 adds the explicit in-memory schema-1-to-2
+migration foundation and Model 4 authority shapes while deliberately retaining
+Model 3 calculation. Exact file writing/loading and general save-pipeline
+migrations, booking, aircraft operations, and transaction posting are not
+implemented.
 
 ## Representation rules
 
@@ -111,6 +114,97 @@ stage_1_envelope
     └── filters: dictionary
 ```
 
+## Envelope version 2 — Milestone 4.5B-1 foundation
+
+Schema 2 is reached only through the explicit `migrate_schema_1_to_2`
+boundary with a separately supplied, approved country-reference snapshot.
+The schema-1 constructor remains available during this staged increment; it
+does not invent region or country authority. Migration first validates the
+complete schema-1 source, including every V1 cohort witness, operates on a
+detached candidate, validates the complete schema-2 candidate, and replaces
+the caller's envelope only after success. A failure leaves the source
+byte-equivalent. Missing or conflicting airport-country mappings are
+structured failures and are never inferred from display names.
+The snapshot also supplies one explicit boolean allocation-membership value per
+airport; migration never derives future Model 4 membership from Model 3
+eligibility.
+
+Schema 2 adds `region` and `country` immutable-ID allocator namespaces and the
+following persistent authority:
+
+```text
+world_state
+├── regions: {region_id: region}
+├── countries: {country_id: country}
+├── airports
+│   └── <airport_id>
+│       ├── country_id: immutable country ID
+│       └── demand_allocation_member: boolean
+└── demand_state
+    ├── processed_cohort_schema_version: 2
+    ├── model3_terminal_demand_revision: null
+    ├── model4_revision_contexts: {}
+    └── processed_cohorts
+        └── "<market_id>@<YYYY-MM-DD>"
+            ├── contract: MODEL3_PROCESSED_COHORT_V1
+            └── payload: exact historical Model 3 V1 cohort
+
+simulation.configuration.demand
+├── market_pack_configuration
+│   ├── contract: MARKET_PACK_CONFIGURATION_V1
+│   ├── configuration_version: non-empty version
+│   ├── revision: positive integer
+│   └── market_pack_ids: []
+└── travel_scope_configuration
+    ├── policy: ORIGIN_COUNTRY_TRAVEL_SCOPE_ENVELOPE_V1
+    ├── configuration_version: non-empty version
+    ├── revision: positive integer
+    ├── reference_snapshot_version: non-empty version
+    ├── default_profile
+    │   ├── domestic_weight_bps: 6500
+    │   ├── home_region_international_weight_bps: 2500
+    │   └── rest_of_world_international_weight_bps: 1000
+    └── country_overrides: {country_id: complete three-field profile}
+```
+
+A region contains only `region_id`, `external_reference_code`, and
+`display_name`. It is a pure aggregate and owns no demand coefficient or
+formula. A country contains `country_id`, `region_id`, unique
+`external_reference_code`, `display_name`, nullable canonical
+`effective_from_date`/`effective_until_date`,
+`demand_attractiveness_bps`, and `relationship_weight_bps`. During 4.5B-1 both
+country demand values must remain the neutral integer value `10000`. Every scope profile contains
+exactly the three canonical non-negative integer fields and sums to `10000`.
+Country overrides use immutable country IDs, never names or external codes.
+
+`country_reference` remains in a migrated airport only as Model 3 V1
+compatibility input. `country_id` is the new authoritative foreign key.
+Migration requires them to identify the same supplied snapshot country and
+does not rewrite the compatibility value. `demand_allocation_member` is
+authoritative membership for the later country-local allocator; it does not
+change Model 3 eligibility or calculations in 4.5B-1.
+Every airport added through a schema-2 public boundary must explicitly supply
+both an existing `country_id` and a boolean `demand_allocation_member`; the
+latter is never inferred from Model 3 eligibility.
+
+The one `processed_cohorts` keyspace continues to use
+`<market_id>@<YYYY-MM-DD>`. Schema 2 supports exactly the wrapper contracts
+`MODEL3_PROCESSED_COHORT_V1` and `MODEL4_TRAVEL_SCOPE_COHORT_V1`. The Model 3
+wrapper payload is preserved field-for-field and its
+`STAGE1_DEMAND_COHORT_SHA256_JSON_V1` input excludes the wrapper. Historical
+configuration or universe metadata is never fabricated. Model 4 contexts have
+version and revision references, a pinned universe date, an input fingerprint,
+and `STAGE1_MODEL4_REVISION_CONTEXT_SHA256_JSON_V1` witness. The Model 4 cohort
+contract uses `STAGE1_DEMAND_COHORT_SHA256_JSON_V2`, but no Model 4 context or
+cohort may exist while Model 3 is active.
+
+During 4.5B-1, schema 2 must retain `demand.model_version == 3`, the existing
+Model 3 input-fingerprint material, formulas, deterministic draw inputs, and
+outcomes. `model3_terminal_demand_revision` remains null and
+`model4_revision_contexts` remains empty. No production command can activate
+Model 4. The first context and terminal Model 3 revision are committed only in
+the later atomic 4.5B-2 activation.
+
 ## Entity records
 
 ```text
@@ -118,7 +212,16 @@ airport
   airport_id, reference_code, display_name, iata_code, icao_code, timezone,
   passenger_demand_eligible, population, latitude_microdegrees,
   longitude_microdegrees, country_reference, demand_destination_type,
-  active_from_date, active_until_date, demand_input_revision
+  active_from_date, active_until_date, demand_input_revision,
+  country_id (schema 2), demand_allocation_member (schema 2)
+
+region (schema 2)
+  region_id, external_reference_code, display_name
+
+country (schema 2)
+  country_id, region_id, external_reference_code, display_name,
+  effective_from_date, effective_until_date, demand_attractiveness_bps,
+  relationship_weight_bps
 
 airline
   airline_id, display_name, base_currency, control_type (PLAYER|AI), owner_type

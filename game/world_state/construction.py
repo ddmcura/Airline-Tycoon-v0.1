@@ -148,6 +148,22 @@ def _add_airport_reference_in_place(envelope, airport_reference):
         country_reference = _required_text(
             country_reference, "starting_airport.country_reference"
         ).upper()
+    schema_version = envelope.get("metadata", {}).get("save_schema_version")
+    country_id = airport_reference.get("country_id")
+    if schema_version == 2:
+        countries = envelope.get("world_state", {}).get("countries", {})
+        if not isinstance(country_id, str) or country_id not in countries:
+            raise ValueError(
+                "schema-2 airport additions require an existing immutable country_id"
+            )
+        if (
+            country_reference is not None
+            and countries[country_id].get("external_reference_code")
+            != country_reference
+        ):
+            raise ValueError(
+                "country_id and country_reference must identify the same country"
+            )
     destination_type = _destination_type(airport_reference)
     if destination_type is not None and destination_type not in DEMAND_DESTINATION_TYPES:
         raise ValueError("starting_airport.demand_destination_type is unsupported")
@@ -181,6 +197,12 @@ def _add_airport_reference_in_place(envelope, airport_reference):
             "passenger-demand-eligible airports require positive population, "
             "coordinates, country_reference, and demand_destination_type"
         )
+    demand_allocation_member = airport_reference.get("demand_allocation_member")
+    if schema_version == 2 and type(demand_allocation_member) is not bool:
+        raise ValueError(
+            "schema-2 airport additions require an explicit boolean "
+            "demand_allocation_member"
+        )
 
     demand_configuration = envelope.get("simulation", {}).get(
         "configuration", {}
@@ -200,7 +222,7 @@ def _add_airport_reference_in_place(envelope, airport_reference):
             demand_state["demand_model_revision"] = demand_revision
     iata = airport_reference.get("iata")
     icao = airport_reference.get("icao")
-    envelope["world_state"]["airports"][airport_id] = {
+    record = {
         "airport_id": airport_id,
         "reference_code": reference_code,
         "display_name": str(airport_reference.get("display_name") or airport_reference.get("name") or reference_code),
@@ -217,6 +239,10 @@ def _add_airport_reference_in_place(envelope, airport_reference):
         "active_until_date": active_until,
         "demand_input_revision": demand_revision,
     }
+    if schema_version == 2:
+        record["country_id"] = country_id
+        record["demand_allocation_member"] = demand_allocation_member
+    envelope["world_state"]["airports"][airport_id] = record
     demand_state["input_fingerprint"] = calculate_demand_input_fingerprint(envelope)
     return airport_id
 
