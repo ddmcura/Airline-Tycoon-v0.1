@@ -611,7 +611,34 @@ No Model 4 revision context or cohort may be active, and no production command
 can switch the demand model to 4. Service, airline, route, schedule, capacity,
 pack lifecycle, player ownership, and UI focus never affect normalization.
 
-4.5B-2 owns the numerical scope/country/airport derivation and atomic Model
-3-to-4 activation. 4.5B-3 owns pack materialization and lifecycle. Booking,
+4.5B-2 implements the numerical scope/country/airport derivation and atomic
+Model 3-to-4 activation. 4.5B-3 owns pack materialization and lifecycle. Booking,
 capacity commitments, connections, operations, finance, save/reload, and
 compaction remain outside this increment.
+
+## Milestone 4.5B-2 architecture boundary
+
+Model 4 now implements the hierarchy above as one demand-owned, service-neutral
+derivation. Atomic activation is explicit and revision-checked; it never occurs
+during migration, validation, loading, or ordinary Model 3 work. Every current
+Model 4 revision owns one fingerprinted context pinning model, configuration,
+travel-scope, universe date, market-pack, multiplier bounds, and input witness.
+
+The origin pool is first conserved across the exact 6500/2500/1000 prototype
+envelope. International scopes allocate to effective countries by population,
+quantized centroid distance, attractiveness, and relationship. Regions merely
+sum country results. Country amounts then allocate locally by airport
+population, distance, and destination type. Unavailable airports and countries
+without materialized airports stay latent, so changing service, schedules,
+capacity, UI focus, or pack status cannot renormalize hidden potential.
+
+Historical Model 3 markers and new Model 4 markers coexist in the same
+market/date keyspace and are reused according to their stored contract. Only
+prospective active markets create Model 4 intent. The exposed active-day result
+is the future Booking boundary's input, not Booking state: it contains exact
+baselines, multipliers, revisions, active IDs, and resolved integer intent but
+does not choose itineraries, reserve capacity, or post money.
+
+4.5B-3 still owns global airport-pack data and the complete materialization,
+enable, disable, and re-enable lifecycle. Milestone 5 still owns Booking
+checkpoints, desired travel dates, itinerary choice, and reservations.

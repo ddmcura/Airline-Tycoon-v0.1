@@ -8,7 +8,7 @@ DEMAND_INPUT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_INPUT_SHA256_JSON_V1"
 DEMAND_COHORT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_COHORT_SHA256_JSON_V1"
 MODEL4_COHORT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_COHORT_SHA256_JSON_V2"
 MODEL4_REVISION_CONTEXT_FINGERPRINT_CONTRACT = (
-    "STAGE1_MODEL4_REVISION_CONTEXT_SHA256_JSON_V1"
+    "STAGE1_DEMAND_REVISION_CONTEXT_SHA256_JSON_V1"
 )
 
 MODEL3_CONFIGURATION_FINGERPRINT_FIELDS = (
@@ -78,6 +78,31 @@ def calculate_demand_input_fingerprint(envelope):
     return _fingerprint(material, "demand fingerprint")
 
 
+def calculate_model4_input_fingerprint(envelope):
+    """Fingerprint every continuation-critical Model 4 allocation input."""
+    state = envelope["world_state"]
+    configuration = envelope["simulation"]["configuration"]["demand"]
+    material = {
+        "fingerprint_contract": "STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V1",
+        "lineage_id": envelope["metadata"]["lineage_id"],
+        "configuration": configuration,
+        "universe_date": state["demand_state"]["universe_date"],
+        "countries": {
+            country_id: state["countries"][country_id]
+            for country_id in sorted(state["countries"])
+        },
+        "airports": {
+            airport_id: state["airports"][airport_id]
+            for airport_id in sorted(state["airports"])
+        },
+        "markets": {
+            market_id: state["directional_markets"][market_id]
+            for market_id in sorted(state["directional_markets"])
+        },
+    }
+    return _fingerprint(material, "Model 4 demand fingerprint")
+
+
 def calculate_demand_cohort_fingerprint(envelope, cohort_record):
     material = {
         "fingerprint_contract": DEMAND_COHORT_FINGERPRINT_CONTRACT,
@@ -105,10 +130,15 @@ def calculate_model4_revision_context_fingerprint(context):
 
 def calculate_model4_cohort_fingerprint(envelope, wrapper):
     payload = wrapper["payload"]
+    context = envelope["world_state"]["demand_state"]["model4_revision_contexts"][
+        payload["revision_context_id"]
+    ]
     material = {
         "fingerprint_contract": MODEL4_COHORT_FINGERPRINT_CONTRACT,
+        "lineage_id": envelope["metadata"]["lineage_id"],
         "world_seed": envelope["deterministic_state"]["world_seed"],
         "contract": wrapper["contract"],
+        "revision_context_fingerprint": context["context_fingerprint"],
         "cohort": {
             key: payload[key]
             for key in sorted(payload)

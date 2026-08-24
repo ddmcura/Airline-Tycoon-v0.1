@@ -11,18 +11,20 @@ from collections.abc import Mapping as MappingABC
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal, ROUND_HALF_EVEN, getcontext, localcontext
+from decimal import Context, Decimal, MAX_EMAX, MIN_EMIN, ROUND_HALF_EVEN, localcontext
 from fractions import Fraction
 import hashlib
 import json
 import math
 from types import MappingProxyType
-from typing import Mapping
+from typing import Any, Mapping, cast
 
 from game.world_state.ids import allocate_id
 from game.world_state.demand_fingerprint import (
     calculate_demand_cohort_fingerprint,
     calculate_demand_input_fingerprint,
+    calculate_model4_input_fingerprint,
+    calculate_model4_revision_context_fingerprint,
 )
 from game.world_state.serialization import json_compatibility_error
 from game.world_state.schema import (
@@ -30,6 +32,7 @@ from game.world_state.schema import (
     DEMAND_MULTIPLIER_CATEGORIES,
     DEMAND_ROUNDING_POLICY,
     MODEL3_PROCESSED_COHORT_V1,
+    MODEL4_DEMAND_MODEL_VERSION,
 )
 from game.world_state.validation import validate_world
 
@@ -63,6 +66,18 @@ _CONFIGURATION_UPDATE_FIELDS = frozenset(
         "daily_multiplier_max_bps",
     }
 )
+
+
+def _fixed_decimal_context(precision=_SCORE_PRECISION):
+    """Return a formula context independent of every caller Decimal setting."""
+    return localcontext(
+        Context(
+            prec=precision,
+            rounding=ROUND_HALF_EVEN,
+            Emin=MIN_EMIN,
+            Emax=MAX_EMAX,
+        )
+    )
 
 
 @dataclass(frozen=True)
@@ -208,7 +223,7 @@ class DemandIndexes:
 @dataclass(frozen=True)
 class DemandBuildResult:
     status: str
-    indexes: DemandIndexes | None = None
+    indexes: Any = None
     created_market_ids: tuple[str, ...] = ()
     cache_reused: bool = False
     issues: tuple[DemandIssue, ...] = ()
@@ -325,13 +340,8 @@ def _distance_km(origin, destination):
     )
     haversine = min(1.0, max(0.0, haversine))
     kilometres = 6_371 * 2 * math.asin(math.sqrt(haversine))
-    decimal_kilometres = Decimal(str(kilometres))
-    if getcontext().prec >= _SCORE_PRECISION:
-        return decimal_kilometres.quantize(
-            Decimal("0.001"), rounding=ROUND_HALF_EVEN
-        )
-    with localcontext() as context:
-        context.prec = _SCORE_PRECISION
+    with _fixed_decimal_context():
+        decimal_kilometres = Decimal(str(kilometres))
         return decimal_kilometres.quantize(
             Decimal("0.001"), rounding=ROUND_HALF_EVEN
         )
@@ -348,13 +358,13 @@ def calculate_origin_daily_booking_pool(envelope, origin_airport_id):
     rate = envelope["simulation"]["configuration"]["demand"][
         "daily_booker_rate_ppm"
     ]
-    with localcontext() as context:
+    with _fixed_decimal_context() as context:
         context.prec = _SCORE_PRECISION
         return Decimal(airport["population"]) * Decimal(rate) / _PPM
 
 
 def _raw_pair_score(configuration, origin, destination, *, distance=None):
-    with localcontext() as context:
+    with _fixed_decimal_context() as context:
         context.prec = _SCORE_PRECISION
         population_pull = (
             Decimal(destination["population"]) / Decimal(1_000_000)
@@ -394,7 +404,7 @@ def _derive_origin_normalizations(envelope):
     eligible = _eligible_airport_ids(envelope)
     configuration = envelope["simulation"]["configuration"]["demand"]
     normalizations = {}
-    with localcontext() as context:
+    with _fixed_decimal_context() as context:
         context.prec = _SCORE_PRECISION
         for origin_airport_id in eligible:
             destinations = tuple(
@@ -422,7 +432,7 @@ def _derive_origin_normalizations(envelope):
                 range(len(destinations)),
                 key=lambda index: (raw_scores[index], destinations[index]),
             )
-            with localcontext() as conservation_context:
+            with _fixed_decimal_context() as conservation_context:
                 conservation_context.prec = (
                     _SCORE_PRECISION + len(str(len(direct_shares))) + 2
                 )
@@ -471,7 +481,7 @@ def _pair_demand_from_compact_derivation(
         airports[destination_airport_id],
         distance=distance,
     )
-    with localcontext() as context:
+    with _fixed_decimal_context() as context:
         context.prec = _SCORE_PRECISION
         share = (
             normalization.residual_destination_pair_share
@@ -659,6 +669,9 @@ def rebuild_demand_indexes(envelope):
     validation = validate_world(envelope)
     if not validation.is_valid:
         raise ValueError("cannot rebuild demand indexes for an invalid world")
+    if envelope["simulation"]["configuration"]["demand"]["model_version"] == MODEL4_DEMAND_MODEL_VERSION:
+        from .model4 import rebuild_model4_indexes
+        return rebuild_model4_indexes(envelope)
     eligible = _eligible_airport_ids(envelope)
     represented_pairs = {
         (market["origin_airport_id"], market["destination_airport_id"])
@@ -682,6 +695,13 @@ def calculate_world_demand(envelope, *, indexes=None):
         return DemandBuildResult(
             "REJECTED", issues=_validation_issues(validation)
         )
+    if envelope["simulation"]["configuration"]["demand"]["model_version"] == MODEL4_DEMAND_MODEL_VERSION:
+        from .model4 import rebuild_model4_indexes
+        try:
+            derived = rebuild_model4_indexes(envelope, indexes=indexes)
+        except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
+            return DemandBuildResult("REJECTED", issues=(DemandIssue("DEMAND_ALLOCATION_FAILED", str(exc)),))
+        return DemandBuildResult("COMPLETED", derived, cache_reused=derived is indexes)
     fingerprint = _source_fingerprint(envelope)
     eligible = _eligible_airport_ids(envelope)
     if _compact_indexes_match_world(indexes, envelope, fingerprint, eligible):
@@ -730,7 +750,14 @@ def recalculate_origin_demand(envelope, origin_airport_id, *, indexes=None):
     result = calculate_world_demand(envelope, indexes=indexes)
     if not result.succeeded:
         return result
-    if origin_airport_id not in result.indexes.eligible_airport_ids:
+    derived_indexes = cast(Any, result.indexes)
+    eligible_origins = (
+        derived_indexes.origin_airport_ids
+        if envelope["simulation"]["configuration"]["demand"]["model_version"]
+        == MODEL4_DEMAND_MODEL_VERSION
+        else derived_indexes.eligible_airport_ids
+    )
+    if origin_airport_id not in eligible_origins:
         return DemandBuildResult(
             "REJECTED",
             issues=(
@@ -746,22 +773,27 @@ def recalculate_origin_demand(envelope, origin_airport_id, *, indexes=None):
 def get_base_daily_bookers(
     envelope, origin_airport_id, destination_airport_id, *, indexes=None
 ):
-    return calculate_pair_demand(
+    pair = calculate_pair_demand(
         envelope,
         origin_airport_id,
         destination_airport_id,
         indexes=indexes,
-    ).base_daily_bookers
+    )
+    return pair["base_daily_bookers"] if isinstance(pair, Mapping) else pair.base_daily_bookers
 
 
 def calculate_pair_demand(
     envelope, origin_airport_id, destination_airport_id, *, indexes=None
 ):
-    """Calculate one exact rich Model 3 projection from compact origin facts."""
+    """Calculate one exact rich projection from the active compact model."""
+    if envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("model_version") == MODEL4_DEMAND_MODEL_VERSION:
+        from .model4 import project_model4_pair
+        return project_model4_pair(envelope, origin_airport_id, destination_airport_id, indexes=indexes)
     result = calculate_world_demand(envelope, indexes=indexes)
     if not result.succeeded:
         raise ValueError(result.issues[0].message if result.issues else "demand failed")
-    pair = result.indexes.pair(origin_airport_id, destination_airport_id)
+    model3_indexes = cast(DemandIndexes, result.indexes)
+    pair = model3_indexes.pair(origin_airport_id, destination_airport_id)
     if pair is None:
         raise ValueError("directional pair is not in the eligible demand universe")
     return pair
@@ -797,7 +829,7 @@ def _compose_daily_multipliers(configuration, multipliers=None):
             )
         canonical[category] = value
         numerator *= value
-    with localcontext() as context:
+    with _fixed_decimal_context() as context:
         context.prec = _SCORE_PRECISION
         composed = Decimal(numerator) / (_BPS ** len(DEMAND_MULTIPLIER_CATEGORIES))
     return canonical, composed
@@ -860,7 +892,7 @@ def _cohort_record(envelope, indexes, market_id, cohort_date, multipliers):
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")
-    with localcontext() as context:
+    with _fixed_decimal_context() as context:
         context.prec = _SCORE_PRECISION
         expected = pair.base_daily_bookers * composed
         actual = _resolve_fraction(expected, material)
@@ -904,6 +936,11 @@ def resolve_daily_cohort(
     if not isinstance(market_id, str):
         raise ValueError("market_id must be a string")
     _require_valid_world(envelope)
+    if envelope["simulation"]["configuration"]["demand"]["model_version"] == MODEL4_DEMAND_MODEL_VERSION:
+        from .model4 import resolve_model4_daily_cohort
+        return resolve_model4_daily_cohort(
+            envelope, market_id, cohort_date, multipliers=multipliers, indexes=indexes
+        )
     cohort_key = f"{market_id}@{cohort_date}"
     existing = envelope.get("world_state", {}).get("demand_state", {}).get(
         "processed_cohorts", {}
@@ -922,8 +959,9 @@ def resolve_daily_cohort(
     build = calculate_world_demand(candidate, indexes=indexes)
     if not build.succeeded:
         raise ValueError(build.issues[0].message if build.issues else "demand failed")
+    model3_indexes = cast(DemandIndexes, build.indexes)
     record = _cohort_record(
-        candidate, build.indexes, market_id, cohort_date, multipliers
+        candidate, model3_indexes, market_id, cohort_date, multipliers
     )
     candidate["world_state"]["demand_state"]["processed_cohorts"][
         cohort_key
@@ -965,16 +1003,20 @@ def resolve_world_daily_cohorts(
         return WorldCohortResult(
             "REJECTED", cohort_date, issues=_validation_issues(validation)
         )
+    if envelope["simulation"]["configuration"]["demand"]["model_version"] == MODEL4_DEMAND_MODEL_VERSION:
+        from .model4 import reject_model4_world_cohorts
+        return reject_model4_world_cohorts(envelope, cohort_date)
     candidate = deepcopy(envelope)
     build = calculate_world_demand(candidate, indexes=indexes)
     if not build.succeeded:
         return WorldCohortResult(
             "REJECTED", cohort_date, issues=build.issues
         )
+    model3_indexes = cast(DemandIndexes, build.indexes)
     unknown_markets = [
         key
         for key in multipliers_by_market.keys()
-        if not isinstance(key, str) or key not in build.indexes.by_market
+        if not isinstance(key, str) or key not in model3_indexes.by_market
     ]
     if unknown_markets:
         return WorldCohortResult(
@@ -990,14 +1032,14 @@ def resolve_world_daily_cohorts(
     records = candidate["world_state"]["demand_state"]["processed_cohorts"]
     resolutions = []
     try:
-        for market_id in sorted(build.indexes.by_market):
+        for market_id in sorted(model3_indexes.by_market):
             cohort_key = f"{market_id}@{cohort_date}"
             record = records.get(cohort_key)
             reused = record is not None
             if record is None:
                 payload = _cohort_record(
                     candidate,
-                    build.indexes,
+                    model3_indexes,
                     market_id,
                     cohort_date,
                     multipliers_by_market.get(market_id),
@@ -1069,6 +1111,18 @@ def resolve_active_daily_cohorts(
         return WorldCohortResult(
             "REJECTED", cohort_date, issues=_validation_issues(validation)
         )
+    if envelope["simulation"]["configuration"]["demand"]["model_version"] == MODEL4_DEMAND_MODEL_VERSION:
+        from .model4 import resolve_model4_active_daily_cohorts
+        return resolve_model4_active_daily_cohorts(
+            envelope,
+            cohort_date,
+            multipliers_by_market=multipliers_by_market,
+            indexes=indexes,
+            activation_start_utc=activation_start_utc,
+            activation_end_utc=activation_end_utc,
+            activation_providers=activation_providers,
+            dated_flight_indexes=dated_flight_indexes,
+        )
     simulation_date = envelope["simulation"]["time_utc"][:10]
     if cohort_date != simulation_date:
         return WorldCohortResult(
@@ -1086,6 +1140,7 @@ def resolve_active_daily_cohorts(
     build = calculate_world_demand(candidate, indexes=indexes)
     if not build.succeeded:
         return WorldCohortResult("REJECTED", cohort_date, issues=build.issues)
+    model3_indexes = cast(DemandIndexes, build.indexes)
     try:
         active_market_ids = tuple(
             market_id
@@ -1096,7 +1151,7 @@ def resolve_active_daily_cohorts(
                 providers=activation_providers,
                 dated_flight_indexes=dated_flight_indexes,
             )
-            if market_id in build.indexes.by_market
+            if market_id in model3_indexes.by_market
         )
     except (AttributeError, KeyError, TypeError, ValueError) as exc:
         return WorldCohortResult(
@@ -1131,7 +1186,7 @@ def resolve_active_daily_cohorts(
             if record is None:
                 payload = _cohort_record(
                     candidate,
-                    build.indexes,
+                    model3_indexes,
                     market_id,
                     cohort_date,
                     multipliers_by_market.get(market_id),
@@ -1295,7 +1350,8 @@ def revise_demand_model(
     configuration = candidate["simulation"]["configuration"]["demand"]
     for field, value in configuration_updates.items():
         configuration[field] = deepcopy(value)
-    configuration["model_version"] = DEMAND_MODEL_VERSION
+    active_model = envelope["simulation"]["configuration"]["demand"]["model_version"]
+    configuration["model_version"] = active_model
     configuration["revision"] = new_revision
     airports = candidate["world_state"]["airports"]
     try:
@@ -1328,9 +1384,34 @@ def revise_demand_model(
     demand_state["demand_model_revision"] = new_revision
     demand_state["universe_date"] = target_universe_date
     try:
-        demand_state["input_fingerprint"] = calculate_demand_input_fingerprint(
-            candidate
+        fingerprint_calculator = (
+            calculate_model4_input_fingerprint
+            if active_model == MODEL4_DEMAND_MODEL_VERSION
+            else calculate_demand_input_fingerprint
         )
+        demand_state["input_fingerprint"] = fingerprint_calculator(candidate)
+        if active_model == MODEL4_DEMAND_MODEL_VERSION:
+            travel = configuration["travel_scope_configuration"]
+            market_pack = configuration["market_pack_configuration"]
+            context_id = f"model4-demand-revision-{new_revision}"
+            context_record = {
+                "revision_context_id": context_id,
+                "demand_model_version": MODEL4_DEMAND_MODEL_VERSION,
+                "demand_model_revision": new_revision,
+                "configuration_version": configuration["configuration_version"],
+                "configuration_revision": configuration["revision"],
+                "universe_date": demand_state["universe_date"],
+                "travel_scope_configuration_version": travel["configuration_version"],
+                "travel_scope_revision": travel["revision"],
+                "market_pack_configuration_version": market_pack["configuration_version"],
+                "market_pack_revision": market_pack["revision"],
+                "daily_multiplier_min_bps": configuration["daily_multiplier_min_bps"],
+                "daily_multiplier_max_bps": configuration["daily_multiplier_max_bps"],
+                "country_reference_snapshot_version": travel["reference_snapshot_version"],
+                "model4_input_fingerprint": demand_state["input_fingerprint"],
+            }
+            context_record["context_fingerprint"] = calculate_model4_revision_context_fingerprint(context_record)
+            demand_state["model4_revision_contexts"][context_id] = context_record
     except (TypeError, ValueError) as exc:
         return DemandRevisionResult(
             "REJECTED",

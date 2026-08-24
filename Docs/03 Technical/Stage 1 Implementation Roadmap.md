@@ -467,14 +467,51 @@ deferred in full to Milestone 5.
 
 ### Explicit deferrals
 
-- 4.5B-2: numerical travel-scope allocation, country gravity, pure region
-  amounts, country-local airport allocation, Model 4 cohorts, and atomic Model
-  3-to-4 activation.
 - 4.5B-3: global airport-pack data, materialization, enable, disable, and
   re-enable lifecycle.
 - Milestone 5 and later: Booking checkpoints, reservations, connecting
   itineraries, operations, finance, save/reload orchestration, and history
   compaction.
+
+## Milestone 4.5B-2 — Model 4 Travel-Scope Demand
+
+### Implemented contract
+
+- An explicit detached, expected-revision command atomically records Model 3's
+  terminal revision, advances once, activates Model 4, fingerprints the full
+  input, creates the first revision context, derives the candidate, validates
+  it, and only then commits. Missing hierarchy inputs are rejected rather than
+  inferred; migration, loading, and validation never activate the model.
+- The exact 6500/2500/1000 profile conserves each origin pool through scope,
+  effective-country, pure-region, and country-local airport layers. Fixed
+  50-digit Decimal arithmetic and deterministic greatest-score/immutable-ID
+  residual rules apply. Empty scopes, unmaterialized countries, and unavailable
+  airport leaves remain latent without redistribution.
+- Country gravity uses country population, quantized centroid distance,
+  attractiveness, and relationship coefficients. Airport allocation uses only
+  airport population, the committed distance curve, and destination type.
+  Region amounts are sums only. A materialized pair baseline is its airport leaf.
+- Compact derived indexes retain per-origin scope/country facts and one airport
+  normalization summary per detailed country; rich hierarchy and pair values
+  are reconstructed on demand and returned detached. Their source witness pins
+  lineage, demand revision/input fingerprint, market identities, and the Model
+  4 index contract.
+- New outcomes use `MODEL4_TRAVEL_SCOPE_COHORT_V1`, reference their current
+  `STAGE1_DEMAND_REVISION_CONTEXT_SHA256_JSON_V1` context, and use the V2 cohort
+  witness. Existing V1 or V2 market/date wrappers are checked before derivation
+  and returned unchanged. Active processing remains current-day and sparse;
+  whole-world marker creation is rejected under Model 4.
+- The active-day projection exposes the date, demand and pack revisions, sorted
+  active market IDs, exact baselines, canonical daily multipliers, and integer
+  intent. It creates no Booking, reservation, capacity, operations, or finance
+  state.
+
+### Remaining 4.5B-3 work
+
+Global pack data, catalog-to-world materialization, airport addition, pack
+enable/disable/re-enable commands, and pack lifecycle validation remain wholly
+deferred. The present derivation consumes only existing authoritative country
+and airport allocation membership.
 
 ## Milestone 5 — Booking Pipeline
 

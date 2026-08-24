@@ -1128,8 +1128,71 @@ The first context and terminal Model 3 revision belong to the later atomic
 4.5B-2 activation.
 
 Travel-scope numerical allocation, country gravity, region aggregation amounts,
-country-local airport allocation, and Model 4 cohort creation are deferred to
-4.5B-2. Pack materialization and enable/disable/re-enable lifecycle are deferred
+country-local airport allocation, and Model 4 cohort creation are implemented
+by 4.5B-2 as specified below. Pack materialization and
+enable/disable/re-enable lifecycle are deferred
 to 4.5B-3. Booking checkpoints, reservations, connections, operations, finance,
 save/reload orchestration, and history compaction remain deferred to their
 approved later milestones.
+
+## 32. Milestone 4.5B-2 Model 4 numerical reconciliation
+
+Model 4 is entered only through `activate_model4(envelope,
+expected_revision=...)`. The command validates the source, gives any custom
+activation provider a detached candidate, requires complete schema-2 country
+population/centroid and airport-membership inputs, records Model 3's terminal
+revision, increments once, creates and fingerprints the current revision
+context, derives and validates the complete candidate, and then commits. Every
+rejection leaves the source byte-equivalent. Repeated activation is invalid.
+
+For origin country `h` in region `r`, the domestic scope contains `h`, the
+home-region-international scope contains effective countries in `r` except
+`h`, and rest-of-world contains effective countries outside `r`. Effectiveness
+uses the context's pinned universe date and does not consult pack status. The
+configured non-negative three-scope weights total exactly 10000. Scope amounts
+use the fixed 50-digit context; the greatest-weight scope receives the exact
+pool-minus-other-scopes residual, with canonical scope code as tie-breaker.
+Empty international scope amounts remain latent.
+
+Domestic allocation assigns the complete domestic amount to `h`. Each
+international scope scores its countries as:
+
+```text
+sqrt(country population / 1000000)
+* 1 / (1 + centroid distance km / distance_scale_km)
+* demand_attractiveness_bps / 10000
+* relationship_weight_bps / 10000
+```
+
+Coordinates are authoritative integer microdegrees. Haversine trigonometry is
+the only binary-float calculation and its result is half-even quantized to
+0.001 km before Decimal use. Each scope conserves exactly; the greatest raw
+score receives the residual and greatest immutable country ID breaks exact
+ties. Region amounts are exact country sums and never affect allocation.
+
+Inside a country, every allocation-member airport other than the origin uses
+`sqrt(airport population / 1000000)`, the committed rational airport-distance
+weight, and committed destination-type weight. Country population, centroid,
+geography, attractiveness, and relationship are not repeated. The greatest
+airport score receives the residual with greatest immutable airport ID as the
+tie-breaker. Closed, unavailable, and pack-disabled members retain latent
+leaves. Countries without member airports and scopes without countries retain
+their complete latent amounts. The destination leaf of a materialized
+directional market is its exact `BaseDailyBookers`.
+
+Model 4 indexes are runtime-only compact reconstruction summaries. Their
+source witness covers lineage, demand revision, Model 4 input fingerprint,
+market identities, and index contract. Projections for origin, scope, country,
+region, airport, latent totals, and pair baseline/share are detached.
+
+One processed-cohort keyspace remains. Resolution validates authority and
+checks the market/date key before derivation, then dispatches reuse by wrapper
+contract. V1 Model 3 payload bytes and fingerprints never change. New Model 4
+markers reference their revision context, use
+`MODEL4_TRAVEL_SCOPE_COHORT_V1` and
+`STAGE1_DEMAND_COHORT_SHA256_JSON_V2`, and use a keyed draw covering the stable
+model/configuration/travel-scope/universe versions, market, date, multipliers,
+world seed, and purpose. Mutable revision, pack status, UI, route, schedule,
+fare, and capacity are excluded. Whole-world marker creation is rejected for
+active Model 4; current-day active-service processing remains the only creation
+path. Booking and 4.5B-3 pack lifecycle remain deferred.

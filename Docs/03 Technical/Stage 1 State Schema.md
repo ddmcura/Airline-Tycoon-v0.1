@@ -194,7 +194,7 @@ wrapper payload is preserved field-for-field and its
 `STAGE1_DEMAND_COHORT_SHA256_JSON_V1` input excludes the wrapper. Historical
 configuration or universe metadata is never fabricated. Model 4 contexts have
 version and revision references, a pinned universe date, an input fingerprint,
-and `STAGE1_MODEL4_REVISION_CONTEXT_SHA256_JSON_V1` witness. The Model 4 cohort
+and `STAGE1_DEMAND_REVISION_CONTEXT_SHA256_JSON_V1` witness. The Model 4 cohort
 contract uses `STAGE1_DEMAND_COHORT_SHA256_JSON_V2`, but no Model 4 context or
 cohort may exist while Model 3 is active.
 
@@ -204,6 +204,61 @@ outcomes. `model3_terminal_demand_revision` remains null and
 `model4_revision_contexts` remains empty. No production command can activate
 Model 4. The first context and terminal Model 3 revision are committed only in
 the later atomic 4.5B-2 activation.
+
+### Milestone 4.5B-2 Model 4 travel-scope contract
+
+Schema-2 countries may omit `population`, `centroid_latitude_microdegrees`, and
+`centroid_longitude_microdegrees` while Model 3 remains active. Migration never
+infers them from airport records. Atomic Model 4 activation requires every
+country to supply a positive integer population and valid integer microdegree
+centroid coordinates; the values then become continuation-critical demand
+authority covered by the Model 4 input and revision-context witnesses.
+
+Activation operates on a detached candidate, requires the current demand
+revision, sets `model3_terminal_demand_revision` to that revision, advances the
+demand revision once, changes the active model to 4, and creates exactly one
+context for the new revision. The context pins model/configuration,
+travel-scope, universe date, market-pack, multiplier-bound, and complete demand
+input witnesses. Loading, validation, migration, and Model 3 processing never
+activate Model 4 implicitly.
+
+For each allocation-member origin, `OriginDailyBookingPool` remains origin
+population multiplied by `daily_booker_rate_ppm / 1000000`. The exact pool is
+split by the configured `DOMESTIC`, `HOME_REGION_INTERNATIONAL`, and
+`REST_OF_WORLD_INTERNATIONAL` basis-point profile. The residual scope is the
+greatest-weight scope, with canonical scope code breaking ties. An empty
+international scope remains latent.
+
+The domestic country receives its whole scope. Within either international
+scope, effective countries are normalized by
+`sqrt(country population / 1000000) * (1 / (1 + centroid distance km /
+distance_scale_km)) * attractiveness / 10000 * relationship / 10000`.
+Haversine distance alone uses binary float and is half-even quantized to
+`0.001` km before fixed 50-digit Decimal arithmetic. The residual country is
+the greatest raw score, with the greatest immutable country ID breaking exact
+ties. Region values are exact sums of country values and have no independent
+weight or residual rule.
+
+Each detailed country amount is normalized only over that country's
+allocation-member airports other than the origin using the committed airport
+population, distance, and destination-type factors. No country or geography
+factor is repeated. The residual airport is the greatest raw score, with the
+greatest immutable airport ID breaking exact ties. Closed, unavailable, or
+pack-disabled members retain their leaf as latent; values are not redistributed.
+The materialized directional-pair baseline is its destination airport leaf.
+Available and unavailable materialized leaves, latent detailed-country leaves,
+latent unmaterialized countries, and empty-scope amounts conserve the complete
+origin pool exactly.
+
+Model 4 runtime indexes and hierarchical projections are derived, detached,
+and excluded from persistence. New Model 4 processed cohorts use
+`MODEL4_TRAVEL_SCOPE_COHORT_V1` and
+`STAGE1_DEMAND_COHORT_SHA256_JSON_V2`, reference the matching revision context,
+and coexist with byte-preserved Model 3 wrappers in the one market/date
+keyspace. Existing valid wrappers are always reused according to their own
+contract. The unrestricted whole-world compatibility cohort command is not
+supported while Model 4 is active; only prospective active-market processing
+may create new Model 4 markers.
 
 ## Entity records
 
@@ -221,7 +276,8 @@ region (schema 2)
 country (schema 2)
   country_id, region_id, external_reference_code, display_name,
   effective_from_date, effective_until_date, demand_attractiveness_bps,
-  relationship_weight_bps
+  relationship_weight_bps, population, centroid_latitude_microdegrees,
+  centroid_longitude_microdegrees
 
 airline
   airline_id, display_name, base_currency, control_type (PLAYER|AI), owner_type

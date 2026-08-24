@@ -29,6 +29,16 @@ from .model import (
     resolve_world_daily_cohorts,
     revise_demand_model,
 )
+from .model4 import (
+    Model4ActivationResult,
+    Model4ActiveDayResult,
+    Model4ActiveMarketIntent,
+    Model4DemandIndexes,
+    activate_model4,
+    project_model4_origin,
+    project_model4_pair,
+    rebuild_model4_indexes,
+)
 
 __all__ = (
     "ActivationWindow",
@@ -42,6 +52,11 @@ __all__ = (
     "OriginDemandNormalization",
     "PairDemand",
     "WorldCohortResult",
+    "Model4ActivationResult",
+    "Model4ActiveDayResult",
+    "Model4ActiveMarketIntent",
+    "Model4DemandIndexes",
+    "activate_model4",
     "calculate_origin_daily_booking_pool",
     "calculate_pair_demand",
     "calculate_raw_pair_score",
@@ -50,6 +65,9 @@ __all__ = (
     "discover_active_market_ids",
     "eligible_airport_ids",
     "get_base_daily_bookers",
+    "project_model4_origin",
+    "project_model4_pair",
+    "rebuild_model4_indexes",
     "rebuild_demand_indexes",
     "recalculate_origin_demand",
     "resolve_daily_cohort",

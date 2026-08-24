@@ -10,6 +10,7 @@ from .ids import parse_entity_id
 from .demand_fingerprint import (
     calculate_demand_cohort_fingerprint,
     calculate_demand_input_fingerprint,
+    calculate_model4_input_fingerprint,
     calculate_model4_cohort_fingerprint,
     calculate_model4_revision_context_fingerprint,
 )
@@ -31,6 +32,7 @@ from .schema import (
     MARKET_PACK_CONFIGURATION_CONTRACT,
     MAX_ENTITY_ID_NUMBER,
     MODEL3_PROCESSED_COHORT_V1,
+    MODEL4_DEMAND_MODEL_VERSION,
     MODEL4_TRAVEL_SCOPE_COHORT_V1,
     PASSENGER_SERVICE_CLASSIFICATIONS,
     PENDING_EVENT_STATUS,
@@ -303,11 +305,15 @@ class _Validator:
             "revision_context_id",
             "demand_model_version",
             "demand_model_revision",
+            "configuration_version",
+            "configuration_revision",
             "universe_date",
             "travel_scope_configuration_version",
             "travel_scope_revision",
             "market_pack_configuration_version",
             "market_pack_revision",
+            "daily_multiplier_min_bps",
+            "daily_multiplier_max_bps",
             "country_reference_snapshot_version",
             "model4_input_fingerprint",
             "context_fingerprint",
@@ -323,13 +329,25 @@ class _Validator:
                 self.add("id_key_mismatch", f"{path}.revision_context_id", "must equal the collection key")
             if context.get("demand_model_version") != 4 or isinstance(context.get("demand_model_version"), bool):
                 self.add("invalid_model4_revision_context", f"{path}.demand_model_version", "must equal 4")
-            for field in ("demand_model_revision", "travel_scope_revision", "market_pack_revision"):
+            for field in ("demand_model_revision", "configuration_revision", "travel_scope_revision", "market_pack_revision"):
                 value = context.get(field)
                 if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                     self.add("invalid_model4_revision_context", f"{path}.{field}", "must be a positive integer")
+            minimum = context.get("daily_multiplier_min_bps")
+            maximum = context.get("daily_multiplier_max_bps")
+            if (
+                isinstance(minimum, bool)
+                or not isinstance(minimum, int)
+                or minimum < 0
+                or isinstance(maximum, bool)
+                or not isinstance(maximum, int)
+                or maximum < minimum
+            ):
+                self.add("invalid_model4_revision_context", path, "multiplier bounds must be ordered non-negative integers")
             if not _local_date(context.get("universe_date")):
                 self.add("invalid_local_date", f"{path}.universe_date", "must be canonical YYYY-MM-DD")
             for field in (
+                "configuration_version",
                 "travel_scope_configuration_version",
                 "market_pack_configuration_version",
                 "country_reference_snapshot_version",
@@ -356,6 +374,8 @@ class _Validator:
             "cohort_date",
             "demand_model_revision",
             "revision_context_id",
+            "daily_multipliers_bps",
+            "composite_multiplier_ppm",
             "travel_scope_bookers",
             "actual_daily_bookers",
             "rounding_policy",
@@ -392,6 +412,44 @@ class _Validator:
             value = payload.get(field)
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 self.add("invalid_demand_cohort", f"{path}.payload.{field}", "must be a non-negative integer", "demand_cohort", str(cohort_key))
+        multipliers = self.require_mapping(payload.get("daily_multipliers_bps"), f"{path}.payload.daily_multipliers_bps")
+        if tuple(multipliers) != DEMAND_MULTIPLIER_CATEGORIES:
+            self.add("invalid_demand_multipliers", f"{path}.payload.daily_multipliers_bps", "must contain the canonical multiplier categories in order", "demand_cohort", str(cohort_key))
+        context = contexts.get(context_id) if isinstance(context_id, str) else None
+        minimum = context.get("daily_multiplier_min_bps") if isinstance(context, dict) else None
+        maximum = context.get("daily_multiplier_max_bps") if isinstance(context, dict) else None
+        valid_multipliers = tuple(multipliers) == DEMAND_MULTIPLIER_CATEGORIES
+        for category, value in multipliers.items():
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or not isinstance(minimum, int)
+                or isinstance(minimum, bool)
+                or not isinstance(maximum, int)
+                or isinstance(maximum, bool)
+                or value < minimum
+                or value > maximum
+            ):
+                valid_multipliers = False
+                self.add("invalid_demand_multipliers", f"{path}.payload.daily_multipliers_bps.{category}", "must be an integer basis-point value within its revision context bounds", "demand_cohort", str(cohort_key))
+        composite = payload.get("composite_multiplier_ppm")
+        if isinstance(composite, bool) or not isinstance(composite, int) or composite < 0:
+            self.add("invalid_demand_cohort", f"{path}.payload.composite_multiplier_ppm", "must be a non-negative integer", "demand_cohort", str(cohort_key))
+        elif valid_multipliers:
+            numerator = reduce(
+                mul,
+                (multipliers[category] for category in DEMAND_MULTIPLIER_CATEGORIES),
+                1,
+            ) * 1_000_000
+            denominator = 10_000 ** len(DEMAND_MULTIPLIER_CATEGORIES)
+            expected_composite, remainder = divmod(numerator, denominator)
+            comparison = remainder * 2 - denominator
+            if comparison > 0 or (
+                comparison == 0 and expected_composite % 2 == 1
+            ):
+                expected_composite += 1
+            if composite != expected_composite:
+                self.add("inconsistent_demand_cohort", f"{path}.payload.composite_multiplier_ppm", "must be the half-even parts-per-million composition of the stored multipliers", "demand_cohort", str(cohort_key))
         if payload.get("rounding_policy") != DEMAND_ROUNDING_POLICY:
             self.add("invalid_demand_rounding_policy", f"{path}.payload.rounding_policy", f"must equal {DEMAND_ROUNDING_POLICY}", "demand_cohort", str(cohort_key))
         try:
@@ -502,13 +560,18 @@ class _Validator:
                 f"$.simulation.configuration.demand.{field}",
                 "field is not part of the Stage 1 demand configuration",
             )
-        if demand_configuration.get("model_version") != DEMAND_MODEL_VERSION or isinstance(
+        supported_models = (
+            {DEMAND_MODEL_VERSION, MODEL4_DEMAND_MODEL_VERSION}
+            if self.schema_version == 2
+            else {DEMAND_MODEL_VERSION}
+        )
+        if demand_configuration.get("model_version") not in supported_models or isinstance(
             demand_configuration.get("model_version"), bool
         ):
             self.add(
                 "unsupported_demand_model",
                 "$.simulation.configuration.demand.model_version",
-                f"must equal {DEMAND_MODEL_VERSION}",
+                f"must be one of {sorted(supported_models)}",
             )
         self.require_text(
             demand_configuration,
@@ -772,6 +835,9 @@ class _Validator:
                     "effective_until_date",
                     "demand_attractiveness_bps",
                     "relationship_weight_bps",
+                    "population",
+                    "centroid_latitude_microdegrees",
+                    "centroid_longitude_microdegrees",
                 }
                 for field in sorted(set(record) - allowed, key=repr):
                     self.add("unknown_authoritative_field", f"{path}.{field}", "field is not part of the immutable country schema", "country", country_id)
@@ -794,14 +860,26 @@ class _Validator:
                 effective_until = record.get("effective_until_date")
                 if _local_date(effective_from) and _local_date(effective_until) and effective_until <= effective_from:
                     self.add("invalid_effective_window", path, "effective_until_date must follow effective_from_date", "country", country_id)
+                active_model = self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("model_version")
                 for field in ("demand_attractiveness_bps", "relationship_weight_bps"):
                     value = record.get(field)
                     if (
                         isinstance(value, bool)
                         or not isinstance(value, int)
-                        or value != 10_000
+                        or value <= 0
+                        or (active_model == DEMAND_MODEL_VERSION and value != 10_000)
                     ):
-                        self.add("invalid_country_demand_field", f"{path}.{field}", "must remain the neutral integer basis-point value 10000 in 4.5B-1", "country", country_id)
+                        self.add("invalid_country_demand_field", f"{path}.{field}", "must be a positive integer basis-point value (neutral 10000 while Model 3 is active)", "country", country_id)
+                population = record.get("population")
+                latitude = record.get("centroid_latitude_microdegrees")
+                longitude = record.get("centroid_longitude_microdegrees")
+                required = active_model == MODEL4_DEMAND_MODEL_VERSION
+                if (population is not None or required) and (isinstance(population, bool) or not isinstance(population, int) or population <= 0):
+                    self.add("invalid_country_demand_field", f"{path}.population", "must be a positive integer for Model 4", "country", country_id)
+                if (latitude is not None or required) and (isinstance(latitude, bool) or not isinstance(latitude, int) or not -90_000_000 <= latitude <= 90_000_000):
+                    self.add("invalid_country_demand_field", f"{path}.centroid_latitude_microdegrees", "must be a valid integer microdegree latitude for Model 4", "country", country_id)
+                if (longitude is not None or required) and (isinstance(longitude, bool) or not isinstance(longitude, int) or not -180_000_000 <= longitude <= 180_000_000):
+                    self.add("invalid_country_demand_field", f"{path}.centroid_longitude_microdegrees", "must be a valid integer microdegree longitude for Model 4", "country", country_id)
 
             overrides = self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("travel_scope_configuration", {}).get("country_overrides", {})
             if type(overrides) is dict:
@@ -2139,9 +2217,13 @@ class _Validator:
             )
         else:
             try:
-                expected_fingerprint = calculate_demand_input_fingerprint(
-                    self.envelope
+                active_model = self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("model_version")
+                fingerprint_calculator = (
+                    calculate_model4_input_fingerprint
+                    if active_model == MODEL4_DEMAND_MODEL_VERSION
+                    else calculate_demand_input_fingerprint
                 )
+                expected_fingerprint = fingerprint_calculator(self.envelope)
             except (KeyError, OverflowError, RecursionError, TypeError, ValueError):
                 expected_fingerprint = None
                 self.add(
@@ -2168,11 +2250,61 @@ class _Validator:
         if self.schema_version == 2:
             if demand.get("processed_cohort_schema_version") != PROCESSED_COHORT_SCHEMA_VERSION or isinstance(demand.get("processed_cohort_schema_version"), bool):
                 self.add("invalid_processed_cohort_schema_version", "$.world_state.demand_state.processed_cohort_schema_version", f"must equal {PROCESSED_COHORT_SCHEMA_VERSION}", "demand")
-            if demand.get("model3_terminal_demand_revision") is not None:
-                self.add("premature_model4_activation", "$.world_state.demand_state.model3_terminal_demand_revision", "must remain null until the atomic Model 3 to Model 4 activation", "demand")
             contexts = self._validate_model4_revision_contexts(demand)
-            if contexts:
-                self.add("premature_model4_activation", "$.world_state.demand_state.model4_revision_contexts", "must remain empty while active demand model version is 3", "demand")
+            active_model = self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("model_version")
+            terminal = demand.get("model3_terminal_demand_revision")
+            if active_model == DEMAND_MODEL_VERSION:
+                if terminal is not None:
+                    self.add("premature_model4_activation", "$.world_state.demand_state.model3_terminal_demand_revision", "must remain null while Model 3 is active", "demand")
+                if contexts:
+                    self.add("premature_model4_activation", "$.world_state.demand_state.model4_revision_contexts", "must remain empty while Model 3 is active", "demand")
+            elif active_model == MODEL4_DEMAND_MODEL_VERSION:
+                if isinstance(terminal, bool) or not isinstance(terminal, int) or terminal < 1 or not isinstance(demand_revision, int) or terminal >= demand_revision:
+                    self.add("inconsistent_demand_revision", "$.world_state.demand_state.model3_terminal_demand_revision", "must identify a positive terminal Model 3 revision before the current Model 4 revision", "demand")
+                    self.add("unsupported_demand_model", "$.simulation.configuration.demand.model_version", "Model 4 must be entered through the atomic activation boundary", "demand")
+                else:
+                    context_revisions = [
+                        context.get("demand_model_revision")
+                        for context in contexts.values()
+                        if isinstance(context, dict)
+                    ]
+                    valid_context_revisions = [
+                        revision
+                        for revision in context_revisions
+                        if isinstance(revision, int) and not isinstance(revision, bool)
+                    ]
+                    expected_revisions = list(range(terminal + 1, demand_revision + 1))
+                    if (
+                        len(valid_context_revisions) != len(context_revisions)
+                        or sorted(valid_context_revisions) != expected_revisions
+                    ):
+                        self.add("invalid_model4_revision_context", "$.world_state.demand_state.model4_revision_contexts", "must contain exactly one context for every Model 4 demand revision and no other revisions", "demand")
+                current_contexts = [context for context in contexts.values() if isinstance(context, dict) and context.get("demand_model_revision") == demand_revision]
+                if len(current_contexts) != 1:
+                    self.add("invalid_model4_revision_context", "$.world_state.demand_state.model4_revision_contexts", "must contain exactly one context for the current Model 4 revision", "demand")
+                elif current_contexts[0].get("model4_input_fingerprint") != demand.get("input_fingerprint"):
+                    self.add("inconsistent_demand_fingerprint", "$.world_state.demand_state.model4_revision_contexts", "current revision context must reference the current Model 4 input fingerprint", "demand")
+                else:
+                    current_context = current_contexts[0]
+                    configuration = self.envelope["simulation"]["configuration"]["demand"]
+                    travel = configuration["travel_scope_configuration"]
+                    market_pack = configuration["market_pack_configuration"]
+                    expected_context_values = {
+                        "demand_model_version": MODEL4_DEMAND_MODEL_VERSION,
+                        "configuration_version": configuration["configuration_version"],
+                        "configuration_revision": configuration["revision"],
+                        "universe_date": demand.get("universe_date"),
+                        "travel_scope_configuration_version": travel["configuration_version"],
+                        "travel_scope_revision": travel["revision"],
+                        "market_pack_configuration_version": market_pack["configuration_version"],
+                        "market_pack_revision": market_pack["revision"],
+                        "daily_multiplier_min_bps": configuration["daily_multiplier_min_bps"],
+                        "daily_multiplier_max_bps": configuration["daily_multiplier_max_bps"],
+                        "country_reference_snapshot_version": travel["reference_snapshot_version"],
+                    }
+                    for field, expected in expected_context_values.items():
+                        if current_context.get(field) != expected:
+                            self.add("inconsistent_demand_revision", f"$.world_state.demand_state.model4_revision_contexts.{current_context.get('revision_context_id')}.{field}", "current revision context witness does not match current demand authority", "demand")
         cohorts = self.require_mapping(
             demand.get("processed_cohorts"),
             "$.world_state.demand_state.processed_cohorts",
@@ -2212,7 +2344,8 @@ class _Validator:
                     continue
                 if contract == MODEL4_TRAVEL_SCOPE_COHORT_V1:
                     self._validate_model4_cohort(record, cohort_key, markets, contexts, path)
-                    self.add("premature_model4_activation", path, "Model 4 cohorts cannot exist while Model 3 is active", "demand_cohort", cohort_key)
+                    if self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("model_version") == DEMAND_MODEL_VERSION:
+                        self.add("premature_model4_activation", path, "Model 4 cohorts cannot exist while Model 3 is active", "demand_cohort", cohort_key)
                     continue
                 record = self.require_mapping(record.get("payload"), f"{path}.payload")
                 path = f"{path}.payload"
