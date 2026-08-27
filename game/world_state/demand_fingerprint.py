@@ -3,6 +3,8 @@
 import hashlib
 import json
 
+from .schema import LEGACY_MARKET_PACK_CONFIGURATION_VERSION
+
 
 DEMAND_INPUT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_INPUT_SHA256_JSON_V1"
 DEMAND_COHORT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_COHORT_SHA256_JSON_V1"
@@ -10,6 +12,7 @@ MODEL4_COHORT_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_COHORT_SHA256_JSON_V2"
 MODEL4_REVISION_CONTEXT_FINGERPRINT_CONTRACT = (
     "STAGE1_DEMAND_REVISION_CONTEXT_SHA256_JSON_V1"
 )
+MARKET_PACK_FINGERPRINT_CONTRACT = "STAGE1_MARKET_PACK_CONFIGURATION_SHA256_JSON_V1"
 
 MODEL3_CONFIGURATION_FINGERPRINT_FIELDS = (
     "model_version",
@@ -82,17 +85,89 @@ def calculate_model4_input_fingerprint(envelope):
     """Fingerprint every continuation-critical Model 4 allocation input."""
     state = envelope["world_state"]
     configuration = envelope["simulation"]["configuration"]["demand"]
+    market_pack_configuration = configuration.get("market_pack_configuration", {})
+    if (
+        type(market_pack_configuration) is dict
+        and market_pack_configuration.get("configuration_version")
+        == LEGACY_MARKET_PACK_CONFIGURATION_VERSION
+        and set(market_pack_configuration)
+        == {"contract", "configuration_version", "revision", "market_pack_ids"}
+    ):
+        material = {
+            "fingerprint_contract": "STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V1",
+            "lineage_id": envelope["metadata"]["lineage_id"],
+            "configuration": configuration,
+            "universe_date": state["demand_state"]["universe_date"],
+            "countries": {
+                country_id: state["countries"][country_id]
+                for country_id in sorted(state["countries"])
+            },
+            "airports": {
+                airport_id: state["airports"][airport_id]
+                for airport_id in sorted(state["airports"])
+            },
+            "markets": {
+                market_id: state["directional_markets"][market_id]
+                for market_id in sorted(state["directional_markets"])
+            },
+        }
+        return _fingerprint(material, "Model 4 demand fingerprint")
+    mathematical_configuration = {
+        key: configuration[key]
+        for key in (
+            "model_version",
+            "configuration_version",
+            "revision",
+            "daily_booker_rate_ppm",
+            "distance_scale_km",
+            "destination_type_weight_bps",
+            "same_country_weight_bps",
+            "international_weight_bps",
+            "relationship_weight_bps",
+            "daily_multiplier_min_bps",
+            "daily_multiplier_max_bps",
+            "travel_scope_configuration",
+        )
+    }
+    country_fields = (
+        "country_id",
+        "region_id",
+        "effective_from_date",
+        "effective_until_date",
+        "demand_attractiveness_bps",
+        "relationship_weight_bps",
+        "population",
+        "centroid_latitude_microdegrees",
+        "centroid_longitude_microdegrees",
+        "airport_allocation_revision",
+    )
+    airport_fields = (
+        "airport_id",
+        "country_id",
+        "demand_allocation_member",
+        "population",
+        "latitude_microdegrees",
+        "longitude_microdegrees",
+        "demand_destination_type",
+        "demand_input_revision",
+    )
     material = {
         "fingerprint_contract": "STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V1",
         "lineage_id": envelope["metadata"]["lineage_id"],
-        "configuration": configuration,
+        "configuration": mathematical_configuration,
         "universe_date": state["demand_state"]["universe_date"],
         "countries": {
-            country_id: state["countries"][country_id]
+            country_id: {
+                field: state["countries"][country_id].get(field)
+                for field in country_fields
+            }
             for country_id in sorted(state["countries"])
         },
         "airports": {
-            airport_id: state["airports"][airport_id]
+            airport_id: {
+                field: state["airports"][airport_id].get(field)
+                for field in airport_fields
+            }
             for airport_id in sorted(state["airports"])
         },
         "markets": {
@@ -101,6 +176,27 @@ def calculate_model4_input_fingerprint(envelope):
         },
     }
     return _fingerprint(material, "Model 4 demand fingerprint")
+
+
+def calculate_market_pack_fingerprint(envelope):
+    """Fingerprint pack lifecycle authority without demand normalization state."""
+    configuration = envelope["simulation"]["configuration"]["demand"][
+        "market_pack_configuration"
+    ]
+    material = {
+        "fingerprint_contract": MARKET_PACK_FINGERPRINT_CONTRACT,
+        "configuration": {
+            key: configuration[key]
+            for key in (
+                "contract",
+                "configuration_version",
+                "revision",
+                "market_pack_ids",
+                "market_packs",
+            )
+        },
+    }
+    return _fingerprint(material, "market-pack configuration fingerprint")
 
 
 def calculate_demand_cohort_fingerprint(envelope, cohort_record):

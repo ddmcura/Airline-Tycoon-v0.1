@@ -13,6 +13,7 @@ from .demand_fingerprint import (
     calculate_model4_input_fingerprint,
     calculate_model4_cohort_fingerprint,
     calculate_model4_revision_context_fingerprint,
+    calculate_market_pack_fingerprint,
 )
 from .money import is_minor_amount
 from .schema import (
@@ -29,7 +30,9 @@ from .schema import (
     ENVELOPE_ROOTS,
     ENTITY_COLLECTIONS,
     ENTITY_TYPES,
+    LEGACY_MARKET_PACK_CONFIGURATION_VERSION,
     MARKET_PACK_CONFIGURATION_CONTRACT,
+    MARKET_PACK_STATUSES,
     MAX_ENTITY_ID_NUMBER,
     MODEL3_PROCESSED_COHORT_V1,
     MODEL4_DEMAND_MODEL_VERSION,
@@ -233,8 +236,19 @@ class _Validator:
         market = self.require_mapping(
             demand_configuration.get("market_pack_configuration"), market_path
         )
-        expected_market_fields = {
-            "contract", "configuration_version", "revision", "market_pack_ids"
+        legacy_market_configuration = (
+            market.get("configuration_version")
+            == LEGACY_MARKET_PACK_CONFIGURATION_VERSION
+            and set(market)
+            == {"contract", "configuration_version", "revision", "market_pack_ids"}
+        )
+        expected_market_fields = {"contract", "configuration_version", "revision", "market_pack_ids"} if legacy_market_configuration else {
+            "contract",
+            "configuration_version",
+            "revision",
+            "market_pack_ids",
+            "market_packs",
+            "configuration_fingerprint",
         }
         if set(market) != expected_market_fields:
             self.add(
@@ -248,12 +262,118 @@ class _Validator:
         revision = market.get("revision")
         if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
             self.add("invalid_market_pack_configuration", f"{market_path}.revision", "must be a positive integer")
-        if market.get("market_pack_ids") != []:
-            self.add(
-                "premature_market_pack_activation",
-                f"{market_path}.market_pack_ids",
-                "4.5B-1 supports only the versioned empty pack configuration",
-            )
+        pack_ids = market.get("market_pack_ids")
+        packs = market.get("market_packs", {})
+        if not isinstance(pack_ids, list) or any(
+            not isinstance(pack_id, str) or not pack_id or pack_id != pack_id.strip()
+            for pack_id in pack_ids
+        ) or (all(isinstance(pack_id, str) for pack_id in pack_ids) and pack_ids != sorted(set(pack_ids))):
+            self.add("invalid_market_pack_configuration", f"{market_path}.market_pack_ids", "must be a sorted unique list of non-empty pack IDs")
+            pack_ids = []
+        if type(packs) is not dict:
+            self.add("invalid_market_pack_configuration", f"{market_path}.market_packs", "must be a dictionary keyed by pack ID")
+            packs = {}
+        if set(pack_ids) != set(packs):
+            self.add("invalid_market_pack_configuration", market_path, "market_pack_ids must identify every pack exactly once")
+            if pack_ids and not packs:
+                self.add("premature_market_pack_activation", f"{market_path}.market_pack_ids", "pack IDs cannot be introduced without complete lifecycle authority")
+        countries = self.envelope.get("world_state", {}).get("countries", {})
+        airports = self.envelope.get("world_state", {}).get("airports", {})
+        country_owners = {}
+        reference_owners = {}
+        catalog_owners = {}
+        mapped_airport_owners = {}
+        for pack_id, pack in packs.items():
+            path = f"{market_path}.market_packs.{pack_id}"
+            fields = {
+                "market_pack_id", "country_id", "pack_reference", "pack_version",
+                "status", "status_effective_date", "catalog_airport_ids",
+                "airport_id_by_catalog_id",
+            }
+            if type(pack) is not dict or set(pack) != fields:
+                self.add("invalid_market_pack_configuration", path, f"fields must be exactly {sorted(fields)}")
+                continue
+            if pack.get("market_pack_id") != pack_id:
+                self.add("id_key_mismatch", f"{path}.market_pack_id", "must equal the collection key")
+            country_id = pack.get("country_id")
+            if not isinstance(country_id, str) or country_id not in countries:
+                self.add("invalid_market_pack_configuration", f"{path}.country_id", "must reference an immutable country ID")
+            elif country_id in country_owners:
+                self.add("invalid_market_pack_configuration", f"{path}.country_id", "a country may own only one market pack")
+            else:
+                country_owners[country_id] = pack_id
+            for field in ("pack_reference", "pack_version"):
+                if (
+                    not isinstance(pack.get(field), str)
+                    or not pack[field]
+                    or pack[field] != pack[field].strip()
+                ):
+                    self.add("invalid_market_pack_configuration", f"{path}.{field}", "must be a canonical non-empty string")
+            reference = pack.get("pack_reference")
+            if isinstance(reference, str) and reference:
+                previous = reference_owners.get(reference)
+                if previous is not None:
+                    self.add("invalid_market_pack_configuration", f"{path}.pack_reference", f"pack reference is already owned by {previous}")
+                else:
+                    reference_owners[reference] = pack_id
+            status = pack.get("status")
+            if not isinstance(status, str) or status not in MARKET_PACK_STATUSES:
+                self.add("invalid_market_pack_configuration", f"{path}.status", f"must be one of {sorted(MARKET_PACK_STATUSES)}")
+            effective = pack.get("status_effective_date")
+            if effective is not None and not _local_date(effective):
+                self.add("invalid_market_pack_configuration", f"{path}.status_effective_date", "must be null or canonical YYYY-MM-DD")
+            catalog_ids = pack.get("catalog_airport_ids")
+            mapping = pack.get("airport_id_by_catalog_id")
+            if not isinstance(catalog_ids, list) or any(
+                not isinstance(value, str) or not value or value != value.strip()
+                for value in catalog_ids
+            ) or catalog_ids != sorted(set(catalog_ids)):
+                self.add("invalid_market_pack_configuration", f"{path}.catalog_airport_ids", "must be a sorted unique list of non-empty catalog airport IDs")
+                catalog_ids = []
+            if type(mapping) is not dict or set(mapping) != set(catalog_ids):
+                self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id", "must map every catalog airport ID exactly once")
+                mapping = {}
+            if status == "LATENT" and (catalog_ids or mapping):
+                self.add("invalid_market_pack_configuration", path, "a LATENT pack cannot own materialized airport mappings")
+            if status != "LATENT" and not catalog_ids:
+                self.add("invalid_market_pack_configuration", path, "an ENABLED or DISABLED pack must own at least one airport mapping")
+            for catalog_id, airport_id in mapping.items():
+                previous_catalog = catalog_owners.get(catalog_id)
+                if previous_catalog is not None:
+                    self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id.{catalog_id}", f"catalog airport ID is already owned by {previous_catalog}")
+                else:
+                    catalog_owners[catalog_id] = pack_id
+                if not isinstance(airport_id, str):
+                    previous_airport = None
+                    airport = None
+                    self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id.{catalog_id}", "must reference a materialized airport")
+                else:
+                    previous_airport = mapped_airport_owners.get(airport_id)
+                    if previous_airport is not None:
+                        self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id.{catalog_id}", f"world airport is already owned by {previous_airport}")
+                    else:
+                        mapped_airport_owners[airport_id] = pack_id
+                    airport = airports.get(airport_id) if isinstance(airports, dict) else None
+                if isinstance(airport_id, str) and type(airport) is not dict:
+                    self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id.{catalog_id}", "must reference a materialized airport")
+                elif type(airport) is dict and airport.get("country_id") != country_id:
+                    self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id.{catalog_id}", "mapped airport must belong to the pack country")
+                elif type(airport) is dict and airport.get("demand_allocation_member") is not True:
+                    self.add("invalid_market_pack_configuration", f"{path}.airport_id_by_catalog_id.{catalog_id}", "mapped airport must be an allocation member")
+        if legacy_market_configuration:
+            if pack_ids != []:
+                self.add("premature_market_pack_activation", f"{market_path}.market_pack_ids", "legacy pack configuration must remain empty until atomic materialization")
+        else:
+            fingerprint = market.get("configuration_fingerprint")
+            if not isinstance(fingerprint, str) or len(fingerprint) != 64 or any(character not in "0123456789abcdef" for character in fingerprint):
+                self.add("invalid_market_pack_configuration", f"{market_path}.configuration_fingerprint", "must be lowercase SHA-256 text")
+            else:
+                try:
+                    expected_fingerprint = calculate_market_pack_fingerprint(self.envelope)
+                except (KeyError, OverflowError, RecursionError, TypeError, ValueError):
+                    expected_fingerprint = None
+                if fingerprint != expected_fingerprint:
+                    self.add("inconsistent_pack_fingerprint", f"{market_path}.configuration_fingerprint", "stored pack configuration does not match its witness")
 
         travel_path = "$.simulation.configuration.demand.travel_scope_configuration"
         travel = self.require_mapping(
@@ -838,6 +958,7 @@ class _Validator:
                     "population",
                     "centroid_latitude_microdegrees",
                     "centroid_longitude_microdegrees",
+                    "airport_allocation_revision",
                 }
                 for field in sorted(set(record) - allowed, key=repr):
                     self.add("unknown_authoritative_field", f"{path}.{field}", "field is not part of the immutable country schema", "country", country_id)
@@ -874,6 +995,17 @@ class _Validator:
                 latitude = record.get("centroid_latitude_microdegrees")
                 longitude = record.get("centroid_longitude_microdegrees")
                 required = active_model == MODEL4_DEMAND_MODEL_VERSION
+                allocation_revision = record.get("airport_allocation_revision")
+                legacy_pack = self.envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("market_pack_configuration", {}).get("configuration_version") == LEGACY_MARKET_PACK_CONFIGURATION_VERSION
+                if (
+                    not legacy_pack
+                    and (
+                        isinstance(allocation_revision, bool)
+                        or not isinstance(allocation_revision, int)
+                        or allocation_revision < 1
+                    )
+                ):
+                    self.add("invalid_country_demand_field", f"{path}.airport_allocation_revision", "must be a positive integer", "country", country_id)
                 if (population is not None or required) and (isinstance(population, bool) or not isinstance(population, int) or population <= 0):
                     self.add("invalid_country_demand_field", f"{path}.population", "must be a positive integer for Model 4", "country", country_id)
                 if (latitude is not None or required) and (isinstance(latitude, bool) or not isinstance(latitude, int) or not -90_000_000 <= latitude <= 90_000_000):
@@ -2296,8 +2428,6 @@ class _Validator:
                         "universe_date": demand.get("universe_date"),
                         "travel_scope_configuration_version": travel["configuration_version"],
                         "travel_scope_revision": travel["revision"],
-                        "market_pack_configuration_version": market_pack["configuration_version"],
-                        "market_pack_revision": market_pack["revision"],
                         "daily_multiplier_min_bps": configuration["daily_multiplier_min_bps"],
                         "daily_multiplier_max_bps": configuration["daily_multiplier_max_bps"],
                         "country_reference_snapshot_version": travel["reference_snapshot_version"],

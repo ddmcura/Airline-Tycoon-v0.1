@@ -639,6 +639,19 @@ is the future Booking boundary's input, not Booking state: it contains exact
 baselines, multipliers, revisions, active IDs, and resolved integer intent but
 does not choose itineraries, reserve capacity, or post money.
 
-4.5B-3 still owns global airport-pack data and the complete materialization,
-enable, disable, and re-enable lifecycle. Milestone 5 still owns Booking
-checkpoints, desired travel dates, itinerary choice, and reservations.
+## Milestone 4.5B-3 architecture boundary
+
+Country packs now own stable external-catalog-to-world-airport mappings and an
+independent revision and witness. First materialization alone changes
+allocation membership, so it advances demand and country-allocation revisions;
+disable and re-enable affect only prospective selection and the pack witness.
+All commands preserve immutable world identity and historical authority.
+
+Availability is separate from membership. Closed or disabled leaves remain
+latent without redistribution. Both endpoint packs and airports must currently
+be enabled/available, and Scheduling must expose qualifying traceable direct
+passenger service, before Demand creates current-day intent. Historical markers
+remain valid and no re-enable backlog is generated.
+
+Milestone 5 still owns Booking checkpoints, desired travel dates, itinerary
+choice, reservations, capacity commitment, operations, and finance.

@@ -4,7 +4,10 @@ from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
 
-from .demand_fingerprint import calculate_demand_input_fingerprint
+from .demand_fingerprint import (
+    calculate_demand_input_fingerprint,
+    calculate_market_pack_fingerprint,
+)
 from .ids import parse_entity_id
 from .schema import (
     DEFAULT_MARKET_PACK_CONFIGURATION,
@@ -189,6 +192,8 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
     candidate["metadata"]["save_schema_version"] = 2
     state["regions"] = regions
     state["countries"] = countries
+    for country in state["countries"].values():
+        country["airport_allocation_revision"] = 1
     for airport_id, country_id in mappings.items():
         airports[airport_id]["country_id"] = country_id
         airports[airport_id]["demand_allocation_member"] = members[airport_id]
@@ -206,6 +211,9 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
     configuration["market_pack_configuration"] = deepcopy(
         DEFAULT_MARKET_PACK_CONFIGURATION
     )
+    configuration["market_pack_configuration"][
+        "configuration_fingerprint"
+    ] = calculate_market_pack_fingerprint(candidate)
     travel_scope = deepcopy(DEFAULT_TRAVEL_SCOPE_CONFIGURATION)
     travel_scope["reference_snapshot_version"] = snapshot["snapshot_version"]
     configuration["travel_scope_configuration"] = travel_scope

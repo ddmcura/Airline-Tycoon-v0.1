@@ -154,7 +154,9 @@ simulation.configuration.demand
 │   ├── contract: MARKET_PACK_CONFIGURATION_V1
 │   ├── configuration_version: non-empty version
 │   ├── revision: positive integer
-│   └── market_pack_ids: []
+│   ├── market_pack_ids: sorted unique pack IDs
+│   ├── market_packs: {market_pack_id: country pack lifecycle record}
+│   └── configuration_fingerprint: lowercase SHA-256 witness
 └── travel_scope_configuration
     ├── policy: ORIGIN_COUNTRY_TRAVEL_SCOPE_ENVELOPE_V1
     ├── configuration_version: non-empty version
@@ -260,6 +262,46 @@ contract. The unrestricted whole-world compatibility cohort command is not
 supported while Model 4 is active; only prospective active-market processing
 may create new Model 4 markers.
 
+### Milestone 4.5B-3 country market-pack lifecycle
+
+`market_pack_configuration` now persists a sorted `market_pack_ids` list, a
+matching `market_packs` mapping, and a
+`STAGE1_MARKET_PACK_CONFIGURATION_SHA256_JSON_V1` witness. Each pack owns its
+immutable country, canonical reference and version, `LATENT|ENABLED|DISABLED` status,
+nullable canonical status date, sorted catalog IDs, and the complete stable
+catalog-ID-to-world-airport-ID mapping. External catalog and pack identifiers
+are never foreign keys outside this mapping.
+
+Materialization catalog records are exact dictionaries containing catalog ID,
+reference code, display name, timezone, positive population, integer
+microdegree coordinates, and destination type. They may additionally assert
+the matching country identity and canonical opening/closing dates; aliases and
+unknown fields are rejected rather than normalized into authority.
+Once Model 4 is active, the country-pack materialization command is the only
+airport-addition boundary; the legacy single-airport construction API rejects
+instead of bypassing pack mappings and revision ownership.
+Committed schema-2 worlds with the versioned empty `stage1-empty-v1` pack
+record remain valid compatibility authority. Their first materialization
+atomically installs the canonical pack shape and country allocation revisions;
+new worlds never emit the legacy shape.
+
+Each country owns a positive `airport_allocation_revision`. First
+materialization sorts catalog records before allocating monotonic world airport
+IDs, then creates missing directional markets in endpoint world-ID order. It
+advances pack, demand, and target-country allocation revisions once and creates
+the matching Model 4 context. Enable and disable preserve all IDs and
+historical authority and advance only the pack revision.
+
+Pack status and airport opening/closure are prospective activation inputs, not
+allocation inputs, and are excluded from the Model 4 demand-input witness.
+The canonical status-effective date is inclusive; a future disable leaves the
+currently enabled pack active until that UTC date rather than applying early.
+Closed and disabled members retain latent leaves without redistribution. Both
+endpoint packs must be enabled and both airports available on the current
+simulation UTC date before valid direct published passenger service can create
+a cohort. Historical V1/V2 markers remain reusable and no transition backfills
+prior dates.
+
 ## Entity records
 
 ```text
@@ -277,7 +319,7 @@ country (schema 2)
   country_id, region_id, external_reference_code, display_name,
   effective_from_date, effective_until_date, demand_attractiveness_bps,
   relationship_weight_bps, population, centroid_latitude_microdegrees,
-  centroid_longitude_microdegrees
+  centroid_longitude_microdegrees, airport_allocation_revision
 
 airline
   airline_id, display_name, base_currency, control_type (PLAYER|AI), owner_type

@@ -511,3 +511,12 @@ This consumer does not add schedule authority, rewrite flight status, search
 connections, reserve capacity, or change demand normalization. Future Booking
 may supply a narrower horizon and combine additional permitted-itinerary
 providers without changing Scheduling's ownership.
+
+### Milestone 4.5B-3 pack and availability gate
+
+Scheduling traceability remains the structural service proof. Model 4 then
+requires both endpoint country packs to be enabled and both airports to be
+available on the current simulation UTC date. A route right or connection alone
+is insufficient. Remaining capacity stays excluded, so a full qualifying
+occurrence remains demand-active. Authoritative dated flights override stale
+indexes, and availability never rewrites schedules, occurrences, or history.

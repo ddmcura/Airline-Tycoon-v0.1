@@ -18,6 +18,7 @@ from .schema import (
     DEFAULT_REFERENCE_DATA_VERSION,
     DEMAND_DESTINATION_TYPES,
     DEMAND_ROUNDING_POLICY,
+    MODEL4_DEMAND_MODEL_VERSION,
     SAVE_SCHEMA_VERSION,
 )
 from .timestamps import normalize_utc_timestamp
@@ -249,6 +250,17 @@ def _add_airport_reference_in_place(envelope, airport_reference):
 
 def add_airport_reference(envelope, airport_reference):
     """Atomically add one immutable airport reference record."""
+    if (
+        envelope.get("metadata", {}).get("save_schema_version") == 2
+        and envelope.get("simulation", {})
+        .get("configuration", {})
+        .get("demand", {})
+        .get("model_version")
+        == MODEL4_DEMAND_MODEL_VERSION
+    ):
+        raise ValueError(
+            "active Model 4 airport additions require atomic country-pack materialization"
+        )
     candidate = deepcopy(envelope)
     airport_id = _add_airport_reference_in_place(candidate, airport_reference)
 

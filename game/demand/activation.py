@@ -233,6 +233,19 @@ def _airport_is_in_demand_universe(airport, universe_date):
     )
 
 
+def _country_pack_is_enabled_on(pack, universe_date):
+    """Resolve the current status without applying a future transition early."""
+    if not isinstance(pack, Mapping):
+        return False
+    status = pack.get("status")
+    effective = pack.get("status_effective_date")
+    if status == "ENABLED":
+        return effective is None or effective <= universe_date
+    if status == "DISABLED":
+        return effective is not None and effective > universe_date
+    return False
+
+
 def _usable_direct_passenger_flight(
     envelope,
     flight_id,
@@ -456,6 +469,7 @@ def discover_active_market_ids(
     end_utc=None,
     providers: Sequence[DemandActivationProvider] | None = None,
     dated_flight_indexes: DatedFlightIndexes | None = None,
+    require_model4_pack_authority=False,
 ):
     """Return activated authoritative market IDs in stable immutable-ID order.
 
@@ -480,12 +494,14 @@ def discover_active_market_ids(
         else tuple(providers)
     )
     active_market_ids = set()
+    custom_market_ids = set()
     for provider in providers:
         provider_envelope = (
             envelope
             if type(provider) is DirectPublishedServiceActivationProvider
             else deepcopy(envelope)
         )
+        provider_snapshot = deepcopy(provider_envelope)
         try:
             provided = provider.active_market_ids(
                 provider_envelope,
@@ -494,7 +510,12 @@ def discover_active_market_ids(
             )
             if isinstance(provided, (str, bytes)):
                 raise ValueError("activation provider results must be an iterable of market IDs")
+            provided = tuple(provided)
             active_market_ids.update(provided)
+            if type(provider) is not DirectPublishedServiceActivationProvider:
+                custom_market_ids.update(provided)
+            if require_model4_pack_authority and provider_envelope != provider_snapshot:
+                raise ValueError("activation provider mutated its detached state")
         except Exception as exc:
             raise ValueError(f"invalid activation provider result: {exc}") from exc
 
@@ -503,7 +524,9 @@ def discover_active_market_ids(
     airports = state.get("airports", {}) if isinstance(state, Mapping) else {}
     demand_state = state.get("demand_state", {}) if isinstance(state, Mapping) else {}
     universe_date = (
-        demand_state.get("universe_date") if isinstance(demand_state, Mapping) else None
+        envelope.get("simulation", {}).get("time_utc", "")[:10]
+        if require_model4_pack_authority
+        else demand_state.get("universe_date") if isinstance(demand_state, Mapping) else None
     )
     if (
         not isinstance(markets, Mapping)
@@ -512,6 +535,31 @@ def discover_active_market_ids(
     ):
         return ()
     eligible_market_ids = []
+    rejected_market_ids = []
+    pack_configuration = envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("market_pack_configuration", {})
+    packs = pack_configuration.get("market_packs", {}) if isinstance(pack_configuration, Mapping) else {}
+    enabled_country_ids = {
+        pack.get("country_id")
+        for pack in packs.values()
+        if isinstance(pack, Mapping)
+        and _country_pack_is_enabled_on(pack, universe_date)
+    }
+    mapped_airport_ids = {
+        airport_id
+        for pack in packs.values()
+        if isinstance(pack, Mapping)
+        for airport_id in pack.get("airport_id_by_catalog_id", {}).values()
+    }
+    # Schema-2 foundation airports predate 4.5B-3 catalog mappings. They remain
+    # an already-materialized enabled compatibility pack until explicitly
+    # represented by lifecycle authority; countries with no airports stay latent.
+    enabled_country_ids.update(
+        airport.get("country_id")
+        for airport_id, airport in airports.items()
+        if isinstance(airport, Mapping)
+        and airport.get("demand_allocation_member") is True
+        and airport_id not in mapped_airport_ids
+    )
     for market_id in sorted(
         key for key in active_market_ids if isinstance(key, str)
     ):
@@ -533,6 +581,37 @@ def discover_active_market_ids(
             and airports[destination].get("airport_id") == destination
             and _airport_is_in_demand_universe(airports[origin], universe_date)
             and _airport_is_in_demand_universe(airports[destination], universe_date)
+            and (
+                not require_model4_pack_authority
+                or (
+                    airports[origin].get("country_id") in enabled_country_ids
+                    and airports[destination].get("country_id") in enabled_country_ids
+                    and airports[origin].get("demand_allocation_member") is True
+                    and airports[destination].get("demand_allocation_member") is True
+                )
+            )
         ):
             eligible_market_ids.append(market_id)
+        else:
+            rejected_market_ids.append(market_id)
+    if require_model4_pack_authority:
+        unknown = sorted(
+            market_id
+            for market_id in custom_market_ids
+            if not isinstance(market_id, str) or market_id not in markets
+        )
+        if unknown:
+            raise ValueError(f"UNAVAILABLE_DEMAND_MARKET: unknown activation-provider markets: {unknown!r}")
+        rejected_custom = sorted(set(rejected_market_ids) & custom_market_ids)
+        if rejected_custom:
+            raise ValueError(f"UNAVAILABLE_DEMAND_MARKET: unavailable activation-provider markets: {rejected_custom!r}")
+        if custom_market_ids:
+            direct_ids = set(
+                DIRECT_PUBLISHED_SERVICE_PROVIDER.active_market_ids(
+                    envelope, window, dated_flight_indexes=dated_flight_indexes
+                )
+            )
+            unserved = sorted(custom_market_ids - direct_ids)
+            if unserved:
+                raise ValueError(f"UNAVAILABLE_DEMAND_MARKET: markets lack valid direct published passenger service: {unserved!r}")
     return tuple(eligible_market_ids)

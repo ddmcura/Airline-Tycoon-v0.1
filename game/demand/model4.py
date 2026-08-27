@@ -694,7 +694,7 @@ def project_model4_origin(envelope, origin_airport_id, *, indexes=None):
                 continue
             leaves[destination_id] = leaf
             has_market = (origin_airport_id, destination_id) in indexes.market_by_pair
-            available = _airport_available(airports[destination_id], indexes.universe_date)
+            available = _airport_available(airports[destination_id], envelope["simulation"]["time_utc"][:10])
             if has_market and available:
                 materialized += leaf
             else:
@@ -742,7 +742,7 @@ def _pair_projection_from_indexes(envelope, indexes, origin_airport_id, destinat
         "destination_airport_id": destination_airport_id,
         "base_daily_bookers": leaf,
         "diagnostic_pair_share": share,
-        "available": _airport_available(envelope["world_state"]["airports"][destination_airport_id], indexes.universe_date),
+        "available": _airport_available(envelope["world_state"]["airports"][destination_airport_id], envelope["simulation"]["time_utc"][:10]),
     })
 
 
@@ -860,7 +860,7 @@ def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by
         if parsed.isoformat() != cohort_date or cohort_date != envelope["simulation"]["time_utc"][:10]:
             raise ValueError("Model 4 active processing is limited to the current simulation UTC date")
         derived = rebuild_model4_indexes(envelope, indexes=indexes)
-        active_ids = tuple(market_id for market_id in discover_active_market_ids(envelope, start_utc=activation_start_utc, end_utc=activation_end_utc, providers=activation_providers, dated_flight_indexes=dated_flight_indexes) if market_id in envelope["world_state"]["directional_markets"])
+        active_ids = tuple(market_id for market_id in discover_active_market_ids(envelope, start_utc=activation_start_utc, end_utc=activation_end_utc, providers=activation_providers, dated_flight_indexes=dated_flight_indexes, require_model4_pack_authority=True) if market_id in envelope["world_state"]["directional_markets"])
         unknown = [key for key in multipliers_by_market if key not in active_ids]
         if unknown:
             raise ValueError(f"modifier markets are not active: {sorted(map(repr, unknown))}")
@@ -891,7 +891,9 @@ def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by
         if not final.is_valid:
             return Model4ActiveDayResult("REJECTED", cohort_date, revision, pack_revision, issues=_validation_issues(final))
     except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
-        return Model4ActiveDayResult("REJECTED", str(cohort_date), revision, pack_revision, issues=(DemandIssue("DEMAND_ALLOCATION_FAILED", str(exc)),))
+        message = str(exc)
+        code = "UNAVAILABLE_DEMAND_MARKET" if message.startswith("UNAVAILABLE_DEMAND_MARKET:") else "DEMAND_ALLOCATION_FAILED"
+        return Model4ActiveDayResult("REJECTED", str(cohort_date), revision, pack_revision, issues=(DemandIssue(code, message),))
     _replace_envelope(envelope, candidate)
     return Model4ActiveDayResult("COMPLETED", cohort_date, revision, pack_revision, active_ids, tuple(intents), tuple(cohorts))
 

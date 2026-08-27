@@ -506,12 +506,31 @@ deferred in full to Milestone 5.
   intent. It creates no Booking, reservation, capacity, operations, or finance
   state.
 
-### Remaining 4.5B-3 work
+## Milestone 4.5B-3 — Country Market-Pack Lifecycle
 
-Global pack data, catalog-to-world materialization, airport addition, pack
-enable/disable/re-enable commands, and pack lifecycle validation remain wholly
-deferred. The present derivation consumes only existing authoritative country
-and airport allocation membership.
+### Implemented contract
+
+- Persist versioned country-pack authority, stable catalog-to-world mappings,
+  an independent revision, and a pack-configuration witness.
+- Materialize latent countries in catalog-ID order, create missing markets in
+  endpoint-ID order, advance demand and target-country allocation once, and
+  create the matching Model 4 context.
+- Disable and re-enable without deleting or renumbering entities or history;
+  these transitions change only the pack revision and witness.
+- Keep membership separate from availability. Disabled and closed leaves remain
+  latent without redistribution.
+- Gate current-day activation on enabled/available endpoints, an existing
+  market, and qualifying direct published passenger service. Preserve all
+  historical markers and prohibit backlog.
+- Isolate custom activation providers and reject mutation, malformed or
+  unavailable output, failure, and partial multi-market commits.
+
+### Remaining boundary
+
+Milestone 4.5B is complete. Milestone 5 remains wholly deferred: Booking
+checkpoints, desired travel dates, itinerary search, reservations, capacity
+commitments, unsuccessful-booking metrics, operations, finance, and marker
+migration/removal or compaction are not implemented.
 
 ## Milestone 5 — Booking Pipeline
 

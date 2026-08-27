@@ -1195,4 +1195,34 @@ model/configuration/travel-scope/universe versions, market, date, multipliers,
 world seed, and purpose. Mutable revision, pack status, UI, route, schedule,
 fare, and capacity are excluded. Whole-world marker creation is rejected for
 active Model 4; current-day active-service processing remains the only creation
-path. Booking and 4.5B-3 pack lifecycle remain deferred.
+path.
+
+## 33. Milestone 4.5B-3 market-pack lifecycle and prospective activation
+
+The atomic `materialize_country_pack`, `disable_country_pack`, and
+`enable_country_pack` boundaries validate a detached candidate before commit.
+Materialization requires expected pack and demand revisions; status transitions
+require the expected pack revision. Rejection retains byte-equivalent source
+authority and no caller-owned mutable references.
+
+A country without materialized airports remains latent in its existing country
+amount. First materialization preserves that amount and all pre-existing
+country, leaf, pair, cohort, and entity identities while distributing the
+amount only across its new allocation members. Pure disable/re-enable never
+unloads authority and changes neither demand revision nor demand-input witness.
+
+The separate pack witness covers configuration version and revision, statuses,
+references and versions, status dates, catalog IDs, and catalog mappings. Pack
+status, airport availability, schedules, flights, fares, capacity, airlines,
+and UI focus are excluded from Model 4 normalization and its input witness.
+
+Current-day work requires enabled and operationally available origin and
+destination endpoints, an existing directional market, and traceable direct
+published passenger service. Remaining seats are irrelevant. Custom providers
+receive detached state; mutation, failure, malformed output, and unknown or
+unavailable markets reject the complete command. Historical markers remain
+valid, and materialization or re-enable creates no backlog.
+
+Milestone 5 remains responsible for Booking checkpoints, desired travel dates,
+itinerary search, reservations, capacity commitment, unsuccessful-shopping
+metrics, passenger operations, finance, and marker migration or compaction.
