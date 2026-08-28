@@ -3,7 +3,7 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-through 4.5B-1. It supersedes the hybrid `game_state` example in
+through 5A. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
@@ -16,9 +16,12 @@ idempotent daily intent resolution. Milestone 4.5A compacts only rebuildable
 demand derivation and adds runtime active-market discovery; it adds no
 persistent fields. Milestone 4.5B-1 adds the explicit in-memory schema-1-to-2
 migration foundation and Model 4 authority shapes while deliberately retaining
-Model 3 calculation. Exact file writing/loading and general save-pipeline
-migrations, booking, aircraft operations, and transaction posting are not
-implemented.
+Model 3 calculation. Milestones 4.5B-2 and 4.5B-3 activate Model 4 and add the
+country market-pack lifecycle. Milestone 5A adds schema-3 Booking configuration,
+identity, revision, compatibility, and optimistic-concurrency authority without
+executing Booking. Exact file writing/loading and general save-pipeline
+migrations, Booking processing, aircraft operations, and transaction posting
+are not implemented.
 
 ## Representation rules
 
@@ -206,6 +209,155 @@ outcomes. `model3_terminal_demand_revision` remains null and
 `model4_revision_contexts` remains empty. No production command can activate
 Model 4. The first context and terminal Model 3 revision are committed only in
 the later atomic 4.5B-2 activation.
+
+## Envelope version 3 — Milestone 5A Booking foundation
+
+Schema 3 is reached only through the explicit detached
+`migrate_schema_2_to_3` boundary. The migration validates the complete schema-2
+source, constructs and validates a detached candidate, and returns that
+candidate without mutating or retaining caller-owned authority. Validation,
+projection, demand processing, scheduling, and unrelated commands never invoke
+this migration implicitly. Repeated migration and future-version sources are
+structured rejections.
+
+Schema 3 preserves all schema-2 demand, market-pack, scheduling, finance,
+identity, cohort, event, history, allocator, and UI authority except for these
+approved additions:
+
+```text
+metadata
+└── save_schema_version: 3
+
+simulation.configuration.booking
+├── contract: STAGE1_BOOKING_CONFIGURATION_V1
+├── configuration_version: non-empty version string
+├── revision: positive integer                         # initially 1
+├── booking_horizon_days: integer 0..365               # approved default 365
+├── desired_date_policy: STAGE1_DESIRED_DATE_POLICY_V1
+├── lead_time_buckets: ordered list
+│   └── bucket
+│       ├── minimum_lead_days: non-negative integer
+│       ├── maximum_lead_days: integer >= minimum
+│       └── weight_bps: non-negative integer
+├── desired_date_tolerance_days: integer 0..horizon    # approved default 3
+├── choice_policy
+│   ├── contract: STAGE1_BOOKING_CHOICE_POLICY_V1
+│   ├── production_input_families: [FARE, SCHEDULE]
+│   ├── schedule_inputs: [DATE_DEVIATION, DEPARTURE_TIMING, DURATION]
+│   ├── absent_airline_quality_signals: NEUTRAL
+│   ├── deterministic_rank_usage: INTEGER_RESIDUALS_AND_EXACT_TIES_ONLY
+│   └── currency_policy: SINGLE_CURRENCY_ONLY
+└── configuration_fingerprint: lowercase SHA-256 witness
+
+world_state.booking_state
+├── booking_revision: non-negative integer             # initially 0
+└── booking_checkpoints: {booking_checkpoint_id: checkpoint}
+
+world_state.airlines.<airline_id>
+└── finance_revision: non-negative integer              # initially 0
+
+world_state.dated_flights.<dated_flight_id>
+└── inventory_revision: non-negative integer            # initially 0
+
+deterministic_state.id_allocator.next_by_type
+└── booking_checkpoint: next positive integer
+```
+
+The approved lead-time buckets are the ordered, inclusive ranges `0..0` at
+`500` basis points, `1..6` at `1500`, `7..29` at `3500`, `30..89` at `3000`,
+and `90..365` at `1500`. A configuration's buckets must cover every day from
+zero through its configured horizon exactly once, without gaps, overlaps, or
+out-of-order ranges, and their weights must total exactly `10000`. The default
+horizon is 365 UTC dates and the desired-date search tolerance is ±3 UTC dates.
+Booleans are never accepted as integers.
+
+The Booking configuration fingerprint is the canonical SHA-256 witness over
+the complete Booking-owned configuration except the fingerprint field itself.
+It excludes demand inputs and cohorts, pack state, airports and markets, fares,
+schedules and dated flights, capacity consumption, airlines, financial state,
+and UI/current-focus state. No Booking result is added to a demand,
+derived-source, revision-context, or market-pack fingerprint.
+
+The V1 choice-policy contract reserves only fare and schedule as production
+input families. Schedule may later use date deviation, departure timing, and
+duration. Reliability, reputation, perks, presence, awareness, and loyalty are
+neutral while absent and must not be invented. Keyed deterministic ranks may
+resolve integer residuals and exact ties only; uncontrolled passenger-level
+randomness is prohibited. `SINGLE_CURRENCY_ONLY` makes mixed-currency
+competition an unsupported boundary that later processing rejects as
+`UNSUPPORTED_FARE_CURRENCY`; schema 3 adds no foreign-exchange authority. Score
+transforms, weights, allocation, and execution remain Milestone 5C work.
+
+A Booking checkpoint contains exactly:
+
+```text
+booking_checkpoint
+  booking_checkpoint_id, checkpoint_date, due_at_utc,
+  status (PENDING|COMPLETED), processed_at_utc,
+  booking_revision, booking_configuration_revision,
+  booking_configuration_fingerprint, demand_model_revision,
+  market_pack_revision, market_results, financial_transaction_ids
+```
+
+Checkpoint IDs are immutable and allocated from the new `booking_checkpoint`
+namespace. `checkpoint_date` is a canonical UTC date and `due_at_utc` is its
+canonical midnight. A pending checkpoint has null `processed_at_utc`, pins the
+current revisions and Booking fingerprint, has the current Booking revision,
+and contains empty `market_results` and `financial_transaction_ids`.
+Completed checkpoints require canonical processing time and strict result and
+transaction-reference topology. Milestone 5A creates neither a bootstrap nor a
+historical checkpoint: the existing event kernel has no Booking event ownership
+requirement, and recurrence belongs to 5D. Therefore migration leaves
+`booking_checkpoints` empty and does not consume any allocator.
+
+Schema 3 reserves these strict future production contracts but creates no
+records under either contract during migration:
+
+```text
+itinerary (STAGE1_DIRECT_ECONOMY_ITINERARY_V1)
+  itinerary_id, contract, market_id, airline_id, origin_airport_id,
+  destination_airport_id, dated_flight_ids, scheduled_departure_utc,
+  scheduled_arrival_utc, cabin, fare_offer_snapshot, schedule_lineage, status
+
+fare_offer_snapshot
+  currency, amount_minor
+
+schedule_lineage
+  schedule_id, schedule_revision
+
+booking (STAGE1_AGGREGATE_BOOKING_V1)
+  booking_id, contract, booking_checkpoint_id, cohort_key,
+  desired_travel_date, airline_id, itinerary_id, passenger_count,
+  booked_at_utc, total_fare_minor, currency,
+  inventory_revision_at_commit, finance_transaction_id,
+  booking_revision, status
+```
+
+The direct V1 itinerary has exactly one dated-flight ID, cabin `ECONOMY`, and
+status `CONFIRMED`; its endpoints, market, airline, times, fare snapshot, and
+schedule lineage must match that flight and its retained schedule revision.
+The aggregate V1 Booking has a positive passenger count, status `CONFIRMED`, no
+individual passenger IDs, a one-to-one Booking-to-itinerary relationship, and
+total fare equal to passenger count times the itinerary snapshot amount. Its
+currency must match the snapshot. Revision and finance references are strict.
+
+Because schema 2 accepted nonempty minimal Booking and itinerary placeholder
+records, migration preserves each payload byte-for-byte inside the explicit
+`SCHEMA2_BOOKING_COMPATIBILITY_V1` or
+`SCHEMA2_ITINERARY_COMPATIBILITY_V1` wrapper. Compatibility wrappers do not
+invent checkpoint, fare-snapshot, finance, or revision lineage. Schema 2
+required only non-empty Booking status text and defined no canonical status
+vocabulary, so compatibility payloads do not establish confirmed capacity
+commitments even when their text happens to equal `CONFIRMED`. Runtime
+capacity derivation counts only strict production V1 authority; compatibility
+topology remains traceable without inventing reservation semantics.
+
+`inventory_revision` and `finance_revision` are optimistic-concurrency tokens
+only. Migration initializes each to zero and Milestone 5A performs no inventory
+mutation, capacity commitment, financial posting, or transaction creation.
+Booked and remaining capacity are derived at runtime from confirmed production
+V1 Booking and itinerary authority; `remaining_capacity`, `booked_capacity`,
+and rebuildable Booking indexes are forbidden persistent fields.
 
 ### Milestone 4.5B-2 Model 4 travel-scope contract
 

@@ -3,18 +3,21 @@
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
+import json
 
 from .demand_fingerprint import (
     calculate_demand_input_fingerprint,
     calculate_market_pack_fingerprint,
 )
 from .ids import parse_entity_id
+from .booking_fingerprint import new_booking_configuration
 from .schema import (
     DEFAULT_MARKET_PACK_CONFIGURATION,
     DEFAULT_TRAVEL_SCOPE_CONFIGURATION,
-    LATEST_SAVE_SCHEMA_VERSION,
     MODEL3_PROCESSED_COHORT_V1,
     PROCESSED_COHORT_SCHEMA_VERSION,
+    SCHEMA2_BOOKING_COMPATIBILITY_CONTRACT,
+    SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT,
 )
 from .serialization import json_compatibility_error
 from .validation import ValidationIssue, validate_world
@@ -26,6 +29,7 @@ class MigrationResult:
     source_schema_version: object
     target_schema_version: int
     issues: tuple = ()
+    migrated_world: dict | None = None
 
     @property
     def succeeded(self):
@@ -38,6 +42,14 @@ class MigrationResult:
             "target_schema_version": self.target_schema_version,
             "issues": [issue.as_dict() for issue in self.issues],
         }
+
+    @property
+    def candidate(self):
+        return self.migrated_world
+
+    @property
+    def world(self):
+        return self.migrated_world
 
 
 def _issue(code, path, message, entity_type=None, entity_id=None):
@@ -113,22 +125,22 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
         return MigrationResult(
             "REJECTED",
             source_version,
-            LATEST_SAVE_SCHEMA_VERSION,
+            2,
             (_issue("unsupported_migration_source", "$.metadata.save_schema_version", "must equal 1"),),
         )
     source_validation = validate_world(envelope)
     if not source_validation.is_valid:
         return MigrationResult(
-            "REJECTED", source_version, LATEST_SAVE_SCHEMA_VERSION, source_validation.errors
+            "REJECTED", source_version, 2, source_validation.errors
         )
     snapshot, issues = _snapshot_candidate(foundation_snapshot)
     if issues:
-        return MigrationResult("REJECTED", source_version, LATEST_SAVE_SCHEMA_VERSION, issues)
+        return MigrationResult("REJECTED", source_version, 2, issues)
     if snapshot is None:
         return MigrationResult(
             "REJECTED",
             source_version,
-            LATEST_SAVE_SCHEMA_VERSION,
+            2,
             (_issue("invalid_migration_snapshot", "$", "snapshot validation failed"),),
         )
 
@@ -141,7 +153,7 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
         return MigrationResult(
             "REJECTED",
             source_version,
-            LATEST_SAVE_SCHEMA_VERSION,
+            2,
             (_issue("incomplete_airport_country_mapping", "$.airport_country_ids", "country and allocation-member mappings must cover every existing airport exactly once"),),
         )
 
@@ -161,7 +173,7 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
                 return MigrationResult(
                     "REJECTED",
                     source_version,
-                    LATEST_SAVE_SCHEMA_VERSION,
+                    2,
                     (_issue("invalid_migration_identity", f"$.{entity_type}s.{key}", f"must be keyed by an immutable {entity_type} ID"),),
                 )
     for airport_id, country_id in mappings.items():
@@ -169,7 +181,7 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
             return MigrationResult(
                 "REJECTED",
                 source_version,
-                LATEST_SAVE_SCHEMA_VERSION,
+                2,
                 (_issue("invalid_airport_country_mapping", f"$.airport_country_ids.{airport_id}", "must reference a supplied country ID", "airport", str(airport_id)),),
             )
         legacy_reference = airports[airport_id].get("country_reference")
@@ -178,14 +190,14 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
             return MigrationResult(
                 "REJECTED",
                 source_version,
-                LATEST_SAVE_SCHEMA_VERSION,
+                2,
                 (_issue("ambiguous_airport_country_mapping", f"$.airport_country_ids.{airport_id}", "explicit country external reference does not match the airport snapshot", "airport", airport_id),),
             )
         if type(members.get(airport_id)) is not bool:
             return MigrationResult(
                 "REJECTED",
                 source_version,
-                LATEST_SAVE_SCHEMA_VERSION,
+                2,
                 (_issue("invalid_demand_allocation_member", f"$.airport_demand_allocation_members.{airport_id}", "must explicitly supply a boolean", "airport", airport_id),),
             )
 
@@ -231,8 +243,102 @@ def migrate_schema_1_to_2(envelope, *, foundation_snapshot):
     candidate_validation = validate_world(candidate)
     if not candidate_validation.is_valid:
         return MigrationResult(
-            "REJECTED", source_version, LATEST_SAVE_SCHEMA_VERSION, candidate_validation.errors
+            "REJECTED", source_version, 2, candidate_validation.errors
         )
     envelope.clear()
     envelope.update(candidate)
-    return MigrationResult("COMPLETED", source_version, LATEST_SAVE_SCHEMA_VERSION)
+    return MigrationResult("COMPLETED", source_version, 2)
+
+
+def _compatibility_wrapper(record, primary_id_field, contract):
+    return {
+        primary_id_field: record[primary_id_field],
+        "contract": contract,
+        "payload": deepcopy(record),
+    }
+
+
+def migrate_schema_2_to_3(envelope):
+    """Return a detached validated schema-3 candidate without mutating source."""
+    source_version = None
+    if type(envelope) is dict:
+        metadata = envelope.get("metadata")
+        if type(metadata) is dict:
+            source_version = metadata.get("save_schema_version")
+    if type(source_version) is not int or source_version != 2:
+        return MigrationResult(
+            "REJECTED",
+            source_version,
+            3,
+            (
+                _issue(
+                    "unsupported_migration_source",
+                    "$.metadata.save_schema_version",
+                    "must equal 2",
+                ),
+            ),
+        )
+    source_validation = validate_world(envelope)
+    if not source_validation.is_valid:
+        return MigrationResult(
+            "REJECTED", source_version, 3, source_validation.errors
+        )
+
+    try:
+        candidate = json.loads(
+            json.dumps(envelope, ensure_ascii=True, allow_nan=False)
+        )
+        candidate["metadata"]["save_schema_version"] = 3
+        candidate["simulation"]["configuration"]["booking"] = (
+            new_booking_configuration()
+        )
+        state = candidate["world_state"]
+        state["booking_state"] = {
+            "booking_revision": 0,
+            "booking_checkpoints": {},
+        }
+        for flight in state["dated_flights"].values():
+            flight["inventory_revision"] = 0
+        for airline in state["airlines"].values():
+            airline["finance_revision"] = 0
+        candidate["deterministic_state"]["id_allocator"]["next_by_type"][
+            "booking_checkpoint"
+        ] = 1
+        state["itineraries"] = {
+            itinerary_id: _compatibility_wrapper(
+                state["itineraries"][itinerary_id],
+                "itinerary_id",
+                SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT,
+            )
+            for itinerary_id in sorted(state["itineraries"])
+        }
+        state["bookings"] = {
+            booking_id: _compatibility_wrapper(
+                state["bookings"][booking_id],
+                "booking_id",
+                SCHEMA2_BOOKING_COMPATIBILITY_CONTRACT,
+            )
+            for booking_id in sorted(state["bookings"])
+        }
+    except (KeyError, OverflowError, RecursionError, TypeError, ValueError) as exc:
+        return MigrationResult(
+            "REJECTED",
+            source_version,
+            3,
+            (
+                _issue(
+                    "migration_failed",
+                    "$",
+                    f"schema-3 candidate construction failed: {exc}",
+                ),
+            ),
+        )
+
+    candidate_validation = validate_world(candidate)
+    if not candidate_validation.is_valid:
+        return MigrationResult(
+            "REJECTED", source_version, 3, candidate_validation.errors
+        )
+    return MigrationResult(
+        "COMPLETED", source_version, 3, migrated_world=candidate
+    )

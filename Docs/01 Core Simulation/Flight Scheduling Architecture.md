@@ -520,3 +520,18 @@ available on the current simulation UTC date. A route right or connection alone
 is insufficient. Remaining capacity stays excluded, so a full qualifying
 occurrence remains demand-active. Authoritative dated flights override stale
 indexes, and availability never rewrites schedules, occurrences, or history.
+
+### Milestone 5A Booking concurrency boundary
+
+Schema-3 dated flights add only the non-negative `inventory_revision`
+optimistic-concurrency token, initialized to zero by explicit migration and on
+new schema-3 publication. Republishing a retained occurrence preserves the
+token. Scheduling still owns publication and timetable lineage; Booking may
+later compare and advance inventory revisions only through its validated commit
+boundary.
+
+No remaining-capacity or booked-capacity field is persisted. Those values are
+derived from strict confirmed production Booking/itinerary authority at
+runtime; schema-2 compatibility placeholders do not establish capacity
+commitments. Milestone 5A does not reserve capacity or protect booked flights
+from schedule mutation; those behaviors remain 5D and later disruption work.

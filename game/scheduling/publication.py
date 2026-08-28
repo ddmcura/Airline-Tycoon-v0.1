@@ -377,6 +377,8 @@ def _occurrence_record(envelope, schedule, revision, local_date, *, flight_id=No
         "published_at_utc": envelope["simulation"]["time_utc"],
         "superseded_by_schedule_revision": None,
     }
+    if envelope.get("metadata", {}).get("save_schema_version") == 3:
+        record["inventory_revision"] = 0
     return record
 
 
@@ -686,6 +688,8 @@ def publish_occurrences_through(
         first_published = flight["published_at_utc"]
         wanted["dated_flight_id"] = flight_id
         wanted["published_at_utc"] = first_published
+        if "inventory_revision" in flight:
+            wanted["inventory_revision"] = flight["inventory_revision"]
         if flight != wanted:
             flights[flight_id] = wanted
             updated.append(flight_id)

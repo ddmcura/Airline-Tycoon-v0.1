@@ -1226,3 +1226,29 @@ valid, and materialization or re-enable creates no backlog.
 Milestone 5 remains responsible for Booking checkpoints, desired travel dates,
 itinerary search, reservations, capacity commitment, unsuccessful-shopping
 metrics, passenger operations, finance, and marker migration or compaction.
+
+## 34. Milestone 5A Booking schema and compatibility boundary
+
+Schema 3 adds the strict `STAGE1_BOOKING_CONFIGURATION_V1` authority without
+changing any demand formula, cohort, revision context, market-pack witness, or
+active-market behavior. Its approved V1 horizon is 365 UTC dates, desired-date
+tolerance is ±3 dates, and its inclusive lead-time buckets are `0` at 500 bps,
+`1..6` at 1500, `7..29` at 3500, `30..89` at 3000, and `90..365` at 1500.
+Ranges must cover the configured horizon exactly and weights total 10000.
+
+The Booking-only fingerprint excludes demand/cohorts, pack state, airports,
+markets, fares, schedules, flights, capacity, airlines, finance, and UI. The V1
+choice-policy boundary reserves fare and schedule only; absent quality signals
+are neutral, deterministic ranks are restricted to integer residuals and exact
+ties, and mixed-currency competition is unsupported. 5A defines no score
+transforms or weights.
+
+`world_state.booking_state` begins at revision zero with no checkpoints. A
+strict checkpoint pins Booking configuration, demand, and market-pack revisions
+and owns strict market results, Booking IDs, and transaction IDs. No bootstrap
+checkpoint is created because Booking recurrence/event ownership belongs to 5D.
+Schema-2 placeholder Booking/itinerary payloads are compatibility-wrapped and
+byte-preserved. Schema 2 defined no canonical Booking-status vocabulary, so
+compatibility topology remains traceable but does not establish confirmed
+capacity consumption. Desired-date allocation, shopping, choice, reservation,
+production records, and finance remain 5B–5D.

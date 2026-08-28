@@ -527,12 +527,40 @@ deferred in full to Milestone 5.
 
 ### Remaining boundary
 
-Milestone 4.5B is complete. Milestone 5 remains wholly deferred: Booking
-checkpoints, desired travel dates, itinerary search, reservations, capacity
-commitments, unsuccessful-booking metrics, operations, finance, and marker
-migration/removal or compaction are not implemented.
+Milestone 4.5B is complete. Milestone 5A now supplies only the Booking schema
+and compatibility foundation described below. Desired-date allocation,
+shopping, choice, capacity commitment, checkpoint execution/recurrence,
+unsuccessful-booking metrics, operations, and financial posting remain
+deferred to 5B through 5D or later milestones.
 
 ## Milestone 5 — Booking Pipeline
+
+### Milestone 5A implemented contract (2026-08-27)
+
+- Save schema 3 is reached through the explicit detached
+  `migrate_schema_2_to_3` API; no validation, demand, scheduling, projection,
+  CLI, or UI path migrates implicitly.
+- `simulation.configuration.booking` owns the strict V1 365-day horizon,
+  ±3-date tolerance, complete 500/1500/3500/3000/1500 lead-time basis-point
+  buckets, fare-and-schedule choice-policy boundary, single-currency rule, and
+  Booking-only canonical fingerprint.
+- `world_state.booking_state` owns revision zero and an initially empty
+  checkpoint collection. The `booking_checkpoint` allocator starts at one but
+  migration consumes no ID because recurrence/event ownership is 5D work.
+- Every migrated dated flight receives `inventory_revision == 0`; every airline
+  receives `finance_revision == 0`. No remaining/booked capacity cache,
+  reservation, transaction, balance mutation, or Booking outcome is created.
+- Strict future V1 direct-Economy itinerary, aggregate Booking, checkpoint, and
+  market-result contracts are validated without exposing production creation.
+- Valid schema-2 placeholder Bookings and itineraries are byte-preserved inside
+  explicit compatibility wrappers. Because schema 2 did not define a canonical
+  Booking-status vocabulary, compatibility topology remains traceable but does
+  not establish confirmed capacity commitments.
+- Runtime Booking indexes are detached and rebuildable. All Model 3/4 cohorts,
+  revision contexts, demand and pack witnesses, schedules, IDs, allocators,
+  events, accounts, transactions, history, and UI authority are preserved.
+
+Milestone 5A does not satisfy the Milestone 5 exit criteria.
 
 ### Work
 

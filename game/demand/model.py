@@ -917,13 +917,13 @@ def _cohort_record(envelope, indexes, market_id, cohort_date, multipliers):
 
 
 def _wrap_model3_cohort(envelope, record):
-    if envelope.get("metadata", {}).get("save_schema_version") == 2:
+    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3):
         return {"contract": MODEL3_PROCESSED_COHORT_V1, "payload": record}
     return record
 
 
 def _unwrap_model3_cohort(envelope, record):
-    if envelope.get("metadata", {}).get("save_schema_version") == 2:
+    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3):
         return record["payload"]
     return record
 

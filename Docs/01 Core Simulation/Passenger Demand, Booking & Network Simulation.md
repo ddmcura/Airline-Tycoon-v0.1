@@ -655,3 +655,27 @@ remain valid and no re-enable backlog is generated.
 
 Milestone 5 still owns Booking checkpoints, desired travel dates, itinerary
 choice, reservations, capacity commitment, operations, and finance.
+
+## Milestone 5A architecture boundary
+
+Milestone 5A establishes identity and schema authority but performs no Booking.
+Schema 3 owns a fingerprinted 365-day/±3-date Booking configuration, ordered
+lead-time weights totaling 10000 basis points, Booking revision zero, immutable
+checkpoint IDs, dated-flight inventory revisions, and airline finance
+revisions. The checkpoint collection is initially empty; creating and recurring
+daily work is deferred to 5D.
+
+The strict future direct slice is one confirmed Economy dated flight per
+itinerary and one aggregate confirmed Booking per itinerary. Fare snapshots,
+schedule lineage, demand cohort, checkpoint, inventory-revision, finance-
+transaction, and Booking-revision references are structural authority, but 5A
+creates none of them. Runtime indexes derive confirmed production V1 passenger
+counts and traceable Booking relationships; schema-2 compatibility placeholders
+do not establish capacity commitments, and remaining/booked capacity is never
+persisted.
+
+Choice policy reserves fare and date deviation/departure timing/duration only.
+Missing reliability, reputation, perks, presence, awareness, and loyalty inputs
+are neutral. Mixed-currency competition is an explicit unsupported boundary and
+no FX authority is introduced. Desired-date allocation (5B), shopping/choice
+(5C), and capacity/finance/checkpoint execution (5D) remain deferred.

@@ -857,3 +857,18 @@ flight contribution, route contribution, and network contribution.
 
 The architecture is introduced through small, stable, playable stages.
 ```
+
+## Milestone 5A finance concurrency boundary
+
+Schema-3 airlines add only a non-negative `finance_revision` optimistic-
+concurrency token, initialized to zero. The strict future aggregate Booking
+contract reserves a `finance_transaction_id`, and completed checkpoint topology
+reserves transaction-ID ownership, but Milestone 5A creates no transaction,
+changes no account balance, receives no cash, and recognizes no revenue.
+
+Mixed-currency Booking competition is explicitly unsupported and must later
+reject as `UNSUPPORTED_FARE_CURRENCY`; no exchange-rate or foreign-exchange
+authority is added. Ticket cash receipt and the unflown-service obligation,
+capacity commitment, refunds, and revenue recognition remain later execution
+work. Existing accounts, balances, transactions, financial history, and
+allocator positions are preserved by detached schema-2-to-3 migration.

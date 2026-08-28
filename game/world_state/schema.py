@@ -1,8 +1,8 @@
 """Concrete constants for the authoritative Stage 1 world schema."""
 
 SAVE_SCHEMA_VERSION = 1
-LATEST_SAVE_SCHEMA_VERSION = 2
-SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2})
+LATEST_SAVE_SCHEMA_VERSION = 3
+SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3})
 DEFAULT_GAME_VERSION = "0.1"
 DEFAULT_REFERENCE_DATA_VERSION = "stage1-reference-v1"
 MAX_ENTITY_ID_NUMBER = 999_999_999_999
@@ -11,6 +11,44 @@ CLOCK_STATES = frozenset({"PAUSED", "NORMAL", "FAST", "FAST_FORWARD"})
 DEFAULT_CLOCK_RATIOS = {"NORMAL": 1, "FAST": 60}
 DEFAULT_PUBLICATION_HORIZON_DAYS = 90
 DEFAULT_MINIMUM_TURNAROUND_SECONDS = 30 * 60
+BOOKING_CONFIGURATION_CONTRACT = "STAGE1_BOOKING_CONFIGURATION_V1"
+BOOKING_CONFIGURATION_VERSION = "stage1-booking-v1"
+BOOKING_CONFIGURATION_FINGERPRINT_CONTRACT = (
+    "STAGE1_BOOKING_CONFIGURATION_SHA256_JSON_V1"
+)
+BOOKING_DESIRED_DATE_POLICY = "STAGE1_DESIRED_DATE_POLICY_V1"
+BOOKING_CHOICE_POLICY_CONTRACT = "STAGE1_BOOKING_CHOICE_POLICY_V1"
+BOOKING_CURRENCY_POLICY = "SINGLE_CURRENCY_ONLY"
+BOOKING_CHECKPOINT_STATUSES = frozenset({"PENDING", "COMPLETED"})
+DIRECT_ECONOMY_ITINERARY_CONTRACT = "STAGE1_DIRECT_ECONOMY_ITINERARY_V1"
+AGGREGATE_BOOKING_CONTRACT = "STAGE1_AGGREGATE_BOOKING_V1"
+SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT = "SCHEMA2_ITINERARY_COMPATIBILITY_V1"
+SCHEMA2_BOOKING_COMPATIBILITY_CONTRACT = "SCHEMA2_BOOKING_COMPATIBILITY_V1"
+DEFAULT_BOOKING_CHOICE_POLICY = {
+    "contract": BOOKING_CHOICE_POLICY_CONTRACT,
+    "production_input_families": ["FARE", "SCHEDULE"],
+    "schedule_inputs": ["DATE_DEVIATION", "DEPARTURE_TIMING", "DURATION"],
+    "absent_airline_quality_signals": "NEUTRAL",
+    "deterministic_rank_usage": "INTEGER_RESIDUALS_AND_EXACT_TIES_ONLY",
+    "currency_policy": BOOKING_CURRENCY_POLICY,
+}
+DEFAULT_BOOKING_CONFIGURATION = {
+    "contract": BOOKING_CONFIGURATION_CONTRACT,
+    "configuration_version": BOOKING_CONFIGURATION_VERSION,
+    "revision": 1,
+    "booking_horizon_days": 365,
+    "desired_date_policy": BOOKING_DESIRED_DATE_POLICY,
+    "lead_time_buckets": [
+        {"minimum_lead_days": 0, "maximum_lead_days": 0, "weight_bps": 500},
+        {"minimum_lead_days": 1, "maximum_lead_days": 6, "weight_bps": 1_500},
+        {"minimum_lead_days": 7, "maximum_lead_days": 29, "weight_bps": 3_500},
+        {"minimum_lead_days": 30, "maximum_lead_days": 89, "weight_bps": 3_000},
+        {"minimum_lead_days": 90, "maximum_lead_days": 365, "weight_bps": 1_500},
+    ],
+    "desired_date_tolerance_days": 3,
+    "choice_policy": DEFAULT_BOOKING_CHOICE_POLICY,
+    "configuration_fingerprint": "",
+}
 DEMAND_MODEL_VERSION = 3
 DEMAND_CONFIGURATION_VERSION = "stage1-model3-prototype-v1"
 MODEL4_DEMAND_MODEL_VERSION = 4
@@ -113,6 +151,7 @@ ENTITY_TYPES = (
 )
 
 SCHEMA2_ENTITY_TYPES = ENTITY_TYPES + ("region", "country")
+SCHEMA3_ENTITY_TYPES = SCHEMA2_ENTITY_TYPES + ("booking_checkpoint",)
 
 ENTITY_COLLECTIONS = {
     "airline": ("airlines", "airline_id"),
@@ -183,3 +222,4 @@ WORLD_ROOTS = frozenset(
 )
 
 SCHEMA2_WORLD_ROOTS = WORLD_ROOTS | frozenset({"regions", "countries"})
+SCHEMA3_WORLD_ROOTS = SCHEMA2_WORLD_ROOTS | frozenset({"booking_state"})

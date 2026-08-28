@@ -196,7 +196,7 @@ def _hierarchy_issue(candidate):
 
 
 def activate_model4(envelope, *, expected_revision, activation_provider=None):
-    """Atomically activate Model 4 for a complete schema-2 Model 3 world."""
+    """Atomically activate Model 4 for a complete schema-2/3 Model 3 world."""
     current = 0
     if type(envelope) is dict:
         state = envelope.get("world_state")
@@ -207,8 +207,8 @@ def activate_model4(envelope, *, expected_revision, activation_provider=None):
     validation = validate_world(envelope)
     if not validation.is_valid:
         return Model4ActivationResult("REJECTED", current, current, issues=_structured_validation_issues(validation))
-    if envelope["metadata"]["save_schema_version"] != 2:
-        return _reject_activation(current, "INVALID_MARKET_UNIVERSE", "Model 4 activation requires schema 2")
+    if envelope["metadata"]["save_schema_version"] not in (2, 3):
+        return _reject_activation(current, "INVALID_MARKET_UNIVERSE", "Model 4 activation requires schema 2 or 3")
     configuration = envelope["simulation"]["configuration"]["demand"]
     demand_state = envelope["world_state"]["demand_state"]
     if configuration["model_version"] != 3 or demand_state["model3_terminal_demand_revision"] is not None:

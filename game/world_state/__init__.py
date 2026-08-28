@@ -1,6 +1,10 @@
 """Authoritative Stage 1 world foundation, separate from legacy ``game_state``."""
 
 from .compatibility import build_legacy_read_projection
+from .booking_fingerprint import (
+    calculate_booking_configuration_fingerprint,
+    new_booking_configuration,
+)
 from .construction import (
     add_aircraft,
     add_airline,
@@ -10,7 +14,7 @@ from .construction import (
     create_new_world,
 )
 from .ids import allocate_id
-from .migration import MigrationResult, migrate_schema_1_to_2
+from .migration import MigrationResult, migrate_schema_1_to_2, migrate_schema_2_to_3
 from .market_packs import (
     MarketPackIssue,
     MarketPackLifecycleResult,
@@ -35,13 +39,16 @@ __all__ = (
     "add_directional_market",
     "allocate_id",
     "build_legacy_read_projection",
+    "calculate_booking_configuration_fingerprint",
     "create_new_world",
     "disable_country_pack",
     "enable_country_pack",
     "major_to_minor",
     "migrate_schema_1_to_2",
+    "migrate_schema_2_to_3",
     "minor_to_decimal",
     "materialize_country_pack",
     "normalize_utc_timestamp",
+    "new_booking_configuration",
     "validate_world",
 )

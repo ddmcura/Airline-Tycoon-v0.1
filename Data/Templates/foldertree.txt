@@ -35,6 +35,10 @@
 │   │   ├── new_aircraft.py
 │   │   ├── seat_configuration.py
 │   │   └── used_market.py
+│   ├── booking
+│   │   ├── __init__.py
+│   │   ├── configuration.py
+│   │   └── indexes.py
 │   ├── fleet_management
 │   │   ├── __init__.py
 │   │   ├── aircraft_detail.py
