@@ -880,6 +880,12 @@ minimal account foundation contains exactly one each of `cash`,
   `scheduled_departure_local_date` is retained only as authoritative recurrence
   identity and traceability; other airport-local presentation values are
   derived from the stored UTC instants and named airport time zones.
+- Milestone 5B desired-date allocations, market plans, pre-choice dispositions,
+  direct-shopping offer snapshots, and market/date/flight shopping indexes are
+  detached runtime command results. They are not itinerary, Booking, checkpoint,
+  cache, or save authority. The only permitted 5B persistent change is a valid
+  current-day V1/V2 demand marker produced through the existing prospective
+  active-market boundary.
 - World-demand origin pools, raw pair scores, normalized shares, base daily
   bookers, compact per-origin normalization summaries, source fingerprints,
   active-market provider results, and pair/origin indexes are
@@ -908,3 +914,6 @@ minimal account foundation contains exactly one each of `cash`,
   baseline, compose daily multipliers, resolve one or all daily cohorts, rebuild
   runtime demand indexes, revise inputs, discover active markets, and resolve
   the current active daily set: `game.demand` Milestone 4/4.5A API
+- Allocate aggregate desired dates, rebuild direct-shopping indexes, and
+  atomically prepare the current-day pre-choice plan:
+  `game.booking` Milestone 5B API

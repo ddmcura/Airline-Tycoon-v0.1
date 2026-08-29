@@ -38,7 +38,8 @@
 │   ├── booking
 │   │   ├── __init__.py
 │   │   ├── configuration.py
-│   │   └── indexes.py
+│   │   ├── indexes.py
+│   │   └── shopping.py
 │   ├── fleet_management
 │   │   ├── __init__.py
 │   │   ├── aircraft_detail.py

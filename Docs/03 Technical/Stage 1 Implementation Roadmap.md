@@ -562,6 +562,46 @@ deferred to 5B through 5D or later milestones.
 
 Milestone 5A does not satisfy the Milestone 5 exit criteria.
 
+### Milestone 5B implemented contract (2026-08-29)
+
+- `prepare_daily_booking_shopping` is the atomic current-day boundary. It uses
+  only `simulation.time_utc[:10]`, resolves new intent only through the
+  prospective active-market command on a detached candidate, reuses valid
+  current-date V1/V2 markers, preserves all history, and commits a newly
+  created marker only after every 5B shopping plan validates.
+- Aggregate integer intent is allocated over lead days `0..365` with exact
+  rational per-day bucket weights, integer floors, and descending fractional
+  remainders. Exact ties use the versioned keyed SHA-256 purpose
+  `STAGE1_DESIRED_DATE_INTEGER_RESIDUAL_RANK_SHA256_V1`, world seed, cohort
+  date, market ID, lead day, desired-date policy, and Booking configuration
+  fingerprint. Nonzero groups alone are returned and conservation is exact.
+- Runtime-only indexes are rebuilt once from authoritative dated flights by
+  market, departure UTC date, and dated-flight ID. Supplied indexes are hints
+  only and cannot hide or resurrect service. Shopping accepts traceable direct
+  `PASSENGER`/`ECONOMY` `PLANNED` or `OPERATIONALLY_LOCKED` occurrences in the
+  exact current timestamp/inclusive Booking-date horizon and ±3-date group
+  window. Actual departure/arrival airport opening is inclusive and closing is
+  exclusive. Remaining capacity and existing Booking counts are not filters.
+- Detached `STAGE1_DIRECT_ECONOMY_SHOPPING_OFFER_V1` snapshots retain immutable
+  market, dated-flight, airline, endpoint, UTC-time, fare, schedule/revision/
+  occurrence, status, published-capacity, and observed-inventory lineage for
+  later choice. They are neither itineraries nor reservations and have no
+  allocated offer ID.
+- Every positive desired-date group is exactly `SHOPPABLE`,
+  `NO_ELIGIBLE_SERVICE`, or `NO_DEPARTURE_ON_DESIRED_DATE`. `SHOPPABLE` remains
+  unresolved for 5C. Mixed currencies inside one market/date offer set reject
+  the whole command as `UNSUPPORTED_FARE_CURRENCY`; no FX or silent filtering
+  occurs.
+- 5B creates no checkpoint, Booking, itinerary, transaction, event, reservation,
+  capacity mutation, or finance mutation. Booking, inventory, finance, demand,
+  pack, and Booking-configuration revisions/fingerprints are unchanged; only
+  the already-approved current-day demand marker may be added.
+
+Milestone 5B does not satisfy the Milestone 5 exit criteria. Production choice,
+outside-option/price outcomes, and capacity contention remain 5C; checkpoint
+execution/recurrence, persistence, inventory and finance commits, ticket
+transactions, and booked-flight schedule protection remain 5D or later.
+
 ### Work
 
 - Generate one generic Economy cohort per active directional pair and date.

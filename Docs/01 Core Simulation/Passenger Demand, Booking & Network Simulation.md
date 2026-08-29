@@ -679,3 +679,39 @@ Missing reliability, reputation, perks, presence, awareness, and loyalty inputs
 are neutral. Mixed-currency competition is an explicit unsupported boundary and
 no FX authority is introduced. Desired-date allocation (5B), shopping/choice
 (5C), and capacity/finance/checkpoint execution (5D) remain deferred.
+
+## Milestone 5B architecture boundary
+
+5B now bridges Demand to a runtime-only pre-choice shopping plan without
+pretending that discovered service is a Booking. The boundary is the atomic
+`prepare_daily_booking_shopping` command: it copies the world, uses the exact
+current simulation UTC date, invokes the existing prospective active-market
+cohort path, incorporates valid current-date V1/V2 markers, allocates exact
+aggregate desired dates, rebuilds direct-flight indexes, and validates every
+plan before committing only a newly required cohort marker.
+
+The allocator spreads each configured bucket uniformly with rational weights,
+floors exact shares, and assigns integer residuals by fractional remainder with
+a versioned keyed SHA-256 tie rank. Its immutable identity is world seed,
+cohort date, market ID, lead day, desired-date policy, and Booking configuration
+fingerprint; no future checkpoint identity is borrowed.
+
+Direct offers are detached snapshots of traceable Economy dated flights, not
+saved itineraries or reservations. Searches use the passenger's unchanged
+desired date, the inclusive ±3 UTC-date tolerance, exact current timestamp,
+inclusive 365-day horizon, and actual travel-date airport availability.
+Structural capacity must be positive, but remaining seats and confirmed totals
+are deliberately absent. Current endpoint pack state gates creation of new
+intent; future pack transitions are not forecast for travel offers.
+
+`SHOPPABLE` means only that one or more eligible direct snapshots exist and the
+passengers await 5C. `NO_ELIGIBLE_SERVICE` and
+`NO_DEPARTURE_ON_DESIRED_DATE` are the only terminal 5B outcomes. Mixed
+currencies reject the whole command. Market and world conservation is exact.
+No Booking/checkpoint/itinerary/transaction/event is created, and no Booking,
+inventory, finance, allocator, or fingerprint authority advances.
+
+Production scoring, outside-option and price outcomes, and capacity contention
+remain 5C. Persistence, checkpoint recurrence and completion, capacity and
+finance commits, ticket transactions, and booked-flight schedule protection
+remain 5D or later.

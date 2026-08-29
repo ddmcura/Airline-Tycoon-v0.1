@@ -1252,3 +1252,63 @@ byte-preserved. Schema 2 defined no canonical Booking-status vocabulary, so
 compatibility topology remains traceable but does not establish confirmed
 capacity consumption. Desired-date allocation, shopping, choice, reservation,
 production records, and finance remain 5B–5D.
+
+## 35. Milestone 5B current-day allocation and pre-choice shopping
+
+The public `prepare_daily_booking_shopping` command owns one atomic transition:
+it derives or reuses only the cohort at `simulation.time_utc[:10]`, prepares all
+5B plans on a detached candidate, validates source authority, expected demand,
+pack and Booking-configuration revisions and fingerprint, and commits only the
+approved cohort-marker change after shopping succeeds. Current-date V1 and V2
+markers are reused without rerolling, including a valid marker whose service
+later vanished. New Model 4 markers remain reachable only through prospective
+active-market processing. Historical markers are preserved and never scanned
+as backlog.
+
+For integer intent `N`, each inclusive lead day receives the exact rational
+bucket weight divided uniformly by that bucket's number of dates. Integer
+floors are assigned first. Remaining passengers go to descending fractional
+remainders; exact ties use ascending keyed SHA-256 rank under
+`STAGE1_DESIRED_DATE_INTEGER_RESIDUAL_RANK_SHA256_V1`. The key material is the
+world seed, current cohort date, immutable market ID, lead day, desired-date
+policy, and Booking configuration fingerprint. This uses no checkpoint ID,
+binary float, global Decimal context, locale, hash order, wall clock, or
+passenger objects. Lead day zero and 365 are included, 366 is excluded, zero
+intent returns an empty valid allocation, and nonzero output conserves `N`.
+
+One rebuilt runtime index groups qualifying direct dated flights by immutable
+market and UTC departure date and retains a dated-flight lookup. A supplied
+index is verified against authority or ignored. Eligibility requires exact
+directional endpoints, active connection, `PASSENGER`/`ECONOMY`, a positive
+integer published capacity, a non-negative integer-minor fare in the operating
+airline's base currency, complete schedule/retained-revision/occurrence/time/
+aircraft lineage, and `PLANNED` with an active definition or an approved
+`OPERATIONALLY_LOCKED` retained plan. Cancelled, completed, superseded,
+deadhead, duplicate, malformed, untraceable, pre-current-timestamp, and
+post-horizon occurrences do not become offers. Actual origin departure and
+destination arrival UTC dates apply inclusive opening and exclusive closing.
+Current pack state gates new demand activation; because pack authority stores
+only its effective current transition, 5B does not forecast a future pack
+disable and does not invalidate existing history.
+
+Each desired date searches `D-3..D+3`, intersected with the current timestamp
+and inclusive Booking horizon, without changing `D`. Returned immutable
+`STAGE1_DIRECT_ECONOMY_SHOPPING_OFFER_V1` records snapshot market, flight,
+airline, endpoints, UTC times, signed date deviation, exact duration seconds,
+Economy cabin, fare, schedule/revision/occurrence lineage, status, published
+capacity, and observed inventory revision. They have no offer ID and are not
+persisted.
+
+A positive group with offers is `SHOPPABLE` and remains unresolved for 5C. A
+market with no qualifying service anywhere in the horizon yields
+`NO_ELIGIBLE_SERVICE`; service elsewhere in the horizon but outside that
+group's tolerance yields `NO_DEPARTURE_ON_DESIRED_DATE`. Requested passengers
+equal shoppable plus these terminal pre-choice unsuccessful passengers at both
+market and command level. Capacity, outside option, price rejection, and booked
+outcomes do not exist in 5B. Competing eligible currencies in one market/date
+group reject the complete transaction as `UNSUPPORTED_FARE_CURRENCY`.
+
+No checkpoint, Booking, itinerary, transaction, event, reservation, allocator,
+inventory revision, finance revision, Booking revision, or fingerprint changes.
+5C retains production choice and capacity outcomes; 5D retains persistence,
+checkpoint recurrence/execution, capacity/finance commits, and ticket posting.

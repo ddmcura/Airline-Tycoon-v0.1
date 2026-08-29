@@ -535,3 +535,24 @@ derived from strict confirmed production Booking/itinerary authority at
 runtime; schema-2 compatibility placeholders do not establish capacity
 commitments. Milestone 5A does not reserve capacity or protect booked flights
 from schedule mutation; those behaviors remain 5D and later disruption work.
+
+### Milestone 5B direct-shopping consumer
+
+Booking rebuilds an authoritative runtime pass over dated flights and indexes
+qualifying occurrences by immutable directional market, UTC departure date,
+and dated-flight ID. Caller indexes are verified or rebuilt, never trusted to
+add, hide, or resurrect service. Each accepted direct Economy occurrence must
+retain airline, active connection, market endpoints, aircraft, schedule,
+revision, occurrence key, UTC times, fare, positive published capacity, status,
+and inventory-revision traceability. `PLANNED` requires an active schedule;
+`OPERATIONALLY_LOCKED` may use its retained copied plan. Deadheads, cancelled,
+completed, superseded, malformed, duplicate, inactive-planned, and untraceable
+work are excluded or rejected by authoritative validation.
+
+The consumer intersects the exact current timestamp and inclusive Booking
+horizon with each desired date's inclusive ±3 UTC-date window. Airport opening
+is inclusive and closing exclusive on actual departure/arrival UTC dates.
+Remaining capacity and booked totals are not structural filters, so a full
+flight remains `SHOPPABLE` for later 5C contention. Snapshots are detached and
+runtime-only; Scheduling authority is never rewritten. 5B adds no schedule
+mutation protection because confirmed production bookings do not yet exist.

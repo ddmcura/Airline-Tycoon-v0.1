@@ -385,6 +385,26 @@ def _usable_direct_passenger_flight(
     return _schedule_trace_is_valid(envelope, flight, revision)
 
 
+def is_usable_direct_passenger_flight(
+    envelope,
+    flight_id,
+    flight,
+    window_start,
+    window_end,
+    *,
+    duplicate_occurrence_keys=frozenset(),
+):
+    """Public structural traceability boundary for direct passenger consumers."""
+    return _usable_direct_passenger_flight(
+        envelope,
+        flight_id,
+        flight,
+        window_start,
+        window_end,
+        duplicate_occurrence_keys=duplicate_occurrence_keys,
+    )
+
+
 class DirectPublishedServiceActivationProvider:
     """Discover direct markets from usable published passenger occurrences."""
 

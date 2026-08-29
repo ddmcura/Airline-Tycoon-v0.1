@@ -5,6 +5,7 @@ from .activation import (
     DemandActivationProvider,
     DirectPublishedServiceActivationProvider,
     discover_active_market_ids,
+    is_usable_direct_passenger_flight,
 )
 from .model import (
     CohortResolution,
@@ -65,6 +66,7 @@ __all__ = (
     "discover_active_market_ids",
     "eligible_airport_ids",
     "get_base_daily_bookers",
+    "is_usable_direct_passenger_flight",
     "project_model4_origin",
     "project_model4_pair",
     "rebuild_model4_indexes",
