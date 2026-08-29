@@ -1,8 +1,31 @@
-"""Stage 1 Booking configuration, indexes, and 5B shopping preparation."""
+"""Stage 1 Booking configuration, shopping, and detached allocation planning."""
+
+from .allocation import (
+    ALLOCATION_PLAN_CONTRACT,
+    ALLOCATION_PLAN_VERSION,
+    CAPACITY_RESIDUAL_RANK_PURPOSE,
+    CHOICE_RESIDUAL_RANK_PURPOSE,
+    DailyBookingAllocationResult,
+    DesiredDateAllocationResult,
+    INSUFFICIENT_CAPACITY,
+    InventoryRevisionObservation,
+    MarketAllocationResult,
+    OfferScoreEvidence,
+    OUTSIDE_OPTION,
+    SelectedOfferAllocation,
+    desired_date_score,
+    fare_score,
+    journey_duration_score,
+    prepare_daily_booking_allocation,
+    score_group_offers,
+)
 
 from .configuration import (
+    BookingConfigurationTransitionIssue,
+    BookingConfigurationTransitionResult,
     calculate_booking_configuration_fingerprint,
     new_booking_configuration,
+    transition_booking_configuration_to_production_choice,
 )
 from .indexes import BookingIndexes, rebuild_booking_indexes
 from .shopping import (
@@ -24,23 +47,43 @@ from .shopping import (
 )
 
 __all__ = (
+    "ALLOCATION_PLAN_CONTRACT",
+    "ALLOCATION_PLAN_VERSION",
     "BookingIndexes",
+    "BookingConfigurationTransitionIssue",
+    "BookingConfigurationTransitionResult",
     "BookingShoppingIssue",
+    "CAPACITY_RESIDUAL_RANK_PURPOSE",
+    "CHOICE_RESIDUAL_RANK_PURPOSE",
+    "DailyBookingAllocationResult",
     "DailyBookingShoppingResult",
+    "DesiredDateAllocationResult",
     "DesiredDateShoppingGroup",
     "DirectFlightShoppingIndexEntry",
     "DirectFlightShoppingIndexes",
     "DirectShoppingOffer",
     "FareSnapshot",
+    "INSUFFICIENT_CAPACITY",
+    "InventoryRevisionObservation",
     "MarketShoppingPlan",
+    "MarketAllocationResult",
     "NO_DEPARTURE_ON_DESIRED_DATE",
     "NO_ELIGIBLE_SERVICE",
+    "OUTSIDE_OPTION",
+    "OfferScoreEvidence",
     "SHOPPABLE",
+    "SelectedOfferAllocation",
     "ShoppingScheduleLineage",
     "allocate_desired_travel_dates",
     "calculate_booking_configuration_fingerprint",
+    "desired_date_score",
+    "fare_score",
+    "journey_duration_score",
     "new_booking_configuration",
+    "prepare_daily_booking_allocation",
     "prepare_daily_booking_shopping",
     "rebuild_booking_indexes",
     "rebuild_direct_flight_shopping_indexes",
+    "score_group_offers",
+    "transition_booking_configuration_to_production_choice",
 )

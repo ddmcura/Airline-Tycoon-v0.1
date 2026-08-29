@@ -602,6 +602,49 @@ outside-option/price outcomes, and capacity contention remain 5C; checkpoint
 execution/recurrence, persistence, inventory and finance commits, ticket
 transactions, and booked-flight schedule protection remain 5D or later.
 
+### Milestone 5C implemented contract (2026-08-30)
+
+- Committed 5A/5B revision-1 Booking configurations remain valid under their
+  original policy identity and fingerprint. Fresh schema-3 migrations use
+  production revision 2. The explicit atomic
+  `transition_booking_configuration_to_production_choice` API accepts only the
+  exact legacy policy and matching expected revision/fingerprint, changes no
+  unrelated authority, and is idempotent after transition. Shopping,
+  validation, and allocation never upgrade configuration implicitly.
+
+- `prepare_daily_booking_allocation` composes the atomic 5B candidate and
+  returns a detached `STAGE1_DAILY_BOOKING_ALLOCATION_PLAN_V1`; it persists no
+  plan and may commit only the current-day demand marker already authorized by
+  5B. Reusing that marker leaves authoritative bytes unchanged.
+- The exact `STAGE1_BALANCED_FARE_SCHEDULE_CHOICE_V1` policy weights fare,
+  desired-date deviation, and journey duration at 5000/3000/2000 basis points.
+  Fare premiums use exact rational half-even integer quantization, date scores
+  fall by 2500 per whole UTC-date day through ±3, and duration uses the exact
+  integer floor of `10000 * shortest / offered`. Composite weights remain
+  exact rationals. The outside option has weight 2500; there is no V1 absolute
+  fare threshold or `PRICE_REJECTION`.
+- Aggregate integer shares use floors and largest remainders. Separate keyed
+  SHA-256 purposes rank exact choice and capacity residual ties from immutable
+  save, cohort, market, desired-date, flight/sentinel, policy, and Booking-
+  configuration witnesses. Player and AI airlines follow identical rules.
+- Remaining capacity is rebuilt from published capacity minus strict confirmed
+  production V1 Bookings on their direct itineraries. Compatibility wrappers
+  consume none. Every relevant inventory revision must be supplied, re-read
+  from authority after shopping, compared with both the shopping
+  witness and caller's exact complete mapping, and returned; capacity and
+  revisions are not mutated.
+- Oversubscribed flights divide remaining seats proportionally across all
+  requesting desired-date groups. Saturated offers are removed, overflow is
+  re-scored among remaining offers plus the outside option, and each round
+  removes unavailable work. Weighted outside choices are terminal; real-offer
+  overflow with no capacity-bearing alternative is `INSUFFICIENT_CAPACITY`.
+  Conservation is exact at desired-date, market, and command levels.
+
+Milestone 5C does not satisfy the Milestone 5 exit criteria. Milestone 5D still
+owns checkpoints and recurrence, Booking/itinerary/reservation persistence,
+inventory and Booking revision commits, ticket transactions and finance,
+events, and booked-occurrence schedule-mutation protection.
+
 ### Work
 
 - Generate one generic Economy cohort per active directional pair and date.

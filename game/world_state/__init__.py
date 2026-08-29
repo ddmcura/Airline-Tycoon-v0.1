@@ -2,8 +2,11 @@
 
 from .compatibility import build_legacy_read_projection
 from .booking_fingerprint import (
+    BookingConfigurationTransitionIssue,
+    BookingConfigurationTransitionResult,
     calculate_booking_configuration_fingerprint,
     new_booking_configuration,
+    transition_booking_configuration_to_production_choice,
 )
 from .construction import (
     add_aircraft,
@@ -30,6 +33,8 @@ __all__ = (
     "ValidationIssue",
     "ValidationResult",
     "MigrationResult",
+    "BookingConfigurationTransitionIssue",
+    "BookingConfigurationTransitionResult",
     "MarketPackIssue",
     "MarketPackLifecycleResult",
     "add_aircraft",
@@ -50,5 +55,6 @@ __all__ = (
     "materialize_country_pack",
     "normalize_utc_timestamp",
     "new_booking_configuration",
+    "transition_booking_configuration_to_production_choice",
     "validate_world",
 )

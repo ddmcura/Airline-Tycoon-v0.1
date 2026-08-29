@@ -9,11 +9,10 @@ from .money import is_minor_amount
 from .schema import (
     AGGREGATE_BOOKING_CONTRACT,
     BOOKING_CHECKPOINT_STATUSES,
-    BOOKING_CHOICE_POLICY_CONTRACT,
     BOOKING_CONFIGURATION_CONTRACT,
-    BOOKING_CURRENCY_POLICY,
     BOOKING_DESIRED_DATE_POLICY,
     DEFAULT_BOOKING_CHOICE_POLICY,
+    LEGACY_BOOKING_CHOICE_POLICY,
     DIRECT_ECONOMY_ITINERARY_CONTRACT,
     SCHEMA2_BOOKING_COMPATIBILITY_CONTRACT,
     SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT,
@@ -181,26 +180,27 @@ def validate_booking_configuration(validator, configuration):
             validator.add("invalid_booking_configuration", f"{path}.lead_time_buckets", "bucket weights must total exactly 10000")
 
     choice = configuration.get("choice_policy")
+    revision = configuration.get("revision")
+    expected_choice = (
+        LEGACY_BOOKING_CHOICE_POLICY
+        if revision == 1
+        else DEFAULT_BOOKING_CHOICE_POLICY
+    )
     if not _exact(
         validator,
         choice,
-        DEFAULT_BOOKING_CHOICE_POLICY,
+        expected_choice,
         f"{path}.choice_policy",
         "invalid_booking_configuration",
-        "choice policy must contain exactly the canonical V1 fields",
+        "choice policy must contain exactly the fields for its revision",
     ):
         pass
-    elif (
-        choice.get("contract") != BOOKING_CHOICE_POLICY_CONTRACT
-        or choice.get("production_input_families") != ["FARE", "SCHEDULE"]
-        or choice.get("schedule_inputs")
-        != ["DATE_DEVIATION", "DEPARTURE_TIMING", "DURATION"]
-        or choice.get("absent_airline_quality_signals") != "NEUTRAL"
-        or choice.get("deterministic_rank_usage")
-        != "INTEGER_RESIDUALS_AND_EXACT_TIES_ONLY"
-        or choice.get("currency_policy") != BOOKING_CURRENCY_POLICY
-    ):
-        validator.add("invalid_booking_configuration", f"{path}.choice_policy", "must equal the approved V1 policy boundary")
+    elif choice != expected_choice:
+        validator.add(
+            "invalid_booking_configuration",
+            f"{path}.choice_policy",
+            "must equal the supported policy for its Booking configuration revision",
+        )
 
     fingerprint = configuration.get("configuration_fingerprint")
     if (

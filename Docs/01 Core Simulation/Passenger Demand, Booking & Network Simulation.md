@@ -715,3 +715,40 @@ Production scoring, outside-option and price outcomes, and capacity contention
 remain 5C. Persistence, checkpoint recurrence and completion, capacity and
 finance commits, ticket transactions, and booked-flight schedule protection
 remain 5D or later.
+
+## Milestone 5C architecture boundary
+
+Committed schema-3 revision-1 Booking configurations remain valid legacy
+authority and keep their original fingerprint. They do not acquire the 5C
+formula by reinterpretation. A separate explicit detached transition validates
+the expected old revision/fingerprint and exact legacy policy, advances only
+the Booking configuration to revision 2 with the production policy and new
+fingerprint, and commits atomically. Fresh schema-3 migration starts at that
+production revision; allocation never upgrades configuration implicitly.
+
+5C adds a deterministic production planner, not reservation authority. Fare,
+desired UTC-date deviation, and duration receive exact 5000/3000/2000 weights;
+the outside option receives 2500. Integer/rational arithmetic, largest
+remainders, and separate keyed SHA-256 purposes make both choice and shared-
+capacity contention independent of collection order. Missing airline-quality
+signals remain absent and neutral, both player and AI airlines use the same
+policy, and no absolute `PRICE_REJECTION` exists.
+
+Runtime capacity equals published seats less strict confirmed production V1
+Booking batches traced through their direct itineraries. Compatibility records
+do not consume capacity. Groups that share a dated flight contend
+proportionally rather than sequentially. Saturated offers leave subsequent
+choice sets; overflow is re-scored among remaining offers and outside. An
+outside choice is immediately terminal, while real-offer overflow that runs out
+of capacity-bearing alternatives becomes `INSUFFICIENT_CAPACITY`.
+
+Returned component evidence describes the initial complete offer set. The
+recomputed overflow-round minima and weights remain ephemeral rather than
+becoming saved or cached authority.
+
+The public result is detached and uses selected/capacity-assigned terminology.
+It snapshots relevant inventory revisions for 5D optimistic concurrency but
+does not reserve a seat or increment any revision. Only 5B's permitted new
+current-day demand marker may commit. Booking/itinerary/checkpoint persistence,
+inventory/Booking/finance commits, ticket accounting, recurrence/events, and
+schedule protection remain exclusively 5D or later.

@@ -231,7 +231,7 @@ metadata
 simulation.configuration.booking
 ├── contract: STAGE1_BOOKING_CONFIGURATION_V1
 ├── configuration_version: non-empty version string
-├── revision: positive integer                         # initially 1
+├── revision: positive integer                         # legacy 5A 1; production 5C 2+
 ├── booking_horizon_days: integer 0..365               # approved default 365
 ├── desired_date_policy: STAGE1_DESIRED_DATE_POLICY_V1
 ├── lead_time_buckets: ordered list
@@ -240,13 +240,20 @@ simulation.configuration.booking
 │       ├── maximum_lead_days: integer >= minimum
 │       └── weight_bps: non-negative integer
 ├── desired_date_tolerance_days: integer 0..horizon    # approved default 3
-├── choice_policy
-│   ├── contract: STAGE1_BOOKING_CHOICE_POLICY_V1
-│   ├── production_input_families: [FARE, SCHEDULE]
-│   ├── schedule_inputs: [DATE_DEVIATION, DEPARTURE_TIMING, DURATION]
-│   ├── absent_airline_quality_signals: NEUTRAL
-│   ├── deterministic_rank_usage: INTEGER_RESIDUALS_AND_EXACT_TIES_ONLY
-│   └── currency_policy: SINGLE_CURRENCY_ONLY
+├── choice_policy                                      # exact identity depends on revision
+│   ├── revision 1 legacy contract: STAGE1_BOOKING_CHOICE_POLICY_V1
+│   │   └── schedule_inputs: [DATE_DEVIATION, DEPARTURE_TIMING, DURATION]
+│   └── revision 2+ production contract: STAGE1_BALANCED_FARE_SCHEDULE_CHOICE_V1
+│       ├── production_input_families: [FARE, SCHEDULE]
+│       ├── schedule_inputs: [DATE_DEVIATION, DURATION]
+│       ├── component_weights_bps
+│       │   ├── fare: 5000
+│       │   ├── desired_date_deviation: 3000
+│       │   └── journey_duration: 2000
+│       ├── outside_option_weight_score_units: 2500
+│       ├── absent_airline_quality_signals: NEUTRAL
+│       ├── deterministic_rank_usage: INTEGER_RESIDUALS_AND_EXACT_TIES_ONLY
+│       └── currency_policy: SINGLE_CURRENCY_ONLY
 └── configuration_fingerprint: lowercase SHA-256 witness
 
 world_state.booking_state
@@ -278,13 +285,27 @@ schedules and dated flights, capacity consumption, airlines, financial state,
 and UI/current-focus state. No Booking result is added to a demand,
 derived-source, revision-context, or market-pack fingerprint.
 
-The V1 choice-policy contract reserves only fare and schedule as production
-input families. Schedule may later use date deviation, departure timing, and
-duration. Reliability, reputation, perks, presence, awareness, and loyalty are
-neutral while absent and must not be invented. Keyed deterministic ranks may
-resolve integer residuals and exact ties only; uncontrolled passenger-level
-randomness is prohibited. `SINGLE_CURRENCY_ONLY` makes mixed-currency
-competition an unsupported boundary that later processing rejects as
+Schema-3 worlds produced by the committed 5A/5B implementation retain the
+exact revision-1 legacy policy and its original fingerprint as valid authority.
+They are not silently reinterpreted or rewritten. Fresh schema-2-to-3
+migrations materialize revision 2 and the production policy. The explicit
+detached `transition_booking_configuration_to_production_choice(...)` boundary
+accepts only the exact revision-1 legacy policy plus the caller's matching old
+revision/fingerprint, replaces only the choice policy, advances the Booking
+configuration revision to 2, recomputes its Booking-only fingerprint, validates
+the complete candidate, and commits atomically. Repeating it with current
+revision-2 witnesses is an idempotent no-op. Allocation itself requires the
+production policy and never performs this transition implicitly.
+
+Both supported choice-policy identities reserve only fare and schedule as
+production input families. Revision 1 reserved departure timing without
+assigning production scoring semantics; revision 2 removes that unused input
+and fixes fare, date-deviation, and duration scoring exactly. Reliability,
+reputation, perks, presence, awareness, and loyalty are neutral while absent
+and must not be invented. Keyed deterministic ranks may resolve integer
+residuals and exact ties only; uncontrolled passenger-level randomness is
+prohibited. `SINGLE_CURRENCY_ONLY` makes mixed-currency competition an
+unsupported boundary that later processing rejects as
 `UNSUPPORTED_FARE_CURRENCY`; schema 3 adds no foreign-exchange authority. Score
 transforms, weights, allocation, and execution remain Milestone 5C work.
 
@@ -886,6 +907,13 @@ minimal account foundation contains exactly one each of `cash`,
   cache, or save authority. The only permitted 5B persistent change is a valid
   current-day V1/V2 demand marker produced through the existing prospective
   active-market boundary.
+- Milestone 5C score evidence, outside/capacity dispositions, observed
+  inventory-revision snapshots, selected-offer counts, market results, and the
+  `STAGE1_DAILY_BOOKING_ALLOCATION_PLAN_V1` result are detached runtime-only
+  data. `selected_passengers` describes proposed capacity assignment, never a
+  Booking or reservation. No allocation plan, score, remaining-capacity value,
+  or contention cache is save authority. The command may persist only the same
+  current-day cohort marker as 5B.
 - World-demand origin pools, raw pair scores, normalized shares, base daily
   bookers, compact per-origin normalization summaries, source fingerprints,
   active-market provider results, and pair/origin indexes are
@@ -917,3 +945,6 @@ minimal account foundation contains exactly one each of `cash`,
 - Allocate aggregate desired dates, rebuild direct-shopping indexes, and
   atomically prepare the current-day pre-choice plan:
   `game.booking` Milestone 5B API
+- Score aggregate choices, observe authoritative capacity/revisions, and build
+  a detached contention-safe allocation plan:
+  `game.booking.prepare_daily_booking_allocation(...)` (Milestone 5C)

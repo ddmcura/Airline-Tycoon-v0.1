@@ -556,3 +556,20 @@ Remaining capacity and booked totals are not structural filters, so a full
 flight remains `SHOPPABLE` for later 5C contention. Snapshots are detached and
 runtime-only; Scheduling authority is never rewritten. 5B adds no schedule
 mutation protection because confirmed production bookings do not yet exist.
+
+### Milestone 5C capacity-planning consumer
+
+Booking now observes each relevant occurrence's published capacity and current
+`inventory_revision`, re-reads that revision from detached authority after
+shopping, reconstructs existing consumption only from strict
+confirmed production V1 Booking/direct-itinerary authority, and returns those
+revision observations in a detached allocation plan. A full occurrence remains
+an initial choice candidate but has zero assignable capacity. Groups sharing an
+occurrence contend proportionally and deterministically; Scheduling order and
+dated-flight dictionary order never establish priority.
+
+This consumer does not write remaining capacity, reserve seats, increment
+`inventory_revision`, or protect occurrences from timetable mutation. The 5D
+commit must recheck every observed revision before it creates authoritative
+Bookings and performs capacity/revision changes; booked-occurrence schedule
+protection also remains 5D.

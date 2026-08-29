@@ -1312,3 +1312,70 @@ No checkpoint, Booking, itinerary, transaction, event, reservation, allocator,
 inventory revision, finance revision, Booking revision, or fingerprint changes.
 5C retains production choice and capacity outcomes; 5D retains persistence,
 checkpoint recurrence/execution, capacity/finance commits, and ticket posting.
+
+## 36. Milestone 5C deterministic choice and capacity planning
+
+The committed 5A/5B revision-1 `STAGE1_BOOKING_CHOICE_POLICY_V1` configuration
+remains valid with its original fingerprint but is not a production 5C scoring
+policy. Fresh schema-3 migrations create revision 2. Existing revision-1 worlds
+must use the explicit atomic
+`transition_booking_configuration_to_production_choice(...)` boundary, which
+requires the exact supported old identity and expected old revision/fingerprint,
+changes only the policy/revision/fingerprint, and is idempotent once applied.
+Validation, construction of unrelated authority, shopping, and allocation do
+not silently repair or upgrade it.
+
+The production choice contract is
+`STAGE1_BALANCED_FARE_SCHEDULE_CHOICE_V1`. Its fare/date/duration component
+weights are exactly 5000/3000/2000 basis points and the outside-option weight
+is exactly 2500 score units. For each same-currency desired-date set, the
+cheapest fare scores 10000. A positive minimum fare applies
+`max(0, 10000 - quantize_half_even(10000 * premium / minimum))`; when the
+minimum is zero, zero fares score 10000 and positive fares zero. Date score is
+`max(0, 10000 - 2500 * absolute_deviation_days)`. Duration score is the exact
+integer floor of `10000 * shortest_duration_seconds / offered_duration_seconds`.
+Composite offer weight is the exact rational numerator
+`5000*fare + 3000*date + 2000*duration` over 10000. No binary float or global
+Decimal context participates.
+
+There is no absolute willingness-to-pay authority, so V1 has no
+`PRICE_REJECTION`. The outside option competes in every choice round; one
+perfect offer therefore receives 80 percent and outside receives 20 percent
+when the total divides exactly. Floors plus largest remainders conserve each
+aggregate group. Exact residual ties use
+`STAGE1_CHOICE_INTEGER_RESIDUAL_RANK_SHA256_V1`; capacity residuals use the
+separate `STAGE1_CAPACITY_CONTENTION_INTEGER_RESIDUAL_RANK_SHA256_V1` purpose.
+
+Capacity is reconstructed as published capacity minus passenger counts from
+strict confirmed `STAGE1_AGGREGATE_BOOKING_V1` records and their owned direct
+V1 itineraries. Schema-2 compatibility wrappers do not consume seats. Full
+flights remain visible for initial choice with zero assignable capacity. Every
+offered dated flight is capacity-relevant. Its inventory revision is re-read
+from the detached authoritative candidate after shopping, compared both with
+the shopping witness and with the caller's exact complete mapping, and copied
+into the result without increment.
+
+All desired-date groups provisionally choose before shared flights resolve
+contention. An oversubscribed flight assigns exactly its remaining capacity
+proportionally among requesting groups with exact largest remainder. Saturated
+offers are removed and overflow groups are re-scored against remaining offers
+and the outside option. Passengers who chose outside are terminal and never
+retry. Passengers who chose a real offer but exhaust all real alternatives are
+`INSUFFICIENT_CAPACITY`; this count never absorbs passengers already assigned
+outside. Every round removes at least one unavailable offer, and conservation
+holds without passenger objects.
+
+Each desired-date result's `offer_scores` tuple is the canonical sorted evidence
+for its initial complete 5B offer set. Overflow-round fare and duration minima
+are recomputed exactly after saturated offers are removed, but those transient
+round weights are not retained in the detached plan.
+
+`prepare_daily_booking_allocation` returns only a detached
+`STAGE1_DAILY_BOOKING_ALLOCATION_PLAN_V1` with score evidence, selected counts,
+terminal dispositions, observed configuration/demand/pack/inventory witnesses,
+and structured issues. It may commit only a new current-day demand marker under
+the existing 5B rule. It creates no checkpoint, Booking, itinerary,
+reservation, transaction, event, or persistent plan and changes no Booking,
+inventory, finance, pack, configuration, fingerprint, or allocator authority.
+All persistence, revision increments, finance, recurrence, and schedule
+protection remain Milestone 5D.

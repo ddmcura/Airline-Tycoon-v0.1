@@ -204,7 +204,7 @@ class BookingConfigurationTests(unittest.TestCase):
         mutations = {
             "contract": lambda value: value.update(contract="OTHER"),
             "configuration_version": lambda value: value.update(configuration_version="v2"),
-            "revision": lambda value: value.update(revision=2),
+            "revision": lambda value: value.update(revision=3),
             "booking_horizon_days": lambda value: value.update(booking_horizon_days=364),
             "desired_date_policy": lambda value: value.update(desired_date_policy="OTHER"),
             "lead_time_buckets": lambda value: value["lead_time_buckets"][0].update(weight_bps=499),
