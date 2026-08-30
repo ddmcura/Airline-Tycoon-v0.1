@@ -191,6 +191,9 @@ def _owner_collections(envelope):
         "schedule": world["schedule_definitions"],
         "dated_flight": world["dated_flights"],
         "booking": world["bookings"],
+        "booking_checkpoint": world.get("booking_state", {}).get(
+            "booking_checkpoints", {}
+        ),
     }
 
 

@@ -326,10 +326,13 @@ canonical midnight. A pending checkpoint has null `processed_at_utc`, pins the
 current revisions and Booking fingerprint, has the current Booking revision,
 and contains empty `market_results` and `financial_transaction_ids`.
 Completed checkpoints require canonical processing time and strict result and
-transaction-reference topology. Milestone 5A creates neither a bootstrap nor a
-historical checkpoint: the existing event kernel has no Booking event ownership
-requirement, and recurrence belongs to 5D. Therefore migration leaves
-`booking_checkpoints` empty and does not consume any allocator.
+transaction-reference topology. Each market result owns requested, booked,
+outside-option, insufficient-capacity, no-eligible-service, and no-departure
+counts plus exact desired-date subresults and sorted Booking IDs. Every level
+conserves requested passengers. Migration creates neither a bootstrap nor a
+historical checkpoint and consumes no allocator; the first direct 5D command
+processes only `simulation.time_utc[:10]`, then schedules the following UTC
+midnight.
 
 Schema 3 reserves these strict future production contracts but creates no
 records under either contract during migration:
@@ -344,7 +347,7 @@ fare_offer_snapshot
   currency, amount_minor
 
 schedule_lineage
-  schedule_id, schedule_revision
+  schedule_id, schedule_revision, occurrence_key
 
 booking (STAGE1_AGGREGATE_BOOKING_V1)
   booking_id, contract, booking_checkpoint_id, cohort_key,
@@ -361,6 +364,10 @@ The aggregate V1 Booking has a positive passenger count, status `CONFIRMED`, no
 individual passenger IDs, a one-to-one Booking-to-itinerary relationship, and
 total fare equal to passenger count times the itinerary snapshot amount. Its
 currency must match the snapshot. Revision and finance references are strict.
+`finance_transaction_id` is null exactly for a zero-fare Booking; such a
+Booking still commits capacity but changes no account or finance revision.
+Paid Bookings reference the checkpoint's one aggregated transaction for their
+airline.
 
 Because schema 2 accepted nonempty minimal Booking and itinerary placeholder
 records, migration preserves each payload byte-for-byte inside the explicit
@@ -373,12 +380,24 @@ commitments even when their text happens to equal `CONFIRMED`. Runtime
 capacity derivation counts only strict production V1 authority; compatibility
 topology remains traceable without inventing reservation semantics.
 
-`inventory_revision` and `finance_revision` are optimistic-concurrency tokens
-only. Migration initializes each to zero and Milestone 5A performs no inventory
-mutation, capacity commitment, financial posting, or transaction creation.
+`inventory_revision` and `finance_revision` are optimistic-concurrency tokens.
+Migration initializes each to zero. A completed 5D checkpoint increments each
+affected flight inventory revision once, each paid airline finance revision
+once, and the global Booking revision once. Multiple Booking batches on one
+flight store the same resulting inventory revision. Ticket-sale journals debit
+cash and credit the unflown-ticket liability under the debit-positive journal
+convention; category-normal display balances for both accounts increase, while
+passenger revenue remains unchanged.
 Booked and remaining capacity are derived at runtime from confirmed production
 V1 Booking and itinerary authority; `remaining_capacity`, `booked_capacity`,
 and rebuildable Booking indexes are forbidden persistent fields.
+
+The event type `DAILY_BOOKING_CHECKPOINT` is owned by the completed checkpoint
+that scheduled it. Its payload is exactly the following checkpoint date. One
+pending next-day event exists after success; event dispatch calls the same
+atomic command, and the kernel resolves the firing event only after the whole
+candidate validates. Completed-checkpoint reuse allocates nothing and leaves
+serialized authority byte-identical.
 
 ### Milestone 4.5B-2 Model 4 travel-scope contract
 

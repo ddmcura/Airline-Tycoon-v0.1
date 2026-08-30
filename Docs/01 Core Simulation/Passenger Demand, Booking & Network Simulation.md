@@ -746,9 +746,16 @@ Returned component evidence describes the initial complete offer set. The
 recomputed overflow-round minima and weights remain ephemeral rather than
 becoming saved or cached authority.
 
-The public result is detached and uses selected/capacity-assigned terminology.
-It snapshots relevant inventory revisions for 5D optimistic concurrency but
-does not reserve a seat or increment any revision. Only 5B's permitted new
-current-day demand marker may commit. Booking/itinerary/checkpoint persistence,
-inventory/Booking/finance commits, ticket accounting, recurrence/events, and
-schedule protection remain exclusively 5D or later.
+The 5C public plan remains detached and uses selected/capacity-assigned
+terminology. Milestone 5D's `process_daily_booking_checkpoint` is the only
+production persistence boundary: it converts positive selections into one
+strict direct itinerary and one aggregate Booking per batch, commits capacity,
+posts paid ticket cash to the unflown-service obligation, persists terminal
+outcomes, completes a unique current-date checkpoint, and schedules one next-
+midnight recurrence event. Zero-fare Bookings reserve seats without a journal.
+
+The command is idempotent after completion, uses no real-time/offline backlog,
+and commits its fully detached candidate only after complete schema and
+conservation validation. Connecting itineraries, passenger objects, carriage,
+check-in/boarding, disruption handling, refunds, revenue recognition, operating
+costs, and playable interfaces remain deferred.

@@ -17,6 +17,9 @@ from game.world_state.validation import validate_world
 
 REVISION_MUTABLE_STATUSES = frozenset({"PLANNED", "SUPERSEDED"})
 ACTIVE_DATED_FLIGHT_STATUSES = frozenset({"PLANNED", "OPERATIONALLY_LOCKED"})
+BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW = (
+    "BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW"
+)
 _REVISION_FIELDS = frozenset(
     {
         "connection_id",
@@ -96,6 +99,42 @@ def _replace_envelope(target, candidate):
     committed = deepcopy(candidate)
     target.clear()
     target.update(committed)
+
+
+def _strict_confirmed_booking_counts(world):
+    counts = {}
+    itineraries = world.get("itineraries", {})
+    for booking in world.get("bookings", {}).values():
+        if (
+            type(booking) is not dict
+            or booking.get("contract") != "STAGE1_AGGREGATE_BOOKING_V1"
+            or booking.get("status") != "CONFIRMED"
+            or type(booking.get("passenger_count")) is not int
+        ):
+            continue
+        itinerary = itineraries.get(booking.get("itinerary_id"))
+        if type(itinerary) is not dict or itinerary.get("contract") != "STAGE1_DIRECT_ECONOMY_ITINERARY_V1":
+            continue
+        for flight_id in itinerary.get("dated_flight_ids", []):
+            if type(flight_id) is str:
+                counts[flight_id] = counts.get(flight_id, 0) + booking["passenger_count"]
+    return counts
+
+
+def _booked_change_conflict(flight, wanted, booked_count):
+    if wanted is None:
+        return True
+    protected_fields = (
+        "airline_id", "schedule_id", "schedule_revision", "occurrence_key",
+        "connection_id", "planned_aircraft_id", "origin_airport_id",
+        "destination_airport_id", "service_type", "scheduled_off_block_utc",
+        "scheduled_in_block_utc", "passenger_service_classification",
+        "fare_offer", "status",
+    )
+    if any(flight.get(field) != wanted.get(field) for field in protected_fields):
+        return True
+    capacity = wanted.get("capacity")
+    return type(capacity) is not int or capacity < booked_count
 
 
 def _conflicts_from_validation(result):
@@ -645,6 +684,7 @@ def publish_occurrences_through(
         )
 
     flights = candidate["world_state"]["dated_flights"]
+    booked_counts = _strict_confirmed_booking_counts(candidate["world_state"])
     existing_by_key = {
         flight["occurrence_key"]: flight_id
         for flight_id, flight in flights.items()
@@ -674,6 +714,20 @@ def publish_occurrences_through(
             unchanged.append(flight_id)
             desired.pop(key, None)
             continue
+        if flight_id in booked_counts and _booked_change_conflict(
+            flight, wanted, booked_counts[flight_id]
+        ):
+            return PublicationResult(
+                "CONFLICT",
+                target_horizon_utc,
+                conflicts=(SchedulingConflict(
+                    BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW,
+                    "confirmed Bookings protect this dated-flight occurrence until a disruption workflow exists",
+                    schedule_id=flight.get("schedule_id"),
+                    dated_flight_id=flight_id,
+                    aircraft_id=flight.get("planned_aircraft_id"),
+                ),),
+            )
         if wanted is None:
             if flight["status"] != "SUPERSEDED":
                 flight["status"] = "SUPERSEDED"

@@ -22,6 +22,7 @@ from game.world_state.schema import (
     SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT,
 )
 from game.scheduling import publish_occurrences_through
+from game.simulation import schedule_event
 from tests.test_stage1_compact_demand import _publish_direct_service
 from tests.test_stage1_demand_model4_foundation import (
     foundation_snapshot,
@@ -774,6 +775,10 @@ class BookingSchemaValidationTests(unittest.TestCase):
             "airline_id": airline_id,
             "occurred_at_utc": world["simulation"]["time_utc"],
             "description": "Future Booking contract fixture",
+            "source_type": "BOOKING_CHECKPOINT",
+            "source_id": checkpoint_id,
+            "source_booking_ids": [booking_id],
+            "currency": "USD",
             "entries": [
                 {"account_id": account_ids[0], "amount_minor": 30_000},
                 {"account_id": account_ids[3], "amount_minor": -30_000},
@@ -794,6 +799,7 @@ class BookingSchemaValidationTests(unittest.TestCase):
             "schedule_lineage": {
                 "schedule_id": flight["schedule_id"],
                 "schedule_revision": flight["schedule_revision"],
+                "occurrence_key": flight["occurrence_key"],
             },
             "status": "CONFIRMED",
         }
@@ -837,11 +843,36 @@ class BookingSchemaValidationTests(unittest.TestCase):
                     "desired_passenger_count": 3,
                     "booked_passenger_count": 3,
                     "outside_option_passenger_count": 0,
+                    "insufficient_capacity_passenger_count": 0,
+                    "no_eligible_service_passenger_count": 0,
+                    "no_departure_on_desired_date_passenger_count": 0,
                     "booking_ids": [booking_id],
+                    "desired_date_results": {
+                        flight["scheduled_departure_local_date"]: {
+                            "desired_travel_date": flight["scheduled_departure_local_date"],
+                            "requested_passenger_count": 3,
+                            "booked_passenger_count": 3,
+                            "outside_option_passenger_count": 0,
+                            "insufficient_capacity_passenger_count": 0,
+                            "no_eligible_service_passenger_count": 0,
+                            "no_departure_on_desired_date_passenger_count": 0,
+                            "booking_ids": [booking_id],
+                        }
+                    },
                 }
             },
             "financial_transaction_ids": [transaction_id],
         }
+        world["simulation"]["operation_revisions"][checkpoint_id] = 1
+        schedule_event(
+            world,
+            event_type="DAILY_BOOKING_CHECKPOINT",
+            due_at_utc="2026-08-21T00:00:00Z",
+            owner_type="booking_checkpoint",
+            owner_id=checkpoint_id,
+            operation_revision=1,
+            payload={"checkpoint_date": "2026-08-21"},
+        )
         self.assertTrue(validate_world(world).is_valid, validate_world(world).as_dict())
         indexes = rebuild_booking_indexes(world)
         self.assertEqual(
@@ -867,11 +898,19 @@ class BookingSchemaValidationTests(unittest.TestCase):
         exact_booking = exact_capacity["world_state"]["bookings"][booking_id]
         exact_booking["passenger_count"] = 180
         exact_booking["total_fare_minor"] = 1_800_000
+        exact_transaction = exact_capacity["world_state"]["transactions"][
+            transaction_id
+        ]
+        exact_transaction["entries"][0]["amount_minor"] = 1_800_000
+        exact_transaction["entries"][1]["amount_minor"] = -1_800_000
         exact_result = exact_capacity["world_state"]["booking_state"][
             "booking_checkpoints"
         ][checkpoint_id]["market_results"][market_id]
         exact_result["desired_passenger_count"] = 180
         exact_result["booked_passenger_count"] = 180
+        exact_date_result = next(iter(exact_result["desired_date_results"].values()))
+        exact_date_result["requested_passenger_count"] = 180
+        exact_date_result["booked_passenger_count"] = 180
         self.assertTrue(
             validate_world(exact_capacity).is_valid,
             validate_world(exact_capacity).as_dict(),
@@ -885,6 +924,9 @@ class BookingSchemaValidationTests(unittest.TestCase):
         ][checkpoint_id]["market_results"][market_id]
         oversold_result["desired_passenger_count"] = 181
         oversold_result["booked_passenger_count"] = 181
+        oversold_date_result = next(iter(oversold_result["desired_date_results"].values()))
+        oversold_date_result["requested_passenger_count"] = 181
+        oversold_date_result["booked_passenger_count"] = 181
         self.assertIn("invalid_inventory", issue_codes(oversold))
         bad_fare = deepcopy(world)
         bad_fare["world_state"]["bookings"][booking_id]["total_fare_minor"] += 1

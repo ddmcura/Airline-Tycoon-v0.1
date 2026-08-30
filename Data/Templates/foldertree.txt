@@ -38,6 +38,7 @@
 │   ├── booking
 │   │   ├── __init__.py
 │   │   ├── allocation.py
+│   │   ├── checkpoint.py
 │   │   ├── configuration.py
 │   │   ├── indexes.py
 │   │   └── shopping.py

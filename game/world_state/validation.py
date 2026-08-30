@@ -2331,6 +2331,11 @@ class _Validator:
             "schedule": schedules,
             "dated_flight": flights,
             "booking": bookings,
+            "booking_checkpoint": (
+                world.get("booking_state", {}).get("booking_checkpoints", {})
+                if type(world.get("booking_state")) is dict
+                else {}
+            ),
         }
         revisions = self.envelope.get("simulation", {}).get("operation_revisions", {})
         simulation_time = self.envelope.get("simulation", {}).get("time_utc")

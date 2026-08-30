@@ -640,10 +640,35 @@ transactions, and booked-flight schedule protection remain 5D or later.
   overflow with no capacity-bearing alternative is `INSUFFICIENT_CAPACITY`.
   Conservation is exact at desired-date, market, and command levels.
 
-Milestone 5C does not satisfy the Milestone 5 exit criteria. Milestone 5D still
-owns checkpoints and recurrence, Booking/itinerary/reservation persistence,
-inventory and Booking revision commits, ticket transactions and finance,
-events, and booked-occurrence schedule-mutation protection.
+### Milestone 5D implemented contract (2026-08-30)
+
+- `process_daily_booking_checkpoint` is the authoritative atomic current-UTC-
+  date boundary. It requires exact Booking, demand, pack, production Booking-
+  configuration, relevant inventory, paid-airline finance, and event-order
+  witnesses; it rejects revision-1 policy until the explicit 5C transition.
+- A detached candidate runs the committed 5B/5C pipeline, persists one direct
+  itinerary and aggregate Booking per positive selected batch in canonical
+  order, advances each affected flight inventory revision once and the global
+  Booking revision once, and records every terminal outcome by market/date.
+- One positive ticket-sale transaction per paid airline increases cash and the
+  unflown-ticket liability equally and advances that airline's finance revision
+  once. Zero-fare Bookings reserve capacity with null transaction lineage and
+  no financial mutation. Passenger revenue remains unchanged.
+- A completed checkpoint schedules exactly one following-midnight
+  `DAILY_BOOKING_CHECKPOINT` event. The first direct call starts the cycle
+  without history or offline backlog; event dispatch uses the same atomic
+  boundary. Completed repeats validate and return persisted authority without
+  providers, allocation, IDs, events, revisions, capacity, or finance changes.
+- Scheduling rejects any reconciliation that would change, supersede, or
+  reduce the capacity of a strict-confirmed booked occurrence with
+  `BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW`; unrelated and unbooked
+  occurrences retain their existing rules.
+
+Milestone 5 is complete for the approved Stage 1 direct-Economy vertical slice.
+Connecting itineraries and their all-leg reservation exit criterion are moved
+to a later explicitly authorized milestone. Passenger carriage, revenue
+recognition, operating costs, refunds, disruptions, and playable UI remain
+deferred.
 
 ### Work
 

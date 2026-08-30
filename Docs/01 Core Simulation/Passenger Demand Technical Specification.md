@@ -1377,5 +1377,16 @@ and structured issues. It may commit only a new current-day demand marker under
 the existing 5B rule. It creates no checkpoint, Booking, itinerary,
 reservation, transaction, event, or persistent plan and changes no Booking,
 inventory, finance, pack, configuration, fingerprint, or allocator authority.
-All persistence, revision increments, finance, recurrence, and schedule
-protection remain Milestone 5D.
+Milestone 5D now consumes this detached plan inside
+`process_daily_booking_checkpoint`. It rechecks every witness on one detached
+candidate, allocates strict direct itineraries and aggregate Bookings in stable
+market/date/departure/flight/airline order, commits each affected inventory
+revision once, and persists all five terminal/success outcome categories.
+The candidate commits only after whole-world validation; any provider,
+allocation, ID, capacity, finance, event, or result failure leaves source bytes
+and allocator cursors unchanged.
+
+The checkpoint is unique by current UTC date. A valid completed repeat returns
+persisted results without rerunning any provider. First use creates no history
+or backlog and schedules only the following midnight. Event-driven use invokes
+the same command and preserves exactly one successor event.

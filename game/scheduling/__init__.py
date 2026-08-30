@@ -6,6 +6,7 @@ weekly schedule helpers remain in their explicit modules and are not authority.
 
 from .indexes import DatedFlightIndexes, rebuild_dated_flight_indexes
 from .publication import (
+    BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW,
     PublicationResult,
     ScheduleDefinitionResult,
     SchedulingConflict,
@@ -19,6 +20,7 @@ from .publication import (
 )
 
 __all__ = (
+    "BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW",
     "DatedFlightIndexes",
     "PublicationResult",
     "ScheduleDefinitionResult",

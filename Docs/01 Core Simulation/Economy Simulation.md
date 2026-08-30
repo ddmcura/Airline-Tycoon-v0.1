@@ -872,3 +872,22 @@ authority is added. Ticket cash receipt and the unflown-service obligation,
 capacity commitment, refunds, and revenue recognition remain later execution
 work. Existing accounts, balances, transactions, financial history, and
 allocator positions are preserved by detached schema-2-to-3 migration.
+
+## Milestone 5D ticket-sale posting
+
+Each completed Booking checkpoint creates at most one positive ticket-sale
+transaction per affected airline. Its immutable source is
+`BOOKING_CHECKPOINT`, its source ID is the checkpoint ID, and its sorted source
+Booking IDs include the paid Booking batches represented by the gross sale.
+Under the debit-positive journal convention, cash is positive and the
+unflown-ticket liability is equally negative, so entries sum to zero. Stored
+category-normal balances for cash and the liability both increase by gross
+sales. Passenger revenue is unchanged until later carriage.
+
+An airline with only zero-fare confirmed Bookings receives no transaction and
+no finance-revision increment; each such Booking has null transaction lineage
+and still reserves capacity. A paid airline receives one transaction and one
+finance-revision increment even when it also has zero-fare batches; only paid
+batches appear in the transaction's source Booking IDs. Refunds, carriage,
+revenue recognition, operating costs, cancellations, and disruption accounting
+remain deferred.

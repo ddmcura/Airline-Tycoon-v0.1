@@ -27,6 +27,14 @@ from .configuration import (
     new_booking_configuration,
     transition_booking_configuration_to_production_choice,
 )
+from .checkpoint import (
+    BOOKING_CHECKPOINT_EVENT_TYPE,
+    BookingCheckpointDesiredDateResult,
+    BookingCheckpointIssue,
+    BookingCheckpointMarketResult,
+    BookingCheckpointResult,
+    process_daily_booking_checkpoint,
+)
 from .indexes import BookingIndexes, rebuild_booking_indexes
 from .shopping import (
     BookingShoppingIssue,
@@ -50,6 +58,11 @@ __all__ = (
     "ALLOCATION_PLAN_CONTRACT",
     "ALLOCATION_PLAN_VERSION",
     "BookingIndexes",
+    "BOOKING_CHECKPOINT_EVENT_TYPE",
+    "BookingCheckpointDesiredDateResult",
+    "BookingCheckpointIssue",
+    "BookingCheckpointMarketResult",
+    "BookingCheckpointResult",
     "BookingConfigurationTransitionIssue",
     "BookingConfigurationTransitionResult",
     "BookingShoppingIssue",
@@ -81,6 +94,7 @@ __all__ = (
     "journey_duration_score",
     "new_booking_configuration",
     "prepare_daily_booking_allocation",
+    "process_daily_booking_checkpoint",
     "prepare_daily_booking_shopping",
     "rebuild_booking_indexes",
     "rebuild_direct_flight_shopping_indexes",

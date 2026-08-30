@@ -568,8 +568,16 @@ an initial choice candidate but has zero assignable capacity. Groups sharing an
 occurrence contend proportionally and deterministically; Scheduling order and
 dated-flight dictionary order never establish priority.
 
-This consumer does not write remaining capacity, reserve seats, increment
-`inventory_revision`, or protect occurrences from timetable mutation. The 5D
-commit must recheck every observed revision before it creates authoritative
-Bookings and performs capacity/revision changes; booked-occurrence schedule
-protection also remains 5D.
+The 5C consumer does not mutate authority. The 5D checkpoint rechecks every
+observed revision, derives existing consumption from strict confirmed V1
+Bookings, and increments an affected occurrence's `inventory_revision` exactly
+once regardless of the number of new batches.
+
+Until a disruption workflow is authorized, publication/revision reconciliation
+must return `BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW` before changing
+or superseding a strict-confirmed booked occurrence's identity, lineage,
+endpoints, airline, aircraft, times, passenger/Economy qualification, fare,
+status, or capacity. Capacity may never fall below confirmed passengers.
+Compatibility wrappers do not trigger this guard; changes proven unrelated to
+booked occurrences and existing operational lifecycle transitions remain
+available under their prior rules.

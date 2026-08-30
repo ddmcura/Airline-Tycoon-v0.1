@@ -1,6 +1,6 @@
 """Strict schema-3 Booking validation helpers."""
 
-from datetime import date
+from datetime import date, timedelta
 
 from .booking_fingerprint import calculate_booking_configuration_fingerprint
 
@@ -305,7 +305,10 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
     if not _currency(snapshot.get("currency")) or not is_minor_amount(snapshot.get("amount_minor")) or snapshot.get("amount_minor", -1) < 0:
         validator.add("invalid_itinerary", f"{path}.fare_offer_snapshot", "fare snapshot must contain currency and non-negative integer amount_minor")
     lineage = record.get("schedule_lineage")
-    if not _exact(validator, lineage, {"schedule_id", "schedule_revision"}, f"{path}.schedule_lineage", "invalid_itinerary", "schedule lineage fields are invalid"):
+    if type(lineage) is not dict or set(lineage) != {
+        "schedule_id", "schedule_revision", "occurrence_key"
+    }:
+        validator.add("invalid_itinerary", f"{path}.schedule_lineage", "schedule lineage fields are invalid")
         lineage = {}
     if not isinstance(lineage.get("schedule_id"), str) or not _positive_integer(lineage.get("schedule_revision")):
         validator.add("invalid_itinerary", f"{path}.schedule_lineage", "must identify a retained schedule revision")
@@ -331,7 +334,10 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
                 validator.add("invalid_itinerary", f"{path}.{field}", "must match the dated flight")
         if snapshot != flight.get("fare_offer"):
             validator.add("invalid_itinerary", f"{path}.fare_offer_snapshot", "must snapshot the dated-flight fare")
-        if lineage != {"schedule_id": flight.get("schedule_id"), "schedule_revision": flight.get("schedule_revision")}:
+        expected_lineage = {"schedule_id": flight.get("schedule_id"), "schedule_revision": flight.get("schedule_revision")}
+        if "occurrence_key" in lineage:
+            expected_lineage["occurrence_key"] = flight.get("occurrence_key")
+        if lineage != expected_lineage:
             validator.add("invalid_itinerary", f"{path}.schedule_lineage", "must match dated-flight schedule lineage")
     if type(market) is dict and (record.get("origin_airport_id"), record.get("destination_airport_id")) != (market.get("origin_airport_id"), market.get("destination_airport_id")):
         validator.add("invalid_itinerary", f"{path}.market_id", "market endpoints must match the itinerary")
@@ -371,6 +377,7 @@ def validate_schema3_booking_authority(validator):
     if type(transactions) is not dict:
         transactions = {}
     transaction_checkpoint_owner = {}
+    completed_checkpoints = []
     for checkpoint_id, checkpoint in checkpoints.items():
         checkpoint_path = f"{path}.booking_checkpoints.{checkpoint_id}"
         fields = {
@@ -413,6 +420,14 @@ def validate_schema3_booking_authority(validator):
             validator.add("invalid_booking_checkpoint", checkpoint_path, "pending checkpoints require null processed time and empty result/transaction collections")
         if status == "COMPLETED" and not is_canonical_utc(processed):
             validator.add("invalid_booking_checkpoint", f"{checkpoint_path}.processed_at_utc", "completed checkpoints require a canonical UTC timestamp")
+        elif status == "COMPLETED":
+            completed_checkpoints.append(checkpoint)
+            if type(checkpoint_date) is str and processed[:10] != checkpoint_date:
+                validator.add(
+                    "invalid_booking_checkpoint",
+                    f"{checkpoint_path}.processed_at_utc",
+                    "completed checkpoint processing must occur on checkpoint_date",
+                )
         for market_id, result in results.items():
             result_path = f"{checkpoint_path}.market_results.{market_id}"
             result_fields = {
@@ -422,15 +437,13 @@ def validate_schema3_booking_authority(validator):
                 "booked_passenger_count",
                 "outside_option_passenger_count",
                 "booking_ids",
+                "insufficient_capacity_passenger_count",
+                "no_eligible_service_passenger_count",
+                "no_departure_on_desired_date_passenger_count",
+                "desired_date_results",
             }
-            if not _exact(
-                validator,
-                result,
-                result_fields,
-                result_path,
-                "result_validation_failed",
-                "must contain exactly the canonical Booking market-result fields",
-            ):
+            if type(result) is not dict or set(result) != result_fields:
+                validator.add("result_validation_failed", result_path, "must contain exactly the canonical Booking market-result fields")
                 continue
             if result.get("market_id") != market_id or market_id not in markets:
                 validator.add("result_validation_failed", f"{result_path}.market_id", "must equal its existing market collection key")
@@ -451,18 +464,30 @@ def validate_schema3_booking_authority(validator):
                         f"{result_path}.cohort_key",
                         "processed demand cohort must belong to the result market",
                     )
-            counts = tuple(
+                elif (
+                    cohort.get("cohort_date") != checkpoint_date
+                    or cohort.get("demand_model_revision")
+                    != checkpoint.get("demand_model_revision")
+                ):
+                    validator.add(
+                        "result_validation_failed",
+                        f"{result_path}.cohort_key",
+                        "processed demand cohort date and revision must match its checkpoint",
+                    )
+            outcome_fields = (
+                "booked_passenger_count", "outside_option_passenger_count",
+                "insufficient_capacity_passenger_count",
+                "no_eligible_service_passenger_count",
+                "no_departure_on_desired_date_passenger_count",
+            )
+            counts = (result.get("desired_passenger_count"),) + tuple(
                 result.get(field)
-                for field in (
-                    "desired_passenger_count",
-                    "booked_passenger_count",
-                    "outside_option_passenger_count",
-                )
+                for field in outcome_fields
             )
             if any(not _nonnegative_integer(value) for value in counts):
                 validator.add("result_validation_failed", result_path, "result counts must be non-negative integers")
-            elif counts[0] != counts[1] + counts[2]:
-                validator.add("result_validation_failed", result_path, "booked and outside-option counts must conserve desired passengers")
+            elif counts[0] != sum(counts[1:]):
+                validator.add("result_validation_failed", result_path, "Booking outcome counts must conserve desired passengers")
             result_booking_ids = result.get("booking_ids")
             if (
                 type(result_booking_ids) is not list
@@ -471,6 +496,43 @@ def validate_schema3_booking_authority(validator):
                 or result_booking_ids != sorted(result_booking_ids)
             ):
                 validator.add("result_validation_failed", f"{result_path}.booking_ids", "must be a sorted unique list of Booking IDs")
+            desired_results = result.get("desired_date_results")
+            if type(desired_results) is not dict:
+                validator.add("result_validation_failed", f"{result_path}.desired_date_results", "must be a dictionary")
+                desired_results = {}
+            desired_totals = [0] * 6
+            desired_booking_ids = []
+            for desired_date, desired_result in desired_results.items():
+                desired_path = f"{result_path}.desired_date_results.{desired_date}"
+                fields = {
+                    "desired_travel_date", "requested_passenger_count",
+                    "booked_passenger_count", "outside_option_passenger_count",
+                    "insufficient_capacity_passenger_count",
+                    "no_eligible_service_passenger_count",
+                    "no_departure_on_desired_date_passenger_count", "booking_ids",
+                }
+                if not _exact(validator, desired_result, fields, desired_path, "result_validation_failed", "must contain exactly the canonical desired-date result fields"):
+                    continue
+                if desired_result.get("desired_travel_date") != desired_date or not _date(desired_date):
+                    validator.add("result_validation_failed", f"{desired_path}.desired_travel_date", "must equal its canonical date key")
+                values = tuple(desired_result.get(field) for field in (
+                    "requested_passenger_count", "booked_passenger_count",
+                    "outside_option_passenger_count", "insufficient_capacity_passenger_count",
+                    "no_eligible_service_passenger_count",
+                    "no_departure_on_desired_date_passenger_count",
+                ))
+                if any(not _nonnegative_integer(value) for value in values) or values[0] != sum(values[1:]):
+                    validator.add("result_validation_failed", desired_path, "desired-date passenger outcomes must conserve")
+                else:
+                    for index, value in enumerate(values):
+                        desired_totals[index] += value
+                ids = desired_result.get("booking_ids")
+                if type(ids) is not list or ids != sorted(ids) or len(ids) != len(set(ids)) or any(type(value) is not str for value in ids):
+                    validator.add("result_validation_failed", f"{desired_path}.booking_ids", "must be a sorted unique Booking-ID list")
+                else:
+                    desired_booking_ids.extend(ids)
+            if tuple(desired_totals) != counts or sorted(desired_booking_ids) != result.get("booking_ids"):
+                validator.add("result_validation_failed", f"{result_path}.desired_date_results", "desired-date results must equal market totals and Booking topology")
         for transaction_id in transaction_ids:
             if transaction_id not in transactions:
                 validator.add("invalid_booking_checkpoint", f"{checkpoint_path}.financial_transaction_ids", "transaction does not exist")
@@ -524,6 +586,95 @@ def validate_schema3_booking_authority(validator):
                 "inconsistent_booking_revision",
                 f"{checkpoint_path}.booking_revision",
                 "pending checkpoint must pin the current Booking revision",
+            )
+
+    completed_revisions = sorted(
+        checkpoint.get("booking_revision")
+        for checkpoint in completed_checkpoints
+        if _positive_integer(checkpoint.get("booking_revision"))
+    )
+    if (
+        len(completed_revisions) != len(completed_checkpoints)
+        or completed_revisions != list(range(1, len(completed_checkpoints) + 1))
+        or booking_revision != len(completed_checkpoints)
+    ):
+        validator.add(
+            "inconsistent_booking_revision",
+            f"{path}.booking_revision",
+            "must equal the exact consecutive revision sequence of completed checkpoints",
+        )
+
+    pending_events = world.get("pending_events", {})
+    event_history = world.get("event_history", {})
+    if type(pending_events) is not dict:
+        pending_events = {}
+    if type(event_history) is not dict:
+        event_history = {}
+    all_events = tuple(pending_events.values()) + tuple(event_history.values())
+    operation_revisions = validator.envelope.get("simulation", {}).get(
+        "operation_revisions", {}
+    )
+    if type(operation_revisions) is not dict:
+        operation_revisions = {}
+    completed_checkpoint_ids = {
+        checkpoint.get("booking_checkpoint_id")
+        for checkpoint in completed_checkpoints
+        if type(checkpoint.get("booking_checkpoint_id")) is str
+    }
+    for checkpoint in completed_checkpoints:
+        checkpoint_id = checkpoint.get("booking_checkpoint_id")
+        checkpoint_path = f"{path}.booking_checkpoints.{checkpoint_id}"
+        owned_events = [
+            event
+            for event in all_events
+            if type(event) is dict
+            and event.get("event_type") == "DAILY_BOOKING_CHECKPOINT"
+            and event.get("owner_type") == "booking_checkpoint"
+            and event.get("owner_id") == checkpoint_id
+        ]
+        if len(owned_events) != 1:
+            validator.add(
+                "invalid_booking_checkpoint",
+                checkpoint_path,
+                "completed checkpoint must own exactly one successor daily Booking event",
+            )
+            continue
+        event = owned_events[0]
+        try:
+            expected_due = (
+                date.fromisoformat(checkpoint["checkpoint_date"]) + timedelta(days=1)
+            ).isoformat() + "T00:00:00Z"
+        except (KeyError, OverflowError, TypeError, ValueError):
+            expected_due = None
+        event_id = event.get("event_id")
+        in_pending = type(event_id) is str and event_id in pending_events
+        expected_status = "PENDING" if in_pending else "COMPLETED"
+        if (
+            expected_due is None
+            or event.get("due_at_utc") != expected_due
+            or event.get("payload") != {"checkpoint_date": expected_due[:10]}
+            or event.get("operation_revision") != checkpoint.get("booking_revision")
+            or event.get("status") != expected_status
+            or operation_revisions.get(checkpoint_id)
+            != checkpoint.get("booking_revision")
+        ):
+            validator.add(
+                "invalid_booking_checkpoint",
+                checkpoint_path,
+                "successor daily Booking event must preserve exact due date, payload, revision, and lifecycle",
+            )
+    for event_id, event in tuple(pending_events.items()) + tuple(event_history.items()):
+        if (
+            type(event) is dict
+            and event.get("event_type") == "DAILY_BOOKING_CHECKPOINT"
+            and event.get("owner_id") not in completed_checkpoint_ids
+        ):
+            validator.add(
+                "invalid_booking_checkpoint",
+                f"$.world_state.pending_events.{event_id}"
+                if event_id in pending_events
+                else f"$.world_state.event_history.{event_id}",
+                "daily Booking event must be owned by a completed checkpoint",
             )
 
     airlines = world.get("airlines", {})
@@ -619,7 +770,12 @@ def validate_schema3_booking_authority(validator):
             if not _nonnegative_integer(booking.get("inventory_revision_at_commit")):
                 validator.add("invalid_booking", f"{booking_path}.inventory_revision_at_commit", "must be a non-negative integer")
             transaction_id = booking.get("finance_transaction_id")
-            if not isinstance(transaction_id, str) or transaction_id not in transactions:
+            if transaction_id is None:
+                if booking.get("total_fare_minor") != 0:
+                    validator.add("invalid_booking", f"{booking_path}.finance_transaction_id", "may be null only for a zero-fare Booking")
+            elif booking.get("total_fare_minor") == 0:
+                validator.add("invalid_booking", f"{booking_path}.finance_transaction_id", "zero-fare Booking must have null transaction lineage")
+            elif not isinstance(transaction_id, str) or transaction_id not in transactions:
                 validator.add("invalid_booking", f"{booking_path}.finance_transaction_id", "must reference a financial transaction")
             revision = booking.get("booking_revision")
             if not _positive_integer(revision) or (_nonnegative_integer(booking_revision) and revision > booking_revision):
@@ -747,10 +903,44 @@ def validate_schema3_booking_authority(validator):
         ):
             checkpoint_transactions = []
         referenced_transactions = set()
+        referenced_booking_ids_by_transaction = {}
+        desired_date_owner = {}
         for market_id, result in checkpoint["market_results"].items():
             if type(result) is not dict or type(result.get("booking_ids")) is not list:
                 continue
             passenger_total = 0
+            desired_results = result.get("desired_date_results", {})
+            if type(desired_results) is dict:
+                for desired_date, desired_result in desired_results.items():
+                    if type(desired_result) is not dict or type(desired_result.get("booking_ids")) is not list:
+                        continue
+                    desired_passengers = 0
+                    for booking_id in desired_result["booking_ids"]:
+                        previous = desired_date_owner.get(booking_id)
+                        if previous is not None:
+                            validator.add(
+                                "result_validation_failed",
+                                f"{path}.booking_checkpoints.{checkpoint_id}.market_results.{market_id}.desired_date_results.{desired_date}.booking_ids",
+                                f"Booking is already listed by desired date {previous}",
+                            )
+                        else:
+                            desired_date_owner[booking_id] = desired_date
+                        booking = bookings.get(booking_id) if type(booking_id) is str else None
+                        if type(booking) is dict:
+                            if booking.get("desired_travel_date") != desired_date:
+                                validator.add(
+                                    "result_validation_failed",
+                                    f"$.world_state.bookings.{booking_id}.desired_travel_date",
+                                    "must match its checkpoint desired-date result",
+                                )
+                            if _positive_integer(booking.get("passenger_count")):
+                                desired_passengers += booking["passenger_count"]
+                    if desired_result.get("booked_passenger_count") != desired_passengers:
+                        validator.add(
+                            "result_validation_failed",
+                            f"{path}.booking_checkpoints.{checkpoint_id}.market_results.{market_id}.desired_date_results.{desired_date}.booked_passenger_count",
+                            "must equal passengers in referenced Bookings",
+                        )
             for booking_id in result["booking_ids"]:
                 record = (
                     bookings.get(booking_id)
@@ -774,6 +964,8 @@ def validate_schema3_booking_authority(validator):
                 result_booking_ids.add(booking_id)
                 if record.get("booking_checkpoint_id") != checkpoint_id or record.get("cohort_key") != result.get("cohort_key"):
                     validator.add("result_validation_failed", f"$.world_state.bookings.{booking_id}", "Booking checkpoint and cohort must match its market result")
+                if record.get("booked_at_utc") != checkpoint.get("processed_at_utc"):
+                    validator.add("result_validation_failed", f"$.world_state.bookings.{booking_id}.booked_at_utc", "must equal its checkpoint processing timestamp")
                 itinerary_id = record.get("itinerary_id")
                 itinerary = (
                     itineraries.get(itinerary_id, {})
@@ -782,10 +974,16 @@ def validate_schema3_booking_authority(validator):
                 )
                 if type(itinerary) is not dict or itinerary.get("market_id") != market_id:
                     validator.add("result_validation_failed", f"$.world_state.bookings.{booking_id}.itinerary_id", "Booking itinerary market must match its result")
-                if record.get("finance_transaction_id") not in checkpoint_transactions:
+                if record.get("finance_transaction_id") is None:
+                    if record.get("total_fare_minor") != 0:
+                        validator.add("result_validation_failed", f"$.world_state.bookings.{booking_id}.finance_transaction_id", "null transaction lineage requires zero fare")
+                elif record.get("finance_transaction_id") not in checkpoint_transactions:
                     validator.add("result_validation_failed", f"$.world_state.bookings.{booking_id}.finance_transaction_id", "Booking transaction must be listed by its checkpoint")
                 elif isinstance(record.get("finance_transaction_id"), str):
                     referenced_transactions.add(record["finance_transaction_id"])
+                    referenced_booking_ids_by_transaction.setdefault(
+                        record["finance_transaction_id"], []
+                    ).append(booking_id)
                 if record.get("booking_revision") != checkpoint.get(
                     "booking_revision"
                 ):
@@ -804,6 +1002,86 @@ def validate_schema3_booking_authority(validator):
                 f"{path}.booking_checkpoints.{checkpoint_id}.financial_transaction_ids",
                 "must list exactly the transactions referenced by its result Bookings",
             )
+        checkpoint_transaction_airlines = set()
+        for transaction_id in checkpoint_transactions:
+            transaction = transactions.get(transaction_id)
+            if type(transaction) is not dict:
+                continue
+            lineage_fields = {"source_type", "source_id", "source_booking_ids"}
+            present = lineage_fields & set(transaction)
+            if present != lineage_fields:
+                validator.add("invalid_transaction", f"$.world_state.transactions.{transaction_id}", "Booking transaction lineage must be complete")
+                continue
+            if present:
+                source_ids = transaction.get("source_booking_ids")
+                referenced_booking_ids = referenced_booking_ids_by_transaction.get(
+                    transaction_id, []
+                )
+                referenced_bookings = [
+                    bookings.get(booking_id) for booking_id in referenced_booking_ids
+                ]
+                gross = sum(
+                    booking.get("total_fare_minor", 0)
+                    for booking in referenced_bookings
+                    if type(booking) is dict
+                    and is_minor_amount(booking.get("total_fare_minor"))
+                )
+                airline_id = transaction.get("airline_id")
+                airline = airlines.get(airline_id, {})
+                account_ids = (
+                    airline.get("financial_account_ids", [])
+                    if type(airline) is dict
+                    else []
+                )
+                accounts = world.get("financial_accounts", {})
+                if type(accounts) is not dict:
+                    accounts = {}
+                account_by_code = {
+                    accounts.get(account_id, {}).get("code"): account_id
+                    for account_id in account_ids
+                    if type(account_id) is str
+                    and type(accounts.get(account_id)) is dict
+                }
+                expected_entries = [
+                    {"account_id": account_by_code.get("cash"), "amount_minor": gross},
+                    {
+                        "account_id": account_by_code.get("unflown_tickets"),
+                        "amount_minor": -gross,
+                    },
+                ]
+                duplicate_airline = airline_id in checkpoint_transaction_airlines
+                if type(airline_id) is str:
+                    checkpoint_transaction_airlines.add(airline_id)
+                if (
+                    set(transaction)
+                    != {
+                        "transaction_id", "airline_id", "occurred_at_utc",
+                        "description", "source_type", "source_id",
+                        "source_booking_ids", "currency", "entries",
+                    }
+                    or transaction.get("transaction_id") != transaction_id
+                    or duplicate_airline
+                    or transaction.get("source_type") != "BOOKING_CHECKPOINT"
+                    or transaction.get("source_id") != checkpoint_id
+                    or type(source_ids) is not list
+                    or source_ids != sorted(source_ids)
+                    or len(source_ids) != len(set(source_ids))
+                    or source_ids
+                    != sorted(referenced_booking_ids)
+                    or not referenced_bookings
+                    or any(
+                        type(booking) is not dict
+                        or booking.get("airline_id") != airline_id
+                        or booking.get("total_fare_minor", 0) <= 0
+                        for booking in referenced_bookings
+                    )
+                    or transaction.get("currency")
+                    != airline.get("base_currency")
+                    or transaction.get("occurred_at_utc")
+                    != checkpoint.get("processed_at_utc")
+                    or transaction.get("entries") != expected_entries
+                ):
+                    validator.add("invalid_transaction", f"$.world_state.transactions.{transaction_id}", "Booking transaction lineage must match its checkpoint and paid Bookings")
     for booking_id, record in bookings.items():
         if type(record) is dict and record.get("contract") == AGGREGATE_BOOKING_CONTRACT and booking_id not in result_booking_ids:
             validator.add("result_validation_failed", f"$.world_state.bookings.{booking_id}", "production V1 Booking must appear in exactly one checkpoint market result")

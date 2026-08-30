@@ -20,6 +20,7 @@ from game.scheduling import (
     publish_occurrences_through,
     rebuild_dated_flight_indexes,
 )
+from game.simulation import schedule_event
 from game.world_state import (
     add_aircraft,
     add_airline,
@@ -268,6 +269,10 @@ class DailyBookingShoppingTests(unittest.TestCase):
             "airline_id": airline_id,
             "occurred_at_utc": world["simulation"]["time_utc"],
             "description": "Exact-capacity 5B shopping fixture",
+            "source_type": "BOOKING_CHECKPOINT",
+            "source_id": checkpoint_id,
+            "source_booking_ids": [booking_id],
+            "currency": flight["fare_offer"]["currency"],
             "entries": [
                 {"account_id": account_ids[0], "amount_minor": total_fare},
                 {"account_id": account_ids[3], "amount_minor": -total_fare},
@@ -288,6 +293,7 @@ class DailyBookingShoppingTests(unittest.TestCase):
             "schedule_lineage": {
                 "schedule_id": flight["schedule_id"],
                 "schedule_revision": flight["schedule_revision"],
+                "occurrence_key": flight["occurrence_key"],
             },
             "status": "CONFIRMED",
         }
@@ -335,11 +341,36 @@ class DailyBookingShoppingTests(unittest.TestCase):
                     "desired_passenger_count": passenger_count,
                     "booked_passenger_count": passenger_count,
                     "outside_option_passenger_count": 0,
+                    "insufficient_capacity_passenger_count": 0,
+                    "no_eligible_service_passenger_count": 0,
+                    "no_departure_on_desired_date_passenger_count": 0,
                     "booking_ids": [booking_id],
+                    "desired_date_results": {
+                        flight["scheduled_departure_local_date"]: {
+                            "desired_travel_date": flight["scheduled_departure_local_date"],
+                            "requested_passenger_count": passenger_count,
+                            "booked_passenger_count": passenger_count,
+                            "outside_option_passenger_count": 0,
+                            "insufficient_capacity_passenger_count": 0,
+                            "no_eligible_service_passenger_count": 0,
+                            "no_departure_on_desired_date_passenger_count": 0,
+                            "booking_ids": [booking_id],
+                        }
+                    },
                 }
             },
             "financial_transaction_ids": [transaction_id],
         }
+        world["simulation"]["operation_revisions"][checkpoint_id] = 1
+        schedule_event(
+            world,
+            event_type="DAILY_BOOKING_CHECKPOINT",
+            due_at_utc="2026-08-21T00:00:00Z",
+            owner_type="booking_checkpoint",
+            owner_id=checkpoint_id,
+            operation_revision=1,
+            payload={"checkpoint_date": "2026-08-21"},
+        )
         self.assertTrue(validate_world(world).is_valid)
         before = deepcopy(world)
         result = run_shopping(world)
