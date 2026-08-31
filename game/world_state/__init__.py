@@ -8,6 +8,10 @@ from .booking_fingerprint import (
     new_booking_configuration,
     transition_booking_configuration_to_production_choice,
 )
+from .fulfilment_fingerprint import (
+    calculate_flight_fulfilment_configuration_fingerprint,
+    new_flight_fulfilment_configuration,
+)
 from .construction import (
     add_aircraft,
     add_airline,
@@ -17,7 +21,12 @@ from .construction import (
     create_new_world,
 )
 from .ids import allocate_id
-from .migration import MigrationResult, migrate_schema_1_to_2, migrate_schema_2_to_3
+from .migration import (
+    MigrationResult,
+    migrate_schema_1_to_2,
+    migrate_schema_2_to_3,
+    migrate_schema_3_to_4,
+)
 from .market_packs import (
     MarketPackIssue,
     MarketPackLifecycleResult,
@@ -45,16 +54,19 @@ __all__ = (
     "allocate_id",
     "build_legacy_read_projection",
     "calculate_booking_configuration_fingerprint",
+    "calculate_flight_fulfilment_configuration_fingerprint",
     "create_new_world",
     "disable_country_pack",
     "enable_country_pack",
     "major_to_minor",
     "migrate_schema_1_to_2",
     "migrate_schema_2_to_3",
+    "migrate_schema_3_to_4",
     "minor_to_decimal",
     "materialize_country_pack",
     "normalize_utc_timestamp",
     "new_booking_configuration",
+    "new_flight_fulfilment_configuration",
     "transition_booking_configuration_to_production_choice",
     "validate_world",
 )

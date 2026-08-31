@@ -124,7 +124,7 @@ def transition_booking_configuration_to_production_choice(
         return _transition_rejection(
             configuration, issue.code, issue.message, issue.path
         )
-    if envelope["metadata"]["save_schema_version"] != 3:
+    if envelope["metadata"]["save_schema_version"] not in (3, 4):
         return _transition_rejection(
             configuration,
             "INVALID_WORLD_STATE",

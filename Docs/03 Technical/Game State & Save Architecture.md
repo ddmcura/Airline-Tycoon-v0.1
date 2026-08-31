@@ -199,3 +199,10 @@ Advanced cloud synchronization, multiplayer server snapshots, user-editable save
 ## Finalized Architecture
 
 The approved model is a whole-world, exact-time, event-safe, deterministic, versioned snapshot. It preserves simulation facts and pending work, rebuilds disposable indexes, loads paused, fails clearly when dependencies are missing, and protects the last valid file through atomic replacement and recovery backups.
+
+Schema 4 also retains immutable minimal flight results and the exact revision-1
+fulfilment configuration witness. Its explicit migration schedules only future
+eligible departures and performs no offline catch-up. A snapshot between
+departure and completion contains the frozen operation, in-flight aircraft,
+and pending completion event; after completion it contains the result,
+settlement, terminal event history, and destination aircraft state.

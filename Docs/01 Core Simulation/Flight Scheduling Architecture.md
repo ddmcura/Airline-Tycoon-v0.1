@@ -581,3 +581,13 @@ status, or capacity. Capacity may never fall below confirmed passengers.
 Compatibility wrappers do not trigger this guard; changes proven unrelated to
 booked occurrences and existing operational lifecycle transitions remain
 available under their prior rules.
+
+### Milestone 6 fulfilment-event publication
+
+In schema 4, each newly published eligible future active direct-Economy
+occurrence owns one priority-100 `STAGE1_FLIGHT_DEPARTURE` event at off-block
+UTC. Unchanged publication reuses it. A permitted unbooked revision advances
+dated-flight operation authority, leaves the prior event to resolve as stale,
+and creates one current replacement. Supersession similarly stales prior work.
+Departure alone creates the matching completion event; completion creates no
+successor. A same-time priority-0 Booking checkpoint executes first.

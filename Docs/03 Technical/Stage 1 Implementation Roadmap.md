@@ -691,47 +691,58 @@ deferred.
 - A bad only option can lose to the outside option.
 - Daily intent, successful bookings, and passengers flying are separate metrics.
 
-## Milestone 6 — Aircraft Operations Vertical Slice
+## Milestone 6 — Minimal Flight Fulfilment
+
+**Status:** Complete. Verified against the current standard-library suite.
 
 ### Work
 
-- Activate a dated flight at the beginning of its departure handling block.
-- Model required handling activities such as cleaning, fueling, catering, baggage loading, and boarding.
-- Use aircraft-dependent configurable minimum and maximum durations with deterministic variation and policy effects.
-- Allow concurrent handling and calculate the critical path.
-- Process gate departure, taxi out, airborne, arrival, taxi in, gate arrival, and disembarkation as events.
-- Define actual departure as leaving the gate or stand.
-- Define actual arrival as reaching the destination gate or stand.
-- Apply delay propagation when an aircraft cannot begin its next handling block on time.
-- Record passengers carried from confirmed bookings, never from operating-day demand generation.
-- Keep Airport Operations responses behind a simplified Stage 1 interface.
+- Advance saves explicitly from schema 3 to schema 4 without offline catch-up.
+- Publish one `STAGE1_FLIGHT_DEPARTURE` event for each eligible future active
+  direct-Economy occurrence. Departure freezes the exact strict confirmed V1
+  Booking manifest, moves the aircraft from `PARKED` to `IN_FLIGHT`, and
+  schedules one `STAGE1_FLIGHT_COMPLETION` event.
+- Completion carries every passenger in the frozen manifest, moves the
+  aircraft to `PARKED` at destination, recognizes paid ticket value out of the
+  unflown-ticket liability, charges the revision-1 Balanced simplified cost,
+  and persists one immutable flight result.
+- Use explicit USD, PHP, and EUR cost profiles. These profiles are immutable
+  calibration authority; runtime FX and market-rate conversion are forbidden.
+- Expose detached per-flight and per-airline projections for Milestone 7.
 
 ### Exit criteria
 
-- One aircraft completes a timed gate-to-gate operation.
-- Late arrival plus handling duration delays the next leg naturally.
-- Aircraft location and operational state are always physically coherent.
-- Map position can be derived from segment and time without saved per-frame coordinates.
+- Departure and completion are deterministic, event-ordered, atomic, and
+  idempotent without duplicate events, results, or settlement.
+- Passenger carriage equals the frozen strict Booking manifest.
+- Paid and zero-revenue journals conserve money and advance their revisions and
+  allocators exactly once.
+- Whole-world validation enforces completed-flight/result/transaction/Booking/
+  event topology.
 
-## Milestone 7 — Economy and Flight Fulfilment
+Detailed handling, boarding, taxi, runway, airborne-path, delay-propagation,
+gate, fuel, crew, maintenance, and Airport Operations behavior moves to a later
+explicitly authorized aircraft-operations milestone.
+
+## Milestone 7 — Terminal Harness
+
+**Status:** Not implemented.
 
 ### Work
 
-- Replace combined profit mutation with auditable transactions.
-- Keep ticket cash received at booking and the service obligation open.
-- Recognize ticket revenue when the booked flight is fulfilled according to the approved economy rules.
-- Post fuel, handling, airport, crew or simplified Stage 1 operating expenses at their proper events.
-- Post onboard food, internet, and other ancillary revenue when delivered.
-- Track aircraft asset carrying value separately from cash.
-- Support loan accounts and repayment events at the approved simple level.
-- Produce flight, route, aircraft, airline, and daily reports from actual transactions and operations.
+- Provide terminal commands and views over the Milestone 6 detached projections.
+- Display flight status, booked/carried passengers, exact load factor, ticket
+  sales, recognized revenue, operating cost/profit, currency, and completion.
+- Display airline balances, recent results, and cumulative fulfilment
+  contribution without adding simulation authority.
 
 ### Exit criteria
 
-- Cash, revenue, expense, profit, assets, and liabilities are not treated as synonyms.
-- Cancelling or failing an operation cannot recognize unearned ticket revenue.
-- Flight profit is a report calculated from postings, not a direct source-of-truth field.
-- Financial conservation tests pass.
+- The complete minimal booking-to-flight-to-finance loop is observable without
+  direct mutation of authority.
+- Terminal output is detached and cannot affect deterministic continuation.
+- Milestone 7 remains incomplete until its interaction harness is implemented
+  and independently verified.
 
 ## Milestone 8 — Exact Save and Reload
 

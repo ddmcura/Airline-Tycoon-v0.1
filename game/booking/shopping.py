@@ -427,7 +427,7 @@ def rebuild_direct_flight_shopping_indexes(
     validation = validate_world(envelope)
     if not validation.is_valid:
         raise ValueError(validation.errors[0].message)
-    if envelope["metadata"]["save_schema_version"] != 3:
+    if envelope["metadata"]["save_schema_version"] not in (3, 4):
         raise ValueError("Booking shopping requires save schema version 3")
     configuration = envelope["simulation"]["configuration"]["booking"]
     now_text = envelope["simulation"]["time_utc"]
@@ -709,7 +709,7 @@ def prepare_daily_booking_shopping(
     validation = validate_world(envelope)
     if not validation.is_valid:
         return _world_validation_rejection(envelope, validation)
-    if envelope["metadata"]["save_schema_version"] != 3:
+    if envelope["metadata"]["save_schema_version"] not in (3, 4):
         return _reject(
             envelope, "INVALID_WORLD_STATE", "Booking shopping requires schema 3"
         )

@@ -358,8 +358,11 @@ booking (STAGE1_AGGREGATE_BOOKING_V1)
 ```
 
 The direct V1 itinerary has exactly one dated-flight ID, cabin `ECONOMY`, and
-status `CONFIRMED`; its endpoints, market, airline, times, fare snapshot, and
+status `CONFIRMED`; its endpoints, market, airline, times, fare currency, and
 schedule lineage must match that flight and its retained schedule revision.
+The fare amount is the immutable offer actually accepted by that Booking, not
+a foreign key to a later/current display offer; this permits paid and zero-fare
+batches to coexist while preserving exact sale lineage.
 The aggregate V1 Booking has a positive passenger count, status `CONFIRMED`, no
 individual passenger IDs, a one-to-one Booking-to-itinerary relationship, and
 total fare equal to passenger count times the itinerary snapshot amount. Its
@@ -967,3 +970,42 @@ minimal account foundation contains exactly one each of `cash`,
 - Score aggregate choices, observe authoritative capacity/revisions, and build
   a detached contention-safe allocation plan:
   `game.booking.prepare_daily_booking_allocation(...)` (Milestone 5C)
+
+## Envelope version 4 — Milestone 6 Minimal Flight Fulfilment
+
+Schema 4 is reached only through detached `migrate_schema_3_to_4`. It preserves
+schema-3 authority, adds `simulation.configuration.flight_fulfilment`, an
+initially empty `world_state.flight_results`, each dated flight's
+`operation_revision`, and canonically ordered departure events for eligible
+future active direct-Economy flights. Past-due nonterminal flights and airline
+currencies without an explicit profile reject atomically. Migration performs
+no catch-up, carriage, settlement, or completion. An exact valid pre-existing
+pending departure event is reused without allocator movement; conflicting
+dated-flight event authority rejects the detached migration candidate.
+
+The immutable revision-1 contract is
+`STAGE1_FLIGHT_FULFILMENT_CONFIGURATION_V1`; its formula identity is
+`FIXED_CAPACITY_SEAT_BLOCK_MINUTE_V1`. Block minutes and variable cost use
+ceiling integer arithmetic. The USD profile is 75,000 fixed minor units, 300
+minor units per published seat, and the Balanced `25/100` stored rate (25 minor
+units per seat-block-minute under revision 1's hundredth-minor calibration),
+giving 669,000 minor units for 180 seats and 120 minutes. PHP uses immutable
+58/1 calibration (4,350,000 fixed; 17,400 per seat; `29/2` stored rate). EUR
+uses immutable 86/100 calibration (64,500 fixed; 258 per seat; `43/200` stored
+rate). These are explicit profiles, never runtime FX.
+
+`PLANNED -> OPERATIONALLY_LOCKED -> COMPLETED` is driven by one departure and
+one completion event at scheduled off-block and in-block UTC. The active
+operation freezes sorted paid and zero-fare Booking IDs, ticket-sale IDs,
+Booking/inventory witnesses, actual aircraft, and configuration witnesses.
+Completion removes it and writes one `STAGE1_FLIGHT_RESULT_V1` keyed by flight.
+Load factor and operating profit remain derived. Whole-world validation
+recomputes the configured operating cost, requires exact terminal departure and
+completion event history, and binds the latest aircraft state to the completed
+destination (or to one later active operation).
+
+Departure advances dated-flight operation revision and the event ID/order
+cursors for its completion event. Completion advances dated-flight operation
+revision, owning-airline finance revision, and the transaction allocator.
+Booking and inventory revisions do not change. Booking checkpoints retain
+priority 0; both flight events use priority 100.

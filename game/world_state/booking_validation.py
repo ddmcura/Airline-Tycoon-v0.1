@@ -332,8 +332,20 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
         for field, flight_field in comparisons.items():
             if record.get(field) != flight.get(flight_field):
                 validator.add("invalid_itinerary", f"{path}.{field}", "must match the dated flight")
-        if snapshot != flight.get("fare_offer"):
-            validator.add("invalid_itinerary", f"{path}.fare_offer_snapshot", "must snapshot the dated-flight fare")
+        # The immutable snapshot is the fare actually accepted by this Booking,
+        # not a foreign key to the flight's later/current display offer.  Its
+        # currency remains constrained to the flight/airline currency, while
+        # the minor-unit amount may differ across valid Booking batches.
+        flight_fare = flight.get("fare_offer")
+        if (
+            type(flight_fare) is not dict
+            or snapshot.get("currency") != flight_fare.get("currency")
+        ):
+            validator.add(
+                "invalid_itinerary",
+                f"{path}.fare_offer_snapshot",
+                "fare snapshot currency must match the dated flight",
+            )
         expected_lineage = {"schedule_id": flight.get("schedule_id"), "schedule_revision": flight.get("schedule_revision")}
         if "occurrence_key" in lineage:
             expected_lineage["occurrence_key"] = flight.get("occurrence_key")

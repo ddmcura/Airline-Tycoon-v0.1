@@ -11,6 +11,7 @@ from .demand_fingerprint import (
 )
 from .ids import parse_entity_id
 from .booking_fingerprint import new_booking_configuration
+from .fulfilment_fingerprint import new_flight_fulfilment_configuration
 from .schema import (
     DEFAULT_MARKET_PACK_CONFIGURATION,
     DEFAULT_TRAVEL_SCOPE_CONFIGURATION,
@@ -18,6 +19,9 @@ from .schema import (
     PROCESSED_COHORT_SCHEMA_VERSION,
     SCHEMA2_BOOKING_COMPATIBILITY_CONTRACT,
     SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT,
+    FLIGHT_DEPARTURE_EVENT_CONTRACT,
+    FLIGHT_DEPARTURE_EVENT_TYPE,
+    FLIGHT_EVENT_PRIORITY,
 )
 from .serialization import json_compatibility_error
 from .validation import ValidationIssue, validate_world
@@ -341,4 +345,174 @@ def migrate_schema_2_to_3(envelope):
         )
     return MigrationResult(
         "COMPLETED", source_version, 3, migrated_world=candidate
+    )
+
+
+def _eligible_schema4_departure_flight(candidate, flight):
+    schedules = candidate["world_state"]["schedule_definitions"]
+    schedule = schedules.get(flight.get("schedule_id"))
+    return (
+        flight.get("status") == "PLANNED"
+        and type(schedule) is dict
+        and schedule.get("status") == "ACTIVE"
+        and flight.get("service_type") == "PASSENGER"
+        and flight.get("passenger_service_classification") == "ECONOMY"
+        and type(flight.get("connection_id")) is str
+    )
+
+
+def migrate_schema_3_to_4(envelope):
+    """Return a detached schema-4 candidate with future departure events."""
+    source_version = None
+    if type(envelope) is dict and type(envelope.get("metadata")) is dict:
+        source_version = envelope["metadata"].get("save_schema_version")
+    if type(source_version) is not int or source_version != 3:
+        return MigrationResult(
+            "REJECTED",
+            source_version,
+            4,
+            (_issue(
+                "unsupported_migration_source",
+                "$.metadata.save_schema_version",
+                "must equal 3",
+            ),),
+        )
+    source_validation = validate_world(envelope)
+    if not source_validation.is_valid:
+        return MigrationResult(
+            "REJECTED", source_version, 4, source_validation.errors
+        )
+    try:
+        candidate = json.loads(
+            json.dumps(envelope, ensure_ascii=True, allow_nan=False)
+        )
+        now = candidate["simulation"]["time_utc"]
+        world = candidate["world_state"]
+        configuration = new_flight_fulfilment_configuration()
+        profiles = configuration["revisions"]["1"]["currency_profiles"]
+        unsupported = sorted({
+            airline.get("base_currency")
+            for airline in world["airlines"].values()
+            if airline.get("base_currency") not in profiles
+        })
+        if unsupported:
+            return MigrationResult(
+                "REJECTED",
+                source_version,
+                4,
+                (_issue(
+                    "UNSUPPORTED_FULFILMENT_CURRENCY",
+                    "$.world_state.airlines",
+                    "no approved flight-fulfilment profile for: "
+                    + ", ".join(map(str, unsupported)),
+                ),),
+            )
+        past_due = sorted(
+            flight_id
+            for flight_id, flight in world["dated_flights"].items()
+            if flight.get("status") in {"PLANNED", "OPERATIONALLY_LOCKED"}
+            and flight.get("scheduled_off_block_utc", "") < now
+        )
+        if past_due:
+            return MigrationResult(
+                "REJECTED",
+                source_version,
+                4,
+                (_issue(
+                    "UNRESOLVED_PAST_DUE_FLIGHT",
+                    f"$.world_state.dated_flights.{past_due[0]}",
+                    "past-due nonterminal flight requires an explicit workflow",
+                    "dated_flight",
+                    past_due[0],
+                ),),
+            )
+
+        candidate["metadata"]["save_schema_version"] = 4
+        candidate["simulation"]["configuration"]["flight_fulfilment"] = (
+            configuration
+        )
+        world["flight_results"] = {}
+        revisions = candidate["simulation"]["operation_revisions"]
+        for flight_id in sorted(world["dated_flights"]):
+            flight = world["dated_flights"][flight_id]
+            flight["operation_revision"] = 0
+            revisions.setdefault(flight_id, 0)
+
+        # Import only at the migration boundary to avoid module initialization
+        # cycles between validation, migrations, and the event kernel.
+        from game.simulation.kernel import schedule_event
+
+        eligible = sorted(
+            (
+                flight
+                for flight in world["dated_flights"].values()
+                if _eligible_schema4_departure_flight(candidate, flight)
+                and flight["scheduled_off_block_utc"] >= now
+            ),
+            key=lambda flight: (
+                flight["scheduled_off_block_utc"],
+                flight["schedule_id"],
+                flight["scheduled_departure_local_date"],
+                flight["dated_flight_id"],
+            ),
+        )
+        for flight in eligible:
+            payload = {
+                "contract": FLIGHT_DEPARTURE_EVENT_CONTRACT,
+                "dated_flight_id": flight["dated_flight_id"],
+                "schedule_id": flight["schedule_id"],
+                "schedule_revision": flight["schedule_revision"],
+                "occurrence_key": flight["occurrence_key"],
+            }
+            existing = [
+                event
+                for event in world["pending_events"].values()
+                if type(event) is dict
+                and event.get("event_type") == FLIGHT_DEPARTURE_EVENT_TYPE
+                and event.get("owner_id") == flight["dated_flight_id"]
+            ]
+            if existing:
+                if len(existing) != 1 or (
+                    existing[0].get("owner_type") != "dated_flight"
+                    or existing[0].get("due_at_utc")
+                    != flight["scheduled_off_block_utc"]
+                    or existing[0].get("operation_revision")
+                    != flight["operation_revision"]
+                    or existing[0].get("order_key", [None])[0]
+                    != FLIGHT_EVENT_PRIORITY
+                    or existing[0].get("payload") != payload
+                    or existing[0].get("status") != "PENDING"
+                ):
+                    raise ValueError(
+                        "conflicting pre-existing flight departure event authority"
+                    )
+                continue
+            schedule_event(
+                candidate,
+                event_type=FLIGHT_DEPARTURE_EVENT_TYPE,
+                due_at_utc=flight["scheduled_off_block_utc"],
+                owner_type="dated_flight",
+                owner_id=flight["dated_flight_id"],
+                operation_revision=flight["operation_revision"],
+                priority=FLIGHT_EVENT_PRIORITY,
+                payload=payload,
+            )
+    except (KeyError, OverflowError, RecursionError, TypeError, ValueError) as exc:
+        return MigrationResult(
+            "REJECTED",
+            source_version,
+            4,
+            (_issue(
+                "migration_failed",
+                "$",
+                f"schema-4 candidate construction failed: {exc}",
+            ),),
+        )
+    candidate_validation = validate_world(candidate)
+    if not candidate_validation.is_valid:
+        return MigrationResult(
+            "REJECTED", source_version, 4, candidate_validation.errors
+        )
+    return MigrationResult(
+        "COMPLETED", source_version, 4, migrated_world=candidate
     )

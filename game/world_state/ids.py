@@ -6,7 +6,7 @@ from .schema import (
     ENTITY_TYPES,
     MAX_ENTITY_ID_NUMBER,
     SCHEMA2_ENTITY_COLLECTIONS,
-    SCHEMA3_ENTITY_TYPES,
+    SCHEMA4_ENTITY_TYPES,
 )
 
 
@@ -19,7 +19,7 @@ def new_allocator_state():
 
 
 def format_entity_id(entity_type, number):
-    if entity_type not in SCHEMA3_ENTITY_TYPES:
+    if entity_type not in SCHEMA4_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
     if (
         isinstance(number, bool)
@@ -39,7 +39,7 @@ def parse_entity_id(value, expected_type=None):
     if not match:
         return None
     entity_type = match.group("entity_type")
-    if entity_type not in SCHEMA3_ENTITY_TYPES:
+    if entity_type not in SCHEMA4_ENTITY_TYPES:
         return None
     if expected_type is not None and entity_type != expected_type:
         return None
@@ -51,13 +51,13 @@ def parse_entity_id(value, expected_type=None):
 
 def allocate_id(envelope, entity_type):
     """Allocate once from authoritative state; allocated numbers are not reused."""
-    if entity_type not in SCHEMA3_ENTITY_TYPES:
+    if entity_type not in SCHEMA4_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
     if entity_type == "booking_checkpoint":
         metadata = envelope.get("metadata") if type(envelope) is dict else None
         if (
             type(metadata) is not dict
-            or metadata.get("save_schema_version") != 3
+            or metadata.get("save_schema_version") not in (3, 4)
         ):
             raise ValueError(
                 "booking_checkpoint IDs require save schema version 3"

@@ -891,3 +891,17 @@ finance-revision increment even when it also has zero-fare batches; only paid
 batches appear in the transaction's source Booking IDs. Refunds, carriage,
 revenue recognition, operating costs, cancellations, and disruption accounting
 remain deferred.
+
+## Milestone 6 flight-fulfilment settlement
+
+Completion posts exactly one `FLIGHT_FULFILMENT` transaction. Paid carriage
+debits unflown-ticket liability and credits passenger revenue; all flights
+debit operating expenses and credit cash for the complete Balanced simplified
+cost. Zero-revenue flights have two entries and paid flights have four. Cash
+changes only for cost, liability falls only by recognized paid Booking value,
+and negative cash remains permitted. Zero-fare passengers retain carriage and
+result lineage without revenue lineage.
+
+USD, PHP, and EUR use explicit immutable revision-1 profiles from the canonical
+state schema. Their ratios are configuration calibration only: fulfilment never
+reads legacy exchange rates, current markets, or runtime FX conversion.

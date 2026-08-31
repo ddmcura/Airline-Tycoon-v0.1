@@ -61,7 +61,7 @@ def _fingerprint(material, label):
 def calculate_demand_input_fingerprint(envelope):
     state = envelope["world_state"]
     configuration = envelope["simulation"]["configuration"]["demand"]
-    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3):
+    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4):
         configuration = {
             field: configuration[field]
             for field in MODEL3_CONFIGURATION_FINGERPRINT_FIELDS

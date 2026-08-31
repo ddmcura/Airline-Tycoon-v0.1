@@ -8,8 +8,13 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Mapping
 from zoneinfo import ZoneInfoNotFoundError
 
-from game.simulation import set_operation_revision
+from game.simulation import schedule_event, set_operation_revision
 from game.world_state.ids import allocate_id
+from game.world_state.schema import (
+    FLIGHT_DEPARTURE_EVENT_CONTRACT,
+    FLIGHT_DEPARTURE_EVENT_TYPE,
+    FLIGHT_EVENT_PRIORITY,
+)
 from game.world_state.timezones import load_named_timezone
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 from game.world_state.validation import validate_world
@@ -416,9 +421,58 @@ def _occurrence_record(envelope, schedule, revision, local_date, *, flight_id=No
         "published_at_utc": envelope["simulation"]["time_utc"],
         "superseded_by_schedule_revision": None,
     }
-    if envelope.get("metadata", {}).get("save_schema_version") == 3:
+    if envelope.get("metadata", {}).get("save_schema_version") in (3, 4):
         record["inventory_revision"] = 0
+    if envelope.get("metadata", {}).get("save_schema_version") == 4:
+        record["operation_revision"] = 0
     return record
+
+
+def _departure_payload(flight):
+    return {
+        "contract": FLIGHT_DEPARTURE_EVENT_CONTRACT,
+        "dated_flight_id": flight["dated_flight_id"],
+        "schedule_id": flight["schedule_id"],
+        "schedule_revision": flight["schedule_revision"],
+        "occurrence_key": flight["occurrence_key"],
+    }
+
+
+def _reconcile_schema4_departure_events(candidate):
+    if candidate.get("metadata", {}).get("save_schema_version") != 4:
+        return
+    world = candidate["world_state"]
+    now = candidate["simulation"]["time_utc"]
+    eligible = sorted(
+        (flight for flight in world["dated_flights"].values()
+         if flight["status"] == "PLANNED"
+         and flight["service_type"] == "PASSENGER"
+         and flight["passenger_service_classification"] == "ECONOMY"
+         and type(flight.get("connection_id")) is str
+         and flight["scheduled_off_block_utc"] >= now),
+        key=lambda flight: (
+            flight["scheduled_off_block_utc"], flight["schedule_id"],
+            flight["scheduled_departure_local_date"], flight["dated_flight_id"],
+        ),
+    )
+    for flight in eligible:
+        matches = [event for event in world["pending_events"].values()
+                   if event.get("event_type") == FLIGHT_DEPARTURE_EVENT_TYPE
+                   and event.get("owner_type") == "dated_flight"
+                   and event.get("owner_id") == flight["dated_flight_id"]
+                   and event.get("due_at_utc") == flight["scheduled_off_block_utc"]
+                   and event.get("operation_revision") == flight["operation_revision"]
+                   and event.get("payload") == _departure_payload(flight)]
+        if len(matches) > 1:
+            raise ValueError("duplicate current departure events")
+        if not matches:
+            schedule_event(
+                candidate, event_type=FLIGHT_DEPARTURE_EVENT_TYPE,
+                due_at_utc=flight["scheduled_off_block_utc"],
+                owner_type="dated_flight", owner_id=flight["dated_flight_id"],
+                operation_revision=flight["operation_revision"],
+                priority=FLIGHT_EVENT_PRIORITY, payload=_departure_payload(flight),
+            )
 
 
 def _expand_schedule(envelope, schedule, window_start, window_end):
@@ -476,11 +530,14 @@ def _continuity_conflicts(envelope):
     now = envelope["simulation"]["time_utc"]
     conflicts = []
     future_by_aircraft = {aircraft_id: [] for aircraft_id in world["aircraft"]}
+    schema4 = envelope.get("metadata", {}).get("save_schema_version") == 4
     for flight in world["dated_flights"].values():
         aircraft_id = flight["planned_aircraft_id"]
         if (
             aircraft_id in future_by_aircraft
-            and flight["status"] in ACTIVE_DATED_FLIGHT_STATUSES
+            and flight["status"] in (
+                {"PLANNED"} if schema4 else ACTIVE_DATED_FLIGHT_STATUSES
+            )
             and flight["scheduled_off_block_utc"] >= now
         ):
             future_by_aircraft[aircraft_id].append(flight)
@@ -494,6 +551,13 @@ def _continuity_conflicts(envelope):
             ),
         )
         expected_origin = aircraft.get("current_airport_id")
+        if schema4 and aircraft.get("status") == "IN_FLIGHT":
+            active = [operation for operation in world["active_aircraft_operations"].values()
+                      if type(operation) is dict
+                      and operation.get("actual_aircraft_id") == aircraft_id
+                      and operation.get("state") == "OPERATIONALLY_LOCKED"]
+            if len(active) == 1:
+                expected_origin = active[0].get("destination_airport_id")
         previous = None
         for flight in future:
             if flight["origin_airport_id"] != expected_origin:
@@ -730,6 +794,11 @@ def publish_occurrences_through(
             )
         if wanted is None:
             if flight["status"] != "SUPERSEDED":
+                if candidate["metadata"]["save_schema_version"] == 4:
+                    flight["operation_revision"] += 1
+                    set_operation_revision(
+                        candidate, flight_id, flight["operation_revision"]
+                    )
                 flight["status"] = "SUPERSEDED"
                 flight["superseded_by_schedule_revision"] = (
                     schedule["current_revision"] if schedule else flight["schedule_revision"]
@@ -744,7 +813,14 @@ def publish_occurrences_through(
         wanted["published_at_utc"] = first_published
         if "inventory_revision" in flight:
             wanted["inventory_revision"] = flight["inventory_revision"]
+        if "operation_revision" in flight:
+            wanted["operation_revision"] = flight["operation_revision"]
         if flight != wanted:
+            if candidate["metadata"]["save_schema_version"] == 4:
+                wanted["operation_revision"] += 1
+                set_operation_revision(
+                    candidate, flight_id, wanted["operation_revision"]
+                )
             flights[flight_id] = wanted
             updated.append(flight_id)
         else:
@@ -771,7 +847,17 @@ def publish_occurrences_through(
             )
         flight["dated_flight_id"] = flight_id
         flights[flight_id] = flight
+        if candidate["metadata"]["save_schema_version"] == 4:
+            candidate["simulation"]["operation_revisions"][flight_id] = 0
         created.append(flight_id)
+
+    try:
+        _reconcile_schema4_departure_events(candidate)
+    except ValueError as exc:
+        return PublicationResult(
+            "REJECTED", target_horizon_utc,
+            conflicts=(SchedulingConflict("EVENT_SCHEDULING_FAILED", str(exc)),),
+        )
 
     conflicts = _continuity_conflicts(candidate)
     if conflicts:

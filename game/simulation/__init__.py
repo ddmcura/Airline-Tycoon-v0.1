@@ -47,3 +47,7 @@ __all__ = (
     "stop_fast_forward",
     "supersede_event",
 )
+
+# Importing the built-in domain handler module registers the two schema-4
+# fulfilment event types in the runtime-only dispatch table.
+from game.aircraft_operations import fulfilment as _flight_fulfilment  # noqa: E402,F401

@@ -266,7 +266,7 @@ def process_daily_booking_checkpoint(
     if not validation.is_valid:
         issue = validation.errors[0]
         return _reject(envelope, "INVALID_WORLD_STATE", issue.message, issue.path)
-    if envelope["metadata"]["save_schema_version"] != 3:
+    if envelope["metadata"]["save_schema_version"] not in (3, 4):
         return _reject(envelope, "INVALID_WORLD_STATE", "Booking checkpoints require schema 3")
     checkpoint_date = envelope["simulation"]["time_utc"][:10]
     try:

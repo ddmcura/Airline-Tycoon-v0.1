@@ -717,3 +717,17 @@ AI and player aircraft use the same operational engine and physical rules.
 
 The architecture is introduced through small, stable, playable stages.
 ```
+
+## Stage 1 Milestone 6 minimal operational boundary
+
+The implemented Stage 1 slice intentionally stops at two events. At scheduled
+off-block UTC, a valid planned direct-Economy flight freezes its strict
+confirmed V1 Booking manifest, records scheduled time as actual departure, and
+moves its owned aircraft from `PARKED` at origin to `IN_FLIGHT` with no current
+airport. At scheduled in-block UTC, every frozen passenger is carried,
+scheduled time becomes actual arrival/completion, and the aircraft becomes
+`PARKED` at destination. Result and finance settlement commit atomically.
+
+No check-in, boarding, no-show, denial, overbooking, gate, handling, taxi,
+runway, airborne path, holding, crew, maintenance, fuel inventory, weather, or
+disruption behavior is implied. Those detailed operations remain later work.

@@ -39,7 +39,7 @@ class BookingIndexes:
 def rebuild_booking_indexes(envelope):
     """Build indexes from validated schema-3 authority or raise ValueError."""
     metadata = envelope.get("metadata") if type(envelope) is dict else None
-    if type(metadata) is not dict or metadata.get("save_schema_version") != 3:
+    if type(metadata) is not dict or metadata.get("save_schema_version") not in (3, 4):
         raise ValueError("Booking indexes require save schema version 3")
     try:
         state = envelope["world_state"]

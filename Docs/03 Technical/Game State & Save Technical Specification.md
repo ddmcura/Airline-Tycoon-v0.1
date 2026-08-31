@@ -439,3 +439,11 @@ The following remain outside the first implementation pass:
 ## Acceptance Summary
 
 The Stage 1 save system is complete when a large whole world can be saved at a safe exact-time boundary, written without risking the previous valid file, loaded paused into a separately validated candidate world, and continued deterministically with all operational, passenger, and financial commitments intact.
+
+Schema 4 validation additionally requires one-to-one topology among every
+Milestone 6 completed flight, its immutable result, its single
+`FLIGHT_FULFILMENT` settlement, paid/zero-fare Booking partitions, original
+ticket-sale transactions, revision witnesses, and departure/completion event
+history. Active operations exist only for `OPERATIONALLY_LOCKED` flights and
+retain the exact frozen manifest. Event failure leaves the event pending and
+all allocators unchanged.

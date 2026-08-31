@@ -1,8 +1,8 @@
 """Concrete constants for the authoritative Stage 1 world schema."""
 
 SAVE_SCHEMA_VERSION = 1
-LATEST_SAVE_SCHEMA_VERSION = 3
-SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3})
+LATEST_SAVE_SCHEMA_VERSION = 4
+SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4})
 DEFAULT_GAME_VERSION = "0.1"
 DEFAULT_REFERENCE_DATA_VERSION = "stage1-reference-v1"
 MAX_ENTITY_ID_NUMBER = 999_999_999_999
@@ -62,6 +62,73 @@ DEFAULT_BOOKING_CONFIGURATION = {
     ],
     "desired_date_tolerance_days": 3,
     "choice_policy": DEFAULT_BOOKING_CHOICE_POLICY,
+    "configuration_fingerprint": "",
+}
+FLIGHT_FULFILMENT_CONFIGURATION_CONTRACT = (
+    "STAGE1_FLIGHT_FULFILMENT_CONFIGURATION_V1"
+)
+FLIGHT_FULFILMENT_CONFIGURATION_VERSION = "stage1-flight-fulfilment-v1"
+FLIGHT_FULFILMENT_CONFIGURATION_FINGERPRINT_CONTRACT = (
+    "STAGE1_FLIGHT_FULFILMENT_CONFIGURATION_SHA256_JSON_V1"
+)
+FLIGHT_FULFILMENT_FORMULA = "FIXED_CAPACITY_SEAT_BLOCK_MINUTE_V1"
+FLIGHT_FULFILMENT_OPERATION_CONTRACT = "STAGE1_FLIGHT_FULFILMENT_OPERATION_V1"
+FLIGHT_RESULT_CONTRACT = "STAGE1_FLIGHT_RESULT_V1"
+FLIGHT_RESULT_VERSION = 1
+FLIGHT_DEPARTURE_EVENT_TYPE = "STAGE1_FLIGHT_DEPARTURE"
+FLIGHT_COMPLETION_EVENT_TYPE = "STAGE1_FLIGHT_COMPLETION"
+FLIGHT_EVENT_PRIORITY = 100
+FLIGHT_DEPARTURE_EVENT_CONTRACT = "STAGE1_FLIGHT_DEPARTURE_EVENT_V1"
+FLIGHT_COMPLETION_EVENT_CONTRACT = "STAGE1_FLIGHT_COMPLETION_EVENT_V1"
+
+# Revision-1 Balanced profiles are immutable accounting calibration, not FX.
+# PHP and EUR use fixed 58/1 and 86/100 minor-unit calibration ratios against
+# the USD reference respectively.  No runtime exchange-rate source is read.
+DEFAULT_FLIGHT_FULFILMENT_CURRENCY_PROFILES = {
+    "EUR": {
+        "currency": "EUR",
+        "calibration_reference_currency": "USD",
+        "calibration_ratio_numerator": 86,
+        "calibration_ratio_denominator": 100,
+        "fixed_flight_cost_minor": 64_500,
+        "capacity_cost_minor_per_seat": 258,
+        "seat_block_minute_rate_numerator": 43,
+        "seat_block_minute_rate_denominator": 200,
+    },
+    "PHP": {
+        "currency": "PHP",
+        "calibration_reference_currency": "USD",
+        "calibration_ratio_numerator": 58,
+        "calibration_ratio_denominator": 1,
+        "fixed_flight_cost_minor": 4_350_000,
+        "capacity_cost_minor_per_seat": 17_400,
+        "seat_block_minute_rate_numerator": 29,
+        "seat_block_minute_rate_denominator": 2,
+    },
+    "USD": {
+        "currency": "USD",
+        "calibration_reference_currency": "USD",
+        "calibration_ratio_numerator": 1,
+        "calibration_ratio_denominator": 1,
+        "fixed_flight_cost_minor": 75_000,
+        "capacity_cost_minor_per_seat": 300,
+        "seat_block_minute_rate_numerator": 25,
+        "seat_block_minute_rate_denominator": 100,
+    },
+}
+DEFAULT_FLIGHT_FULFILMENT_CONFIGURATION = {
+    "contract": FLIGHT_FULFILMENT_CONFIGURATION_CONTRACT,
+    "configuration_version": FLIGHT_FULFILMENT_CONFIGURATION_VERSION,
+    "current_revision": 1,
+    "revisions": {
+        "1": {
+            "revision": 1,
+            "formula_identifier": FLIGHT_FULFILMENT_FORMULA,
+            "block_minute_rounding_policy": "CEILING_WHOLE_MINUTE_V1",
+            "variable_cost_rounding_policy": "CEILING_MINOR_UNIT_V1",
+            "currency_profiles": DEFAULT_FLIGHT_FULFILMENT_CURRENCY_PROFILES,
+        }
+    },
     "configuration_fingerprint": "",
 }
 DEMAND_MODEL_VERSION = 3
@@ -167,6 +234,7 @@ ENTITY_TYPES = (
 
 SCHEMA2_ENTITY_TYPES = ENTITY_TYPES + ("region", "country")
 SCHEMA3_ENTITY_TYPES = SCHEMA2_ENTITY_TYPES + ("booking_checkpoint",)
+SCHEMA4_ENTITY_TYPES = SCHEMA3_ENTITY_TYPES
 
 ENTITY_COLLECTIONS = {
     "airline": ("airlines", "airline_id"),
@@ -238,3 +306,4 @@ WORLD_ROOTS = frozenset(
 
 SCHEMA2_WORLD_ROOTS = WORLD_ROOTS | frozenset({"regions", "countries"})
 SCHEMA3_WORLD_ROOTS = SCHEMA2_WORLD_ROOTS | frozenset({"booking_state"})
+SCHEMA4_WORLD_ROOTS = SCHEMA3_WORLD_ROOTS | frozenset({"flight_results"})
