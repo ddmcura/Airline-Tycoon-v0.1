@@ -79,6 +79,23 @@ class BookingCheckpointResult:
         return self.status == "COMPLETED"
 
 
+@dataclass(frozen=True)
+class BookingCheckpointPreparation:
+    """Detached optimistic-concurrency inputs for one production checkpoint."""
+
+    status: str
+    checkpoint_date: str
+    arguments: dict
+    issues: tuple[BookingCheckpointIssue, ...] = ()
+
+    @property
+    def succeeded(self):
+        return self.status == "PREPARED"
+
+    def as_kwargs(self):
+        return deepcopy(self.arguments)
+
+
 def _message(exc):
     try:
         value = str(exc)
@@ -248,6 +265,115 @@ def _canonical_batches(plan, world):
         row[0], row[1], world["dated_flights"][row[2]]["scheduled_off_block_utc"],
         row[2], row[3]
     )))
+
+
+def prepare_daily_booking_checkpoint(
+    envelope, *, multipliers_by_market=None, demand_indexes=None,
+    activation_providers=None, dated_flight_indexes=None,
+):
+    """Return detached exact witnesses for ``process_daily_booking_checkpoint``.
+
+    Preparation deliberately performs the production shopping/allocation probe on
+    detached candidates.  It never mutates authority and does not weaken the
+    command's own late witness checks.
+    """
+    checkpoint_date, _revision = _observed(envelope)
+    try:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            issue = validation.errors[0]
+            return BookingCheckpointPreparation(
+                "REJECTED", checkpoint_date, {},
+                (BookingCheckpointIssue("INVALID_WORLD_STATE", issue.message, issue.path),),
+            )
+        if envelope["metadata"]["save_schema_version"] not in (3, 4):
+            raise ValueError("Booking checkpoint preparation requires schema 3 or 4")
+        world = envelope["world_state"]
+        configuration = envelope["simulation"]["configuration"]["booking"]
+        demand_revision = world["demand_state"]["demand_model_revision"]
+        market_pack_revision = envelope["simulation"]["configuration"]["demand"][
+            "market_pack_configuration"
+        ]["revision"]
+        booking_revision = world["booking_state"]["booking_revision"]
+        configuration_revision = configuration["revision"]
+        configuration_fingerprint = configuration["configuration_fingerprint"]
+
+        from .shopping import prepare_daily_booking_shopping
+
+        shopping = prepare_daily_booking_shopping(
+            deepcopy(envelope),
+            expected_demand_revision=demand_revision,
+            expected_market_pack_revision=market_pack_revision,
+            expected_booking_configuration_revision=configuration_revision,
+            expected_booking_configuration_fingerprint=configuration_fingerprint,
+            multipliers_by_market=multipliers_by_market,
+            demand_indexes=demand_indexes,
+            activation_providers=activation_providers,
+            dated_flight_indexes=dated_flight_indexes,
+        )
+        if not shopping.succeeded:
+            issue = shopping.issues[0]
+            return BookingCheckpointPreparation(
+                shopping.status, checkpoint_date, {},
+                (BookingCheckpointIssue(issue.code, issue.message, issue.path),),
+            )
+        inventory = {
+            offer.dated_flight_id: offer.observed_inventory_revision
+            for market in shopping.market_plans
+            for group in market.desired_date_groups
+            for offer in group.offers
+        }
+        plan = prepare_daily_booking_allocation(
+            deepcopy(envelope),
+            expected_demand_revision=demand_revision,
+            expected_market_pack_revision=market_pack_revision,
+            expected_booking_configuration_revision=configuration_revision,
+            expected_booking_configuration_fingerprint=configuration_fingerprint,
+            expected_inventory_revisions=inventory,
+            multipliers_by_market=multipliers_by_market,
+            demand_indexes=demand_indexes,
+            activation_providers=activation_providers,
+            dated_flight_indexes=dated_flight_indexes,
+        )
+        if not plan.succeeded:
+            issue = plan.issues[0]
+            return BookingCheckpointPreparation(
+                plan.status, checkpoint_date, {},
+                (BookingCheckpointIssue(issue.code, issue.message, issue.path),),
+            )
+        paid_airline_ids = {
+            selected.airline_id
+            for market in plan.market_results
+            for group in market.desired_date_results
+            for selected in group.selected_offer_allocations
+            if world["dated_flights"][selected.dated_flight_id]["fare_offer"][
+                "amount_minor"
+            ]
+        }
+        arguments = {
+            "expected_booking_revision": booking_revision,
+            "expected_demand_revision": demand_revision,
+            "expected_market_pack_revision": market_pack_revision,
+            "expected_booking_configuration_revision": configuration_revision,
+            "expected_booking_configuration_fingerprint": configuration_fingerprint,
+            "expected_inventory_revisions": dict(sorted(inventory.items())),
+            "expected_finance_revisions": {
+                airline_id: world["airlines"][airline_id]["finance_revision"]
+                for airline_id in sorted(paid_airline_ids)
+            },
+            "expected_event_order_cursor": envelope["simulation"][
+                "event_order_cursor"
+            ],
+            "multipliers_by_market": deepcopy(multipliers_by_market),
+        }
+        return BookingCheckpointPreparation(
+            "PREPARED", checkpoint_date, deepcopy(arguments)
+        )
+    except Exception as exc:
+        return BookingCheckpointPreparation(
+            "REJECTED", checkpoint_date, {},
+            (BookingCheckpointIssue("PREPARATION_FAILED", _message(exc)),),
+        )
 
 
 def process_daily_booking_checkpoint(
@@ -529,7 +655,6 @@ def _event_handler(context):
     if type(payload) is not dict or payload != {"checkpoint_date": context.event["due_at_utc"][:10]}:
         raise ValueError("invalid Booking checkpoint event payload")
     envelope = context.envelope
-    booking = envelope["simulation"]["configuration"]["booking"]
     existing = _checkpoint_for_date(envelope, envelope["simulation"]["time_utc"][:10])
     if type(existing) is dict and existing.get("status") == "COMPLETED":
         reused = process_daily_booking_checkpoint(
@@ -548,49 +673,10 @@ def _event_handler(context):
                 reused.issues[0].message if reused.issues else "completed checkpoint was not reusable"
             )
         return
-    # Event execution owns its concurrency snapshot.  A detached 5C probe finds
-    # the exact capacity and paid-airline witness sets; the authoritative call
-    # repeats the same deterministic pipeline against the untouched candidate.
-    probe = deepcopy(envelope)
-    from .shopping import prepare_daily_booking_shopping
-    shopping = prepare_daily_booking_shopping(
-        probe,
-        expected_demand_revision=envelope["world_state"]["demand_state"]["demand_model_revision"],
-        expected_market_pack_revision=envelope["simulation"]["configuration"]["demand"]["market_pack_configuration"]["revision"],
-        expected_booking_configuration_revision=booking["revision"],
-        expected_booking_configuration_fingerprint=booking["configuration_fingerprint"],
-    )
-    if not shopping.succeeded:
-        raise ValueError(shopping.issues[0].message)
-    inventory = {offer.dated_flight_id: offer.observed_inventory_revision for market in shopping.market_plans for group in market.desired_date_groups for offer in group.offers}
-    allocation_probe = deepcopy(envelope)
-    plan = prepare_daily_booking_allocation(
-        allocation_probe,
-        expected_demand_revision=envelope["world_state"]["demand_state"]["demand_model_revision"],
-        expected_market_pack_revision=envelope["simulation"]["configuration"]["demand"]["market_pack_configuration"]["revision"],
-        expected_booking_configuration_revision=booking["revision"],
-        expected_booking_configuration_fingerprint=booking["configuration_fingerprint"],
-        expected_inventory_revisions=inventory,
-    )
-    if not plan.succeeded:
-        raise ValueError(plan.issues[0].message)
-    paid = set()
-    for market in plan.market_results:
-        for group in market.desired_date_results:
-            for selected in group.selected_offer_allocations:
-                if envelope["world_state"]["dated_flights"][selected.dated_flight_id]["fare_offer"]["amount_minor"]:
-                    paid.add(selected.airline_id)
-    result = process_daily_booking_checkpoint(
-        envelope,
-        expected_booking_revision=envelope["world_state"]["booking_state"]["booking_revision"],
-        expected_demand_revision=envelope["world_state"]["demand_state"]["demand_model_revision"],
-        expected_market_pack_revision=envelope["simulation"]["configuration"]["demand"]["market_pack_configuration"]["revision"],
-        expected_booking_configuration_revision=booking["revision"],
-        expected_booking_configuration_fingerprint=booking["configuration_fingerprint"],
-        expected_inventory_revisions=inventory,
-        expected_finance_revisions={airline_id: envelope["world_state"]["airlines"][airline_id]["finance_revision"] for airline_id in sorted(paid)},
-        expected_event_order_cursor=envelope["simulation"]["event_order_cursor"],
-    )
+    prepared = prepare_daily_booking_checkpoint(envelope)
+    if not prepared.succeeded:
+        raise ValueError(prepared.issues[0].message)
+    result = process_daily_booking_checkpoint(envelope, **prepared.as_kwargs())
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 
@@ -601,5 +687,6 @@ DEFAULT_EVENT_HANDLERS.register(BOOKING_CHECKPOINT_EVENT_TYPE, _event_handler)
 __all__ = (
     "BOOKING_CHECKPOINT_EVENT_TYPE", "BookingCheckpointDesiredDateResult",
     "BookingCheckpointIssue", "BookingCheckpointMarketResult",
-    "BookingCheckpointResult", "process_daily_booking_checkpoint",
+    "BookingCheckpointPreparation", "BookingCheckpointResult",
+    "prepare_daily_booking_checkpoint", "process_daily_booking_checkpoint",
 )

@@ -1390,3 +1390,98 @@ The checkpoint is unique by current UTC date. A valid completed repeat returns
 persisted results without rerunning any provider. First use creates no history
 or backlog and schedules only the following midnight. Event-driven use invokes
 the same command and preserves exactly one successor event.
+
+## 37. Philippines v1 pack and market-research recovery
+
+The first production scenario uses
+`PHILIPPINES_COMMERCIAL_AIRPORT_PACK_V1`, version
+`ph-commercial-airports-v1-2026-09-01`, with reference date 2026-09-01. Its
+inclusion rule is current scheduled passenger service evidenced by a current
+airline destination list or timetable. Charter-only, general-aviation,
+military-only, and airports without reliable current scheduled-service evidence
+are excluded. The pack contains 43 active allocation/service members and one
+inactive historical record, LGP/RPBL. DRP/RPLK is the separate active Bicol
+airport. The active pair topology is exactly `43 * 42 = 1,806` directional
+domestic markets.
+
+Membership, airport catchment calibration, coordinates, destination types, and
+the pack reference date are versioned authority. Batch 1 retained the original MNL, CEB, and DVO
+Model 4 calibration inputs; Batch 2 supersedes that calibration below. Pack order never selects
+their values or world construction order. Same-country airport additions are
+rejected after materialization; a correction requires a new Philippine pack
+and Demand revision. This batch does not add a latent-demand or
+non-renormalizing same-country formula.
+
+The existing Model 4 hierarchy already isolates each country's airport
+normalization. Materializing a foreign country consumes its previously latent
+international country amount and cannot change Philippine domestic country or
+airport allocations. Valid processed cohort wrappers retain their original
+revision and keyed outcome and are always reused.
+
+Materializing every market does not activate it. Production daily Booking uses
+the existing published-service discovery boundary and therefore resolves only
+qualifying service-bearing market IDs. A no-service bootstrap has no market
+cohorts or market checkpoint results even though all 1,806 market identities
+exist.
+
+`project_market_opportunities(envelope, *, origin_airport_id=None, limit=100)`
+is a detached read boundary. It validates once while rebuilding Model 4 indexes,
+then reuses the exact pair projection for each canonical market row. It returns
+airport identity/display fields, current Model 4 revision and fingerprint
+witnesses, exact Decimal base daily directional bookers, diagnostic share,
+great-circle distance from authoritative coordinates, availability, and current
+qualifying player capacity/fare/confirmed Bookings. Origin filtering accepts an
+immutable airport ID or unambiguous reference code. Results are market-ID
+ordered and bounded at 2,000.
+
+Base daily directional bookers represent total market demand before airline
+choice. They do not promise player passengers. No airline-share forecast is
+introduced: actual Bookings remain a function of fare, schedule, capacity, the
+outside option, and future competition. Projection creates no cohort,
+connection, schedule, dated flight, Booking, event, random input, revision, or
+persistent cache, and caller mutation cannot affect World State.
+
+Runway facts remain reference-only and do not gate aircraft compatibility in
+this batch. Expanded weekly scheduling, acquisition, continuous time, save/load,
+and AI are separate recovery or roadmap work.
+
+
+## 38. Philippines Demand Recovery Batch 2
+
+The optional `MODEL4_AIR_SUITABILITY_V1` contract and exact airport/configuration
+fields are defined in the canonical Stage 1 State Schema. The production
+scenario installs `ph-air-suitability-v1` with `ph-effective-catchments-v2`.
+These are gameplay values, not exact census or throughput claims.
+
+For this tag, use the existing square-root population pull, multiply by the
+existing destination-type factor, add `tourism_pull_ppm / 1000000`, then multiply
+by interpolated suitability divided by 10000. This replaces the legacy airport
+distance attenuation. Country scoring, the 4000 ppm origin rate, 65/25/10 scope
+split, service activation and Booking integration retain their existing rules.
+Ground-network ID equality selects the same-network curve; inequality selects
+the separated-network curve. Use the existing great-circle distance in metres
+and the fixed 50-digit Decimal context, retaining fractional basis points.
+Interpolate linearly between points and hold the final value to the right.
+
+Apply suitability once inside destination scoring before country-local
+normalization. Zero scores consume no denominator or baseline. Positive leaves
+conserve the country envelope. A nonempty all-zero allocation rejects with
+`AIR_SUITABILITY_ZERO_ALLOCATION`, identifying origin and destination country;
+activation and revision construction remain atomic. Tourism is destination-only.
+
+New-policy input witnesses use `STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V2`.
+They include the complete policy and curve points, network ID, population,
+tourism, existing mathematical configuration, country/scope allocations,
+revisions, lineage and immutable market identities. They exclude service,
+fares, temporary availability, UI and display currency. Policy/input changes
+use `revise_demand_model`, with an explicit configuration version for policy
+changes, and append a revision context. Existing contexts, processed wrappers,
+resolved counts, Bookings, reservations, finance and checkpoint witnesses are
+never rewritten. Only later unprocessed work uses the new revision.
+
+Without the policy, Model 3/4 formulas and every V1 fingerprint branch remain
+exact. Construction may stage the optional policy before Model 4 activation;
+Model 3 does not use it. USD remains authority; PHP/EUR remain display-only.
+The PH 1.0 deferrals are enumerated in the canonical schema; this batch adds
+no geography exceptions, additional access classes, tourism-origin balancing,
+long-haul decline, new latent category, curve UI or later roadmap behavior.

@@ -18,18 +18,28 @@ from .publication import (
     revise_future_schedule,
     validate_schedule_definition,
 )
+from .rotation import (
+    RotationIssue,
+    RotationResult,
+    create_weekly_round_trip_rotation,
+    publish_next_rotation,
+)
 
 __all__ = (
     "BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW",
     "DatedFlightIndexes",
     "PublicationResult",
+    "RotationIssue",
+    "RotationResult",
     "ScheduleDefinitionResult",
     "SchedulingConflict",
     "configured_publication_horizon_utc",
     "create_schedule_definition",
+    "create_weekly_round_trip_rotation",
     "extend_publication_window",
     "publish_configured_window",
     "publish_occurrences_through",
+    "publish_next_rotation",
     "rebuild_dated_flight_indexes",
     "revise_future_schedule",
     "validate_schedule_definition",

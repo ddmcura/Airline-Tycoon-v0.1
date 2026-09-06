@@ -6,6 +6,10 @@ from functools import reduce
 from operator import mul
 from zoneinfo import ZoneInfoNotFoundError
 
+from .air_suitability_validation import (
+    validate_air_suitability_airport,
+    validate_air_suitability_configuration,
+)
 from .ids import parse_entity_id
 from .booking_validation import validate_schema3_booking_authority
 from .fulfilment_validation import validate_schema4_fulfilment_authority
@@ -710,6 +714,11 @@ class _Validator:
             configuration.get("demand"),
             "$.simulation.configuration.demand",
         )
+        if "air_suitability_configuration" in demand_configuration:
+            try:
+                validate_air_suitability_configuration(demand_configuration["air_suitability_configuration"])
+            except ValueError as exc:
+                self.add("invalid_air_suitability_configuration", "$.simulation.configuration.demand.air_suitability_configuration", str(exc))
         demand_configuration_fields = {
             "model_version",
             "configuration_version",
@@ -725,7 +734,7 @@ class _Validator:
         }
         if self.schema_version in (2, 3, 4):
             demand_configuration_fields.update(
-                {"market_pack_configuration", "travel_scope_configuration"}
+                {"market_pack_configuration", "travel_scope_configuration", "air_suitability_configuration"}
             )
         for field in sorted(set(demand_configuration) - demand_configuration_fields, key=repr):
             self.add(
@@ -1160,12 +1169,26 @@ class _Validator:
             )
 
         airport_reference_codes = {}
+        airport_catalog_ids = {}
+        airport_iata_codes = {}
+        airport_icao_codes = {}
         for airport_id, record in airports.items():
             path = f"$.world_state.airports.{airport_id}"
+            try:
+                validate_air_suitability_airport(record, required=(
+                    "air_suitability_configuration" in self.envelope["simulation"]["configuration"]["demand"]
+                    and record.get("demand_allocation_member") is True
+                ))
+            except ValueError as exc:
+                self.add("invalid_air_suitability_airport", path, str(exc), "airport", airport_id)
             allowed_airport_fields = {
+                "ground_network_id",
+                "tourism_pull_ppm",
                 "airport_id",
+                "catalog_airport_id",
                 "reference_code",
                 "display_name",
+                "city",
                 "iata_code",
                 "icao_code",
                 "timezone",
@@ -1193,6 +1216,31 @@ class _Validator:
                 )
             reference_code = self.require_text(record, "reference_code", path, "airport", airport_id)
             self.require_text(record, "display_name", path, "airport", airport_id)
+            for field in ("catalog_airport_id", "city"):
+                value = record.get(field)
+                if value is not None and (
+                    not isinstance(value, str) or not value or value != value.strip()
+                ):
+                    self.add(
+                        "malformed_required_field",
+                        f"{path}.{field}",
+                        "must be null or non-empty canonical text",
+                        "airport",
+                        airport_id,
+                    )
+            catalog_id = record.get("catalog_airport_id")
+            if isinstance(catalog_id, str) and catalog_id:
+                previous = airport_catalog_ids.get(catalog_id)
+                if previous is not None:
+                    self.add(
+                        "duplicate_airport_catalog_identity",
+                        f"{path}.catalog_airport_id",
+                        f"catalog airport ID is already used by {previous}",
+                        "airport",
+                        airport_id,
+                    )
+                else:
+                    airport_catalog_ids[catalog_id] = airport_id
             airport_timezone = self.require_text(
                 record, "timezone", path, "airport", airport_id
             )
@@ -1219,6 +1267,23 @@ class _Validator:
                     expected_length = 3 if field == "iata_code" else 4
                     if len(record[field]) != expected_length or record[field] != record[field].upper():
                         self.add("malformed_required_field", f"{path}.{field}", f"must be an uppercase {expected_length}-character code", "airport", airport_id)
+                    else:
+                        code_map = (
+                            airport_iata_codes
+                            if field == "iata_code"
+                            else airport_icao_codes
+                        )
+                        previous = code_map.get(record[field])
+                        if previous is not None:
+                            self.add(
+                                f"duplicate_airport_{field}",
+                                f"{path}.{field}",
+                                f"code is already used by {previous}",
+                                "airport",
+                                airport_id,
+                            )
+                        else:
+                            code_map[record[field]] = airport_id
             demand_eligible = record.get("passenger_demand_eligible")
             if type(demand_eligible) is not bool:
                 self.add(

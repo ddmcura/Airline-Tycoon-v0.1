@@ -30,6 +30,7 @@ from game.world_state.schema import (
 )
 from game.world_state.validation import validate_world
 
+from .air_suitability import interpolate_air_suitability
 from .model import (
     CohortResolution,
     DemandIssue,
@@ -345,6 +346,20 @@ def _country_raw_score(configuration, origin_country, destination_country):
 
 def _airport_raw_score(configuration, origin, destination):
     distance = _distance_km(origin, destination)
+    if "air_suitability_configuration" in configuration:
+        with _fixed_decimal_context(_PRECISION):
+            suitability = interpolate_air_suitability(
+                configuration["air_suitability_configuration"], origin,
+                destination, distance * Decimal(1000),
+            )
+            if suitability == 0:
+                return Decimal(0)
+            resident = (Decimal(destination["population"]) / _PPM).sqrt()
+            resident_destination = resident * Decimal(
+                configuration["destination_type_weight_bps"][destination["demand_destination_type"]]
+            ) / _BPS
+            pull = resident_destination + Decimal(destination["tourism_pull_ppm"]) / _PPM
+            return pull * suitability / _BPS
     with _fixed_decimal_context() as context:
         context.prec = _PRECISION
         return (
@@ -461,6 +476,11 @@ def _derive_origin(envelope, origin_id, effective_country_ids, airports_by_count
             unmaterialized[country_id] = country_amount
             continue
         scores = [_airport_raw_score(configuration, origin, airports[destination_id]) for destination_id in destination_ids]
+        if "air_suitability_configuration" in configuration and not any(scores):
+            raise ValueError(
+                f"AIR_SUITABILITY_ZERO_ALLOCATION: origin {origin_id}, "
+                f"destination country {country_id} has only zero destination scores"
+            )
         _allocations, normalization = _conserved_allocations(country_amount, destination_ids, scores, residual_key=lambda identity: identity)
         airport_normalizations[country_id] = normalization
     return Model4OriginNormalization(

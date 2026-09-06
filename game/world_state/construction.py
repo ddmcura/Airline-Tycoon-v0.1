@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN
 
+from .air_suitability_validation import validate_air_suitability_airport
 from .ids import allocate_id, new_allocator_state
 from .demand_fingerprint import calculate_demand_input_fingerprint
 from .money import major_to_minor
@@ -118,6 +119,21 @@ def _add_airport_reference_in_place(envelope, airport_reference):
     ):
         raise ValueError("airport reference_code must be unique")
 
+    catalog_airport_id = airport_reference.get("catalog_airport_id")
+    if catalog_airport_id is not None:
+        catalog_airport_id = _required_text(
+            catalog_airport_id, "starting_airport.catalog_airport_id"
+        )
+        if any(
+            airport.get("catalog_airport_id") == catalog_airport_id
+            for airport in envelope["world_state"]["airports"].values()
+        ):
+            raise ValueError("airport catalog_airport_id must be unique")
+    city = airport_reference.get("city")
+    if city is not None:
+        city = _required_text(city, "starting_airport.city")
+
+    validate_air_suitability_airport(airport_reference)
     population = airport_reference.get("population")
     if population is not None:
         if isinstance(population, bool) or not isinstance(population, int):
@@ -225,8 +241,10 @@ def _add_airport_reference_in_place(envelope, airport_reference):
     icao = airport_reference.get("icao")
     record = {
         "airport_id": airport_id,
+        "catalog_airport_id": catalog_airport_id,
         "reference_code": reference_code,
         "display_name": str(airport_reference.get("display_name") or airport_reference.get("name") or reference_code),
+        "city": city,
         "iata_code": str(iata).upper() if iata else (reference_code if len(reference_code) == 3 else None),
         "icao_code": str(icao).upper() if icao else (reference_code if len(reference_code) == 4 else None),
         "timezone": str(airport_reference.get("timezone") or "UTC"),
@@ -243,6 +261,9 @@ def _add_airport_reference_in_place(envelope, airport_reference):
     if schema_version in (2, 3, 4):
         record["country_id"] = country_id
         record["demand_allocation_member"] = demand_allocation_member
+    for field in ("ground_network_id", "tourism_pull_ppm"):
+        if field in airport_reference:
+            record[field] = airport_reference[field]
     envelope["world_state"]["airports"][airport_id] = record
     demand_state["input_fingerprint"] = calculate_demand_input_fingerprint(envelope)
     return airport_id

@@ -8,7 +8,13 @@ from .fulfilment import (
     process_flight_completion,
     process_flight_departure,
 )
-from .projections import project_flight_fulfilment, project_recent_flight_results
+from .projections import (
+    project_airline_fleet,
+    project_airline_flights,
+    project_airline_overview,
+    project_flight_fulfilment,
+    project_recent_flight_results,
+)
 
 __all__ = (
     "FlightFulfilmentIssue",
@@ -17,6 +23,9 @@ __all__ = (
     "build_confirmed_carriage_manifest",
     "process_flight_completion",
     "process_flight_departure",
+    "project_airline_fleet",
+    "project_airline_flights",
+    "project_airline_overview",
     "project_flight_fulfilment",
     "project_recent_flight_results",
 )

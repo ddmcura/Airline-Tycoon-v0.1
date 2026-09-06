@@ -1,6 +1,8 @@
 📁 Folder Tree (Selective File Skip):
 
 ├── Data
+│   ├── Stage1
+│   │   └── philippines_v1.json
 │   ├── Airports
 │   │   ├── Africa
 │   │   ├── Antartica
@@ -35,6 +37,10 @@
 │   │   ├── new_aircraft.py
 │   │   ├── seat_configuration.py
 │   │   └── used_market.py
+│   ├── aircraft_operations
+│   │   ├── __init__.py
+│   │   ├── fulfilment.py
+│   │   └── projections.py
 │   ├── booking
 │   │   ├── __init__.py
 │   │   ├── allocation.py
@@ -42,6 +48,12 @@
 │   │   ├── configuration.py
 │   │   ├── indexes.py
 │   │   └── shopping.py
+│   ├── demand
+│   │   ├── __init__.py
+│   │   ├── activation.py
+│   │   ├── model.py
+│   │   ├── model4.py
+│   │   └── projections.py
 │   ├── fleet_management
 │   │   ├── __init__.py
 │   │   ├── aircraft_detail.py
@@ -74,7 +86,16 @@
 │   │   ├── main.py
 │   │   ├── schedule_routes.py
 │   │   └── view_routes.py
-│   └── utils
+│   ├── scheduling
+│   │   ├── __init__.py
+│   │   ├── publication.py
+│   │   ├── rotation.py
+│   │   └── indexes.py
+│   ├── simulation
+│   │   ├── __init__.py
+│   │   ├── kernel.py
+│   │   └── projections.py
+│   ├── utils
 │       ├── __init__.py
 │       ├── airports.py
 │       ├── dev.py
@@ -83,6 +104,19 @@
 │       ├── render.py
 │       ├── time_utils.py
 │       └── ui.py
+│   └── world_state
+│       ├── __init__.py
+│       ├── construction.py
+│       ├── stage1_scenario.py
+│       └── validation.py
+├── app
+│   ├── __init__.py
+│   └── terminal
+│       ├── __init__.py
+│       ├── __main__.py
+│       ├── formatting.py
+│       ├── main.py
+│       └── session.py
 ├── main.py
 ├── make_snapshot.py
 ├── run.bat

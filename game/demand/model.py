@@ -43,6 +43,8 @@ _SCORE_PRECISION = 50
 _SOURCE_FINGERPRINT_CONTRACT = "STAGE1_DEMAND_INDEX_SHA256_JSON_V1"
 _AIRPORT_DEMAND_FIELDS = frozenset(
     {
+        "ground_network_id",
+        "tourism_pull_ppm",
         "passenger_demand_eligible",
         "population",
         "latitude_microdegrees",
@@ -55,6 +57,7 @@ _AIRPORT_DEMAND_FIELDS = frozenset(
 )
 _CONFIGURATION_UPDATE_FIELDS = frozenset(
     {
+        "air_suitability_configuration",
         "configuration_version",
         "daily_booker_rate_ppm",
         "distance_scale_km",
@@ -1427,5 +1430,17 @@ def revise_demand_model(
             current,
             _validation_issues(candidate_validation),
         )
+    if (
+        active_model == MODEL4_DEMAND_MODEL_VERSION
+        and "air_suitability_configuration" in configuration
+    ):
+        from .model4 import rebuild_model4_indexes
+        try:
+            rebuild_model4_indexes(candidate)
+        except (ArithmeticError, ValueError) as exc:
+            return DemandRevisionResult(
+                "REJECTED", current, current,
+                (DemandIssue("DEMAND_ALLOCATION_FAILED", str(exc)),),
+            )
     _replace_envelope(envelope, candidate)
     return DemandRevisionResult("COMPLETED", current, new_revision)

@@ -591,3 +591,34 @@ dated-flight operation authority, leaves the prior event to resolve as stale,
 and creates one current replacement. Supersession similarly stales prior work.
 Departure alone creates the matching completion event; completion creates no
 successor. A same-time priority-0 Booking checkpoint executes first.
+
+## Stage 1 Milestone 7 terminal scheduling adapter
+
+The implemented terminal harness uses the production scheduling boundary; it
+does not maintain a second route or timetable model. One atomic application
+action operates on a detached candidate and:
+
+1. resolves the selected parked player aircraft and its authoritative current
+   airport;
+2. creates or reuses active outbound and return connections for existing
+   directional markets;
+3. creates two weekly `PASSENGER`/`ECONOMY` schedule definitions with one shared
+   non-negative USD-minor-unit fare;
+4. uses the fixed local windows 08:00–10:00 outbound and 12:00–14:00 return;
+5. publishes exactly the first outbound and return dated occurrences through
+   the normal revision, continuity, booked-flight-protection, validation, and
+   schema-4 lifecycle-event paths; and
+6. replaces the live in-memory session world only after the complete candidate
+   validates.
+
+The return restores geographic continuity at the origin. Later “Publish Next
+Rotation” commands expand the same active weekly definitions through the normal
+bounded publication API. A rejection leaves the session byte-identical. The
+terminal never offers one-way service, a free-form schedule editor, implicit
+deadheads, or a booked-occurrence bypass.
+
+This adapter is runtime interaction, not scheduling authority. Stable numbered
+lists, review text, near-departure warnings, and form cancellation are terminal
+state. Schedule definitions, dated occurrences, connections, revisions,
+fingerprints, aircraft continuity, and lifecycle events remain production
+authority described above.

@@ -726,7 +726,9 @@ explicitly authorized aircraft-operations milestone.
 
 ## Milestone 7 — Terminal Harness
 
-**Status:** Not implemented.
+**Status:** Complete. Implemented as the deterministic in-memory
+`stage1-philippines-v1` terminal harness and verified against the current
+standard-library suite.
 
 ### Work
 
@@ -735,14 +737,51 @@ explicitly authorized aircraft-operations milestone.
   sales, recognized revenue, operating cost/profit, currency, and completion.
 - Display airline balances, recent results, and cumulative fulfilment
   contribution without adding simulation authority.
+- Construct one validated latest-schema temporary player world through the
+  production World State, Demand Model 4, Booking revision 2, scheduling,
+  event-kernel, fulfilment, and finance boundaries.
+- Provide one atomic weekly outbound-and-return scheduling action, exact USD
+  fare parsing, explicit clock advancement, Booking/lifecycle inspection, and
+  repeat publication during the same process.
+- Offer optional USD/PHP/EUR presentation using immutable scenario-defined
+  rational rates and half-even integer rounding. USD remains the sole
+  authoritative accounting currency and is always displayed.
 
 ### Exit criteria
 
 - The complete minimal booking-to-flight-to-finance loop is observable without
   direct mutation of authority.
 - Terminal output is detached and cannot affect deterministic continuation.
-- Milestone 7 remains incomplete until its interaction harness is implemented
-  and independently verified.
+- The session contains no file persistence, background clock, live FX, AI
+  airline, or legacy daily-tick path. Exiting the process loses the session.
+
+The executable entry point is `python -m app.terminal`. Milestone 7 does not
+increment the save schema and does not add terminal-only persistent fields.
+File save/load remains Milestone 8; the broader integrated workflow and AI
+remain Milestone 9.
+
+### Philippines v1 Recovery Batch 1
+
+**Status:** Implemented and verified as a Milestone 7 recovery increment.
+
+- Replaces the MNL/CEB/DVO demonstration scenario with the immutable
+  2026-09-01 Philippines v1 scheduled-commercial pack: 43 active members, one
+  inactive LGP reference, and 1,806 directional domestic markets.
+- Preserves Model 4. Future foreign packs do not reduce established Philippine
+  domestic pair baselines; same-country membership changes require a new pack
+  and demand-calibration revision; processed cohorts never reroll.
+- Keeps Booking work sparse: daily checkpoints resolve only qualifying
+  service-bearing markets, not all 1,806 materialized opportunities.
+- Adds bounded detached market research over exact pre-service Model 4 pair
+  demand, distance, availability, and current player service observations.
+- Makes every active member a home-base choice and every other active member a
+  rotation destination, displaying code, airport name, and city in IATA order.
+- Flushes every terminal question before input and reprompts invalid fields
+  without discarding previously valid new-game answers.
+
+This recovery batch does not implement aircraft acquisition, leases,
+maintenance, expanded weekly scheduling, continuous time, save/load, or AI.
+It does not declare the complete Philippines game finished.
 
 ## Milestone 8 — Exact Save and Reload
 

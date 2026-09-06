@@ -32,7 +32,9 @@ from .checkpoint import (
     BookingCheckpointDesiredDateResult,
     BookingCheckpointIssue,
     BookingCheckpointMarketResult,
+    BookingCheckpointPreparation,
     BookingCheckpointResult,
+    prepare_daily_booking_checkpoint,
     process_daily_booking_checkpoint,
 )
 from .indexes import BookingIndexes, rebuild_booking_indexes
@@ -62,6 +64,7 @@ __all__ = (
     "BookingCheckpointDesiredDateResult",
     "BookingCheckpointIssue",
     "BookingCheckpointMarketResult",
+    "BookingCheckpointPreparation",
     "BookingCheckpointResult",
     "BookingConfigurationTransitionIssue",
     "BookingConfigurationTransitionResult",
@@ -94,6 +97,7 @@ __all__ = (
     "journey_duration_score",
     "new_booking_configuration",
     "prepare_daily_booking_allocation",
+    "prepare_daily_booking_checkpoint",
     "process_daily_booking_checkpoint",
     "prepare_daily_booking_shopping",
     "rebuild_booking_indexes",

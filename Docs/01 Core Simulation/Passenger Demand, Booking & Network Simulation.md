@@ -759,3 +759,45 @@ and commits its fully detached candidate only after complete schema and
 conservation validation. Connecting itineraries, passenger objects, carriage,
 check-in/boarding, disruption handling, refunds, revenue recognition, operating
 costs, and playable interfaces remain deferred.
+
+## Philippines v1 recovery boundary
+
+The playable Stage 1 scenario now materializes a dated, immutable Philippine
+scheduled-commercial airport pack rather than the former three-airport
+demonstration. The 2026-09-01 v1 membership is 43 active airports plus inactive
+historical LGP/RPBL; active DRP/RPLK is a distinct replacement identity. Every
+ordered active pair exists as a market (1,806 total), but market existence does
+not trigger Demand or Booking work.
+
+Country-local Model 4 normalization is the preservation boundary. Foreign pack
+materialization cannot dilute established Philippine domestic baselines, while
+same-country membership cannot expand silently after materialization. A future
+Philippine membership correction requires a new pack and demand calibration.
+Processed cohorts remain immutable under either kind of later revision.
+
+The terminal's Market Research screen consumes the detached bounded
+`project_market_opportunities` projection. It exposes total pre-service
+directional demand, distance, availability, and the player's current qualifying
+service/capacity/fare/confirmed Bookings. It does not create a connection or
+flight and does not run a cohort. Because no legitimate pre-service airline
+share forecast exists, the UI explicitly says that total market demand is not a
+guarantee of player Bookings and that fare, schedule, capacity, and competition
+still govern actual selection.
+
+
+Philippines Recovery Batch 2 optionally replaces Model 4 airport distance
+attenuation with a versioned ground-network suitability curve. Resident
+population pull receives the existing destination-type factor; explicit tourism
+pull is then added before suitability and country-local normalization. The
+same-network curve suppresses ordinary trips through 250 km, then rises;
+the separated-network curve preserves short island markets. Equality of stable
+network IDs selects the curve, without airport-code-specific behavior.
+
+Tourism changes destination attraction only. Origin shopping pools, country and
+scope allocation, service activation and Booking integration retain their
+existing rules. Zero-score destinations receive zero baseline; an all-zero
+nonempty allocation is an invariant error. The tagged policy uses a V2 demand
+input witness and affects only future unprocessed cohorts. Existing history
+and all policy-absent legacy outputs remain unchanged. See the canonical Stage 1
+schema and Demand Technical Specification section 38 for the exact contract,
+calibration versions, validation, fingerprint exclusions and PH 1.0 deferrals.

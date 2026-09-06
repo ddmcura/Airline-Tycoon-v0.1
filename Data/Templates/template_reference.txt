@@ -1,0 +1,22 @@
+# Stage 1 Demand Model 4 optional air-suitability reference
+
+Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
+Authoritative demand configuration may include air_suitability_configuration:
+  contract: MODEL4_AIR_SUITABILITY_V1
+  configuration_version: non-empty canonical string
+  interpolation_policy: PIECEWISE_LINEAR_RATIONAL_V1
+  right_boundary_policy: HOLD_LAST
+  same_ground_network_points: ordered list of curve points
+  separated_ground_network_points: ordered list of curve points
+Each point contains exactly distance_m (non-negative integer) and
+suitability_bps (integer 0..10000). Each curve has at least two points,
+starts at distance zero, and has strictly increasing distances. No booleans.
+
+Participating airport authority:
+  ground_network_id: stable non-empty canonical string
+  tourism_pull_ppm: integer 0..5000000, no booleans
+Existing population remains the effective resident catchment; no synonym.
+The curated scenario may carry the same optional air_suitability_configuration
+at its root and the airport inputs in active airport_pack.records.
+Absence preserves legacy contracts. Calibration values belong in versioned
+reference data, not production airport-code branches.

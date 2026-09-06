@@ -25,6 +25,9 @@ from game.world_state.timestamps import parse_canonical_utc
 from game.world_state.validation import validate_world
 
 
+_PROJECTION_VALIDATION_TOKEN = object()
+
+
 @dataclass(frozen=True)
 class FlightFulfilmentIssue:
     code: str
@@ -157,7 +160,9 @@ def _sale_lineage_valid(world, booking):
     )
 
 
-def build_confirmed_carriage_manifest(envelope, dated_flight_id):
+def build_confirmed_carriage_manifest(
+    envelope, dated_flight_id, *, _validation_token=None
+):
     """Return the detached strict confirmed V1 Booking manifest."""
     empty = lambda issue: FlightManifest(
         dated_flight_id if type(dated_flight_id) is str else "",
@@ -167,12 +172,13 @@ def build_confirmed_carriage_manifest(envelope, dated_flight_id):
         return empty(FlightFulfilmentIssue(
             "INVALID_WORLD_STATE", "world envelope must be a dictionary", "$"
         ))
-    validation = validate_world(envelope)
-    if not validation.is_valid:
-        issue = validation.errors[0]
-        return empty(FlightFulfilmentIssue(
-            "INVALID_WORLD_STATE", issue.message, issue.path
-        ))
+    if _validation_token is not _PROJECTION_VALIDATION_TOKEN:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            issue = validation.errors[0]
+            return empty(FlightFulfilmentIssue(
+                "INVALID_WORLD_STATE", issue.message, issue.path
+            ))
     if type(dated_flight_id) is not str:
         return empty(FlightFulfilmentIssue(
             "INVALID_FLIGHT_ID", "dated flight ID must be a string",

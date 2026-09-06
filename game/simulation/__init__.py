@@ -25,6 +25,7 @@ from .kernel import (
     stop_fast_forward,
     supersede_event,
 )
+from .projections import project_event_records, project_next_pending_event
 
 __all__ = (
     "DEFAULT_EVENT_HANDLERS",
@@ -40,6 +41,8 @@ __all__ = (
     "configure_clock_ratios",
     "process_events_through",
     "process_next_event",
+    "project_event_records",
+    "project_next_pending_event",
     "run_fast_forward",
     "schedule_event",
     "set_clock_mode",

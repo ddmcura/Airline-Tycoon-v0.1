@@ -37,10 +37,29 @@ from .market_packs import (
 from .money import major_to_minor, minor_to_decimal
 from .validation import ValidationIssue, ValidationResult, validate_world
 from .timestamps import normalize_utc_timestamp
+from .stage1_scenario import (
+    PHILIPPINES_ACTIVE_AIRPORT_COUNT,
+    PHILIPPINES_AIRPORT_PACK_CONTRACT,
+    PHILIPPINES_AIRPORT_PACK_REFERENCE_DATE,
+    PHILIPPINES_AIRPORT_PACK_VERSION,
+    PHILIPPINES_DIRECTIONAL_MARKET_COUNT,
+    STAGE1_SCENARIO_ID,
+    Stage1BootstrapError,
+    active_stage1_airports,
+    create_stage1_new_game,
+    load_stage1_scenario,
+)
 
 __all__ = (
     "ValidationIssue",
     "ValidationResult",
+    "Stage1BootstrapError",
+    "STAGE1_SCENARIO_ID",
+    "PHILIPPINES_ACTIVE_AIRPORT_COUNT",
+    "PHILIPPINES_AIRPORT_PACK_CONTRACT",
+    "PHILIPPINES_AIRPORT_PACK_REFERENCE_DATE",
+    "PHILIPPINES_AIRPORT_PACK_VERSION",
+    "PHILIPPINES_DIRECTIONAL_MARKET_COUNT",
     "MigrationResult",
     "BookingConfigurationTransitionIssue",
     "BookingConfigurationTransitionResult",
@@ -49,6 +68,7 @@ __all__ = (
     "add_aircraft",
     "add_airline",
     "add_airport_reference",
+    "active_stage1_airports",
     "add_connection",
     "add_directional_market",
     "allocate_id",
@@ -56,9 +76,11 @@ __all__ = (
     "calculate_booking_configuration_fingerprint",
     "calculate_flight_fulfilment_configuration_fingerprint",
     "create_new_world",
+    "create_stage1_new_game",
     "disable_country_pack",
     "enable_country_pack",
     "major_to_minor",
+    "load_stage1_scenario",
     "migrate_schema_1_to_2",
     "migrate_schema_2_to_3",
     "migrate_schema_3_to_4",

@@ -3,7 +3,7 @@
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0
-through 5A. It supersedes the hybrid `game_state` example in
+through 7. It supersedes the hybrid `game_state` example in
 `Docs/template_reference_with_rules.txt` for new authoritative code. The hybrid
 shape remains a compatibility-only legacy structure until later milestones
 migrate the CLI and saved games.
@@ -18,10 +18,12 @@ persistent fields. Milestone 4.5B-1 adds the explicit in-memory schema-1-to-2
 migration foundation and Model 4 authority shapes while deliberately retaining
 Model 3 calculation. Milestones 4.5B-2 and 4.5B-3 activate Model 4 and add the
 country market-pack lifecycle. Milestone 5A adds schema-3 Booking configuration,
-identity, revision, compatibility, and optimistic-concurrency authority without
-executing Booking. Exact file writing/loading and general save-pipeline
-migrations, Booking processing, aircraft operations, and transaction posting
-are not implemented.
+identity, revision, compatibility, and optimistic-concurrency authority.
+Milestones 5B–5D implement Booking preparation and checkpoint persistence,
+Milestone 6 adds schema-4 minimal flight fulfilment and settlement, and
+Milestone 7 exposes that authority through a deterministic in-memory terminal
+harness without changing this persistent schema. Exact file writing/loading and
+general save-pipeline orchestration remain deferred.
 
 ## Representation rules
 
@@ -501,9 +503,11 @@ prior dates.
 
 ```text
 airport
-  airport_id, reference_code, display_name, iata_code, icao_code, timezone,
+  airport_id, catalog_airport_id, reference_code, display_name, city,
+  iata_code, icao_code, timezone,
   passenger_demand_eligible, population, latitude_microdegrees,
   longitude_microdegrees, country_reference, demand_destination_type,
+  ground_network_id, tourism_pull_ppm,
   active_from_date, active_until_date, demand_input_revision,
   country_id (schema 2), demand_allocation_member (schema 2)
 
@@ -970,6 +974,14 @@ minimal account foundation contains exactly one each of `cash`,
 - Score aggregate choices, observe authoritative capacity/revisions, and build
   a detached contention-safe allocation plan:
   `game.booking.prepare_daily_booking_allocation(...)` (Milestone 5C)
+- Prepare exact detached Booking checkpoint witnesses without mutating
+  authority: `game.booking.prepare_daily_booking_checkpoint(...)`.
+- Construct the curated temporary Stage 1 scenario:
+  `game.world_state.create_stage1_new_game(...)`.
+- Atomically create the fixed weekly outbound-and-return workflow and publish
+  its first pair: `game.scheduling.create_weekly_round_trip_rotation(...)`.
+- Project bounded enriched flights, fleet, airline finances, and the next
+  pending event through the production projection packages.
 
 ## Envelope version 4 — Milestone 6 Minimal Flight Fulfilment
 
@@ -1009,3 +1021,122 @@ cursors for its completion event. Completion advances dated-flight operation
 revision, owning-airline finance revision, and the transaction allocator.
 Booking and inventory revisions do not change. Booking checkpoints retain
 priority 0; both flight events use priority 100.
+
+## Milestone 7 in-memory terminal boundary
+
+Milestone 7 adds no authoritative field and does not increment schema version
+4. `Stage1Session`, menu navigation, loss-warning state, and display-currency
+preference are runtime-only application data. Remaining capacity, booked and
+carried load factors, operating contribution, formatted money, stable numbered
+choices, and display conversions are detached derived presentation data.
+
+`stage1-philippines-v1` constructs a private candidate from an immutable curated
+reference pack, advances it through the approved schema/configuration
+transitions, establishes the first production Booking checkpoint and recurrence,
+installs one free `A320-200` construction grant, validates the complete schema-4
+candidate, and only then returns it. The grant posts no acquisition transaction.
+
+USD is the only authoritative scenario currency. PHP and EUR display values use
+scenario-defined integer ratios with round-to-nearest, ties-to-even minor-unit
+rounding. They are never inputs to Demand, Booking, scheduling, fulfilment,
+finance, fingerprints, revisions, events, validation, or serialization. The
+terminal always retains a visible USD amount alongside any conversion.
+
+Milestone 7 does not read or write saves. Exiting discards the in-memory world.
+Authoritative file save/load, slots, autosave, backups, recovery, and persistence
+migration orchestration remain Milestone 8. AI airlines and broader integrated
+workflows remain Milestone 9.
+
+## Philippines v1 recovery airport authority
+
+Recovery Batch 1 retains save schema 4 while completing the previously
+unreleased Stage 1 reference authority. Airport records may now carry nullable
+`catalog_airport_id` and `city` fields; Philippines v1 requires both. Catalog
+IDs are immutable external identities and must be unique. Non-null IATA and
+ICAO codes are independently unique. Display names, cities, and codes remain
+labels and never act as foreign keys.
+
+`PHILIPPINES_COMMERCIAL_AIRPORT_PACK_V1`, version
+`ph-commercial-airports-v1-2026-09-01`, is pinned to 2026-09-01. It contains 43
+active scheduled-commercial allocation members and one inactive historical
+reference record, LGP/RPBL. Only the 43 active records enter authoritative
+World State; every ordered pair of distinct active members is materialized,
+producing exactly 1,806 directional markets. DRP/RPLK has its own catalog and
+world identity and is never an alias or rewrite of LGP.
+
+The scenario records the enabled Philippine pack and its complete sorted
+catalog-to-world mapping in `market_pack_configuration`. This freezes domestic
+allocation membership for the version. A same-country materialization attempt
+rejects after bootstrap. A later membership correction requires a new pack and
+demand-calibration revision. Foreign pack materialization may advance the
+global Demand revision but cannot change established Philippine domestic pair
+baselines; processed cohort wrappers remain immutable and reusable.
+
+Population is a versioned airport-catchment calibration input, not an assertion
+that every record represents a municipal census boundary. Coordinates are
+integer microdegrees and every active member uses `Asia/Manila`, an explicit
+destination type, and true service/allocation/eligibility membership in the
+source pack. The source pack also carries status flags for non-materialized
+reference records. Runway data is not authoritative eligibility input in this
+batch and aircraft compatibility is not inferred from it.
+
+`game.demand.project_market_opportunities(...)` is a runtime-only bounded
+projection. It exposes Model 4 revision witnesses, exact Decimal base daily
+directional bookers, diagnostic share, authoritative-coordinate distance,
+availability, endpoint display data, and current qualifying player
+service/capacity/fare/confirmed-booking observations. The projection validates
+once, reuses Model 4 pair authority, stays canonically ordered and detached,
+and creates no cohort, connection, schedule, flight, Booking, event, random
+input, revision, or persistent record.
+
+
+## Philippines Demand Recovery Batch 2: optional Model 4 suitability
+
+Model version remains 4 and save schema remains 4. Optional authoritative
+`simulation.configuration.demand.air_suitability_configuration` contains exactly
+`contract` = `MODEL4_AIR_SUITABILITY_V1`, a non-empty canonical
+`configuration_version`, `interpolation_policy` = `PIECEWISE_LINEAR_RATIONAL_V1`,
+`right_boundary_policy` = `HOLD_LAST`, `same_ground_network_points`, and
+`separated_ground_network_points`. Each curve has at least two exact objects
+containing `distance_m` (non-negative integer) and `suitability_bps` (0..10000
+integer); distances strictly increase from zero. Boolean integers are invalid.
+
+Airport authority may carry `ground_network_id` (stable non-empty canonical
+string) and `tourism_pull_ppm` (integer 0..5000000, excluding booleans).
+Both are required for every allocation member when the policy is present.
+`population` remains the authoritative effective resident catchment.
+Equal network IDs select the same-network curve; unequal IDs select the
+separated-network curve. No code-specific demand branches are permitted.
+
+The new score is `(sqrt(population / 1000000) * destination_type_weight_bps /
+10000 + tourism_pull_ppm / 1000000) * suitability_bps / 10000`.
+Suitability uses piecewise linear interpolation with the existing deterministic
+50-digit Decimal arithmetic, without rounding to whole basis points, on the
+existing distance converted to metres. Beyond the final point, hold its value.
+The new curve replaces legacy airport distance attenuation. Apply the score
+before country-local normalization, exactly once. Zero leaves have exact zero
+baseline and contribute nothing to the denominator; positive leaves conserve
+the existing country envelope. An all-zero nonempty destination allocation is
+an invariant error, not a new latent category. Tourism never enters origin pools.
+
+The tagged policy selects `STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V2`, covering
+policy contracts and every point, network IDs, population, tourism, existing
+mathematical configuration, country/scope inputs, revisions, lineage, and
+immutable market identities. Service, fares, temporary availability, UI and
+display currency are excluded. All legacy V1 branches and witnesses remain
+unchanged when the policy is absent. Revision transactions append a new context
+and affect only unprocessed cohorts; processed wrappers, counts, Bookings,
+reservations, finance and checkpoint witnesses remain unchanged.
+
+The scenario root may supply this optional configuration; active airport-pack
+records then require both new airport inputs. `ph-air-suitability-v1` and
+`ph-effective-catchments-v2` identify gameplay calibration, not census or
+passenger-throughput claims. USD minor units remain financial authority;
+PHP/EUR conversion is display-only.
+
+PH 1.0 defers landmass registries, surface-access and catchment-overlap classes,
+ferry factors, access zones, geography exceptions, business and regional/VFR
+factors, tourism-origin/return balancing, long-haul decline, all-zero latent
+categories, integer great-circle replacement and graphical curve editors.
+This batch adds no save/load, AI, aircraft marketplace/manufacturers, leasing,
+lease-to-own, used aircraft, maintenance, continuous runtime or broader scheduling.

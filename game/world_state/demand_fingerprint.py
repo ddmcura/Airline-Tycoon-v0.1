@@ -3,6 +3,7 @@
 import hashlib
 import json
 
+from .air_suitability_validation import AIR_SUITABILITY_CONTRACT
 from .schema import LEGACY_MARKET_PACK_CONFIGURATION_VERSION
 
 
@@ -86,8 +87,13 @@ def calculate_model4_input_fingerprint(envelope):
     state = envelope["world_state"]
     configuration = envelope["simulation"]["configuration"]["demand"]
     market_pack_configuration = configuration.get("market_pack_configuration", {})
+    policy = configuration.get("air_suitability_configuration")
+    new_policy = (
+        type(policy) is dict and policy.get("contract") == AIR_SUITABILITY_CONTRACT
+    )
     if (
-        type(market_pack_configuration) is dict
+        not new_policy
+        and type(market_pack_configuration) is dict
         and market_pack_configuration.get("configuration_version")
         == LEGACY_MARKET_PACK_CONFIGURATION_VERSION
         and set(market_pack_configuration)
@@ -151,8 +157,14 @@ def calculate_model4_input_fingerprint(envelope):
         "demand_destination_type",
         "demand_input_revision",
     )
+    if new_policy:
+        mathematical_configuration["air_suitability_configuration"] = policy
+        airport_fields += ("ground_network_id", "tourism_pull_ppm")
     material = {
-        "fingerprint_contract": "STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V1",
+        "fingerprint_contract": (
+            "STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V2" if new_policy
+            else "STAGE1_MODEL4_DEMAND_INPUT_SHA256_JSON_V1"
+        ),
         "lineage_id": envelope["metadata"]["lineage_id"],
         "configuration": mathematical_configuration,
         "universe_date": state["demand_state"]["universe_date"],

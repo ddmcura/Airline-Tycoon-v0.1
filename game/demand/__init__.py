@@ -40,6 +40,10 @@ from .model4 import (
     project_model4_pair,
     rebuild_model4_indexes,
 )
+from .projections import (
+    MAX_MARKET_OPPORTUNITY_RESULTS,
+    project_market_opportunities,
+)
 
 __all__ = (
     "ActivationWindow",
@@ -57,6 +61,7 @@ __all__ = (
     "Model4ActiveDayResult",
     "Model4ActiveMarketIntent",
     "Model4DemandIndexes",
+    "MAX_MARKET_OPPORTUNITY_RESULTS",
     "activate_model4",
     "calculate_origin_daily_booking_pool",
     "calculate_pair_demand",
@@ -69,6 +74,7 @@ __all__ = (
     "is_usable_direct_passenger_flight",
     "project_model4_origin",
     "project_model4_pair",
+    "project_market_opportunities",
     "rebuild_model4_indexes",
     "rebuild_demand_indexes",
     "recalculate_origin_demand",
