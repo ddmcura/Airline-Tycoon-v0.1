@@ -4,7 +4,54 @@
 
 This roadmap converts the approved Airline Tycoon architecture into an implementation sequence. Its goal is a small but complete playable simulation rather than a collection of disconnected subsystems.
 
-This remains a planning document. It does not itself authorize schema or code changes. Before each implementation milestone, concrete structures must follow `Docs/template_reference_with_rules.txt` and the approved technical specifications.
+This remains the single development roadmap. It does not itself authorize schema or code changes. Before each implementation milestone, concrete structures must follow the canonical Stage 1 State Schema and approved technical specifications; template references remain subordinate.
+
+## Philippines 1.0 release sequence
+
+Updated 2026-09-06. **Approved PH 1.0 scope; provisional implementation order.**
+This plan does not authorize implementation or replace bounded technical specifications.
+Existing Milestone 8/9 labels remain stable; the recovery order below governs execution.
+See [Current Development Status](Current%20Development%20Status.md) for completed work
+and the [Decision Register](Decision%20Register.md) for approved scope decisions.
+
+PH 1.0 may precede AI opponents. Complete and verify the player-operated Philippines
+simulation first. Leasing, lease-to-own, used aircraft and maintenance may follow the
+first minimum-playable checkpoint, but remain PH 1.0 requirements, not post-1.0 options.
+
+| Order | Milestone | Dependency and bounded exit gate |
+| --- | --- | --- |
+| 1 | Broader weekly scheduling | Extend existing schedule/revision/publication APIs for selected weekdays/times and bounded repeat publication; preserve aircraft continuity and booked-flight protections. |
+| 2 | Aircraft manufacturers and curated model catalog | Establish stable identities, versioned content and approved performance/capacity/pricing inputs. Legacy aircraft data is migration input. |
+| 3 | Basic new-aircraft acquisition | Specify purchase/entry into service over catalog, fleet, location and Economy boundaries; verify atomic aircraft creation, journals and affordability rejection. |
+| 4 | Continuous deterministic runtime at 7×, manual pause/resume, and integration of existing multi-day advancement | Use the existing kernel and ordered whole-second commands with runtime-only wall-clock pacing. Player-selected multi-day/duration/UTC advancement already exists; integrate it and prove equivalent continuation. Profile realistic PH workloads. |
+| 5 | Leasing, lease-to-own, and used aircraft | Build on catalog/acquisition; specify recurring obligations, affordability/default/return, listings and ownership transfer. Settle lease semantics before lease-to-own; prevent duplicate assets/payments. |
+| 6 | Simple versioned maintenance expenses | Specify simplified cost/accrual and Economy journals; distinguish cash from attributed costs, avoid double charging and preserve settled history. |
+| 7 | Save/load (existing Milestone 8) | After main authoritative gameplay state and runtime are sufficiently established, integrate event-boundary snapshots, validated candidate loading, paused restoration, migrations, atomic replacement/recovery and manual/quick/autosave slots. |
+| 8 | Integrated PH 1.0 verification | Verify multiple weeks of scheduling, Booking, operations, finance, all acquisition modes, maintenance, runtime controls, multi-day advancement and reload. Prove deterministic equivalence across stepping/7×/reload and exclude legacy authority. |
+| 9 | AI after PH 1.0 | After the player simulation is complete and verified, add shared-rule AI and complete the broader Milestone 9 AI acceptance criteria. |
+
+Catalog precedes acquisition; leases precede lease-to-own. Each new persistent contract
+must first update the canonical schema and subordinate template, with validation,
+migration and serialization coverage even before disk save/load. The approved save
+architecture requires safe exact snapshots and paused loads, not disk saves before
+gameplay/runtime implementation.
+
+The previous draft recommended maintenance before condition-based used pricing and
+lease maintenance obligations. That was a planning recommendation, not an approved
+technical dependency. Retain the order above: specify market contracts and their
+future maintenance boundary before implementation, then integrate expenses at step 6.
+If a bounded technical specification establishes a different dependency, explain it
+before changing this provisional order. No condition or obligation schema is approved here.
+
+### Explicitly deferred until later
+
+AI follows PH 1.0; this does not mark broader Milestone 9 complete or remove its AI
+criteria. Connecting itineraries, advanced maintenance checks/faults/downtime, detailed
+airport operations, return-trip tourism balancing, expanded geography/access classes
+and the existing deferred-features list remain later work. Simple maintenance stays
+inside PH 1.0. Continuous 7× is the PH 1.0 runtime target; configurable kernel ratios
+remain architectural capability and pacing must not alter authoritative outcomes.
+Concrete contracts still require bounded approval before implementation.
 
 ## Stage 1 Outcome
 
@@ -757,8 +804,8 @@ standard-library suite.
 
 The executable entry point is `python -m app.terminal`. Milestone 7 does not
 increment the save schema and does not add terminal-only persistent fields.
-File save/load remains Milestone 8; the broader integrated workflow and AI
-remain Milestone 9.
+File save/load remains Milestone 8, scheduled later in PH 1.0 recovery. Milestone 9
+player integration is required for PH 1.0; its AI work follows PH 1.0.
 
 ### Philippines v1 Recovery Batch 1
 
@@ -785,6 +832,8 @@ It does not declare the complete Philippines game finished.
 
 ## Milestone 8 — Exact Save and Reload
 
+**Status:** Future work, PH 1.0 recovery step 7 after main gameplay and runtime.
+
 ### Work
 
 - Capture whole-world state between completed event transactions.
@@ -804,6 +853,10 @@ It does not declare the complete Philippines game finished.
 - A failed load leaves the active world unchanged.
 
 ## Milestone 9 — Integrated Playable Slice
+
+**Status:** Future work. Player integration/verification is PH 1.0 step 8; AI and
+shared-rule AI acceptance follow PH 1.0 at step 9. PH 1.0 need not complete the
+broader milestone AI criteria.
 
 ### Work
 
@@ -870,9 +923,10 @@ The critical end-to-end fixture should use a tiny world with:
 
 The fixture should be small enough for exact expected results rather than statistical guesses.
 
-## First Coding Increment
+## Original First Coding Increment (completed)
 
-When code implementation is authorized, begin with Milestones 0 and 1 only:
+The original Milestones 0 and 1 increment is complete. The following historical
+sequence describes that increment, not the next task:
 
 1. capture the current test baseline;
 2. approve the concrete Stage 1 state schema;

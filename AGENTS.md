@@ -62,14 +62,76 @@ historical or compatibility material only. Do not promote them to authority.
 
 ## Development workflow
 
+### Fresh-thread startup
+
+Every fresh Codex task must recover context from the repository:
+
+1. Read this `AGENTS.md` completely and any applicable deeper instructions.
+2. Read [Current Development Status](Docs/03%20Technical/Current%20Development%20Status.md).
+3. Read the development roadmap in [Stage 1 Implementation Roadmap](Docs/03%20Technical/Stage%201%20Implementation%20Roadmap.md), starting with its PH 1.0 release sequence.
+4. Consult the [Decision Register](Docs/03%20Technical/Decision%20Register.md).
+5. Inspect `git rev-parse HEAD`, `git status --short --branch`, recent history,
+   and branch/upstream divergence. Local upstream refs are not proof of remote freshness.
+6. Read only the canonical specifications relevant to the requested milestone;
+   consult `Data/Templates/foldertree.txt` before creating or moving files.
+7. Summarize the committed checkpoint, local changes, verification evidence,
+   and authorized scope before proposing work.
+
+Conversation history never overrides committed repository facts. Current user
+authorization may request changes to those facts, but does not make proposed
+work implemented. Status is a snapshot; the roadmap is planning; the decision
+register is an index. None replaces the canonical architecture or schema.
+
+### Authorization modes
+
+These are repository workflow labels, not Codex application settings. Explicit
+natural-language authorization is sufficient; magic keywords are not required.
+
+- **DISCUSS:** Read-only inspection, analysis, planning, and recommendations.
+  No repository edits. Use this when implementation has not been authorized.
+- **IMPLEMENT:** Implement the explicitly approved bounded specification and
+  verify it. Do not stage, commit, or push without separate authorization.
+- **COMMIT:** Verify the intended implementation and update status documents
+  with durable facts. Stage only intended files when committing is authorized;
+  commit and push only to the extent explicitly requested. A commit request
+  alone does not authorize a push or additional implementation.
+
+Never silently expand a milestone. Preserve legacy compatibility unless the
+approved specification explicitly changes it. Keep package-only helpers in
+their owning package; genuinely cross-package helpers belong in `game/utils`.
+
+For new schema fields, update the canonical Stage 1 schema first, then update
+`Data/Templates/template_reference.txt` before implementation. The template is
+a subordinate mirror, not a competing schema authority.
+
+### Shutdown and durable recovery
+
+- In IMPLEMENT or COMMIT, replace stale facts in Current Development Status
+  when this task changes them; never append a transcript. Record the actual
+  verification command, result/count, date, and revision or working-tree scope.
+  If not run, say so; never equate test inventory with passing tests.
+- Update this existing roadmap for changed scope/order and index newly approved
+  durable decisions with canonical links. Do not promote proposals to Approved.
+- Record remaining work, limitations, intended uncommitted files, protected
+  paths, and the immediate next step. In DISCUSS, report proposed updates only.
+- Before an authorized commit, identify the last verified implementation hash
+  and describe the pending commit separately. Never invent a commit's own hash
+  inside its contents. On the next startup, reconcile the snapshot with HEAD;
+  a documentation-only successor need not invalidate implementation evidence.
+- Inspect the final diff and Git status, preserve unrelated changes, and report
+  validation, remaining gaps, and actual commit/push outcome. Never claim a
+  clean tree or successful push without checking.
+
 - Inspect Git status before editing and preserve unrelated user changes.
 - Implement only the explicitly authorized milestone or task; do not begin
   later roadmap behavior speculatively.
 - Run the existing baseline tests before major work. Add deterministic tests for
   new behavior and invariants.
-- After changes, run the complete standard-library suite with
+- After source-code changes, run the complete standard-library suite with
   `python -m unittest discover -s tests`, then `python -m compileall -q .` and
   `git diff --check`.
+- For documentation-only tasks, validate links, authority, scope, and the diff;
+  do not run the gameplay suite unless explicitly requested.
 - Do not weaken approved formulas merely to satisfy stale tests. Characterize or
   update stale expectations only when the approved behavior is independently
   established.
@@ -85,3 +147,5 @@ historical or compatibility material only. Do not promote them to authority.
   `Saves` directory.
 - Do not commit generated saves, caches, runtime directories, temporary files,
   or other runtime artifacts.
+- Treat `.serena/` as protected local tooling metadata. Do not inspect, edit,
+  delete, or stage its contents without a separate explicit tooling task.
