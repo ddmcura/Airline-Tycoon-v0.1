@@ -1,5 +1,25 @@
 # Stage 1 Terminal Harness Technical Specification
 
+## Weekly scheduler extension — 2026-09-07
+
+Main menu option 3 now opens the aircraft-selected Monday–Sunday scheduler.
+The player can add one-way movements, continue from the last stop, accept an
+earliest slot or enter a day/time, add an earliest return, explicitly approve
+positioning, change weeks, copy a draft day, undo the last leg, cancel, or Save.
+Save can publish chosen dates only or repeat weekly through a chosen local date.
+The live session changes only after complete validated publication succeeds.
+Temporary positioning/return form work is discarded if that form fails.
+Schedule views show the complete reserved intervals, including ground time and
+unpublished recurrence inside the configured horizon. They are detached.
+
+The underlying public `WeeklyDraft` can also serve future graphical controls;
+terminal choices do not define authoritative ownership or a second timetable.
+The [weekly planner contract](../01%20Core%20Simulation/Flight%20Scheduling%20Architecture.md#approved-ph-weekly-planner-increment--2026-09-07)
+defines timing calibration, bounds, continuity and deferrals. This increment
+supersedes the fixed-editor limitation in the original Milestone 7 sections below.
+Quick fixed weekly round trips remain under option 10 and their original API.
+Save schedule applies to the in-memory session; disk Save/Load is still absent.
+
 ## Status and scope
 
 This document records the implemented Milestone 7 deterministic in-memory

@@ -1,5 +1,61 @@
 # Stage 1 State Schema
 
+## Approved weekly planner increment (2026-09-07)
+
+Schema 4 accepts two optional additions to schedule revisions. Absence preserves
+existing scheduling, publication, serialization and historical contracts; no
+implicit migration or retrospective timing calculation occurs.
+
+- `recurrence.until_local_date`: inclusive canonical origin-local date, not
+  earlier than `effective_from_local_date`. Absence means open recurrence. This
+  bounds a one-date movement or an explicitly repeated weekly plan independently
+  of the revision's effective window and the rolling publication horizon.
+- `planning_timing`: immutable input snapshot with exactly `contract`
+  (`PH_SCHEDULING_TIMING_V1`), `profile_version`, `model_reference`, `distance_m`,
+  `cruise_speed_kph`, `max_speed_kph`, `activities`, `taxi_to_stand_seconds`,
+  `taxi_out_seconds`, and `taxi_in_seconds`. Distance is a non-negative integer;
+  speeds are positive integers and maximum speed is at least cruise speed.
+  Taxi values are two-element integer lists `[minimum, maximum]` in seconds,
+  with `0 <= minimum <= maximum <= 86400`. Activities contain exactly
+  `baggage_loading`, `catering`, `refueling`, `cleaning`, `boarding`,
+  `disembarking`, `baggage_unloading`, each with the same range representation.
+  Version and model are nonempty strings. The model matches the planned aircraft.
+
+Scheduling reserves maxima. Pre-departure seconds equal taxi-to-stand maximum
+plus max(baggage loading, catering, refueling, cleaning + boarding). Post-arrival
+seconds equal max(disembarking, baggage unloading). The minimum projection uses
+the same dependency graph with minima. Flight seconds are distance/cruise speed,
+rounded upward to five minutes (minimum five minutes), preserving the legacy
+planning rounding. Off-block is departure from the stand; in-block is off-block
+plus taxi-out maximum, airborne seconds and taxi-in maximum. Both timestamps
+remain existing authoritative dated-flight fields. Reserved intervals are
+derived from those fields and the retained revision snapshot, never persisted.
+Every new timed leg reserves pre-departure work even if already parked at a gate.
+Consecutive reservations must not overlap; the existing turnaround minimum also
+applies. Validation checks snapshot shape, calculated duration and reservation
+overlap, including prior completed and currently locked work. Old revisions are
+never enriched from current reference data.
+
+Drafts, Monday-week views, suggested slots, copied blocks and command selections
+are runtime-only. Save validates a detached complete candidate and publishes
+through an explicit bounded UTC horizon; it is not disk saving. One-way is the
+default, return is an explicit reverse leg at the earliest feasible departure.
+Positioning requires explicit confirmation. Timed schema-4 DEADHEAD movements
+use the existing departure/completion lifecycle with zero capacity, no Booking,
+zero revenue and the existing revision-1 fixed flight cost (seat costs are zero).
+For these explicit positioning operations/results only, existing `market_id` is
+null, because a deadhead has no commercial connection or passenger market claim.
+Legacy untimed deadhead behavior is unchanged. Detailed handling execution,
+random actual taxi/handling, disruptions, catalog/acquisition, and graphics remain
+deferred. Maximum-speed recovery is not used for planned duration.
+
+Input calibration is `Data/Stage1/scheduling_v1.json`: curated A320-200 speed
+values copied from manufacturer data and explicit PH airport taxi ranges.
+Handling values and taxi ranges are versioned gameplay calibration, not claims
+of real measured airport performance. Unsupported models/airports reject rather
+than silently receiving performance defaults. Published snapshots survive later
+reference changes without re-reading that file.
+
 ## Status and scope
 
 This is the canonical concrete persistent-state schema for Stage 1 Milestones 0

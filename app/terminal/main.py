@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
+from copy import deepcopy
 from decimal import Decimal, ROUND_HALF_EVEN
 import sys
 
@@ -140,13 +141,14 @@ class _Terminal:
             self.line("Main Menu")
             self.line("1. Airline Overview")
             self.line("2. Fleet")
-            self.line("3. Plan Weekly Rotation")
+            self.line("3. Weekly Scheduler")
             self.line("4. Flights and Bookings")
             self.line("5. Advance Time")
             self.line("6. Financial Results")
             self.line("7. Publish Next Rotation")
             self.line("8. Display Currency")
             self.line("9. Market Research")
+            self.line("10. Quick fixed weekly round trip")
             self.line("0. Exit")
             try:
                 choice = self.prompt("Select:").strip()
@@ -158,13 +160,14 @@ class _Terminal:
             actions = {
                 "1": self.show_overview,
                 "2": self.show_fleet,
-                "3": self.plan_rotation,
+                "3": self.weekly_scheduler,
                 "4": self.show_flights,
                 "5": self.time_menu,
                 "6": self.show_finances,
                 "7": self.publish_next,
                 "8": self.currency_menu,
                 "9": self.market_research,
+                "10": self.plan_rotation,
             }
             if choice == "0":
                 if self.confirm_exit():
@@ -335,6 +338,120 @@ class _Terminal:
                 "Actual bookings depend on fare, schedule, capacity, and future competition."
             )
             self.prompt("Press Enter to return to the destination list.", allow_blank=True)
+
+    def weekly_scheduler(self):
+        from game.scheduling.weekly import monday, local_departure
+        from game.world_state.timestamps import parse_canonical_utc, format_utc
+        from game.world_state.timezones import load_named_timezone
+        fleet = self.session.fleet()
+        for number, aircraft in enumerate(fleet, 1):
+            self.line(f"{number}. {aircraft['display_registration']} ({aircraft['status']})")
+        choice = self.prompt('Choose plane (0 back):').strip()
+        if choice == '0':
+            return
+        if not choice.isdigit() or not 1 <= int(choice) <= len(fleet):
+            self.line('Invalid aircraft selection.')
+            return
+        try:
+            draft = self.session.begin_scheduling(fleet[int(choice)-1]['aircraft_id'])
+        except ValueError as exc:
+            self.line(str(exc))
+            return
+        airports = self.session.airports()
+        codes = {a['reference_code']: a['airport_id'] for a in airports}
+        labels = {v: k for k, v in codes.items()}
+        zone = load_named_timezone('Asia/Manila')
+        week = monday(parse_canonical_utc(self.session.world['simulation']['time_utc']).astimezone(zone).date())
+        self.line('Draft only until Save schedule. Times are Philippine local time.')
+        self.line('Departure means leaving the stand; blocks include preparation and unloading.')
+
+        def ask(text):
+            answer = self.prompt(text + ' (back cancels):').strip()
+            if answer.lower() == 'back':
+                raise ValueError('Form cancelled.')
+            return answer
+
+        def airport(text):
+            answer = ask(text).upper()
+            if answer not in codes:
+                raise ValueError('Choose a listed airport code.')
+            return codes[answer]
+
+        while True:
+            self.line(f'Week of Monday {week.isoformat()}')
+            rows = draft.week_rows(week.isoformat())
+            for day in range(7):
+                shown = week + timedelta(days=day)
+                self.line(f'{day+1}. {shown:%A %Y-%m-%d}')
+                for row in rows:
+                    if row['reserved_from'][:10] <= shown.isoformat() <= row['reserved_until'][:10]:
+                        self.line(f"  {labels[row['origin_airport_id']]} → {labels[row['destination_airport_id']]} "
+                                  f"departure {row['departure_local'][11:19]}; reserved "
+                                  f"{row['reserved_from'][:19]} to {row['reserved_until'][:19]}")
+            self.line('1 Add flight | 2 Next week | 3 Previous week | 4 Copy draft day | 5 Undo last | 6 Save schedule | 0 Cancel draft')
+            action = self.prompt('Schedule action:').strip()
+            try:
+                if action == '0':
+                    self.line('Draft cancelled.')
+                    return
+                if action in {'2', '3'}:
+                    week += timedelta(days=7 if action == '2' else -7)
+                elif action == '5':
+                    draft.undo()
+                elif action == '4':
+                    source = ask('Source date YYYY-MM-DD')
+                    target = ask('Target date YYYY-MM-DD')
+                    draft.copy_day(source, target)
+                elif action == '6':
+                    repeat = self.prompt('Repeat weekly? [y/N]', allow_blank=True).strip().lower()
+                    end = ask('Repeat through date YYYY-MM-DD') if repeat in {'y', 'yes'} else None
+                    self.line(f'Review: {len(draft.legs)} draft leg(s)' + (f', weekly through {end}.' if end else ', chosen dates only.'))
+                    if self.prompt('Save schedule and publish? [y/N]', allow_blank=True).strip().lower() in {'y', 'yes'}:
+                        result = self.session.save_scheduling(draft, repeat_until=end)
+                        self.line(f'Published {len(result.created_dated_flight_ids)} flights. Schedule saved in this session.')
+                        return
+                elif action == '1':
+                    working = deepcopy(draft)
+                    self.line('Airports: ' + ', '.join(codes))
+                    continuing = False
+                    if draft.legs:
+                        continuing = self.prompt('Continue from last stop? [Y/n]', allow_blank=True).strip().lower() not in {'n', 'no'}
+                    origin = working.last_stop if continuing else airport('Origin code')
+                    destination = airport('Destination code')
+                    floor = format_utc(local_departure(self.session.world['world_state'], origin, week.isoformat(), '00:00'))
+                    if continuing:
+                        floor = max(floor, working.legs[-1]['departure_utc'])
+                    try:
+                        earliest = working.earliest(origin, destination, not_before=floor)
+                    except ValueError as exc:
+                        if 'REPOSITIONING_REQUIRED' not in str(exc):
+                            raise
+                        self.line(str(exc))
+                        self.line(f'Positioning {labels[working.last_stop]} → {labels[origin]} costs money and carries no passengers.')
+                        if self.prompt('Add positioning flight? [y/N]', allow_blank=True).strip().lower() not in {'y', 'yes'}:
+                            continue
+                        positioning = working.earliest(working.last_stop, origin, not_before=floor)
+                        working.add(working.last_stop, origin, departure_utc=positioning, deadhead=True)
+                        earliest = working.earliest(origin, destination, not_before=positioning)
+                    self.line('Earliest departure: ' + parse_canonical_utc(earliest).astimezone(zone).strftime('%A %Y-%m-%d %H:%M:%S'))
+                    if self.prompt('Use earliest departure? [Y/n]', allow_blank=True).strip().lower() in {'n', 'no'}:
+                        day = int(ask('Day number Monday=1 through Sunday=7'))
+                        if day not in range(1, 8):
+                            raise ValueError('day must be 1 through 7')
+                        departure = format_utc(local_departure(self.session.world['world_state'], origin,
+                            (week + timedelta(days=day-1)).isoformat(), ask('Departure HH:MM')))
+                    else:
+                        departure = earliest
+                    fare = parse_usd_fare(ask('Economy fare USD'))
+                    working.add(origin, destination, departure_utc=departure, fare_minor=fare)
+                    if self.prompt('Add earliest return? [y/N]', allow_blank=True).strip().lower() in {'y', 'yes'}:
+                        working.add_return()
+                    draft = working
+                    self.line('Added to draft.')
+                else:
+                    self.line('Choose a listed action.')
+            except (ValueError, KeyError, OverflowError) as exc:
+                self.line(f'REJECTED: {exc}')
 
     def plan_rotation(self):
         fleet = self.session.fleet()

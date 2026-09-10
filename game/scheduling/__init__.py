@@ -24,8 +24,10 @@ from .rotation import (
     create_weekly_round_trip_rotation,
     publish_next_rotation,
 )
+from .weekly import WeeklyDraft
 
 __all__ = (
+    "WeeklyDraft",
     "BOOKED_FLIGHT_CHANGE_REQUIRES_DISRUPTION_WORKFLOW",
     "DatedFlightIndexes",
     "PublicationResult",

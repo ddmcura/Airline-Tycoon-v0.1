@@ -154,6 +154,15 @@ class Stage1Session:
             raise RuntimeError("rejected rotation mutated authoritative state")
         return result
 
+    def begin_scheduling(self, aircraft_id):
+        from game.scheduling.weekly import WeeklyDraft
+        return WeeklyDraft(self.world, airline_id=self.airline_id, aircraft_id=aircraft_id)
+
+    def save_scheduling(self, draft, *, repeat_until=None):
+        result = draft.save(self.world, repeat_until=repeat_until)
+        self.changed = True
+        return result
+
     def publish_next_rotation(self):
         before = self.authoritative_bytes()
         result = publish_next_rotation(self.world, airline_id=self.airline_id)

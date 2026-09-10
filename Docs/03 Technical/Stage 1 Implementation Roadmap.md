@@ -8,7 +8,7 @@ This remains the single development roadmap. It does not itself authorize schema
 
 ## Philippines 1.0 release sequence
 
-Updated 2026-09-06. **Approved PH 1.0 scope; provisional implementation order.**
+Updated 2026-09-07. **Approved PH 1.0 scope; provisional implementation order.**
 This plan does not authorize implementation or replace bounded technical specifications.
 Existing Milestone 8/9 labels remain stable; the recovery order below governs execution.
 See [Current Development Status](Current%20Development%20Status.md) for completed work
@@ -20,7 +20,7 @@ first minimum-playable checkpoint, but remain PH 1.0 requirements, not post-1.0 
 
 | Order | Milestone | Dependency and bounded exit gate |
 | --- | --- | --- |
-| 1 | Broader weekly scheduling | Extend existing schedule/revision/publication APIs for selected weekdays/times and bounded repeat publication; preserve aircraft continuity and booked-flight protections. |
+| 1 | Broader weekly scheduling | Bounded terminal increment implemented: one-way chains, Monday-week drafts, calculated maximum ground/flight reservations, explicit positioning/return, day copy, finite weekly repeat and atomic publication. See the [approved contract](../01%20Core%20Simulation/Flight%20Scheduling%20Architecture.md#approved-ph-weekly-planner-increment--2026-09-07) and [verification snapshot](Current%20Development%20Status.md). Graphics and existing-plan editing remain deferred. |
 | 2 | Aircraft manufacturers and curated model catalog | Establish stable identities, versioned content and approved performance/capacity/pricing inputs. Legacy aircraft data is migration input. |
 | 3 | Basic new-aircraft acquisition | Specify purchase/entry into service over catalog, fleet, location and Economy boundaries; verify atomic aircraft creation, journals and affordability rejection. |
 | 4 | Continuous deterministic runtime at 7×, manual pause/resume, and integration of existing multi-day advancement | Use the existing kernel and ordered whole-second commands with runtime-only wall-clock pacing. Player-selected multi-day/duration/UTC advancement already exists; integrate it and prove equivalent continuation. Profile realistic PH workloads. |

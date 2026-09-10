@@ -298,7 +298,7 @@ class Stage1TerminalTranscriptTests(unittest.TestCase):
     def test_complete_scripted_transcript_and_temporary_exit_warning(self):
         script = "\n".join((
             "1", "Ada", "Deterministic Air", "26",
-            "3", "1", "6", "100.00", "", "y",
+            "10", "1", "6", "100.00", "", "y",
             "5", "4", "2026-09-07T06:00:00Z", "0",
             "4", "6", "7", "0", "y", "",
         ))

@@ -400,10 +400,12 @@ def _validate_schema4_fulfilment_authority(validator):
         completion_events = [event for event in events.values() if type(event) is dict
                              and event.get("event_type") == FLIGHT_COMPLETION_EVENT_TYPE
                              and event.get("owner_id") == flight_id]
+        from game.scheduling.timing import timed_deadhead
         eligible = (
-            flight.get("service_type") == "PASSENGER"
-            and flight.get("passenger_service_classification") == "ECONOMY"
-            and type(flight.get("connection_id")) is str
+            ((flight.get("service_type") == "PASSENGER"
+              and flight.get("passenger_service_classification") == "ECONOMY"
+              and type(flight.get("connection_id")) is str)
+             or timed_deadhead(world, flight))
             and type(world.get("schedule_definitions", {}).get(
                 flight.get("schedule_id")
             )) is dict

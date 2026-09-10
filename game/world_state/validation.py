@@ -1688,6 +1688,7 @@ class _Validator:
                         "revision",
                         "effective_from_local_date",
                         "effective_until_local_date",
+                        "planning_timing",
                         "connection_id",
                         "planned_aircraft_id",
                         "origin_airport_id",
@@ -1864,6 +1865,7 @@ class _Validator:
                     recurrence,
                     {
                         "frequency",
+                        "until_local_date",
                         "weekdays",
                         "departure_local_time",
                         "departure_local_fold",
@@ -2996,6 +2998,12 @@ class _Validator:
             self.validate_collections_and_ids()
             self.validate_structure()
             self.validate_no_name_references_or_float_money()
+        if not self.errors:
+            from .planning_validation import validate_planning
+            try:
+                validate_planning(self.envelope)
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                self.add("invalid_planning", "$.world_state.schedule_definitions", str(exc))
         return ValidationResult(tuple(self.errors))
 
 

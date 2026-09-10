@@ -1,3 +1,30 @@
+# Stage 1 weekly planner optional schema-4 revision reference
+# Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
+# Update this mirror before implementing new authoritative fields.
+schedule_revision.planning_timing (optional):
+  contract: PH_SCHEDULING_TIMING_V1
+  profile_version: nonempty string
+  model_reference: planned aircraft model reference
+  distance_m: non-negative integer
+  cruise_speed_kph: positive integer
+  max_speed_kph: integer >= cruise_speed_kph
+  taxi_to_stand_seconds: [minimum, maximum]
+  taxi_out_seconds: [minimum, maximum]
+  taxi_in_seconds: [minimum, maximum]
+  activities:
+    baggage_loading: [minimum, maximum]
+    catering: [minimum, maximum]
+    refueling: [minimum, maximum]
+    cleaning: [minimum, maximum]
+    boarding: [minimum, maximum]
+    disembarking: [minimum, maximum]
+    baggage_unloading: [minimum, maximum]
+All ranges are whole seconds, 0 <= minimum <= maximum <= 86400; no booleans.
+schedule_revision.recurrence.until_local_date (optional): inclusive YYYY-MM-DD
+Reserved intervals and minimum/maximum block durations are derived, not fields.
+Absent optional fields preserve legacy contracts; no automatic enrichment.
+Timed DEADHEAD operation/result market_id: null (no commercial connection).
+
 # Stage 1 Demand Model 4 optional air-suitability reference
 
 Subordinate to Docs/03 Technical/Stage 1 State Schema.md.

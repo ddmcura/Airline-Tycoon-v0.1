@@ -1,0 +1,643 @@
+{
+  "profile_version": "ph-scheduling-v1",
+  "models": {
+    "A320-200": {
+      "cruise_speed_kph": 840,
+      "max_speed_kph": 890,
+      "activities": {
+        "baggage_loading": [
+          900,
+          1680
+        ],
+        "catering": [
+          600,
+          1200
+        ],
+        "refueling": [
+          900,
+          1500
+        ],
+        "cleaning": [
+          720,
+          1200
+        ],
+        "boarding": [
+          1200,
+          2100
+        ],
+        "disembarking": [
+          600,
+          1200
+        ],
+        "baggage_unloading": [
+          600,
+          1200
+        ]
+      }
+    }
+  },
+  "airports": {
+    "ph-bcd-rpvb": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-bpa-rpvw": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-bso-rpuo": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-bxu-rpme": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-cbo-rpmc": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-ceb-rpvm": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-cgm-rpmh": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-cgy-rpmy": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-crk-rplc": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-crm-rpvf": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-cyp-rpvc": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-cyz-rpuy": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-dgt-rpvd": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-dpl-rpmg": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-drp-rplk": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-dvo-rpmd": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-eni-rpen": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-euq-rpvs": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-ges-rpmr": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-iao-rpns": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-ilo-rpvi": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-iqr-rpvz": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-klo-rpvk": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-lao-rpli": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-mbt-rpvj": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-mnl-rpll": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-mph-rpve": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-ozc-rpmo": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-pag-rpmp": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-pps-rpvp": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-rxs-rpvr": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-sji-rpuh": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-sug-rpms": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-swl-rpsv": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-tac-rpva": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-tag-rpsp": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-tbh-rpvu": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-tug-rput": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-twt-rpmn": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-usu-rpvv": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-vrc-rpuv": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-wnp-rpun": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    },
+    "ph-zam-rpmz": {
+      "taxi_to_stand_seconds": [
+        300,
+        900
+      ],
+      "taxi_out_seconds": [
+        300,
+        900
+      ],
+      "taxi_in_seconds": [
+        300,
+        900
+      ]
+    }
+  }
+}

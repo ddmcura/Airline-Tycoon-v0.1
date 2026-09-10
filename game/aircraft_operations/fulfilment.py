@@ -195,7 +195,8 @@ def build_confirmed_carriage_manifest(
     market = world["directional_markets"].get(
         world["connections"].get(flight.get("connection_id"), {}).get("market_id")
     )
-    if (
+    from game.scheduling.timing import timed_deadhead
+    if not timed_deadhead(world, flight) and (
         flight.get("service_type") != "PASSENGER"
         or flight.get("passenger_service_classification") != "ECONOMY"
         or type(market) is not dict
@@ -502,7 +503,7 @@ def _departure(envelope, flight_id, *, resolve_event, expected_operation_revisio
             "state": "OPERATIONALLY_LOCKED",
             "revision": cflight["operation_revision"],
             "airline_id": cflight["airline_id"],
-            "market_id": cworld["connections"][cflight["connection_id"]]["market_id"],
+            "market_id": cworld["connections"].get(cflight["connection_id"], {}).get("market_id"),
             "schedule_id": cflight["schedule_id"],
             "schedule_revision": cflight["schedule_revision"],
             "occurrence_key": cflight["occurrence_key"],

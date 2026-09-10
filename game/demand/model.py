@@ -330,24 +330,7 @@ def eligible_airport_ids(envelope):
     return _eligible_airport_ids(envelope)
 
 
-def _distance_km(origin, destination):
-    lat1 = math.radians(origin["latitude_microdegrees"] / 1_000_000)
-    lon1 = math.radians(origin["longitude_microdegrees"] / 1_000_000)
-    lat2 = math.radians(destination["latitude_microdegrees"] / 1_000_000)
-    lon2 = math.radians(destination["longitude_microdegrees"] / 1_000_000)
-    delta_lat = lat2 - lat1
-    delta_lon = lon2 - lon1
-    haversine = (
-        math.sin(delta_lat / 2) ** 2
-        + math.cos(lat1) * math.cos(lat2) * math.sin(delta_lon / 2) ** 2
-    )
-    haversine = min(1.0, max(0.0, haversine))
-    kilometres = 6_371 * 2 * math.asin(math.sqrt(haversine))
-    with _fixed_decimal_context():
-        decimal_kilometres = Decimal(str(kilometres))
-        return decimal_kilometres.quantize(
-            Decimal("0.001"), rounding=ROUND_HALF_EVEN
-        )
+from game.utils.geo_distance import distance_km as _distance_km
 
 
 def calculate_origin_daily_booking_pool(envelope, origin_airport_id):

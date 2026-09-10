@@ -8,6 +8,8 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Mapping
 from zoneinfo import ZoneInfoNotFoundError
 
+from .timing import timed_deadhead, timing_bounds
+
 from game.simulation import schedule_event, set_operation_revision
 from game.world_state.ids import allocate_id
 from game.world_state.schema import (
@@ -305,6 +307,8 @@ def create_schedule_definition(
     departure_local_fold=0,
     arrival_local_fold=0,
     status="ACTIVE",
+    planning_timing=None,
+    until_local_date=None,
 ):
     """Create one structurally valid repeating plan without publishing it."""
     initial_validation = validate_world(envelope)
@@ -339,6 +343,10 @@ def create_schedule_definition(
         fare_offer=fare_offer,
         passenger_service_classification=passenger_service_classification,
     )
+    if planning_timing is not None:
+        revision["planning_timing"] = deepcopy(planning_timing)
+    if until_local_date is not None:
+        revision["recurrence"]["until_local_date"] = until_local_date
     candidate["world_state"]["schedule_definitions"][schedule_id] = {
         "schedule_id": schedule_id,
         "airline_id": airline_id,
@@ -446,9 +454,10 @@ def _reconcile_schema4_departure_events(candidate):
     eligible = sorted(
         (flight for flight in world["dated_flights"].values()
          if flight["status"] == "PLANNED"
-         and flight["service_type"] == "PASSENGER"
-         and flight["passenger_service_classification"] == "ECONOMY"
-         and type(flight.get("connection_id")) is str
+         and ((flight["service_type"] == "PASSENGER"
+               and flight["passenger_service_classification"] == "ECONOMY"
+               and type(flight.get("connection_id")) is str)
+              or timed_deadhead(world, flight))
          and flight["scheduled_off_block_utc"] >= now),
         key=lambda flight: (
             flight["scheduled_off_block_utc"], flight["schedule_id"],
@@ -497,6 +506,8 @@ def _expand_schedule(envelope, schedule, window_start, window_end):
         )
         current = max(first_date, effective_start)
         last = min(last_date, effective_end)
+        if "until_local_date" in revision["recurrence"]:
+            last = min(last, date.fromisoformat(revision["recurrence"]["until_local_date"]))
         weekdays = set(revision["recurrence"]["weekdays"])
         while current <= last:
             if current.weekday() in weekdays:
@@ -835,6 +846,14 @@ def publish_occurrences_through(
         ),
     )
     for flight in ordered_new:
+        revision = candidate['world_state']['schedule_definitions'][flight['schedule_id']]['revisions'][str(flight['schedule_revision'])]
+        if 'planning_timing' in revision:
+            preparation = parse_canonical_utc(flight['scheduled_off_block_utc']) - timedelta(
+                seconds=timing_bounds(revision['planning_timing'])[1][0])
+            if preparation < start:
+                return PublicationResult('REJECTED', target_horizon_utc,
+                    conflicts=(SchedulingConflict('PAST_PREPARATION',
+                        'new flight preparation cannot start before simulation time'),))
         try:
             flight_id = allocate_id(candidate, "dated_flight")
         except ValueError as exc:

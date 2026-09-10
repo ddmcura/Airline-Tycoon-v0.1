@@ -1,5 +1,63 @@
 # Airline Tycoon - Flight Scheduling Architecture
 
+## Approved PH weekly planner increment — 2026-09-07
+
+This bounded increment supersedes the fixed-round-trip-only terminal restriction
+below, not the general architecture. The original quick round-trip adapter is
+retained for compatibility. The production planner is `game.scheduling.WeeklyDraft`.
+
+Select a parked aircraft once, then work in Monday–Sunday views, advancing to
+following weeks without changing aircraft. Add one-way legs by default. After a
+leg, the player may continue from its destination or choose another OD pair.
+The planner suggests the earliest slot or accepts a selected day/local time.
+Return is an explicit shortcut adding the reversed leg at the earliest feasible
+departure. A repositioning requirement is explained; an explicit confirmed
+DEADHEAD can bridge it. No hidden positioning movement is created.
+
+Drafts are detached and can temporarily need a bridging movement before a later
+flight. Adding a leg checks its incoming location, reserved overlap and minimum
+turnaround. Save validates the complete world and chain atomically; an incomplete
+or conflicting plan remains a draft and cannot affect Bookings or live authority.
+Cancel/back/EOF does not publish. A stale draft cannot overwrite intervening world
+changes. Copying a draft day is atomic; conflicts preserve the original draft.
+The same draft commands can be called by future graphics; this increment does not
+implement dragging, map rendering or a graphical clipboard.
+
+Every leg reserves its complete pre-departure and arrival work. Departures are
+off-block times, not takeoff. The approved activity graph starts baggage loading,
+catering, refueling and cleaning together; boarding follows cleaning. Readiness
+is their critical-path maximum. Disembarking and baggage unloading overlap after
+in-block arrival. Planning uses maximum activity/taxi durations. Minimum bounds
+remain derived projections; live random handling is deferred. The next movement
+must fit both the previous post-arrival allowance and its own pre-departure work.
+The existing minimum-turnaround rule also remains enforced.
+
+The versioned PH reference currently supports the starter A320-200: cruise 840
+km/h and maximum 890 km/h, copied from manufacturer reference data. Flight time
+uses distance/cruise speed rounded upward to five minutes, minimum five minutes.
+Maximum speed is not a scheduling shortcut. Current handling calibration in
+minutes: baggage 15–28, catering 10–20, refueling 15–25, cleaning 12–20, boarding
+20–35, disembarking 10–20 and baggage unloading 10–20. Each of the 43 active
+airport records explicitly carries 5–15 minute taxi-to-stand, taxi-out and taxi-in
+ranges. These are initial gameplay calibration, not measured airport data.
+Unsupported aircraft/airport profiles reject; no hidden generic defaults apply.
+
+By default each draft leg publishes only on its chosen date. Save can instead
+repeat those weekly movements through an explicit inclusive local end date,
+within the existing rolling horizon (90 days by default). Week boundaries do not
+require returning to base, but repeats must be geographically continuous.
+Publication still processes all active definitions through its target and reports
+all newly materialized flights. Existing occurrence keys prevent duplication.
+Published timing snapshots and historical revisions never reload current profiles.
+
+The exact optional persistent vocabulary is in the
+[canonical schema](../03%20Technical/Stage%201%20State%20Schema.md#approved-weekly-planner-increment-2026-09-07).
+Profile loading and schema validation belong to World State, planning math and
+drafts to Scheduling, timed movement to Aircraft Operations, and terminal prompts
+to the application. Detailed handling events, actual taxi variability, disruptions,
+existing-plan graphical editing, catalog/acquisition, maintenance, continuous
+runtime and disk saving remain deferred.
+
 > **Status:** Approved architecture. This document defines how the airline plans passenger services, assigns aircraft, validates future movements, publishes dated flights, and exposes the timetable to Booking and Aircraft Operations. It does not define persistent schema fields, passenger-choice formulas, live operational recovery algorithms, airport-construction mechanics, or maintenance formulas.
 
 ## 1. Purpose and Design Principle
