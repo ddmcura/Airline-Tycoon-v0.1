@@ -718,7 +718,7 @@ This architecture intentionally does not finalize:
 - concessions, privatization, and public-market mechanics; or
 - exact airport-ownership regulation and enforcement formulas.
 
-New persistent fields must be defined in `Data/Templates/template_reference.txt` or its approved canonical successor before code implementation.
+New persistent fields follow the schema-first sequence in [AGENTS.md](../../AGENTS.md) before code implementation.
 
 ## 17. Finalized Architecture
 

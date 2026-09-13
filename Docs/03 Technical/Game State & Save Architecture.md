@@ -4,7 +4,7 @@
 
 The save system preserves one complete, internally consistent Airline Tycoon world at an exact simulation moment. Loading that save must restore the same world, not reconstruct an approximation around the currently selected airline.
 
-This document defines the architectural behavior. It does not authorize schema or game-code changes. Concrete field names must be approved against the repository's schema and naming reference before implementation.
+This document defines the architectural behavior. It does not authorize schema or game-code changes. Concrete field names require approval under the Stage 1 schema hierarchy in [AGENTS.md](../../AGENTS.md) before implementation.
 
 ## Core Rule
 

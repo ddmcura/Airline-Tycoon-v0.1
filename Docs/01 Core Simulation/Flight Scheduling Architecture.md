@@ -447,7 +447,7 @@ This architecture intentionally does not finalize:
 - detailed seasonal automation; or
 - speed-based delay-recovery formulas.
 
-Any new persistent fields must first be defined in the canonical template/schema reference before code implementation.
+Any new persistent fields must first be defined in the [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md) before code implementation.
 
 ## 22. Preserved Spillover
 

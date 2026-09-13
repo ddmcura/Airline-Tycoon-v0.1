@@ -1,3 +1,8 @@
+SELECTIVE PLACEMENT REFERENCE — not a complete current file inventory.
+Consult this when choosing package placement. Approved domain ownership and
+the current tracked tree prevail. Entries do not authorize creating, moving,
+or committing runtime files.
+
 📁 Folder Tree (Selective File Skip):
 
 ├── Data

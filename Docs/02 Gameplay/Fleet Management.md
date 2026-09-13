@@ -72,7 +72,7 @@ An individual aircraft may differ from others of the same model through facts su
 - schedule and utilization; and
 - financial performance.
 
-The exact persistent schema must be established in the canonical template reference before code implementation. This architecture approves the concepts, not new ad-hoc `game_state` field names.
+The exact persistent schema must be established in the [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md) before code implementation. This architecture approves the concepts, not new ad-hoc `game_state` field names.
 
 ## 4. System Boundaries
 

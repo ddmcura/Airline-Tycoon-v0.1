@@ -1,6 +1,13 @@
+> **Historical reference — superseded for current development.**
+> This file preserves earlier design and implementation context. Its authority
+> claims, progress statements, roadmap, and assistant workflow instructions are
+> historical, not current instructions. Use [AGENTS.md](../AGENTS.md) and the
+> [documentation index](../Docs/README.md) for current authority and routing. Do not
+> maintain this file as a parallel current specification or handoff.
+
 # AirlineTycoon Architecture
 
-> Canonical product architecture, design memory, and implementation status for Airline Tycoon.
+> Historical product architecture and implementation snapshot for Airline Tycoon.
 >
 > Last reconciled with the codebase: 2026-07-20
 
@@ -8,7 +15,7 @@
 
 This document preserves the game's long-term ideas while clearly separating them from what is playable today. It combines the earlier project context, master notes, clean development notes, schema references, and the current codebase.
 
-When documents disagree, use this order of authority:
+The following authority order is historical and superseded by AGENTS.md:
 
 1. Current tested code for present behavior.
 2. Data templates for persistent schema direction.

@@ -1,3 +1,7 @@
+HISTORICAL FOLDER LAYOUT — not current package authority.
+Use approved domain ownership and the current tracked tree.
+foldertree.txt is the designated selective placement reference.
+
 root/
 ├── main.py                         # Main entry point to launch the game
 ├── test.py                         # Script to test modules independently

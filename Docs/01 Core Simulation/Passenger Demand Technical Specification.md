@@ -688,7 +688,7 @@ inside the daily booking loop.
 
 ## 21. Conceptual State and Ownership
 
-Exact persistent schema fields require separate approval in the canonical template reference. The technical model nevertheless distinguishes:
+Exact persistent fields require approval in the Stage 1 State Schema under [AGENTS.md](../../AGENTS.md); the bounded milestone approval may include this schema work. The technical model nevertheless distinguishes:
 
 ### World demand state or derived cache
 

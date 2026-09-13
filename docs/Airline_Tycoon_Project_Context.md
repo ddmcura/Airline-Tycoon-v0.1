@@ -1,8 +1,13 @@
+> **Historical reference — superseded for current development.**
+> This file preserves earlier design and implementation context. Its authority
+> claims, progress statements, roadmap, and assistant workflow instructions are
+> historical, not current instructions. Use [AGENTS.md](../AGENTS.md) and the
+> [documentation index](../Docs/README.md) for current authority and routing. Do not
+> maintain this file as a parallel current specification or handoff.
+
 # Airline Tycoon Project Context (Working Summary)
 
-> This document summarizes the current project context I understand. It
-> is **not** the source of truth. `template_reference.txt` and the
-> codebase remain authoritative.
+> Historical working summary. Current authority is defined in AGENTS.md.
 
 ## Project Vision
 
@@ -74,16 +79,6 @@ Airline save schema - Registration generation - Hub extraction
 -   Existing gameplay flow
 -   Module responsibilities
 
-## What Should Be Added Later
+## Current documentation
 
-As development continues, keep this file updated with: - Major
-architecture decisions - New persistent schemas - Gameplay rules -
-Economy formulas - Scheduling rules - Save format changes - Design
-decisions
-
-## Recommendation
-
-Create a permanent `Documentation/Project_Context.md` in the repository
-and update it whenever a major design decision is made. This gives every
-future chat (and future versions of ChatGPT) a concise, authoritative
-overview without needing to reconstruct months of conversation.
+Current durable memory is maintained in the canonical documentation linked above.

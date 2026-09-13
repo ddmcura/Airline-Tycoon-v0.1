@@ -1,47 +1,29 @@
 # Current Development Status
 
-Last updated: **2026-09-10**. Replace stale facts; this is not a development diary.
+Last updated: **2026-09-14**. Replace stale facts; this is not a development diary.
 
 ## Checkpoint and verification
 
-- Pre-commit HEAD: `508770897a80cd5382deb4498b9f52353e762566` —
-  `docs: establish repository-native Codex workflow`. Branch `master` tracks
-  local `origin/master`, zero ahead/behind. A live `git ls-remote --heads origin
-  refs/heads/master` check on 2026-09-10 confirmed the same upstream hash.
-  The commit-start working tree contained the 23-file verified weekly planner.
-- Last verified committed gameplay checkpoint before this milestone:
-  `e0df10a37785c8bf8db33fdf0c60c90855832357`, with 486 passing tests recorded on
-  2026-09-06 from user-confirmed evidence. HEAD is its documentation-only successor.
-- Pending commit: `feat: add verified weekly flight planner`, containing the
-  complete weekly planner and three confirmed review corrections. One commit
-  and a normal push to existing `origin/master` are authorized. This snapshot
-  precedes those operations and does not claim their outcome or its own hash;
-  reconcile it with Git HEAD on the next startup. The schema and template were
-  updated before new persistent fields. No history rewrite is authorized.
-- Correction baseline: the read-only review ran 28 planner tests successfully
-  in 28.454 seconds. Adding the three regression cases before code corrections
-  produced exactly three failures (31 tests in 30.450 seconds), reproducing all
-  confirmed review defects.
-- Verification uses the bundled Python executable and a temporary `PYTHONPATH`
-  containing `tabulate 0.10.0` (within the existing requirements). The temporary
-  package needs execution outside the sandbox to be readable. No dependency or
-  absolute interpreter path was added to repository source.
-- Final working-tree verification on 2026-09-10: **517 tests passed in
-  256.955 seconds**, including **31 planner regressions**. The focused planner
-  run passed all 31 tests in 30.667 seconds. No known failing tests remain.
-- Byte compilation passed (exit 0) and `git diff --check` passed (exit 0).
-  Compilation explicitly covered application/game/tests and root Python entry points instead
-  of recursively reading protected local tooling metadata.
+- Last gameplay implementation checkpoint:
+  `300a102a04f367228c027849548a1ebee462e58e` —
+  `feat: add verified weekly flight planner`, committed on 2026-09-10.
+- On 2026-09-14, before this documentation cleanup, HEAD was that checkpoint
+  and the working tree was clean. Branch `master` tracks `origin/master`;
+  the local upstream ref matched HEAD. A live `git ls-remote --heads origin
+  refs/heads/master` check on the same date also returned this checkpoint.
+- Recorded final planner working-tree verification on 2026-09-10:
+  **517 tests passed in 256.955 seconds**, including **31 planner regressions**.
+  The focused planner run passed 31 tests in 30.667 seconds. Compilation and
+  diff validation passed. These are historical results, not a new test run.
+- Verification used bundled Python and a temporary test-only `PYTHONPATH`
+  providing `tabulate 0.10.0`; the WindowsApps Python alias could not launch.
+  No machine-specific interpreter path or dependency change was committed.
+- The verified planner source was subsequently committed at the checkpoint
+  above. The prior record identifies only documentation and whitespace changes
+  after the full suite, with compilation and staged diff validation repeated.
+  No gameplay or persistent-state contract changes are part of this cleanup.
 
-### Verification commands
-
-`python` below denotes the bundled workspace Python executable (the system
-WindowsApps alias could not launch). Full-suite execution used the test-only
-`PYTHONPATH` described above. These commands cover the final uncommitted source;
-subsequent edits updated this durable status snapshot and removed one trailing
-blank line from `game/utils/geo_distance.py` after the staged diff check.
-Gameplay tests were not repeated for documentation and whitespace-only commit
-preparation; byte compilation and staged diff validation were repeated.
+### Recorded planner verification commands (2026-09-10)
 
 | Command | Result |
 | --- | --- |
@@ -49,7 +31,6 @@ preparation; byte compilation and staged diff validation were repeated.
 | `python -B -m unittest discover -s tests` | 517 passed, 256.955 seconds |
 | `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 |
 | `git diff --check` | Exit 0 |
-
 
 ## Implemented and available
 
@@ -112,41 +93,28 @@ Leasing, lease-to-own, used aircraft and maintenance may follow the first
 minimum-playable checkpoint but remain PH 1.0 requirements. Save/load follows
 sufficiently established main authoritative gameplay state and runtime.
 
-Immediate next development action: discuss the bounded aircraft manufacturers
-and curated model catalog milestone. Its implementation is not authorized by
-the weekly planner commit. The current shutdown task is the authorized single
-commit and upstream push, followed by a clean-tree check.
+Next proposed development work is the bounded aircraft manufacturers and
+curated model catalog milestone. Its implementation is not authorized by the
+weekly planner approval. Use the PH 1.0 roadmap for scope and dependencies.
 
-## Working-tree scope and protected paths
+## Documentation maintenance scope (2026-09-14)
 
-The 23 files intended for this commit are the weekly planner, timing/reference/validation
-modules, canonical publication/lifecycle integration, shared coordinate-distance
-helper, terminal adapters, PH timing profile, schema/template, focused tests and
-the canonical scheduling/status/roadmap/decision documentation. This correction
-task touched only `game/scheduling/weekly.py`,
-`game/world_state/planning_validation.py`, `tests/test_stage1_weekly_planner.py`,
-and this status document. Other pre-existing work was preserved. No unrelated
-or intentionally remaining uncommitted files were identified at commit preparation.
+This cleanup establishes contextual reading, explicit schema/mirror authority,
+proportional verification, milestone completion authority, and historical labels.
+It changes repository instructions and documentation only. Canonical schema
+contents, the template mirror, code, tests, formulas, and runtime data are unchanged.
+No repository-local skills are introduced. Protections remain in AGENTS.md.
 
-Git metadata confirms no tracked Serena files. Root `.gitignore` contains
-`/.serena/`; no Serena contents were read, enumerated, modified or staged.
-Continue protecting local tooling metadata, editor settings, runtime saves,
-snapshots and caches.
+The starting tree had no unrelated changes. The documentation successor is
+separate from the gameplay checkpoint above; its own hash and Git outcomes are
+not claimed here. No development work beyond this cleanup is implied.
 
-## Intended changed files
+Documentation validation on 2026-09-14 covered the 29-file working-tree cleanup:
 
-- `Data/Stage1/scheduling_v1.json`
-- `Data/Templates/template_reference.txt`
-- `Docs/01 Core Simulation/Flight Scheduling Architecture.md`
-- `Docs/03 Technical/Stage 1 State Schema.md`
-- `Docs/03 Technical/Stage 1 Terminal Harness Technical Specification.md`
-- `Docs/03 Technical/Current Development Status.md`
-- `Docs/03 Technical/Stage 1 Implementation Roadmap.md`
-- `Docs/03 Technical/Decision Register.md`
-- `app/terminal/main.py`, `app/terminal/session.py`
-- `game/scheduling/__init__.py`, `publication.py`, `timing.py`, `weekly.py`
-- `game/world_state/planning_reference.py`, `planning_validation.py`, `validation.py`,
-  `fulfilment_validation.py`
-- `game/aircraft_operations/fulfilment.py`
-- `game/utils/geo_distance.py`, `game/demand/model.py` (shared existing distance math)
-- `tests/test_stage1_weekly_planner.py`, `tests/test_stage1_terminal_harness.py`
+- An inline PowerShell validator using `git ls-files` and `git diff --name-only`
+  checked 123 local Markdown links and 20 heading anchors, including tracked-path
+  casing: passed. The same check confirmed documentation-only changed paths.
+- Authority and final-diff review confirmed the approved schema hierarchy,
+  proportional testing, explicit Git authorization, and preserved domain contracts.
+- `git diff --check`: passed (exit 0).
+- Gameplay tests and compilation: not run; this is documentation-only work.

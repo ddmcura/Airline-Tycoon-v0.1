@@ -6,6 +6,11 @@ This roadmap converts the approved Airline Tycoon architecture into an implement
 
 This remains the single development roadmap. It does not itself authorize schema or code changes. Before each implementation milestone, concrete structures must follow the canonical Stage 1 State Schema and approved technical specifications; template references remain subordinate.
 
+Read the PH 1.0 sequence and the milestone relevant to the task. Completed
+milestone sections preserve their historical contracts. Statements that work
+"remains deferred" describe that milestone's boundary, not necessarily current
+availability; consult Current Development Status and later completed increments.
+
 ## Philippines 1.0 release sequence
 
 Updated 2026-09-07. **Approved PH 1.0 scope; provisional implementation order.**
@@ -194,7 +199,7 @@ IDs must not be recycled within a save lineage.
 
 ### Work
 
-- Approve the Stage 1 schema against the template rules.
+- Approve the Stage 1 schema and align its subordinate template mirror.
 - Create a versioned whole-world state envelope.
 - Introduce immutable ID generation.
 - Construct a new game containing the player airline and world collections.
@@ -908,7 +913,7 @@ Simplification must occur inside the owning boundary. For example, a simplified 
 
 ## Testing Strategy
 
-Every milestone requires unit tests for formulas and invariants, integration tests across its immediate boundaries, and deterministic replay tests where time or randomness is involved.
+Verify changed formulas and invariants with deterministic tests, affected package interactions with integration coverage, and time/randomness changes with replay or equivalence checks. Follow the proportional execution policy in [AGENTS.md](../../AGENTS.md); this does not require duplicate runs at workflow transitions.
 
 The critical end-to-end fixture should use a tiny world with:
 
@@ -934,7 +939,7 @@ sequence describes that increment, not the next task:
 4. construct and validate a versioned whole world; and
 5. provide a compatibility projection for the current UI where necessary.
 
-Do not begin by rewriting the interface or implementing aircraft animation. The first code change should establish the trustworthy state foundation required by every later system.
+This sequence is historical: Milestones 0 and 1 established the state foundation. It is not an instruction for the next task.
 
 ## Readiness Decision
 

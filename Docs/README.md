@@ -2,16 +2,44 @@
 
 This directory organizes Airline Tycoon design and development documentation without replacing or deleting existing project documents.
 
-## Structure
+## Working rules
 
-Fresh Codex tasks start with repository [AGENTS.md](../AGENTS.md), then
-[Current Development Status](03%20Technical/Current%20Development%20Status.md),
-the [development roadmap](03%20Technical/Stage%201%20Implementation%20Roadmap.md),
-and the [Decision Register](03%20Technical/Decision%20Register.md).
-These provide recovery context without an external handoff prompt; architecture
-and the canonical Stage 1 schema remain authoritative for design and state.
-The older project-context and development-context master notes are historical
-working summaries, not current checkpoint, roadmap, or decision authorities.
+Working rules are in [AGENTS.md](../AGENTS.md). Read documentation according to
+the task, rather than following a fixed startup itinerary.
+
+## Persistent-state authority
+
+1. [Stage 1 State Schema](03%20Technical/Stage%201%20State%20Schema.md) is the
+   canonical persistent-state and naming contract.
+2. [template_reference.txt](../Data/Templates/template_reference.txt) is its
+   subordinate implementation mirror.
+3. Implementation code must follow both; the canonical schema prevails if they
+   conflict. Before implementing a new authoritative persistent field, update
+   the canonical schema first and then its template mirror.
+
+This explicitly replaces older template-only authority instructions. Approved
+architecture defines behavior and ownership; technical specifications define
+domain contracts. Neither historical code nor a template overrides the schema.
+
+## Find the relevant context
+
+- [Current Development Status](03%20Technical/Current%20Development%20Status.md):
+  implemented capabilities, limitations, checkpoint, and recorded verification.
+- [Stage 1 roadmap](03%20Technical/Stage%201%20Implementation%20Roadmap.md):
+  PH 1.0 scope, order, and milestone acceptance; not implementation permission.
+- [Decision Register](03%20Technical/Decision%20Register.md):
+  durable decisions and links to their canonical definitions.
+- [Project Foundation](01%20Core%20Simulation/Project%20Foundation.md):
+  product principles and package responsibilities.
+- [Game State & Save Architecture](03%20Technical/Game%20State%20%26%20Save%20Architecture.md)
+  and [technical specification](03%20Technical/Game%20State%20%26%20Save%20Technical%20Specification.md):
+  whole-world persistence, migration, and save/load safety.
+
+Historical documents tracked under lowercase `docs/` preserve earlier designs.
+Their authority claims and maintenance instructions are superseded. They are not
+current implementation status or permission to begin work.
+
+## Domain documents
 
 - [`01 Core Simulation`](./01%20Core%20Simulation/) — passenger demand, scheduling, aircraft operations, and economy systems.
 - [`02 Gameplay`](./02%20Gameplay/) — player-facing management systems and progression.

@@ -1,3 +1,9 @@
+LEGACY AND REFERENCE-DATA TEMPLATES.
+These formats and population/calibration rules apply only when explicitly
+working with the corresponding legacy data. They do not define Stage 1
+airport-pack eligibility or persistent-state authority. Stage 1 changes follow
+the approved domain contract and schema hierarchy in AGENTS.md.
+
 #=========
 # airplane.json template starts here (✈️ Aircraft Data Template)
 # This is a **REFERENCE TEMPLATE** for in-game aircraft data.

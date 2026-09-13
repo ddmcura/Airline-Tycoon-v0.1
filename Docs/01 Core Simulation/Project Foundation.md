@@ -143,7 +143,7 @@ Every completed stage should remain a playable game rather than becoming a colle
 
 Major systems should have clear responsibilities and boundaries. Fleet management, route management, scheduling, finance, hubs, passengers, airports, and other packages should be capable of evolving without unnecessary coupling.
 
-Functions used only by one game package should remain local to that package. Functions genuinely shared across packages should live in `game/utils`.
+Package-specific helpers and domain operations remain in their owning package, including when other packages call their public APIs. Genuinely domain-independent helpers shared across packages belong in `game/utils`.
 
 ### Data-driven design
 
@@ -165,9 +165,9 @@ Complexity should grow with the player's organization.
 
 Authoritative game-state structures and naming conventions must remain consistent.
 
-`Data/Templates/template_reference.txt` (or its current canonical template-reference successor) is the source of truth for `game_state` naming and schema. The current folder tree must be respected when adding or modifying modules.
+Persistent-state naming and schema follow the hierarchy in [AGENTS.md](../../AGENTS.md): the canonical Stage 1 State Schema prevails over its template mirror. Choose module placement from approved package responsibilities and the current tracked tree; `Data/Templates/foldertree.txt` is a selective placement reference.
 
-Avoid duplicate authoritative representations of the same state unless a system explicitly requires them and defines how synchronization is guaranteed.
+Each fact has one authoritative representation. Derived indexes and compatibility/UI projections identify their source and must not become independent authority.
 
 ### Build for expansion without premature complexity
 

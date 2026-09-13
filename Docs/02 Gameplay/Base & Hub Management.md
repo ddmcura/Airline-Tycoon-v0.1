@@ -286,7 +286,7 @@ This architecture intentionally does not finalize:
 - detailed fuel infrastructure; or
 - persistent schema fields and exact names.
 
-New persistent fields must be defined in the canonical template/schema reference before code implementation.
+New persistent fields must be defined in the [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md) before code implementation.
 
 ## 16. Finalized Architecture
 

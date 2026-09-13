@@ -1,3 +1,10 @@
+> **Historical reference — superseded for current development.**
+> This file preserves earlier design and implementation context. Its authority
+> claims, progress statements, roadmap, and assistant workflow instructions are
+> historical, not current instructions. Use [AGENTS.md](../AGENTS.md) and the
+> [documentation index](../Docs/README.md) for current authority and routing. Do not
+> maintain this file as a parallel current specification or handoff.
+
 Here’s your clean, developer-ready dev notes for Airline Tycoon — stripped of brainstorm clutter, synced with your v1.0 direction, and fully copy-pastable for the project files like dev_notes.txt or README.md:
 
 

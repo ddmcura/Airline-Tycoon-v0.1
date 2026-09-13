@@ -4,7 +4,7 @@
 
 This specification translates the approved Game State & Save architecture into implementation requirements. It remains a documentation contract only. It does not itself approve edits to schemas, templates, serialization code, or game systems.
 
-Concrete names and structures must follow the repository's authoritative template and naming rules when implementation begins.
+Concrete names and structures follow the Stage 1 State Schema and its subordinate mirror under [AGENTS.md](../../AGENTS.md).
 
 ## Required Properties
 
@@ -411,7 +411,7 @@ Load performance should be measured separately for parsing, migration, validatio
 
 ## Implementation Sequence
 
-1. Approve the schema and identity strategy using the repository template rules.
+1. Approve the schema and identity strategy under the schema authority and sequencing rules in [AGENTS.md](../../AGENTS.md).
 2. Add the versioned envelope and dedicated legacy import path.
 3. Separate UI focus from authoritative whole-world state.
 4. Define domain snapshot, validation, and restore contracts.

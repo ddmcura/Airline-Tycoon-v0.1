@@ -653,7 +653,7 @@ This architecture intentionally does not finalize:
 - crew, maintenance, weather, or ground-handling formulas; or
 - passenger recovery and compensation.
 
-New persistent fields must be approved in the canonical template/schema reference before code implementation.
+New persistent fields must be approved in the [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md) before code implementation.
 
 ## 27. Finalized Architecture
 

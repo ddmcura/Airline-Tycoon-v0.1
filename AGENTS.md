@@ -1,151 +1,136 @@
-# Repository Instructions
+# Airline Tycoon repository instructions
 
-These instructions apply to the entire repository. A deeper `AGENTS.md` may add
-narrower package rules, but it must not contradict the canonical architecture
-or schema.
+These rules apply throughout the repository. Narrower instructions must preserve
+the canonical architecture and state contract.
 
-## Authority and scope
+## Authority and contextual routing
 
-Use this order when sources disagree:
+For persistent state and naming, the approved hierarchy is:
 
-1. Current approved architecture in [`Docs/`](Docs/README.md), especially the
-   [project foundation](Docs/01%20Core%20Simulation/Project%20Foundation.md) and
-   [Game State & Save Architecture](Docs/03%20Technical/Game%20State%20%26%20Save%20Architecture.md).
-2. The canonical [Stage 1 State Schema](Docs/03%20Technical/Stage%201%20State%20Schema.md)
-   and approved [technical specification](Docs/03%20Technical/Game%20State%20%26%20Save%20Technical%20Specification.md)
-   for concrete persistent-state and save requirements.
-3. The [Stage 1 roadmap](Docs/03%20Technical/Stage%201%20Implementation%20Roadmap.md)
-   for milestone scope and implementation order. A roadmap item is not
-   authorization to implement a milestone.
-4. The [template rules](docs/template_reference_with_rules.txt) and
-   [folder-tree reference](Data/Templates/foldertree.txt) for subordinate naming
-   and placement guidance, only where they agree with the sources above and the
-   current repository tree.
-5. Existing implementation as migration input and characterized behavior, not
-   as authority when it conflicts with approved architecture.
+1. [Stage 1 State Schema](Docs/03%20Technical/Stage%201%20State%20Schema.md)
+   is the canonical contract.
+2. `Data/Templates/template_reference.txt` is its subordinate implementation mirror.
+3. Implementation code must follow both; the canonical schema prevails on conflict.
 
-The legacy hybrid state example and other material under lowercase `docs/` are
-historical or compatibility material only. Do not promote them to authority.
+Before implementing a new authoritative persistent field, update the canonical
+schema first, then its template mirror. This replaces older instructions naming
+the template as the sole source of truth.
 
-## State, identity, and boundaries
+Approved architecture defines behavior and package ownership; technical
+specifications define domain contracts. Use [Docs/README.md](Docs/README.md)
+to locate documents relevant to the task:
 
-- Update the canonical Stage 1 schema before adding a persistent authoritative
-  field. Use its exact vocabulary; never introduce ad hoc synonyms.
-- Explicitly classify state as authoritative, derived, runtime-only, UI, or
-  compatibility state. Do not duplicate authority across classifications.
-- Immutable internal IDs are authoritative. Airline names, aircraft
-  registrations, codes, labels, and other display values are not foreign keys.
-- `current_focus` and its Stage 1 projection equivalents are UI state only; they
-  never select simulation ownership, processing scope, or save scope.
-- Authoritative persistent-state schema, construction, serialization, and
-  validation belong in `game/world_state`. Simulation clock and generic event
-  orchestration belong in `game/simulation`. Scheduling, demand, booking,
-  aircraft operations, economy, and other domain behavior belong in their
-  owning packages and interact with authority only through explicit validated
-  boundaries. The legacy daily tick, hybrid state, route-owned demand, and
-  direct profit mutation are non-authoritative migration inputs. Never
-  reconnect new simulation work to those legacy authority paths.
-- Keep package-specific functions in their owning package. Put only genuinely
-  cross-package functions in `game/utils`; do not use it as a dumping ground.
-  Authoritative domain code must not depend on CLI, rendering, or legacy
-  daily-tick modules.
+- For checkpoint recovery or milestone planning, consult Current Development
+  Status, the PH 1.0 roadmap sequence, and relevant Decision Register entries.
+- For persistent-state or save changes, consult the Stage 1 schema and relevant
+  Game State & Save specifications.
+- For domain behavior, consult the owning domain's architecture, technical
+  specification, and compatibility contract.
+- For new package placement or moves, consult `Data/Templates/foldertree.txt`
+  as a selective reference. Approved ownership and the current tracked tree prevail.
 
-## Determinism, time, and money
+The roadmap defines scope and order, not implementation permission. Status is
+an implementation snapshot; the Decision Register is an index. Neither replaces
+a specification. Historical material tracked under lowercase `docs/`, including
+legacy template rules, and legacy code are migration evidence, not authority for
+new simulation behavior. Use repository and working-tree evidence for implemented
+facts; user authorization defines requested changes, not completed work.
 
-- Persist exact canonical whole-second UTC timestamps. Authoritative outcomes
-  must not depend on wall-clock time, sleeping, frame rate, local time,
-  dictionary iteration order, or uncontrolled randomness.
-- Preserve stable persisted event ordering and deterministic random inputs. Do
-  not add offline progress unless a later milestone explicitly approves it.
-- Store authoritative money as integer minor units. Never store authoritative
-  monetary values as binary floating point.
+## Authorization and completion
 
-## Development workflow
+Read-only requests permit no repository changes. A request to fix or implement
+a bounded task authorizes that task. Newly designed milestones require explicit
+scope approval before implementation; approval may cover schema work together
+with implementation. Workflow labels such as DISCUSS, IMPLEMENT, and COMMIT are
+optional; natural-language authorization is sufficient.
 
-### Fresh-thread startup
+Within approved scope, finish implementation, debugging, regression fixes,
+verification, and necessary documentation without asking again for routine steps.
+Stop affected work for unresolved product decisions, scope expansion, conflicting
+authoritative contracts, destructive operations not already authorized, or unrelated
+changes that cannot safely be preserved. Continue independent authorized work.
+Do not begin later roadmap behavior speculatively.
 
-Every fresh Codex task must recover context from the repository:
+Stage and commit only when explicitly authorized. Push only when explicitly
+authorized; commit approval alone does not authorize push. Permission may be
+granted in the implementation request and need not be requested again. It applies
+only to the specified work, not future tasks or history rewrites. In-scope
+completion fixes remain authorized during commit preparation.
 
-1. Read this `AGENTS.md` completely and any applicable deeper instructions.
-2. Read [Current Development Status](Docs/03%20Technical/Current%20Development%20Status.md).
-3. Read the development roadmap in [Stage 1 Implementation Roadmap](Docs/03%20Technical/Stage%201%20Implementation%20Roadmap.md), starting with its PH 1.0 release sequence.
-4. Consult the [Decision Register](Docs/03%20Technical/Decision%20Register.md).
-5. Inspect `git rev-parse HEAD`, `git status --short --branch`, recent history,
-   and branch/upstream divergence. Local upstream refs are not proof of remote freshness.
-6. Read only the canonical specifications relevant to the requested milestone;
-   consult `Data/Templates/foldertree.txt` before creating or moving files.
-7. Summarize the committed checkpoint, local changes, verification evidence,
-   and authorized scope before proposing work.
+## Simulation invariants
 
-Conversation history never overrides committed repository facts. Current user
-authorization may request changes to those facts, but does not make proposed
-work implemented. Status is a snapshot; the roadmap is planning; the decision
-register is an index. None replaces the canonical architecture or schema.
+- Use canonical field names. For new or changed state, identify it as
+  authoritative, derived, runtime-only, UI, or compatibility state; do not
+  duplicate authority.
+- Immutable internal IDs own relationships. Names, codes, registrations, and
+  labels are display values, not foreign keys. `current_focus` and equivalent
+  UI selections never determine simulation ownership, processing, or save scope.
+- Persistent-state schema, construction, serialization, and validation belong
+  in `game/world_state`. Clock and generic event orchestration belong in
+  `game/simulation`. Domain behavior belongs in its owning package and changes
+  authority through explicit validated boundaries.
+- Keep package-specific helpers and domain operations local. Genuinely
+  domain-independent cross-package helpers belong in `game/utils`. Cross-package
+  callers do not make a domain operation a shared utility.
+- Authoritative domain code must not depend on CLI, rendering, or the legacy
+  daily tick. Do not reconnect hybrid state, route-owned demand, or direct
+  profit mutation as simulation authority.
+- Preserve exact whole-second UTC timestamps, stable persisted event ordering,
+  and deterministic inputs. Authoritative outcomes must not depend on wall-clock
+  pacing, sleeping, frame rate, local time, iteration order, or uncontrolled
+  randomness. No offline progress without explicit scope approval.
+- Authoritative money uses integer minor units, never binary floating point.
+- Preserve compatibility contracts, saved-state meaning, processed history,
+  fixtures, and exact witnesses unless an approved change explicitly replaces
+  them. Do not weaken approved formulas to satisfy stale expectations; establish
+  approved behavior before changing tests.
+- Save work must preserve complete event-boundary snapshots, validated separate
+  load candidates, the previous valid file on failure, and paused restoration,
+  as defined by the Game State & Save specifications.
 
-### Authorization modes
+## Verification and durable memory
 
-These are repository workflow labels, not Codex application settings. Explicit
-natural-language authorization is sufficient; magic keywords are not required.
+Inspect Git status before editing and preserve unrelated changes. Inspect
+history, revisions, and divergence when checkpoint recovery or Git work needs
+them. Local upstream refs do not establish remote freshness.
 
-- **DISCUSS:** Read-only inspection, analysis, planning, and recommendations.
-  No repository edits. Use this when implementation has not been authorized.
-- **IMPLEMENT:** Implement the explicitly approved bounded specification and
-  verify it. Do not stage, commit, or push without separate authorization.
-- **COMMIT:** Verify the intended implementation and update status documents
-  with durable facts. Stage only intended files when committing is authorized;
-  commit and push only to the extent explicitly requested. A commit request
-  alone does not authorize a push or additional implementation.
+Establish a baseline when existing evidence is insufficient to distinguish
+pre-existing failures from regressions. Add deterministic coverage for changed
+behavior and invariants. Use proportional verification:
 
-Never silently expand a milestone. Preserve legacy compatibility unless the
-approved specification explicitly changes it. Keep package-only helpers in
-their owning package; genuinely cross-package helpers belong in `game/utils`.
+- Run focused or affected tests for ordinary source changes.
+- Run `python -m unittest discover -s tests` before completing a substantive
+  milestone, when shared simulation/state behavior is affected, when regression
+  risk warrants it, or when the approved task explicitly requires it.
+- For source changes, compile only the explicit application scope:
+  `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`.
+  Exclude protected metadata and runtime directories; never recurse from the
+  repository root.
+- For documentation-only changes, validate links, authority, scope, and
+  `git diff --check`; do not run the gameplay suite.
 
-For new schema fields, update the canonical Stage 1 schema first, then update
-`Data/Templates/template_reference.txt` before implementation. The template is
-a subordinate mirror, not a competing schema authority.
+Do not repeat unchanged verification solely for commit preparation. Changes,
+failures, or unresolved concerns determine reruns.
 
-### Shutdown and durable recovery
+Update Current Development Status when implementation, verification, limitations,
+or the next development step changes. Record actual commands, results, dates,
+and verified revision or working-tree scope. Keep it a current snapshot, not a
+transcript or source of operational authorization. A documentation-only successor
+does not invalidate recorded implementation evidence. Update the roadmap only
+for changed scope/order and the Decision Register for durable decisions with
+canonical links; do not promote proposals to Approved.
 
-- In IMPLEMENT or COMMIT, replace stale facts in Current Development Status
-  when this task changes them; never append a transcript. Record the actual
-  verification command, result/count, date, and revision or working-tree scope.
-  If not run, say so; never equate test inventory with passing tests.
-- Update this existing roadmap for changed scope/order and index newly approved
-  durable decisions with canonical links. Do not promote proposals to Approved.
-- Record remaining work, limitations, intended uncommitted files, protected
-  paths, and the immediate next step. In DISCUSS, report proposed updates only.
-- Before an authorized commit, identify the last verified implementation hash
-  and describe the pending commit separately. Never invent a commit's own hash
-  inside its contents. On the next startup, reconcile the snapshot with HEAD;
-  a documentation-only successor need not invalidate implementation evidence.
-- Inspect the final diff and Git status, preserve unrelated changes, and report
-  validation, remaining gaps, and actual commit/push outcome. Never claim a
-  clean tree or successful push without checking.
+Before completion, inspect the diff and Git status, run `git diff --check`, and
+report verification, material remaining work, and actual commit/push outcomes.
+Record unresolved work or unrelated changes when they affect continuation.
+Do not present pending operations as completed or invent a pending commit's hash.
 
-- Inspect Git status before editing and preserve unrelated user changes.
-- Implement only the explicitly authorized milestone or task; do not begin
-  later roadmap behavior speculatively.
-- Run the existing baseline tests before major work. Add deterministic tests for
-  new behavior and invariants.
-- After source-code changes, run the complete standard-library suite with
-  `python -m unittest discover -s tests`, then `python -m compileall -q .` and
-  `git diff --check`.
-- For documentation-only tasks, validate links, authority, scope, and the diff;
-  do not run the gameplay suite unless explicitly requested.
-- Do not weaken approved formulas merely to satisfy stale tests. Characterize or
-  update stale expectations only when the approved behavior is independently
-  established.
-- Do not commit or push without explicit authorization.
+## Protected files
 
-## Files and paths
-
-- Never hardcode absolute machine-specific paths. Follow current repository
-  path conventions.
-- Treat an absent runtime directory as empty where applicable, and create
-  required directories safely before listing or writing them.
-- Filesystem tests must use temporary directories, never the repository's real
-  `Saves` directory.
-- Do not commit generated saves, caches, runtime directories, temporary files,
-  or other runtime artifacts.
-- Treat `.serena/` as protected local tooling metadata. Do not inspect, edit,
-  delete, or stage its contents without a separate explicit tooling task.
+- Preserve repository-relative source path conventions; do not hardcode
+  machine-specific absolute paths.
+- Filesystem tests use temporary directories, never the real `Saves` directory.
+- Do not commit generated saves, snapshots, caches, temporary files, runtime
+  artifacts, or local tooling/editor metadata.
+- Do not inspect, edit, delete, or stage `.serena/` contents without a separate
+  explicit tooling task.

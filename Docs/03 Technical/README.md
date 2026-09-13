@@ -20,5 +20,5 @@ Documentation for implementation-wide structures and engineering rules.
 - Coding Standards.md
 
 The Stage 1 State Schema is the canonical persistent-state contract.
-`Data/Templates/template_reference.txt` and `Docs/template_reference_with_rules.txt`
+`Data/Templates/template_reference.txt` and `docs/template_reference_with_rules.txt`
 are subordinate references; follow the authority order in [AGENTS.md](../../AGENTS.md).

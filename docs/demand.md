@@ -1,3 +1,10 @@
+> **Historical reference — superseded for current development.**
+> This file preserves earlier design and implementation context. Its authority
+> claims, progress statements, roadmap, and assistant workflow instructions are
+> historical, not current instructions. Use [AGENTS.md](../AGENTS.md) and the
+> [documentation index](../Docs/README.md) for current authority and routing. Do not
+> maintain this file as a parallel current specification or handoff.
+
 # Airline Tycoon
 # Passenger Demand, Booking & Network Simulation Design Guide
 

@@ -496,7 +496,7 @@ This architecture intentionally does not finalize:
 - detailed seasonality or world events; or
 - cargo simulation.
 
-New persistent fields must be defined in the canonical template/schema reference before code implementation.
+New persistent fields must be defined in the [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md) before code implementation.
 
 ## 19. Finalized Architecture
 
