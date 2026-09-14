@@ -1,5 +1,51 @@
 # Stage 1 State Schema
 
+## Approved aircraft catalog reference contract
+
+The PH 1.0 catalog is versioned external reference authority, not a new world
+collection. It does not change save schema 4, `metadata.reference_data_version`,
+existing `aircraft.model_reference`, or any schedule/Booking/finance state.
+Its bounded behavior is defined in the [catalog specification](Aircraft%20Catalog%20Technical%20Specification.md).
+
+`Data/Stage1/aircraft_catalog_v1.json` contains exactly:
+
+- `contract`: `AIRCRAFT_CATALOG_V1`;
+- `catalog_version`: immutable content identifier `ph-aircraft-catalog-v1`;
+- `manufacturers`: dictionaries keyed by stable IDs; each record contains
+  `manufacturer_id`, `display_name`, and `notes`;
+- `models`: dictionaries keyed by stable IDs; each record contains `model_id`,
+  `manufacturer_id`, `display_name`, `family`, `aircraft_category`,
+  `max_economy_seats`, `reference_range_km`, `cruise_speed_kph`,
+  `production_start_year`, `production_end_year`, `source_ids`, and `notes`;
+- `reference_prices`: dictionaries keyed by model ID; each record contains
+  `model_id`, `currency` (`USD`), `amount_minor`, and `basis`
+  (`GAME_NEW_EQUIVALENT_V1`);
+- `sources`: dictionaries keyed by stable IDs; each record contains `source_id`,
+  `title`, and an HTTPS `url`.
+
+IDs match `[a-z][a-z0-9]*(?:-[a-z0-9]+)*` and record IDs equal their keys.
+Foreign keys resolve inside the pack. Prices cover exactly the model IDs.
+Names, family labels and manufacturer notes never own relationships.
+Categories are `NARROWBODY`, `WIDEBODY`, `REGIONAL_JET`, or `TURBOPROP`.
+Seat counts (1..1000), ranges (1..30000 km), cruise speeds (1..2000 km/h), and
+prices (1..1000000000000 minor units) are integers, never booleans or floats.
+Production years are null or integers in 1900..9999; known end >= known start.
+Null means unestablished, including an unestablished end; it does not assert
+current production. Years describe production, not certification or first service.
+Each model has a nonempty, duplicate-free list of source IDs and nonempty notes
+stating calibration assumptions and any production-date uncertainty.
+All text is nonempty, stripped, and free of control characters. Collections
+are nonempty exact dictionaries. Unknown fields and duplicate JSON keys reject.
+
+Catalog versions are selected explicitly and loaded into an immutable runtime
+value; lookups and sorted projections are detached. No implicit latest-version
+fallback, alias matching, live network fetch, or missing-model substitution exists.
+Production dates do not filter v1.0 availability. Reference ranges are illustrative,
+not full-load dispatch guarantees; prices are game calibration, not transactions.
+Individual-aircraft configuration/version binding remains acquisition work.
+Published reference versions must not be edited in place; content changes require
+a new version. The shipped version has a checked semantic content digest.
+
 ## Approved weekly planner increment (2026-09-07)
 
 Schema 4 accepts two optional additions to schedule revisions. Absence preserves

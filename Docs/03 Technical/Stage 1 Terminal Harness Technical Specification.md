@@ -1,5 +1,16 @@
 # Stage 1 Terminal Harness Technical Specification
 
+## Aircraft catalogue extension
+
+Main menu option 11 opens the approved [aircraft catalog](Aircraft%20Catalog%20Technical%20Specification.md).
+Manufacturer and model selection expose detached reference data and USD game
+prices (with optional existing presentation-currency conversion). Back/cancel,
+invalid selections and catalog-load failure never alter the world or dirty flag.
+Missing catalog content does not prevent starting or continuing the existing game.
+The only permitted Aircraft Market import is the isolated `reference_catalog`
+module. Legacy market actions remain excluded. Scheduling and its existing
+handling calibration are unchanged; no catalog model becomes operational here.
+
 ## Weekly scheduler extension — 2026-09-07
 
 Main menu option 3 now opens the aircraft-selected Monday–Sunday scheduler.

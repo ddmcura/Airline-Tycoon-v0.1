@@ -13,6 +13,10 @@ from game.aircraft_operations import (
     project_airline_overview,
     project_recent_flight_results,
 )
+from game.aircraft_market.reference_catalog import (
+    PH_AIRCRAFT_CATALOG_VERSION,
+    load_aircraft_catalog,
+)
 from game.demand import project_market_opportunities
 from game.scheduling import (
     create_weekly_round_trip_rotation,
@@ -113,6 +117,10 @@ class Stage1Session:
         return json.dumps(
             self.world, sort_keys=True, separators=(",", ":"), ensure_ascii=True
         ).encode("ascii")
+
+    def aircraft_catalog(self):
+        """Load detached reference content only when the player opens the catalog."""
+        return load_aircraft_catalog(catalog_version=PH_AIRCRAFT_CATALOG_VERSION)
 
     def set_display_currency(self, currency):
         if currency not in self._display_rates:

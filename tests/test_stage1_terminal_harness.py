@@ -332,11 +332,20 @@ class Stage1TerminalTranscriptTests(unittest.TestCase):
             for path in sorted((root / "app" / "terminal").glob("*.py"))
         )
         for forbidden in (
-            "save_utils", "daily_tick", "aircraft_market", "threading",
+            "save_utils", "daily_tick", "threading",
             "random.", "requests", "urllib", "tests.", "individual passenger",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, source)
+        # This increment permits only the isolated read-only catalog entry point.
+        import ast
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game.aircraft_market"):
+                self.assertEqual(node.module, "game.aircraft_market.reference_catalog")
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name.startswith("game.aircraft_market"):
+                        self.assertEqual(alias.name, "game.aircraft_market.reference_catalog")
 
 
 if __name__ == "__main__":

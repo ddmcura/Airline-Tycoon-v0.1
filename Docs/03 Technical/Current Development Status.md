@@ -4,32 +4,37 @@ Last updated: **2026-09-14**. Replace stale facts; this is not a development dia
 
 ## Checkpoint and verification
 
-- Last gameplay implementation checkpoint:
-  `300a102a04f367228c027849548a1ebee462e58e` —
-  `feat: add verified weekly flight planner`, committed on 2026-09-10.
-- On 2026-09-14, before this documentation cleanup, HEAD was that checkpoint
-  and the working tree was clean. Branch `master` tracks `origin/master`;
-  the local upstream ref matched HEAD. A live `git ls-remote --heads origin
-  refs/heads/master` check on the same date also returned this checkpoint.
-- Recorded final planner working-tree verification on 2026-09-10:
-  **517 tests passed in 256.955 seconds**, including **31 planner regressions**.
-  The focused planner run passed 31 tests in 30.667 seconds. Compilation and
-  diff validation passed. These are historical results, not a new test run.
-- Verification used bundled Python and a temporary test-only `PYTHONPATH`
-  providing `tabulate 0.10.0`; the WindowsApps Python alias could not launch.
-  No machine-specific interpreter path or dependency change was committed.
-- The verified planner source was subsequently committed at the checkpoint
-  above. The prior record identifies only documentation and whitespace changes
-  after the full suite, with compilation and staged diff validation repeated.
-  No gameplay or persistent-state contract changes are part of this cleanup.
+- Catalog verification base: `a4aa42993f7c126d84dd049c406959c9bd704ab7`, the
+  documentation authority cleanup. The results below cover the catalog source
+  introduced with this status update. Its eventual commit is identified by Git
+  history; this pre-commit record does not invent its hash or claim a pending push.
+- The starting tree was clean on `master`, tracking `origin/master`, with local
+  divergence 0/0. During final preparation, `git fetch origin master` and live
+  `git ls-remote --heads origin refs/heads/master` confirmed that the upstream
+  and remote still matched the verification base. Post-push agreement must be
+  checked against the resulting commit, not inferred from this pre-commit check.
+- Last committed gameplay checkpoint: `300a102a04f367228c027849548a1ebee462e58e`,
+  the weekly planner. Its historical verification recorded 517 passing tests.
+- Catalog final verification on 2026-09-14: **531 tests passed in 283.099 seconds**,
+  including **14 new catalog tests**. Focused catalog verification passed all
+  14 in 6.579 seconds. The revised terminal import-boundary check passed separately.
+- Tests used bundled Python 3.12 with temporary test-only `tabulate 0.10.0` on
+  `PYTHONPATH`. The initial sandboxed full attempt was interrupted after a legacy
+  import error because sandboxed Python could not read that temporary dependency.
+  The final full run used approved external execution access and passed. No
+  repository dependency change or machine-specific runtime path was committed.
+- Application compilation and final diff validation passed. These results cover
+  the catalog implementation and tests in this working tree; later documentation
+  updates record those results and do not change the tested source.
 
-### Recorded planner verification commands (2026-09-10)
+### Recorded catalog verification commands (2026-09-14)
 
 | Command | Result |
 | --- | --- |
-| `python -B -m unittest discover -s tests -p test_stage1_weekly_planner.py` | 31 passed, 30.667 seconds |
-| `python -B -m unittest discover -s tests` | 517 passed, 256.955 seconds |
+| `python -B -m unittest discover -s tests -p test_stage1_aircraft_catalog.py` | 14 passed, 6.579 seconds |
+| `python -B -m unittest discover -s tests` | 531 passed, 283.099 seconds |
 | `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 |
+| Local Markdown link/anchor validator over changed and new documents | Passed |
 | `git diff --check` | Exit 0 |
 
 ## Implemented and available
@@ -61,12 +66,20 @@ accumulates Bookings, operates timed flights, and reports finance/fleet/markets.
 Explicit next-event, day, positive duration (including multiple days), and exact
 UTC-target advancement exist. PHP/EUR conversion is presentation-only.
 
+PH 1.0 step 2 now supplies the [approved aircraft catalog](Aircraft%20Catalog%20Technical%20Specification.md):
+5 manufacturer groups, 4 models each, maximum Economy layouts, separate integer
+USD reference prices, calibrated reference range/cruise inputs, source notes and
+nullable historical production years. Option 11 browses manufacturers and models
+without changing the world or session dirty flag. The isolated catalog loader
+requires an explicit version, rejects malformed/duplicate-key content and checks
+an immutable semantic digest. No legacy purchase/lease flow is connected.
+
 ## Not yet available and limitations
 
 - No authoritative file save/load: exiting loses the session. In-memory
   serialization/migrations exist; legacy save menus do not fill this gap.
-- No graphical or existing-published-plan editor, curated authoritative manufacturer/model market,
-  purchase/delivery, leasing, lease-to-own, used market, or maintenance expenses.
+- No graphical or existing-published-plan editor, purchase/delivery, leasing,
+  lease-to-own, used-market transactions, or maintenance expenses.
   Legacy market/fleet modules are migration inputs, not completed Stage 1 features.
 - Clock modes and explicit-duration kernel APIs exist, but no continuous 7×
   runtime or interactive running-session pause/resume controls exist.
@@ -81,6 +94,15 @@ UTC-target advancement exist. PHP/EUR conversion is presentation-only.
   Whole-world candidate copying/validation remains a
   documented scale limitation requiring profiling before broader runtime work.
 
+- Catalog production-date coverage is intentionally incomplete: only the A320neo
+  component-production start (2012) and 787-9 final-assembly start (2013) are
+  recorded; other starts and all end years remain null/unestablished with notes.
+  Null does not imply current production. Dates never gate catalog availability.
+- Catalog ranges are configuration-dependent references, not full-load dispatch
+  guarantees. Prices/cruise speeds are gameplay calibration. No catalog models
+  become operational here; the starter remains the 180-seat A320-200. Handling
+  data/math, schema 4, published history, and scenario inputs are unchanged.
+
 ## Approved PH 1.0 scope and next action
 
 Follow the [PH 1.0 release sequence](Stage%201%20Implementation%20Roadmap.md#philippines-10-release-sequence):
@@ -93,28 +115,20 @@ Leasing, lease-to-own, used aircraft and maintenance may follow the first
 minimum-playable checkpoint but remain PH 1.0 requirements. Save/load follows
 sufficiently established main authoritative gameplay state and runtime.
 
-Next proposed development work is the bounded aircraft manufacturers and
-curated model catalog milestone. Its implementation is not authorized by the
-weekly planner approval. Use the PH 1.0 roadmap for scope and dependencies.
+The catalog milestone implementation and verification are complete. The next
+milestone is **basic new-aircraft acquisition**. Its bounded specification must
+settle atomic purchases and affordability, fleet creation/registration, delivery
+or entry into service, and binding catalog versions to individual aircraft
+configuration. Model-specific capacity/timing integration must replace the
+planner's fixed 180-seat assumption before additional models can operate.
 
-## Documentation maintenance scope (2026-09-14)
+The user prefers simplified fixed handling (30 minutes narrowbody, 45 minutes
+widebody) for later integration; the final catalog scope explicitly left
+scheduling unchanged. Configurable cabin area, seat dimensions/weight/comfort,
+Business/suites and payload/cargo-derived range remain future design boundaries.
+These preferences do not authorize implementing later milestones now.
 
-This cleanup establishes contextual reading, explicit schema/mirror authority,
-proportional verification, milestone completion authority, and historical labels.
-It changes repository instructions and documentation only. Canonical schema
-contents, the template mirror, code, tests, formulas, and runtime data are unchanged.
-No repository-local skills are introduced. Protections remain in AGENTS.md.
-
-The starting tree had no unrelated changes. The documentation successor is
-separate from the gameplay checkpoint above; its own hash and Git outcomes are
-not claimed here. No development work beyond this cleanup is implied.
-
-Documentation validation on 2026-09-14 covered the 29-file working-tree cleanup:
-
-- An inline PowerShell validator using `git ls-files` and `git diff --name-only`
-  checked 123 local Markdown links and 20 heading anchors, including tracked-path
-  casing: passed. The same check confirmed documentation-only changed paths.
-- Authority and final-diff review confirmed the approved schema hierarchy,
-  proportional testing, explicit Git authorization, and preserved domain contracts.
-- `git diff --check`: passed (exit 0).
-- Gameplay tests and compilation: not run; this is documentation-only work.
+No unrelated changes were present during final review. The intended milestone
+contains only catalog data, validation/lookup, terminal browsing, tests and
+authoritative documentation. No scheduling or existing scenario changes are
+included. Actual commit/push outcomes are reported after those operations.

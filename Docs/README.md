@@ -27,6 +27,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   implemented capabilities, limitations, checkpoint, and recorded verification.
 - [Stage 1 roadmap](03%20Technical/Stage%201%20Implementation%20Roadmap.md):
   PH 1.0 scope, order, and milestone acceptance; not implementation permission.
+- [Aircraft catalog specification](03%20Technical/Aircraft%20Catalog%20Technical%20Specification.md):
+  the approved 20-model reference catalog, calibration and compatibility boundary.
 - [Decision Register](03%20Technical/Decision%20Register.md):
   durable decisions and links to their canonical definitions.
 - [Project Foundation](01%20Core%20Simulation/Project%20Foundation.md):

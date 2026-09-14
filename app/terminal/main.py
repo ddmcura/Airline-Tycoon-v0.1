@@ -149,6 +149,7 @@ class _Terminal:
             self.line("8. Display Currency")
             self.line("9. Market Research")
             self.line("10. Quick fixed weekly round trip")
+            self.line("11. Aircraft Catalogue")
             self.line("0. Exit")
             try:
                 choice = self.prompt("Select:").strip()
@@ -168,6 +169,7 @@ class _Terminal:
                 "8": self.currency_menu,
                 "9": self.market_research,
                 "10": self.plan_rotation,
+                "11": self.aircraft_catalogue,
             }
             if choice == "0":
                 if self.confirm_exit():
@@ -182,6 +184,55 @@ class _Terminal:
                         return 0
             else:
                 self.line("Invalid selection. Enter a listed number.")
+
+    def aircraft_catalogue(self):
+        try:
+            catalog = self.session.aircraft_catalog()
+        except (OSError, ValueError) as exc:
+            self.line(f"Aircraft catalogue unavailable: {exc}")
+            return
+        self.line("Aircraft Catalogue - reference models and game prices")
+        self.line("Purchasing and leasing are not available yet.")
+        manufacturers = catalog.manufacturers()
+        while True:
+            for number, row in enumerate(manufacturers, 1):
+                self.line(f"{number}. {row['display_name']}")
+            choice = self.prompt("Manufacturer (number, back, or cancel):").strip().lower()
+            if choice in {"0", "back", "cancel"}:
+                return
+            # Compare strings instead of converting arbitrary user input to int.
+            choices = {str(i): row for i, row in enumerate(manufacturers, 1)}
+            if choice not in choices:
+                self.line("Invalid manufacturer selection.")
+                continue
+            manufacturer = choices[choice]
+            self.line(manufacturer["notes"])
+            models = catalog.models(manufacturer["manufacturer_id"])
+            while True:
+                for number, row in enumerate(models, 1):
+                    self.line(f"{number}. {row['display_name']} - {row['max_economy_seats']} Economy seats")
+                choice = self.prompt("Model (number, back, or cancel):").strip().lower()
+                if choice == "cancel":
+                    return
+                if choice in {"0", "back"}:
+                    break
+                choices = {str(i): row for i, row in enumerate(models, 1)}
+                if choice not in choices:
+                    self.line("Invalid model selection.")
+                    continue
+                view = catalog.model(choices[choice]["model_id"])
+                model, price = view["model"], view["reference_price"]
+                self.line(f"\n{model['display_name']} - {manufacturer['display_name']}")
+                self.line(f"Maximum Economy layout: {model['max_economy_seats']} seats")
+                self.line(f"Reference range: {model['reference_range_km']:,} km (configuration-dependent)")
+                self.line(f"Calibrated cruise speed: {model['cruise_speed_kph']} km/h")
+                self.line(f"Game reference price: {self.money(price['amount_minor'])}")
+                start, end = model["production_start_year"], model["production_end_year"]
+                self.line(f"Production start: {start if start is not None else 'Unestablished'}; "
+                          f"production end: {end if end is not None else 'Unestablished'}")
+                self.line("Production dates do not restrict this catalogue.")
+                self.line(model["notes"])
+                self.line(f"Reference version: {view['catalog_version']}")
 
     def show_overview(self):
         view = self.session.overview()

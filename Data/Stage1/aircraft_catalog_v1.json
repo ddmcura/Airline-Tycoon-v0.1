@@ -1,0 +1,577 @@
+{
+  "contract": "AIRCRAFT_CATALOG_V1",
+  "catalog_version": "ph-aircraft-catalog-v1",
+  "manufacturers": {
+    "airbus": {
+      "manufacturer_id": "airbus",
+      "display_name": "Airbus",
+      "notes": "Airbus commercial passenger aircraft."
+    },
+    "boeing": {
+      "manufacturer_id": "boeing",
+      "display_name": "Boeing",
+      "notes": "Boeing commercial passenger aircraft."
+    },
+    "de-havilland-canada": {
+      "manufacturer_id": "de-havilland-canada",
+      "display_name": "De Havilland Canada",
+      "notes": "Dash 8 and Twin Otter family grouping; corporate history is not simulated."
+    },
+    "embraer": {
+      "manufacturer_id": "embraer",
+      "display_name": "Embraer",
+      "notes": "First-generation E-Jets and E2 passenger aircraft."
+    },
+    "bombardier-crj": {
+      "manufacturer_id": "bombardier-crj",
+      "display_name": "Bombardier CRJ",
+      "notes": "Bombardier-origin CRJ family; MHIRJ is the program support owner. No historical availability gating."
+    }
+  },
+  "models": {
+    "airbus-a320neo": {
+      "model_id": "airbus-a320neo",
+      "manufacturer_id": "airbus",
+      "display_name": "A320neo",
+      "family": "A320",
+      "aircraft_category": "NARROWBODY",
+      "max_economy_seats": 194,
+      "reference_range_km": 6400,
+      "cruise_speed_kph": 840,
+      "production_start_year": 2012,
+      "production_end_year": null,
+      "source_ids": [
+        "airbus-narrowbody",
+        "airbus-prices",
+        "airbus-production"
+      ],
+      "notes": "Production start records documented A320neo component manufacture, not entry into service. Production end is unestablished in this pack. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "airbus-a321neo": {
+      "model_id": "airbus-a321neo",
+      "manufacturer_id": "airbus",
+      "display_name": "A321neo",
+      "family": "A320",
+      "aircraft_category": "NARROWBODY",
+      "max_economy_seats": 244,
+      "reference_range_km": 6500,
+      "cruise_speed_kph": 840,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "airbus-narrowbody",
+        "airbus-prices"
+      ],
+      "notes": "Standard neo game range; LR/XLR fuel options are not separate models here. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "airbus-a330-900": {
+      "model_id": "airbus-a330-900",
+      "manufacturer_id": "airbus",
+      "display_name": "A330-900",
+      "family": "A330neo",
+      "aircraft_category": "WIDEBODY",
+      "max_economy_seats": 465,
+      "reference_range_km": 13600,
+      "cruise_speed_kph": 870,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "airbus-a330",
+        "airbus-prices"
+      ],
+      "notes": "Maximum high-density seating; range is a typical-payload reference, not a 465-passenger guarantee. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "airbus-a350-900": {
+      "model_id": "airbus-a350-900",
+      "manufacturer_id": "airbus",
+      "display_name": "A350-900",
+      "family": "A350",
+      "aircraft_category": "WIDEBODY",
+      "max_economy_seats": 440,
+      "reference_range_km": 15700,
+      "cruise_speed_kph": 900,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "airbus-a350",
+        "airbus-prices"
+      ],
+      "notes": "Standard model range rounded from 8500 NM; ULR is not a separate variant here. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "boeing-737-8-200": {
+      "model_id": "boeing-737-8-200",
+      "manufacturer_id": "boeing",
+      "display_name": "737-8-200",
+      "family": "737 MAX",
+      "aircraft_category": "NARROWBODY",
+      "max_economy_seats": 210,
+      "reference_range_km": 6480,
+      "cruise_speed_kph": 840,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "boeing-max"
+      ],
+      "notes": "High-capacity MAX 8 layout. Family range is not a full-load guarantee. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "boeing-737-9": {
+      "model_id": "boeing-737-9",
+      "manufacturer_id": "boeing",
+      "display_name": "737-9",
+      "family": "737 MAX",
+      "aircraft_category": "NARROWBODY",
+      "max_economy_seats": 220,
+      "reference_range_km": 6110,
+      "cruise_speed_kph": 840,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "boeing-max"
+      ],
+      "notes": "Maximum single-class configuration. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "boeing-787-9": {
+      "model_id": "boeing-787-9",
+      "manufacturer_id": "boeing",
+      "display_name": "787-9",
+      "family": "787",
+      "aircraft_category": "WIDEBODY",
+      "max_economy_seats": 406,
+      "reference_range_km": 15370,
+      "cruise_speed_kph": 900,
+      "production_start_year": 2013,
+      "production_end_year": null,
+      "source_ids": [
+        "boeing-787",
+        "boeing-787-range",
+        "boeing-production"
+      ],
+      "notes": "406 all-Economy seats, not the 420-person exit limit. Production start records documented final assembly. Production end is unestablished in this pack. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "boeing-787-10": {
+      "model_id": "boeing-787-10",
+      "manufacturer_id": "boeing",
+      "display_name": "787-10",
+      "family": "787",
+      "aircraft_category": "WIDEBODY",
+      "max_economy_seats": 440,
+      "reference_range_km": 13890,
+      "cruise_speed_kph": 900,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "boeing-787",
+        "boeing-787-range"
+      ],
+      "notes": "440 all-Economy seats; published range includes offered weight configurations. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "dhc-twin-otter-300-g": {
+      "model_id": "dhc-twin-otter-300-g",
+      "manufacturer_id": "de-havilland-canada",
+      "display_name": "Twin Otter Classic 300-G",
+      "family": "Twin Otter",
+      "aircraft_category": "TURBOPROP",
+      "max_economy_seats": 19,
+      "reference_range_km": 1487,
+      "cruise_speed_kph": 300,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "dhc-twin"
+      ],
+      "notes": "Wheels configuration. Reference range assumes 1030 kg payload, not 19 passengers with baggage; no float operations. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "dhc-dash-8-200": {
+      "model_id": "dhc-dash-8-200",
+      "manufacturer_id": "de-havilland-canada",
+      "display_name": "Dash 8-200",
+      "family": "Dash 8",
+      "aircraft_category": "TURBOPROP",
+      "max_economy_seats": 40,
+      "reference_range_km": 1700,
+      "cruise_speed_kph": 500,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "dhc-certificate"
+      ],
+      "notes": "Passenger-limit layout; range and cruise are rounded representative gameplay calibration. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "dhc-dash-8-300": {
+      "model_id": "dhc-dash-8-300",
+      "manufacturer_id": "de-havilland-canada",
+      "display_name": "Dash 8-300",
+      "family": "Dash 8",
+      "aircraft_category": "TURBOPROP",
+      "max_economy_seats": 56,
+      "reference_range_km": 1500,
+      "cruise_speed_kph": 500,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "dhc-certificate"
+      ],
+      "notes": "Passenger-limit layout; range and cruise are rounded representative gameplay calibration. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "dhc-dash-8-400": {
+      "model_id": "dhc-dash-8-400",
+      "manufacturer_id": "de-havilland-canada",
+      "display_name": "Dash 8-400 / Q400",
+      "family": "Dash 8",
+      "aircraft_category": "TURBOPROP",
+      "max_economy_seats": 90,
+      "reference_range_km": 2000,
+      "cruise_speed_kph": 650,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "dhc-dash"
+      ],
+      "notes": "Optional 90-seat high-density layout. Range is rounded game calibration; production pauses are not permanent end dates. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "embraer-e175": {
+      "model_id": "embraer-e175",
+      "manufacturer_id": "embraer",
+      "display_name": "E175",
+      "family": "E-Jets",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 88,
+      "reference_range_km": 4074,
+      "cruise_speed_kph": 820,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "embraer-overview"
+      ],
+      "notes": "Maximum Economy layout; reference range uses the brochure configuration. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "embraer-e190": {
+      "model_id": "embraer-e190",
+      "manufacturer_id": "embraer",
+      "display_name": "E190",
+      "family": "E-Jets",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 114,
+      "reference_range_km": 4537,
+      "cruise_speed_kph": 820,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "embraer-overview"
+      ],
+      "notes": "First-generation E190; range is the indicative AR reference, not a maximum-seat payload guarantee. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "embraer-e190-e2": {
+      "model_id": "embraer-e190-e2",
+      "manufacturer_id": "embraer",
+      "display_name": "E190-E2",
+      "family": "E-Jets E2",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 114,
+      "reference_range_km": 5278,
+      "cruise_speed_kph": 820,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "embraer-e190-e2"
+      ],
+      "notes": "114-seat dense Economy layout; nominal range rounded from the 2850 NM profile. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "embraer-e195-e2": {
+      "model_id": "embraer-e195-e2",
+      "manufacturer_id": "embraer",
+      "display_name": "E195-E2",
+      "family": "E-Jets E2",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 146,
+      "reference_range_km": 4815,
+      "cruise_speed_kph": 820,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "embraer-e195-e2",
+        "embraer-prices"
+      ],
+      "notes": "146-seat dense Economy layout; nominal range uses the 2600 NM profile, not later performance upgrades. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "bombardier-crj200": {
+      "model_id": "bombardier-crj200",
+      "manufacturer_id": "bombardier-crj",
+      "display_name": "CRJ200",
+      "family": "CRJ",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 50,
+      "reference_range_km": 2593,
+      "cruise_speed_kph": 800,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "crj-specifications"
+      ],
+      "notes": "Range rounded from 1400 NM. CRJ200 production interruptions are not treated as a verified permanent end. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "bombardier-crj700": {
+      "model_id": "bombardier-crj700",
+      "manufacturer_id": "bombardier-crj",
+      "display_name": "CRJ700",
+      "family": "CRJ",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 78,
+      "reference_range_km": 2593,
+      "cruise_speed_kph": 830,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "crj-specifications"
+      ],
+      "notes": "Maximum 78-seat layout; range rounded from 1400 NM. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "bombardier-crj900": {
+      "model_id": "bombardier-crj900",
+      "manufacturer_id": "bombardier-crj",
+      "display_name": "CRJ900",
+      "family": "CRJ",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 90,
+      "reference_range_km": 2871,
+      "cruise_speed_kph": 830,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "crj-specifications",
+        "crj-prices"
+      ],
+      "notes": "Maximum 90-seat layout; range rounded from 1550 NM. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    },
+    "bombardier-crj1000": {
+      "model_id": "bombardier-crj1000",
+      "manufacturer_id": "bombardier-crj",
+      "display_name": "CRJ1000",
+      "family": "CRJ",
+      "aircraft_category": "REGIONAL_JET",
+      "max_economy_seats": 104,
+      "reference_range_km": 3056,
+      "cruise_speed_kph": 830,
+      "production_start_year": null,
+      "production_end_year": null,
+      "source_ids": [
+        "crj-specifications"
+      ],
+      "notes": "Maximum 104-seat layout; range rounded from 1650 NM. Production start and end are unestablished in this pack; null does not mean current production. Cruise speed and new-equivalent USD price are fixed gameplay calibration. Reference range is configuration-dependent and is not a dispatch guarantee."
+    }
+  },
+  "reference_prices": {
+    "airbus-a320neo": {
+      "model_id": "airbus-a320neo",
+      "currency": "USD",
+      "amount_minor": 5500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "airbus-a321neo": {
+      "model_id": "airbus-a321neo",
+      "currency": "USD",
+      "amount_minor": 6500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "airbus-a330-900": {
+      "model_id": "airbus-a330-900",
+      "currency": "USD",
+      "amount_minor": 15000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "airbus-a350-900": {
+      "model_id": "airbus-a350-900",
+      "currency": "USD",
+      "amount_minor": 16000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "boeing-737-8-200": {
+      "model_id": "boeing-737-8-200",
+      "currency": "USD",
+      "amount_minor": 6000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "boeing-737-9": {
+      "model_id": "boeing-737-9",
+      "currency": "USD",
+      "amount_minor": 6500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "boeing-787-9": {
+      "model_id": "boeing-787-9",
+      "currency": "USD",
+      "amount_minor": 14500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "boeing-787-10": {
+      "model_id": "boeing-787-10",
+      "currency": "USD",
+      "amount_minor": 17000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "dhc-twin-otter-300-g": {
+      "model_id": "dhc-twin-otter-300-g",
+      "currency": "USD",
+      "amount_minor": 700000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "dhc-dash-8-200": {
+      "model_id": "dhc-dash-8-200",
+      "currency": "USD",
+      "amount_minor": 1200000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "dhc-dash-8-300": {
+      "model_id": "dhc-dash-8-300",
+      "currency": "USD",
+      "amount_minor": 1700000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "dhc-dash-8-400": {
+      "model_id": "dhc-dash-8-400",
+      "currency": "USD",
+      "amount_minor": 3000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "embraer-e175": {
+      "model_id": "embraer-e175",
+      "currency": "USD",
+      "amount_minor": 2500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "embraer-e190": {
+      "model_id": "embraer-e190",
+      "currency": "USD",
+      "amount_minor": 3000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "embraer-e190-e2": {
+      "model_id": "embraer-e190-e2",
+      "currency": "USD",
+      "amount_minor": 3500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "embraer-e195-e2": {
+      "model_id": "embraer-e195-e2",
+      "currency": "USD",
+      "amount_minor": 4000000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "bombardier-crj200": {
+      "model_id": "bombardier-crj200",
+      "currency": "USD",
+      "amount_minor": 1500000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "bombardier-crj700": {
+      "model_id": "bombardier-crj700",
+      "currency": "USD",
+      "amount_minor": 2200000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "bombardier-crj900": {
+      "model_id": "bombardier-crj900",
+      "currency": "USD",
+      "amount_minor": 2700000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    },
+    "bombardier-crj1000": {
+      "model_id": "bombardier-crj1000",
+      "currency": "USD",
+      "amount_minor": 3200000000,
+      "basis": "GAME_NEW_EQUIVALENT_V1"
+    }
+  },
+  "sources": {
+    "airbus-narrowbody": {
+      "source_id": "airbus-narrowbody",
+      "title": "Airbus A320 family facts and figures, July 2024",
+      "url": "https://www.airbus.com/sites/g/files/jlcbta136/files/2024-07/Airbus-A320%20Family-Facts-and-Figures-July-2024.pdf"
+    },
+    "airbus-a330": {
+      "source_id": "airbus-a330",
+      "title": "Airbus A330-900 specifications",
+      "url": "https://www.aircraft.airbus.com/en/aircraft/a330/a330-900"
+    },
+    "airbus-a350": {
+      "source_id": "airbus-a350",
+      "title": "Airbus A350 specifications",
+      "url": "https://www.aircraft.airbus.com/en/aircraft/a350"
+    },
+    "airbus-prices": {
+      "source_id": "airbus-prices",
+      "title": "Airbus 2018 published list prices: scale reference only",
+      "url": "https://www.airbus.com/sites/g/files/jlcbta136/files/2021-07/new-airbus-list-prices-2018.pdf"
+    },
+    "boeing-max": {
+      "source_id": "boeing-max",
+      "title": "Boeing 737 MAX specifications",
+      "url": "https://www.boeing.com/commercial/737max"
+    },
+    "boeing-787": {
+      "source_id": "boeing-787",
+      "title": "Boeing 787 characteristics, revision Q: all-Economy versus exit limits",
+      "url": "https://www.boeing.com/content/dam/boeing/v2/airports/acaps/787_ACAP_Rev_Q.pdf"
+    },
+    "boeing-787-range": {
+      "source_id": "boeing-787-range",
+      "title": "Boeing 787 family reference ranges",
+      "url": "https://www.boeing.com/commercial/787/"
+    },
+    "dhc-twin": {
+      "source_id": "dhc-twin",
+      "title": "DHC Twin Otter Classic 300-G wheels specifications",
+      "url": "https://dehavilland.com/wp-content/uploads/2025/03/DHC_Twin_Otter_300-G_WHEELS_Spec_Sheet_v1_DIGITAL.pdf"
+    },
+    "dhc-dash": {
+      "source_id": "dhc-dash",
+      "title": "DHC Dash 8-400 specifications",
+      "url": "https://dehavilland.com/wp-content/uploads/2025/03/DHC_Dash8_Spec-Sheet_v10_DIGITAL.pdf"
+    },
+    "dhc-certificate": {
+      "source_id": "dhc-certificate",
+      "title": "EASA DHC-8 type certificate: passenger limits",
+      "url": "https://www.easa.europa.eu/en/downloads/7257/en"
+    },
+    "embraer-overview": {
+      "source_id": "embraer-overview",
+      "title": "Embraer commercial aircraft overview: seats and indicative ranges",
+      "url": "https://www.embraer.com/media/mfdfb0jr/phenom-300med_digital-brochure.pdf?rmode=pad&v=1db9a6b3ec15f40"
+    },
+    "embraer-e190-e2": {
+      "source_id": "embraer-e190-e2",
+      "title": "Embraer E190-E2 specifications",
+      "url": "https://www.embraer.com/media/e5whgknk/e190-e2_spec.pdf"
+    },
+    "embraer-e195-e2": {
+      "source_id": "embraer-e195-e2",
+      "title": "Embraer E195-E2 specifications",
+      "url": "https://www.embraer.com/media/ue1bdfnq/e195-e2-spec-1.pdf"
+    },
+    "crj-specifications": {
+      "source_id": "crj-specifications",
+      "title": "MHIRJ CRJ family specifications",
+      "url": "https://mhirj.com/en/products-and-services/crj-series"
+    },
+    "airbus-production": {
+      "source_id": "airbus-production",
+      "title": "Airbus begins A320neo component production in July 2012",
+      "url": "https://www.airbus.com/en/newsroom/press-releases/2012-07-airbus-starts-production-of-the-a320neo-family"
+    },
+    "boeing-production": {
+      "source_id": "boeing-production",
+      "title": "Boeing first 787-9 final assembly in May 2013",
+      "url": "https://boeing.mediaroom.com/2013-06-02-First-Boeing-787-9-Dreamliner-Begins-Final-Assembly"
+    },
+    "embraer-prices": {
+      "source_id": "embraer-prices",
+      "title": "Embraer Avelo 2025 order: list-price scale reference only",
+      "url": "https://embraer.com/media-center/pt?detail=21960&mediatype=NEWS"
+    },
+    "crj-prices": {
+      "source_id": "crj-prices",
+      "title": "Bombardier 2016 CRJ900 order: list-price scale reference only",
+      "url": "https://www.globenewswire.com/news-release/2016/06/20/1492291/0/en/bombardier-secures-firm-order-for-10-crj900-aircraft.html"
+    }
+  }
+}

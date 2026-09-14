@@ -1,3 +1,26 @@
+# Aircraft catalog external reference (no world or save-schema change)
+# Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
+aircraft_catalog:
+  contract: AIRCRAFT_CATALOG_V1
+  catalog_version: ph-aircraft-catalog-v1
+  manufacturers: {manufacturer_id: {manufacturer_id, display_name, notes}}
+  models: {model_id: {model_id, manufacturer_id, display_name, family,
+    aircraft_category, max_economy_seats, reference_range_km, cruise_speed_kph,
+    production_start_year, production_end_year, source_ids, notes}}
+  reference_prices: {model_id: {model_id, currency: USD, amount_minor,
+    basis: GAME_NEW_EQUIVALENT_V1}}
+  sources: {source_id: {source_id, title, url}}
+Exact fields. IDs: [a-z][a-z0-9]*(?:-[a-z0-9]+)*; record ID equals key.
+Nonempty collections/text; stripped text without controls. HTTPS source URLs.
+Categories: NARROWBODY, WIDEBODY, REGIONAL_JET, TURBOPROP.
+Seats 1..1000; range 1..30000 km; cruise 1..2000 km/h; price 1..1000000000000.
+All numeric fields are integers, not booleans/floats. Production years null or
+1900..9999; known end >= known start. Null means unestablished, not active.
+Model source_ids: nonempty unique list of resolving IDs. Prices cover all models.
+Dates do not gate availability. Range is reference only; prices are calibration.
+Exact version selection, duplicate JSON keys reject, detached projections.
+No changes to starter, scheduling, historical snapshots or aircraft model_reference.
+
 # Stage 1 weekly planner optional schema-4 revision reference
 # Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
 # Update this mirror before implementing new authoritative fields.
