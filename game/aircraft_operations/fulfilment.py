@@ -428,7 +428,7 @@ def _common_checks(envelope, flight_id):
         else:
             code = "INVALID_WORLD_STATE"
         return None, _reject(envelope, flight_id, code, issue.message, issue.path)
-    if envelope["metadata"]["save_schema_version"] != 4:
+    if envelope["metadata"]["save_schema_version"] not in (4, 5):
         return None, _reject(envelope, flight_id, "INVALID_WORLD_STATE", "flight fulfilment requires schema 4")
     flight = envelope["world_state"]["dated_flights"].get(flight_id)
     if type(flight) is not dict:

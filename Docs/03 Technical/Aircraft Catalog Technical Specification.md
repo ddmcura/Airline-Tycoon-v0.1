@@ -102,7 +102,6 @@ milestone invents no area/weight/comfort formulas or unused persistent fields.
 - Run focused catalog tests, the full standard-library suite for milestone
   completion, explicit application compilation and `git diff --check`.
 
-The next development milestone is basic new-aircraft acquisition. Its technical
-specification must bind model versions and individual configurations, remove the
-planner's fixed capacity assumption for new models, and define atomic payment,
-aircraft creation and entry into service before implementation.
+The catalog milestone is followed by the approved [acquisition increment](Aircraft%20Acquisition%20Technical%20Specification.md).
+That separate scope binds individual configurations and introduces payment,
+entry into service and model-aware planning without changing this catalog pack.

@@ -12,6 +12,7 @@ from .publication import (create_schedule_definition, publish_occurrences_throug
                           configured_publication_horizon_utc, _expand_schedule)
 from .rotation import _connection
 from .timing import timing_bounds, flight_reservation
+from .eligibility import installed_capacity
 
 
 def _bytes(world):
@@ -113,7 +114,7 @@ class WeeklyDraft:
                 arrival_day_offset=(arrival_local.date() - local.date()).days,
                 effective_from_local_date=local.date().isoformat(),
                 until_local_date=end_date, planning_timing=leg['planning_timing'],
-                capacity=0 if deadhead else 180,
+                capacity=0 if deadhead else installed_capacity(world['aircraft'][self.aircraft_id]),
                 fare_offer={'currency': 'USD', 'amount_minor': leg['fare_minor']},
                 service_type=leg['service_type'],
                 passenger_service_classification='NON_PASSENGER' if deadhead else 'ECONOMY'))

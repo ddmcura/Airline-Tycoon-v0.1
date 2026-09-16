@@ -181,7 +181,7 @@ class CatalogTerminalTests(unittest.TestCase):
         terminal.aircraft_catalogue()
         text = output.getvalue()
         for expected in ("Invalid manufacturer", "Invalid model", "194 seats", "USD", "PHP",
-                         "Production start: 2012", "Purchasing and leasing are not available"):
+                         "Production start: 2012", "Purchase New Aircraft"):
             self.assertIn(expected,text)
         self.assertEqual(before,session.authoritative_bytes())
         self.assertFalse(session.changed)

@@ -99,6 +99,8 @@ def create_weekly_round_trip_rotation(
     aircraft = world["aircraft"].get(aircraft_id)
     if type(airline) is not dict or type(aircraft) is not dict:
         return _rejected("MISSING_ENTITY", "airline and aircraft must exist")
+    if 'configuration' in aircraft or aircraft['model_reference'] != 'A320-200':
+        return _rejected('STARTER_ONLY', 'Quick Rotation supports only the starter; use Weekly Scheduler')
     if aircraft["airline_id"] != airline_id:
         return _rejected("WRONG_OWNERSHIP", "aircraft is not owned by the airline")
     if aircraft["status"] != "PARKED" or aircraft["current_airport_id"] is None:

@@ -1,5 +1,17 @@
 # Stage 1 Terminal Harness Technical Specification
 
+## PH acquisition successor (2026-09-16)
+
+Option 12 implements the [approved acquisition flow](Aircraft%20Acquisition%20Technical%20Specification.md).
+Option 11 remains read-only browsing. New sessions explicitly migrate to schema 5;
+scenario capital remains unchanged. Purchased aircraft use Weekly Scheduler,
+installed Economy capacity, scalar range and V2 30/45-minute total turnaround.
+Quick Rotation remains starter-only. Fleet viewing/selection uses derived pages
+of 20; finance displays aircraft assets and purchase journals. No disk persistence
+or continuous runtime is added. Historical restrictions below describe their
+original increments and are superseded only within this approved scope.
+
+
 ## Aircraft catalogue extension
 
 Main menu option 11 opens the approved [aircraft catalog](Aircraft%20Catalog%20Technical%20Specification.md).

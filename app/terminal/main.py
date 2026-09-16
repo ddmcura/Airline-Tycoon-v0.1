@@ -150,6 +150,7 @@ class _Terminal:
             self.line("9. Market Research")
             self.line("10. Quick fixed weekly round trip")
             self.line("11. Aircraft Catalogue")
+            self.line("12. Purchase New Aircraft")
             self.line("0. Exit")
             try:
                 choice = self.prompt("Select:").strip()
@@ -170,6 +171,7 @@ class _Terminal:
                 "9": self.market_research,
                 "10": self.plan_rotation,
                 "11": self.aircraft_catalogue,
+                "12": lambda: self.aircraft_catalogue(purchase=True),
             }
             if choice == "0":
                 if self.confirm_exit():
@@ -185,14 +187,15 @@ class _Terminal:
             else:
                 self.line("Invalid selection. Enter a listed number.")
 
-    def aircraft_catalogue(self):
+    def aircraft_catalogue(self, *, purchase=False):
         try:
             catalog = self.session.aircraft_catalog()
         except (OSError, ValueError) as exc:
             self.line(f"Aircraft catalogue unavailable: {exc}")
             return
         self.line("Aircraft Catalogue - reference models and game prices")
-        self.line("Purchasing and leasing are not available yet.")
+        self.line("Choose a model to preview its purchase." if purchase else
+                  "Select Purchase New Aircraft from the main menu to buy. Leasing is deferred.")
         manufacturers = catalog.manufacturers()
         while True:
             for number, row in enumerate(manufacturers, 1):
@@ -233,6 +236,66 @@ class _Terminal:
                 self.line("Production dates do not restrict this catalogue.")
                 self.line(model["notes"])
                 self.line(f"Reference version: {view['catalog_version']}")
+                if purchase:
+                    self.purchase_model(model)
+                    return
+
+    def purchase_model(self, model):
+        locations = self.session.delivery_locations()
+        choices = {str(i): row for i, row in enumerate(locations, 1)}
+        for key, row in choices.items():
+            self.line(f"{key}. {row['reference_code']} - {row['display_name']}")
+        while True:
+            choice = self.prompt('Delivery location (number, back, or cancel):').strip().lower()
+            if choice in {'0', 'back', 'cancel'}:
+                return
+            if choice in choices:
+                break
+            self.line('Invalid delivery location.')
+        try:
+            location = choices[choice]
+            preview = self.session.preview_purchase(model['model_id'], location['airport_id'])
+            self.line(f"Purchase one {model['display_name']}, {model['max_economy_seats']} Economy seats.")
+            self.line(f"Immediate delivery: {location['reference_code']}; parked and ready for Weekly Scheduler.")
+            self.line(f"Price: {self.money(preview.amount_minor)}; cash after: {self.money(preview.cash_after_minor)}")
+            if preview.cash_after_minor < 0:
+                self.line('Insufficient cash. No purchase made.')
+                return
+            while True:
+                confirm = self.prompt('Confirm purchase (yes/no):').strip().lower()
+                if confirm in {'no', 'n', '0', 'back', 'cancel'}:
+                    return
+                if confirm in {'yes', 'y'}:
+                    break
+                self.line('Enter yes or no.')
+            aircraft_id = self.session.purchase(preview)
+            aircraft = self.session.world['world_state']['aircraft'][aircraft_id]
+            self.line(f"Purchased {aircraft['display_registration']} at {location['reference_code']}.")
+        except (ValueError, OSError) as exc:
+            self.line(f'Purchase rejected: {exc}')
+
+    def select_aircraft(self):
+        offset = 0
+        while True:
+            fleet = self.session.fleet(offset=offset)
+            choices = {str(i): row for i, row in enumerate(fleet, 1)}
+            for key, row in choices.items():
+                self.line(f"{key}. {row['display_registration']} {row['model_reference']} "
+                          f"({row['status']}) at {row['current_airport_reference_code'] or 'IN FLIGHT'}")
+            choice = self.prompt('Choose plane (number, next, previous, 0 back):').strip().lower()
+            if choice in {'0', 'back', 'cancel'}:
+                return None
+            if choice == 'next':
+                if self.session.fleet(offset=offset + 20, limit=1):
+                    offset += 20
+                else:
+                    self.line('Last page.')
+            elif choice == 'previous':
+                offset = max(0, offset - 20)
+            elif choice in choices:
+                return choices[choice]
+            else:
+                self.line('Invalid aircraft selection.')
 
     def show_overview(self):
         view = self.session.overview()
@@ -244,18 +307,30 @@ class _Terminal:
         self.line(f"Simulation time: {view['simulation_time_utc']} ({view['clock_state']})")
 
     def show_fleet(self):
-        rows = self.session.fleet()
-        self.line()
-        self.line("Fleet")
-        if not rows:
-            self.line("No aircraft.")
-            return
-        for number, row in enumerate(rows, 1):
-            location = row["current_airport_reference_code"] or "IN FLIGHT"
-            self.line(
-                f"{number}. {row['display_registration']} {row['model_reference']} - "
-                f"{row['status']} at {location} [{row['aircraft_id']}]"
-            )
+        offset = 0
+        while True:
+            rows = self.session.fleet(offset=offset)
+            self.line()
+            self.line(f'Fleet - page {offset // 20 + 1}')
+            if not rows:
+                self.line('No aircraft.')
+                return
+            for number, row in enumerate(rows, 1):
+                location = row['current_airport_reference_code'] or 'IN FLIGHT'
+                self.line(f"{number}. {row['display_registration']} {row['model_reference']} - "
+                          f"{row['status']} at {location} [{row['aircraft_id']}]")
+            following = bool(self.session.fleet(offset=offset + 20, limit=1))
+            if not following and offset == 0:
+                return
+            choice = self.prompt('Fleet page (next, previous, or back):').strip().lower()
+            if choice == 'next' and following:
+                offset += 20
+            elif choice == 'previous':
+                offset = max(0, offset - 20)
+            elif choice in {'0', 'back', 'cancel'}:
+                return
+            else:
+                self.line('Choose an available page or back.')
 
     @staticmethod
     def _demand_text(value):
@@ -394,17 +469,11 @@ class _Terminal:
         from game.scheduling.weekly import monday, local_departure
         from game.world_state.timestamps import parse_canonical_utc, format_utc
         from game.world_state.timezones import load_named_timezone
-        fleet = self.session.fleet()
-        for number, aircraft in enumerate(fleet, 1):
-            self.line(f"{number}. {aircraft['display_registration']} ({aircraft['status']})")
-        choice = self.prompt('Choose plane (0 back):').strip()
-        if choice == '0':
-            return
-        if not choice.isdigit() or not 1 <= int(choice) <= len(fleet):
-            self.line('Invalid aircraft selection.')
+        aircraft = self.select_aircraft()
+        if aircraft is None:
             return
         try:
-            draft = self.session.begin_scheduling(fleet[int(choice)-1]['aircraft_id'])
+            draft = self.session.begin_scheduling(aircraft['aircraft_id'])
         except ValueError as exc:
             self.line(str(exc))
             return
@@ -505,23 +574,12 @@ class _Terminal:
                 self.line(f'REJECTED: {exc}')
 
     def plan_rotation(self):
-        fleet = self.session.fleet()
-        self.line()
-        self.line("Select parked aircraft:")
-        for number, aircraft in enumerate(fleet, 1):
-            self.line(
-                f"{number}. {aircraft['display_registration']} at "
-                f"{aircraft['current_airport_reference_code']}"
-            )
-        self.line("0. Back")
-        while True:
-            choice = self.prompt("Aircraft:").strip()
-            if choice == "0" or choice.lower() == "back":
-                return
-            if choice.isdigit() and 1 <= int(choice) <= len(fleet):
-                break
-            self.line("Invalid aircraft selection. Enter a listed number.")
-        aircraft = fleet[int(choice) - 1]
+        aircraft = self.select_aircraft()
+        if aircraft is None:
+            return
+        if aircraft['model_reference'] != 'A320-200':
+            self.line('Quick Rotation is starter-only; use Weekly Scheduler.')
+            return
         if aircraft["status"] != "PARKED":
             self.line("REJECTED [AIRCRAFT_NOT_PARKED]: select a parked aircraft.")
             return
@@ -700,6 +758,7 @@ class _Terminal:
         self.line()
         self.line("Financial Results - authoritative USD accounting")
         self.line(f"Cash: {self.money(view['cash_minor'])}")
+        self.line(f"Aircraft assets: {self.money(view['aircraft_assets_minor'])}")
         self.line(f"Unflown-ticket liability: {self.money(view['unflown_ticket_liability_minor'])}")
         self.line(f"Passenger revenue: {self.money(view['passenger_revenue_minor'])}")
         self.line(f"Operating expenses: {self.money(view['operating_expenses_minor'])}")
@@ -707,6 +766,10 @@ class _Terminal:
         self.line(f"Cumulative fulfilment cost: {self.money(view['cumulative_cost_minor'])}")
         self.line(f"Cumulative operating contribution: {self.money(view['cumulative_profit_minor'])}")
         self.line(f"Recent results: {len(view['recent_results'])}; recent transactions: {len(view['recent_transactions'])}")
+        for transaction in view['recent_transactions']:
+            if transaction['source_type'] == 'AIRCRAFT_PURCHASE':
+                self.line(f"{transaction['occurred_at_utc']} Aircraft purchase "
+                          f"{transaction['source_id']}: {self.money(transaction['entries'][0]['amount_minor'])}")
 
     def publish_next(self):
         result = self.session.publish_next_rotation()

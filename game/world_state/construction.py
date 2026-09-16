@@ -167,7 +167,7 @@ def _add_airport_reference_in_place(envelope, airport_reference):
         ).upper()
     schema_version = envelope.get("metadata", {}).get("save_schema_version")
     country_id = airport_reference.get("country_id")
-    if schema_version in (2, 3, 4):
+    if schema_version in (2, 3, 4, 5):
         countries = envelope.get("world_state", {}).get("countries", {})
         if not isinstance(country_id, str) or country_id not in countries:
             raise ValueError(
@@ -215,7 +215,7 @@ def _add_airport_reference_in_place(envelope, airport_reference):
             "coordinates, country_reference, and demand_destination_type"
         )
     demand_allocation_member = airport_reference.get("demand_allocation_member")
-    if schema_version in (2, 3, 4) and type(demand_allocation_member) is not bool:
+    if schema_version in (2, 3, 4, 5) and type(demand_allocation_member) is not bool:
         raise ValueError(
             "schema-2 airport additions require an explicit boolean "
             "demand_allocation_member"
@@ -258,7 +258,7 @@ def _add_airport_reference_in_place(envelope, airport_reference):
         "active_until_date": active_until,
         "demand_input_revision": demand_revision,
     }
-    if schema_version in (2, 3, 4):
+    if schema_version in (2, 3, 4, 5):
         record["country_id"] = country_id
         record["demand_allocation_member"] = demand_allocation_member
     for field in ("ground_network_id", "tourism_pull_ppm"):
@@ -272,7 +272,7 @@ def _add_airport_reference_in_place(envelope, airport_reference):
 def add_airport_reference(envelope, airport_reference):
     """Atomically add one immutable airport reference record."""
     if (
-        envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4)
+        envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4, 5)
         and envelope.get("simulation", {})
         .get("configuration", {})
         .get("demand", {})
@@ -362,7 +362,7 @@ def add_airline(
         "hub_airport_ids": hub_ids,
         "financial_account_ids": [],
     }
-    if envelope.get("metadata", {}).get("save_schema_version") in (3, 4):
+    if envelope.get("metadata", {}).get("save_schema_version") in (3, 4, 5):
         airline["finance_revision"] = 0
     envelope["world_state"]["airlines"][airline_id] = airline
 
@@ -390,6 +390,7 @@ def add_aircraft(
     home_airport_id,
     current_airport_id=None,
     status="PARKED",
+    configuration=None,
 ):
     """Add schema state only; no purchase, delivery, or operations behavior."""
     if not isinstance(airline_id, str) or airline_id not in envelope["world_state"]["airlines"]:
@@ -410,6 +411,11 @@ def add_aircraft(
         "current_airport_id": current_airport_id,
         "status": _required_text(status, "status").upper(),
     }
+    if configuration is not None:
+        from .acquisition_validation import validate_configuration
+        aircraft = envelope['world_state']['aircraft'][aircraft_id]
+        aircraft['configuration'] = deepcopy(configuration)
+        validate_configuration(aircraft)
     return aircraft_id
 
 

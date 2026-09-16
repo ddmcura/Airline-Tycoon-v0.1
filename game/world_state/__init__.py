@@ -26,6 +26,7 @@ from .migration import (
     migrate_schema_1_to_2,
     migrate_schema_2_to_3,
     migrate_schema_3_to_4,
+    migrate_schema_4_to_5,
 )
 from .market_packs import (
     MarketPackIssue,
@@ -84,6 +85,7 @@ __all__ = (
     "migrate_schema_1_to_2",
     "migrate_schema_2_to_3",
     "migrate_schema_3_to_4",
+    "migrate_schema_4_to_5",
     "minor_to_decimal",
     "materialize_country_pack",
     "normalize_utc_timestamp",

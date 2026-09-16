@@ -6,6 +6,13 @@ from game.world_state.timestamps import parse_canonical_utc
 
 def timing_bounds(snapshot):
     """Return min/max pre, gate-to-gate, and post durations in exact seconds."""
+    if snapshot['contract'] == 'PH_SCHEDULING_TIMING_V2':
+        speed = snapshot['cruise_speed_kph'] * 1000
+        airborne = max(300, (snapshot['distance_m'] * 3600 + speed * 300 - 1)
+                       // (speed * 300) * 300)
+        return tuple((snapshot['turnaround_seconds'],
+                      snapshot['taxi_out_seconds'][bound] + airborne
+                      + snapshot['taxi_in_seconds'][bound], 0) for bound in (0, 1))
     activities = snapshot['activities']
     airborne = max(300, ((snapshot['distance_m'] * 3600
                          + snapshot['cruise_speed_kph'] * 1000 * 300 - 1)

@@ -78,7 +78,7 @@ class Stage1BootstrapTests(unittest.TestCase):
         right = new_world("DVO")
         self.assertEqual(encoded(left), encoded(right))
         self.assertTrue(validate_world(left).is_valid, validate_world(left).as_dict())
-        self.assertEqual(left["metadata"]["save_schema_version"], 4)
+        self.assertEqual(left["metadata"]["save_schema_version"], 5)
         right["world_state"]["player"]["ceo_display_name"] = "Changed"
         self.assertEqual(left["world_state"]["player"]["ceo_display_name"], "Avery Chen")
 
@@ -337,15 +337,16 @@ class Stage1TerminalTranscriptTests(unittest.TestCase):
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, source)
-        # This increment permits only the isolated read-only catalog entry point.
+        # Only isolated Stage 1 catalog/acquisition entry points are permitted.
+        allowed = {'game.aircraft_market.reference_catalog', 'game.aircraft_market.acquisition'}
         import ast
         for node in ast.walk(ast.parse(source)):
             if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game.aircraft_market"):
-                self.assertEqual(node.module, "game.aircraft_market.reference_catalog")
+                self.assertIn(node.module, allowed)
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name.startswith("game.aircraft_market"):
-                        self.assertEqual(alias.name, "game.aircraft_market.reference_catalog")
+                        self.assertIn(alias.name, allowed)
 
 
 if __name__ == "__main__":

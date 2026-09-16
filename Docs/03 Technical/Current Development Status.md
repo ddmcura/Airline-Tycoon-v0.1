@@ -1,134 +1,112 @@
 # Current Development Status
 
-Last updated: **2026-09-14**. Replace stale facts; this is not a development diary.
+Last updated: **2026-09-16**. Current snapshot, not operational authorization.
 
 ## Checkpoint and verification
 
-- Catalog verification base: `a4aa42993f7c126d84dd049c406959c9bd704ab7`, the
-  documentation authority cleanup. The results below cover the catalog source
-  introduced with this status update. Its eventual commit is identified by Git
-  history; this pre-commit record does not invent its hash or claim a pending push.
-- The starting tree was clean on `master`, tracking `origin/master`, with local
-  divergence 0/0. During final preparation, `git fetch origin master` and live
-  `git ls-remote --heads origin refs/heads/master` confirmed that the upstream
-  and remote still matched the verification base. Post-push agreement must be
-  checked against the resulting commit, not inferred from this pre-commit check.
-- Last committed gameplay checkpoint: `300a102a04f367228c027849548a1ebee462e58e`,
-  the weekly planner. Its historical verification recorded 517 passing tests.
-- Catalog final verification on 2026-09-14: **531 tests passed in 283.099 seconds**,
-  including **14 new catalog tests**. Focused catalog verification passed all
-  14 in 6.579 seconds. The revised terminal import-boundary check passed separately.
-- Tests used bundled Python 3.12 with temporary test-only `tabulate 0.10.0` on
-  `PYTHONPATH`. The initial sandboxed full attempt was interrupted after a legacy
-  import error because sandboxed Python could not read that temporary dependency.
-  The final full run used approved external execution access and passed. No
-  repository dependency change or machine-specific runtime path was committed.
-- Application compilation and final diff validation passed. These results cover
-  the catalog implementation and tests in this working tree; later documentation
-  updates record those results and do not change the tested source.
+PH 1.0 step 3, basic new-aircraft acquisition, is implemented and verified.
+Verification base: `8d67ab0c2883247d304f6c622ab780b7a547c764`, the completed
+catalog checkpoint (historically 531 tests). The tree began clean on `master`.
+Results below cover the acquisition source/tests in this working tree; Git history
+identifies the resulting commit. This pre-commit snapshot invents no commit hash
+or push outcome. Documentation-only successors do not invalidate source evidence.
 
-### Recorded catalog verification commands (2026-09-14)
+On 2026-09-16, `git fetch origin master`, local divergence inspection and live
+`git ls-remote --heads origin refs/heads/master` confirmed the remote still
+matched that base, with 0/0 local divergence before the milestone commit.
 
-| Command | Result |
+| Verification command | Result, 2026-09-16 |
 | --- | --- |
-| `python -B -m unittest discover -s tests -p test_stage1_aircraft_catalog.py` | 14 passed, 6.579 seconds |
-| `python -B -m unittest discover -s tests` | 531 passed, 283.099 seconds |
+| `python -B -m unittest discover -s tests -p test_stage1_aircraft_acquisition.py` | 18 passed in 48.598 seconds |
+| `python -B -m unittest discover -s tests` | 549 passed in 349.439 seconds |
 | `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 |
-| Local Markdown link/anchor validator over changed and new documents | Passed |
+| Local Markdown link/anchor validator over changed/new documents | Passed |
 | `git diff --check` | Exit 0 |
+
+Tests used bundled Python 3.12. The full run used the existing temporary test-only
+`tabulate 0.10.0` dependency on `PYTHONPATH` with approved external execution
+access. The initial run exposed missing sandbox dependency access and two stale
+terminal expectations (the formerly unavailable purchase message and catalog-only
+import guard); those were corrected without changing approved gameplay formulas.
+No machine-specific dependency paths or tooling artifacts are committed.
 
 ## Implemented and available
 
-Milestones 0–3 establish state/schema, immutable IDs, deterministic clock/events,
-and dated-flight publication. Milestone 4, 4.5A, and 4.5B-1/2/3 establish compact
-Model 4 demand and market-pack lifecycle. Milestone 5A–D completes direct-Economy
-Booking; Milestone 6 completes minimal fulfilment and finance; Milestone 7 adds
-the in-memory terminal. See the [existing roadmap](Stage%201%20Implementation%20Roadmap.md).
+The state/schema, immutable IDs, deterministic clock/events and dated publication
+foundation supports compact Model 4 demand, market-pack lifecycle, direct-Economy
+Booking, timed fulfilment and finance. The in-memory terminal exposes the complete
+schedule-to-Booking-to-flight-to-finance loop. PH recovery supplies 43 active
+commercial airports, 1,806 directional markets, selectable starting base, market
+research, versioned air suitability and destination-only tourism.
 
-Recovery Batch 1 supplies 43 active PH airports, 1,806 directional markets,
-home-base selection, market research and input/prompt fixes. Batch 2 supplies
-versioned air-suitability curves, ground-network selection and destination-only
-tourism while preserving Model 4 and processed history. See the
-[Decision Register](Decision%20Register.md) and [terminal contract](Stage%201%20Terminal%20Harness%20Technical%20Specification.md).
+`python -m app.terminal` starts a paused session with a free 180-seat A320-200.
+Weekly Scheduler supports one-way chains, explicit return/positioning, custom
+local times, day copy, undo, bounded repeat, Monday-week views and atomic
+publication. It validates unpublished recurrences without extending the actual
+publication window. Quick Rotation remains the starter compatibility path.
+Explicit next-event, day, positive-duration/multi-day and exact UTC-target
+advancement exist. PHP/EUR conversion remains presentation-only.
 
-`python -m app.terminal` creates an airline with a free A320-200 and USD cash,
-offers the weekly scheduler under option 3 and the compatible fixed quick rotation
-under option 10. The weekly scheduler drafts one-way chains, optional earliest
-returns and explicitly confirmed positioning; shows Monday–Sunday reserved blocks;
-supports continued scheduling from the last stop, custom day/time, day copy, undo,
-and atomic Save with optional bounded weekly repeat. Save checks unpublished
-recurrences through the configured horizon in a disposable candidate without
-extending the actual publication window. Day copy replaces the draft only after
-every copied leg succeeds. Validation rejects occurrences beyond their retained
-revision's inclusive recurrence end date. These corrections add no schema fields
-and change no approved calibration. It
-accumulates Bookings, operates timed flights, and reports finance/fleet/markets.
-Explicit next-event, day, positive duration (including multiple days), and exact
-UTC-target advancement exist. PHP/EUR conversion is presentation-only.
+Option 11 browses the immutable 20-model aircraft catalog. Option 12 provides
+manufacturer/model selection, delivery choice from existing airline bases/hubs,
+price/remaining-cash preview and confirmation. One purchase creates one parked
+individual aircraft immediately, posts a balanced cash/aircraft-assets journal,
+and leaves time unchanged. Exact-balance purchases are valid. Stale/tampered
+previews reject; exact successful-command replay does not create a second asset.
+Candidate failures preserve IDs, money, RNG and all other authority.
 
-PH 1.0 step 2 now supplies the [approved aircraft catalog](Aircraft%20Catalog%20Technical%20Specification.md):
-5 manufacturer groups, 4 models each, maximum Economy layouts, separate integer
-USD reference prices, calibrated reference range/cruise inputs, source notes and
-nullable historical production years. Option 11 browses manufacturers and models
-without changing the world or session dirty flag. The isolated catalog loader
-requires an explicit version, rejects malformed/duplicate-key content and checks
-an immutable semantic digest. No legacy purchase/lease flow is connected.
+Schema 5 adds compact purchased-aircraft configuration and acquisition journal
+provenance. Explicit 4-to-5 migration changes only schema version; existing
+starter/published/booked/processed history is not backfilled or rewritten.
+Delivery sets physical location separately from the already-required home base.
+PH registrations use a seeded expanded numeric namespace with deterministic
+collision probing, independent of immutable aircraft identity.
 
-## Not yet available and limitations
+Purchased aircraft use installed maximum Economy capacity, catalog cruise speed,
+scalar-range eligibility and versioned V2 timing. Total stand turnaround is counted
+once: 30 minutes for turboprops/regional jets/narrowbodies and 45 for widebodies;
+taxi remains separate. Starter V1 activity timing and historical witnesses remain
+unchanged. Deadheads retain zero passengers/revenue and existing fixed costs.
+Fleet display/selection uses derived pages; finance shows aircraft assets and
+purchase journals separately from operating contribution.
 
-- No authoritative file save/load: exiting loses the session. In-memory
-  serialization/migrations exist; legacy save menus do not fill this gap.
-- No graphical or existing-published-plan editor, purchase/delivery, leasing,
-  lease-to-own, used-market transactions, or maintenance expenses.
-  Legacy market/fleet modules are migration inputs, not completed Stage 1 features.
-- Clock modes and explicit-duration kernel APIs exist, but no continuous 7×
-  runtime or interactive running-session pause/resume controls exist.
-- No AI, connecting Booking, detailed disruptions, or detailed airport operations.
-  Starter aircraft, direct Economy and simplified revision-1
-  operating costs are accepted harness limits. Batch 2 values are gameplay calibration.
-- Planning supports the starter A320-200 timing profile and all 43 PH airports.
-  Handling/taxi ranges are explicit versioned initial gameplay calibration;
-  they are not real measured airport performance. Unknown profiles reject.
-  Maximum handling/taxi allowances are reserved; random live handling is absent.
-  Timed deadheads use zero passengers/revenue and existing fixed flight cost.
-  Whole-world candidate copying/validation remains a
-  documented scale limitation requiring profiling before broader runtime work.
+See the [acquisition specification](Aircraft%20Acquisition%20Technical%20Specification.md),
+[canonical schema](Stage%201%20State%20Schema.md),
+[Decision Register](Decision%20Register.md) and
+[roadmap](Stage%201%20Implementation%20Roadmap.md).
 
-- Catalog production-date coverage is intentionally incomplete: only the A320neo
-  component-production start (2012) and 787-9 final-assembly start (2013) are
-  recorded; other starts and all end years remain null/unestablished with notes.
-  Null does not imply current production. Dates never gate catalog availability.
-- Catalog ranges are configuration-dependent references, not full-load dispatch
-  guarantees. Prices/cruise speeds are gameplay calibration. No catalog models
-  become operational here; the starter remains the 180-seat A320-200. Handling
-  data/math, schema 4, published history, and scenario inputs are unchanged.
+## Limitations and remaining work
 
-## Approved PH 1.0 scope and next action
+- No authoritative file save/load: exiting loses the session. In-memory state
+  validation, JSON-compatible serialization and explicit migrations exist.
+- No continuous 7x runtime or interactive running-session pause/resume controls.
+- No leasing, lease-to-own, used sales, manufacturer queues/delays, financing,
+  maintenance expenses, depreciation or editable cabin configuration.
+- No AI, connecting Booking, detailed disruptions, graphical planner or editing
+  of already-published plans. Legacy modules remain migration evidence.
+- Starting-capital balancing is unchanged. The current PH scenario has USD
+  1 million; legacy Easy difficulty has a 500-million setting. Neither observation
+  establishes a newly approved design target. Acquisition tests supply funds
+  independently. Current new games offer their one established base for delivery.
+- PH scalar range is a temporary gameplay ceiling, not a full-load guarantee.
+  Airport/runway compatibility is deferred: physically unsuitable airport/aircraft
+  combinations are not yet rejected. Payload-range/cargo/weight remain future work.
+- Fulfilment cost revision 1 remains simplified and unchanged for purchased models.
+  Production-date metadata remains incomplete and never gates availability.
+- Compact records, derived pages and expanded registration avoid small fleet caps;
+  world copying/hashing/validation, registration scans and fleet sorting remain
+  scale limitations. Interactive performance at tens of thousands of aircraft has
+  not been established and needs profiling before broad runtime integration.
 
-Follow the [PH 1.0 release sequence](Stage%201%20Implementation%20Roadmap.md#philippines-10-release-sequence):
-broader weekly scheduling; manufacturers/curated catalog; basic new-aircraft
-acquisition; continuous deterministic 7× runtime with manual pause/resume and
-integration of existing multi-day advancement; leasing/lease-to-own/used aircraft;
-simple versioned maintenance expenses; save/load; integrated PH 1.0 verification.
-AI follows the completed and verified player-operated Philippines simulation.
-Leasing, lease-to-own, used aircraft and maintenance may follow the first
-minimum-playable checkpoint but remain PH 1.0 requirements. Save/load follows
-sufficiently established main authoritative gameplay state and runtime.
+## Next action
 
-The catalog milestone implementation and verification are complete. The next
-milestone is **basic new-aircraft acquisition**. Its bounded specification must
-settle atomic purchases and affordability, fleet creation/registration, delivery
-or entry into service, and binding catalog versions to individual aircraft
-configuration. Model-specific capacity/timing integration must replace the
-planner's fixed 180-seat assumption before additional models can operate.
+The next roadmap milestone is **PH 1.0 step 4: continuous deterministic runtime
+at 7x, manual pause/resume and integration of existing multi-day advancement**.
+Develop and approve its bounded contract before implementing it. It must keep
+wall-clock pacing runtime-only, retain ordered whole-second commands, profile
+realistic PH workloads and prove equivalent continuation across pacing/stepping.
 
-The user prefers simplified fixed handling (30 minutes narrowbody, 45 minutes
-widebody) for later integration; the final catalog scope explicitly left
-scheduling unchanged. Configurable cabin area, seat dimensions/weight/comfort,
-Business/suites and payload/cargo-derived range remain future design boundaries.
-These preferences do not authorize implementing later milestones now.
-
-No unrelated changes were present during final review. The intended milestone
-contains only catalog data, validation/lookup, terminal browsing, tests and
-authoritative documentation. No scheduling or existing scenario changes are
-included. Actual commit/push outcomes are reported after those operations.
+Leasing/lease-to-own/used aircraft, simplified maintenance, safe disk save/load
+and integrated PH verification follow in the existing provisional order. AI
+follows the verified player-operated PH simulation. This status authorizes none
+of those future increments. No unrelated changes were found in final review.

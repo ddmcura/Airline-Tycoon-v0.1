@@ -130,8 +130,27 @@ class Stage1Session:
     def overview(self):
         return project_airline_overview(self.world, self.airline_id)
 
-    def fleet(self):
-        return project_airline_fleet(self.world, self.airline_id)
+    def fleet(self, *, offset=0, limit=20):
+        return project_airline_fleet(self.world, self.airline_id, offset=offset, limit=limit)
+
+    def delivery_locations(self):
+        from game.fleet_management.acquisition import delivery_locations
+        ids = delivery_locations(self.world['world_state'], self.airline_id)
+        return tuple(a for a in self.airports() if a['airport_id'] in ids)
+
+    def preview_purchase(self, model_id, delivery_airport_id):
+        from game.aircraft_market.acquisition import preview_purchase
+        return preview_purchase(self.world, airline_id=self.airline_id,
+            model_id=model_id, catalog_version=PH_AIRCRAFT_CATALOG_VERSION,
+            delivery_airport_id=delivery_airport_id)
+
+    def purchase(self, preview):
+        from game.aircraft_market.acquisition import purchase_aircraft
+        before = self.authoritative_bytes()
+        aircraft_id = purchase_aircraft(self.world, preview)
+        if before != self.authoritative_bytes():
+            self.changed = True
+        return aircraft_id
 
     def flights(self):
         return project_airline_flights(self.world, self.airline_id, limit=20)

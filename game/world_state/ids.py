@@ -57,7 +57,7 @@ def allocate_id(envelope, entity_type):
         metadata = envelope.get("metadata") if type(envelope) is dict else None
         if (
             type(metadata) is not dict
-            or metadata.get("save_schema_version") not in (3, 4)
+            or metadata.get("save_schema_version") not in (3, 4, 5)
         ):
             raise ValueError(
                 "booking_checkpoint IDs require save schema version 3"

@@ -1,5 +1,15 @@
 # Airline Tycoon - Flight Scheduling Architecture
 
+## PH acquisition timing successor (2026-09-16)
+
+The [approved acquisition increment](../03%20Technical/Aircraft%20Acquisition%20Technical%20Specification.md)
+adds purchased-aircraft installed capacity and a versioned scalar-range eligibility
+boundary. V2 timing reserves total 30/45-minute stand turnaround once, with taxi
+separate. This supersedes activity-based handling only for newly acquired catalog
+aircraft. Existing V1 snapshots and starter compatibility remain unchanged.
+Payload-range and airport/runway performance await later contracts.
+
+
 ## Approved PH weekly planner increment — 2026-09-07
 
 This bounded increment supersedes the fixed-round-trip-only terminal restriction

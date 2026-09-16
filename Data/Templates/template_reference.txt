@@ -1,4 +1,35 @@
-# Aircraft catalog external reference (no world or save-schema change)
+# Schema 5 acquisition extension (canonical schema prevails)
+aircraft.configuration (purchased aircraft only):
+  contract: PH_MAX_ECONOMY_V1
+  catalog_version: exact immutable catalog version
+  economy_capacity: positive integer maximum Economy layout
+  performance_contract: PH_SCALAR_RANGE_V1
+aircraft.model_reference: catalog model_id for purchased aircraft
+transactions purchase journal:
+  transaction_id, airline_id, occurred_at_utc, description, currency, entries,
+  source_type: AIRCRAFT_PURCHASE
+  source_id: aircraft_id
+  command_id: globally unique canonical purchase command text
+  request_fingerprint: lowercase SHA-256 hex
+  delivery_airport_id: selected existing airline base/hub
+Entries: +catalog price aircraft_assets, -catalog price cash; USD integer minor.
+Home remains existing independent home_airport_id; delivery sets current location.
+Migration 4->5 changes only version; no backfilled purchases/configuration.
+planning_timing V2:
+  contract: PH_SCHEDULING_TIMING_V2
+  profile_version: ph-acquisition-timing-v1
+  model_reference: exact catalog model ID
+  catalog_version: exact immutable catalog version
+  performance_contract: PH_SCALAR_RANGE_V1
+  distance_m, cruise_speed_kph, turnaround_seconds
+  taxi_out_seconds: [minimum, maximum]
+  taxi_in_seconds: [minimum, maximum]
+Total stand turnaround reserved once before off-block: 1800 seconds, widebody 2700.
+Taxi separate. Scalar range through versioned eligibility; V1 unchanged.
+PH registration: seeded deterministic RP-C plus 12-digit suffix; collision probing.
+No additional authoritative summaries, RNG cursor, or physical reference copies.
+
+# Aircraft catalog external reference (catalog milestone added no world fields)
 # Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
 aircraft_catalog:
   contract: AIRCRAFT_CATALOG_V1

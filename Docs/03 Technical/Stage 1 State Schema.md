@@ -1,5 +1,66 @@
 # Stage 1 State Schema
 
+## Approved PH acquisition increment (schema 5)
+
+Schema 5 extends schema 4 without rewriting existing aircraft, schedules,
+bookings, journals, demand or event history. Explicit 4-to-5 migration changes
+only the schema version. Older aircraft retain their compatibility behavior;
+no acquisition or configuration provenance is inferred for them.
+
+Purchased aircraft retain the existing fields. `model_reference` is the exact
+catalog model ID. They additionally require `configuration`, exactly:
+`contract: PH_MAX_ECONOMY_V1`, `catalog_version`, `economy_capacity`, and
+`performance_contract: PH_SCALAR_RANGE_V1`. Capacity is a positive integer equal
+to that version's maximum Economy layout. Reference binding resolves explicitly;
+unknown or changed published content rejects. No physical model data is copied
+into each aircraft. Configuration editing is not supported.
+
+Acquisition provenance is an existing `transactions` journal with `source_type:
+AIRCRAFT_PURCHASE`, `source_id` equal to the immutable aircraft ID, and exactly
+the standard transaction fields plus `command_id`, `request_fingerprint`, and
+`delivery_airport_id`. Command IDs are nonempty canonical strings, unique across
+purchase journals; request fingerprints are lowercase SHA-256 hex. Each purchased
+aircraft has exactly one purchase journal. Its two ordered entries debit
+`aircraft_assets` and credit `cash` for the bound catalog USD price. Currency is
+USD; timestamp is the command's exact simulation UTC second. No expense/revenue,
+delivery event or elapsed time is created. Finance revision advances once.
+
+Delivery selection is from the owning airline's base/hub airport IDs and sets
+initial `current_airport_id` only. The independently required `home_airport_id`
+uses the airline's first base in immutable-ID order; delivery does not reassign
+it. New aircraft enter `PARKED`. No new base/hub relationship is introduced.
+Registration is a display value, globally unique at allocation. PH registration
+uses RP-C plus a seeded SHA-256-derived 12-digit suffix (deterministic collision
+probing); this game namespace is not a real registration-format assertion.
+The seed, immutable aircraft ID and home country define the starting draw;
+linear collision probing avoids consuming
+another subsystem's RNG stream. No registration cursor or summary is persisted.
+
+Schema-5 acquired-aircraft planning requires `PH_SCHEDULING_TIMING_V2` snapshots
+with exactly `contract`, `profile_version: ph-acquisition-timing-v1`,
+`model_reference`, `catalog_version`, `performance_contract: PH_SCALAR_RANGE_V1`,
+`distance_m`, `cruise_speed_kph`, `turnaround_seconds`, `taxi_out_seconds`, and
+`taxi_in_seconds`. Taxi fields retain integer min/max pairs; distance is an
+integer rounded upward to metres for range eligibility. Cruise and scalar range
+resolve from the immutable model; range is tested through the feasibility
+boundary. Flight time retains upward five-minute rounding. Turnaround is 1800
+seconds for turboprops/regional jets/narrowbodies and 2700 for widebodies. Reserve
+it once before off-block; no additional post-arrival handling or taxi-to-stand
+is added. Taxi-out/in remain in gate-to-gate time. First departure reserves the
+same preparation allowance. V1 snapshots and starter behavior remain unchanged.
+
+Preview/confirmation data and whole-world freshness fingerprints are runtime
+values. A successful journal retains the request fingerprint for idempotent
+replay; mismatched reuse rejects. Commit uses a validated isolated candidate,
+so failures preserve money, aircraft, IDs, events, RNG and time. Fleet lists,
+pagination, counts and affordability are derived. Whole-world validation/copying
+remains a scale limitation; there is no fixed fleet or registration pool limit.
+
+Scalar performance and timing contracts are temporary PH 1.0 boundaries. Future
+versioned configuration/payload-range and airport compatibility can replace the
+eligibility provider without rewriting history. Payload, cargo weight, runway
+requirements, maintenance, depreciation, leases and disk saving are not added.
+
 ## Approved aircraft catalog reference contract
 
 The PH 1.0 catalog is versioned external reference authority, not a new world
@@ -42,7 +103,8 @@ value; lookups and sorted projections are detached. No implicit latest-version
 fallback, alias matching, live network fetch, or missing-model substitution exists.
 Production dates do not filter v1.0 availability. Reference ranges are illustrative,
 not full-load dispatch guarantees; prices are game calibration, not transactions.
-Individual-aircraft configuration/version binding remains acquisition work.
+Individual-aircraft configuration/version binding was outside the catalog
+milestone; schema 5 defines it in the acquisition increment above.
 Published reference versions must not be edited in place; content changes require
 a new version. The shipped version has a checked semantic content digest.
 

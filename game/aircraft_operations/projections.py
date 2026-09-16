@@ -178,14 +178,19 @@ def project_airline_flights(envelope, airline_id, *, limit=20, statuses=None):
     ])
 
 
-def project_airline_fleet(envelope, airline_id, *, limit=20):
+def project_airline_fleet(envelope, airline_id, *, limit=20, offset=0):
     if isinstance(limit, bool) or not isinstance(limit, int) or not 0 <= limit <= 100:
         raise ValueError("limit must be an integer from 0 through 100")
+    if type(offset) is not int or offset < 0:
+        raise ValueError('offset must be a non-negative integer')
     world = _validated_world(envelope)
     if world is None or airline_id not in world["airlines"]:
         return None
     rows = []
-    for aircraft_id, aircraft in sorted(world["aircraft"].items()):
+    selected = sorted(key for key, aircraft in world['aircraft'].items()
+                      if aircraft['airline_id'] == airline_id)[offset:offset + limit]
+    for aircraft_id in selected:
+        aircraft = world['aircraft'][aircraft_id]
         if aircraft["airline_id"] != airline_id:
             continue
         rows.append({
@@ -254,6 +259,7 @@ def project_recent_flight_results(envelope, airline_id, *, limit=10):
         "airline_id": airline_id,
         "currency": airline["base_currency"],
         "cash_minor": balances["cash"],
+        "aircraft_assets_minor": balances["aircraft_assets"],
         "unflown_ticket_liability_minor": balances["unflown_tickets"],
         "passenger_revenue_minor": balances["passenger_revenue"],
         "operating_expenses_minor": balances["operating_expenses"],

@@ -56,6 +56,24 @@ class MigrationResult:
         return self.migrated_world
 
 
+def migrate_schema_4_to_5(envelope):
+    """Preserve all historical facts; acquisition authority starts empty."""
+    metadata = envelope.get('metadata') if type(envelope) is dict else None
+    source = metadata.get('save_schema_version') if type(metadata) is dict else None
+    validation = validate_world(envelope)
+    if not validation.is_valid:
+        return MigrationResult('REJECTED', source, 5, validation.errors)
+    if source != 4:
+        return MigrationResult('REJECTED', source, 5,
+                               (_issue('INVALID_SOURCE_SCHEMA', '$', 'migration requires schema 4'),))
+    candidate = deepcopy(envelope)
+    candidate['metadata']['save_schema_version'] = 5
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return MigrationResult('REJECTED', source, 5, validation.errors)
+    return MigrationResult('COMPLETED', source, 5, migrated_world=candidate)
+
+
 def _issue(code, path, message, entity_type=None, entity_id=None):
     return ValidationIssue(code, path, message, entity_type, entity_id)
 

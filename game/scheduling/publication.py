@@ -429,9 +429,9 @@ def _occurrence_record(envelope, schedule, revision, local_date, *, flight_id=No
         "published_at_utc": envelope["simulation"]["time_utc"],
         "superseded_by_schedule_revision": None,
     }
-    if envelope.get("metadata", {}).get("save_schema_version") in (3, 4):
+    if envelope.get("metadata", {}).get("save_schema_version") in (3, 4, 5):
         record["inventory_revision"] = 0
-    if envelope.get("metadata", {}).get("save_schema_version") == 4:
+    if envelope.get("metadata", {}).get("save_schema_version") in (4, 5):
         record["operation_revision"] = 0
     return record
 
@@ -447,7 +447,7 @@ def _departure_payload(flight):
 
 
 def _reconcile_schema4_departure_events(candidate):
-    if candidate.get("metadata", {}).get("save_schema_version") != 4:
+    if candidate.get("metadata", {}).get("save_schema_version") not in (4, 5):
         return
     world = candidate["world_state"]
     now = candidate["simulation"]["time_utc"]
@@ -541,7 +541,7 @@ def _continuity_conflicts(envelope):
     now = envelope["simulation"]["time_utc"]
     conflicts = []
     future_by_aircraft = {aircraft_id: [] for aircraft_id in world["aircraft"]}
-    schema4 = envelope.get("metadata", {}).get("save_schema_version") == 4
+    schema4 = envelope.get("metadata", {}).get("save_schema_version") in (4, 5)
     for flight in world["dated_flights"].values():
         aircraft_id = flight["planned_aircraft_id"]
         if (
@@ -805,7 +805,7 @@ def publish_occurrences_through(
             )
         if wanted is None:
             if flight["status"] != "SUPERSEDED":
-                if candidate["metadata"]["save_schema_version"] == 4:
+                if candidate["metadata"]["save_schema_version"] in (4, 5):
                     flight["operation_revision"] += 1
                     set_operation_revision(
                         candidate, flight_id, flight["operation_revision"]
@@ -827,7 +827,7 @@ def publish_occurrences_through(
         if "operation_revision" in flight:
             wanted["operation_revision"] = flight["operation_revision"]
         if flight != wanted:
-            if candidate["metadata"]["save_schema_version"] == 4:
+            if candidate["metadata"]["save_schema_version"] in (4, 5):
                 wanted["operation_revision"] += 1
                 set_operation_revision(
                     candidate, flight_id, wanted["operation_revision"]
@@ -866,7 +866,7 @@ def publish_occurrences_through(
             )
         flight["dated_flight_id"] = flight_id
         flights[flight_id] = flight
-        if candidate["metadata"]["save_schema_version"] == 4:
+        if candidate["metadata"]["save_schema_version"] in (4, 5):
             candidate["simulation"]["operation_revisions"][flight_id] = 0
         created.append(flight_id)
 
