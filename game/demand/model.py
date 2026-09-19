@@ -903,13 +903,13 @@ def _cohort_record(envelope, indexes, market_id, cohort_date, multipliers):
 
 
 def _wrap_model3_cohort(envelope, record):
-    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4, 5):
+    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4, 5, 6):
         return {"contract": MODEL3_PROCESSED_COHORT_V1, "payload": record}
     return record
 
 
 def _unwrap_model3_cohort(envelope, record):
-    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4, 5):
+    if envelope.get("metadata", {}).get("save_schema_version") in (2, 3, 4, 5, 6):
         return record["payload"]
     return record
 
@@ -1068,6 +1068,7 @@ def resolve_active_daily_cohorts(
     activation_end_utc=None,
     activation_providers=None,
     dated_flight_indexes=None,
+    _validated=False,
 ):
     """Resolve only today's markets activated by published usable service.
 
@@ -1092,11 +1093,12 @@ def resolve_active_daily_cohorts(
             cohort_date,
             issues=(DemandIssue("INVALID_MULTIPLIERS", "must be a market mapping"),),
         )
-    validation = validate_world(envelope)
-    if not validation.is_valid:
-        return WorldCohortResult(
-            "REJECTED", cohort_date, issues=_validation_issues(validation)
-        )
+    if not _validated:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            return WorldCohortResult(
+                "REJECTED", cohort_date, issues=_validation_issues(validation)
+            )
     if envelope["simulation"]["configuration"]["demand"]["model_version"] == MODEL4_DEMAND_MODEL_VERSION:
         from .model4 import resolve_model4_active_daily_cohorts
         return resolve_model4_active_daily_cohorts(
@@ -1108,6 +1110,7 @@ def resolve_active_daily_cohorts(
             activation_end_utc=activation_end_utc,
             activation_providers=activation_providers,
             dated_flight_indexes=dated_flight_indexes,
+            _validated=True,
         )
     simulation_date = envelope["simulation"]["time_utc"][:10]
     if cohort_date != simulation_date:

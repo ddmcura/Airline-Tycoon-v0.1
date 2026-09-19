@@ -13,6 +13,7 @@ from .ids import parse_entity_id
 from .booking_fingerprint import new_booking_configuration
 from .fulfilment_fingerprint import new_flight_fulfilment_configuration
 from .schema import (
+    AIRCRAFT_MARKET_CONFIGURATION,
     DEFAULT_MARKET_PACK_CONFIGURATION,
     DEFAULT_TRAVEL_SCOPE_CONFIGURATION,
     MODEL3_PROCESSED_COHORT_V1,
@@ -72,6 +73,42 @@ def migrate_schema_4_to_5(envelope):
     if not validation.is_valid:
         return MigrationResult('REJECTED', source, 5, validation.errors)
     return MigrationResult('COMPLETED', source, 5, migrated_world=candidate)
+
+
+def migrate_schema_5_to_6(envelope):
+    """Create deterministic aircraft-market authority without rewriting history."""
+    metadata = envelope.get("metadata") if type(envelope) is dict else None
+    source = metadata.get("save_schema_version") if type(metadata) is dict else None
+    validation = validate_world(envelope)
+    if not validation.is_valid:
+        return MigrationResult("REJECTED", source, 6, validation.errors)
+    if source != 5:
+        return MigrationResult("REJECTED", source, 6,
+            (_issue("INVALID_SOURCE_SCHEMA", "$", "migration requires schema 5"),))
+    try:
+        candidate = deepcopy(envelope)
+        candidate["metadata"]["save_schema_version"] = 6
+        candidate["simulation"]["configuration"]["aircraft_market"] = deepcopy(
+            AIRCRAFT_MARKET_CONFIGURATION)
+        world = candidate["world_state"]
+        world["aircraft_market_state"] = None
+        world["aircraft_market_counterparties"] = {}
+        world["aircraft_lease_offers"] = {}
+        world["used_aircraft_listings"] = {}
+        world["aircraft_contracts"] = {}
+        allocator = candidate["deterministic_state"]["id_allocator"]["next_by_type"]
+        for entity_type in ("aircraft_market", "market_counterparty", "lease_offer",
+                            "used_listing", "airframe", "aircraft_contract"):
+            allocator[entity_type] = 1
+        from game.aircraft_market.step5 import initialize_market
+        initialize_market(candidate)
+    except (KeyError, OverflowError, TypeError, ValueError) as exc:
+        return MigrationResult("REJECTED", source, 6,
+            (_issue("migration_failed", "$", f"schema-6 candidate construction failed: {exc}"),))
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return MigrationResult("REJECTED", source, 6, validation.errors)
+    return MigrationResult("COMPLETED", source, 6, migrated_world=candidate)
 
 
 def _issue(code, path, message, entity_type=None, entity_id=None):

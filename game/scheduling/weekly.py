@@ -266,6 +266,26 @@ class WeeklyDraft:
         self._legs = []
         return published
 
+    def save_current(self, envelope, *, repeat_until=None):
+        """Revalidate explicit draft legs against current authority, atomically.
+
+        Runtime navigation may advance the world. Never overwrite it with the
+        old draft snapshot, shift departures, or silently add positioning.
+        """
+        current = WeeklyDraft(envelope, airline_id=self.airline_id,
+                              aircraft_id=self.aircraft_id)
+        for leg in self._legs:
+            current.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                        departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
+                        deadhead=leg['service_type'] == 'DEADHEAD')
+            if current._legs[-1]['planning_timing'] != leg['planning_timing']:
+                raise ValueError('STALE_DRAFT: aircraft timing changed; reopen the planner')
+        result = current.save(envelope, repeat_until=repeat_until)
+        self._base = current._base
+        self._fingerprint = current._fingerprint
+        self._legs = []
+        return result
+
     def week_rows(self, week_date):
         start = monday(date.fromisoformat(week_date))
         zone = load_named_timezone('Asia/Manila')

@@ -4,6 +4,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from game.booking import (
+    prepare_daily_booking_checkpoint,
     prepare_daily_booking_allocation,
     process_daily_booking_checkpoint,
 )
@@ -48,6 +49,19 @@ def checkpoint_arguments(world):
 
 
 class DailyBookingCheckpointTests(unittest.TestCase):
+    def test_preparation_runs_shopping_once_and_derives_inventory_witness(self):
+        import game.booking.allocation as allocation
+
+        world, _market_id, _flight_id = schema3_world()
+        original = allocation.prepare_daily_booking_shopping
+        with patch.object(allocation, "prepare_daily_booking_shopping",
+                          wraps=original) as shopping:
+            prepared = prepare_daily_booking_checkpoint(world)
+
+        self.assertTrue(prepared.succeeded, prepared.issues)
+        self.assertEqual(shopping.call_count, 1)
+        self.assertTrue(prepared.arguments["expected_inventory_revisions"])
+
     def test_atomic_checkpoint_persists_capacity_finance_outcomes_and_event(self):
         world, _market_id, flight_id = schema3_world()
         airline_id = world["world_state"]["dated_flights"][flight_id]["airline_id"]

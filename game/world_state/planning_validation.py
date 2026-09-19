@@ -1,7 +1,6 @@
 """Persistent weekly planning snapshot and reservation validation."""
 
 from datetime import date
-from game.scheduling.timing import timing_bounds, flight_reservation
 from .timestamps import parse_canonical_utc
 
 ACTIVITIES = {'baggage_loading', 'catering', 'refueling', 'cleaning',
@@ -69,6 +68,7 @@ def validate_timing(snapshot, catalogs=None):
 
 def validate_planning(envelope):
     """Called only after baseline structure validation succeeds."""
+    from game.scheduling.timing import timing_bounds, flight_reservation
     world = envelope['world_state']
     catalogs = {}
     for schedule in world['schedule_definitions'].values():
@@ -95,7 +95,7 @@ def validate_planning(envelope):
                 raise ValueError('V2 timing requires purchased aircraft configuration')
             until = revision['recurrence'].get('until_local_date')
             if until is not None:
-                if envelope['metadata']['save_schema_version'] not in (4, 5):
+                if envelope['metadata']['save_schema_version'] not in (4, 5, 6):
                     raise ValueError('bounded planner recurrence requires schema 4')
                 if (type(until) is not str or date.fromisoformat(until).isoformat() != until
                         or until < revision['effective_from_local_date']):
@@ -104,7 +104,7 @@ def validate_planning(envelope):
                 raise ValueError('recurrence end date cannot be null')
             if 'planning_timing' in revision:
                 validate_timing(revision['planning_timing'], catalogs)
-                if envelope['metadata']['save_schema_version'] not in (4, 5):
+                if envelope['metadata']['save_schema_version'] not in (4, 5, 6):
                     raise ValueError('timed planning requires schema 4')
                 model = world['aircraft'][revision['planned_aircraft_id']]['model_reference']
                 if revision['planning_timing']['model_reference'] != model:

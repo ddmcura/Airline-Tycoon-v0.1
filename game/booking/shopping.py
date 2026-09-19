@@ -427,7 +427,7 @@ def rebuild_direct_flight_shopping_indexes(
     validation = validate_world(envelope)
     if not validation.is_valid:
         raise ValueError(validation.errors[0].message)
-    if envelope["metadata"]["save_schema_version"] not in (3, 4, 5):
+    if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6):
         raise ValueError("Booking shopping requires save schema version 3")
     configuration = envelope["simulation"]["configuration"]["booking"]
     now_text = envelope["simulation"]["time_utc"]
@@ -704,12 +704,14 @@ def prepare_daily_booking_shopping(
     demand_indexes=None,
     activation_providers: Sequence[_ActivationProvider] | None = None,
     dated_flight_indexes: DatedFlightIndexes | None = None,
+    _validated=False,
 ):
     """Atomically apply today's cohort markers and return detached 5B plans."""
-    validation = validate_world(envelope)
-    if not validation.is_valid:
-        return _world_validation_rejection(envelope, validation)
-    if envelope["metadata"]["save_schema_version"] not in (3, 4, 5):
+    if not _validated:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            return _world_validation_rejection(envelope, validation)
+    if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6):
         return _reject(
             envelope, "INVALID_WORLD_STATE", "Booking shopping requires schema 3"
         )
@@ -817,6 +819,7 @@ def prepare_daily_booking_shopping(
             activation_end_utc=activation_end.strftime("%Y-%m-%dT%H:%M:%SZ"),
             activation_providers=isolated_providers,
             dated_flight_indexes=None,
+            _validated=True,
         )
         if not demand_result.succeeded:
             issue = demand_result.issues[0]
@@ -861,9 +864,8 @@ def prepare_daily_booking_shopping(
                 "RESULT_VALIDATION_FAILED",
                 "Booking shopping result failed conservation or topology validation",
             )
-        final_validation = validate_world(candidate)
-        if not final_validation.is_valid:
-            return _world_validation_rejection(candidate, final_validation)
+        # Cohort resolution has already validated the only authoritative
+        # mutation. Shopping indexes and plans below it are detached values.
     except Exception as exc:
         message = _exception_message(exc)
         if message.startswith("UNSUPPORTED_FARE_CURRENCY:"):

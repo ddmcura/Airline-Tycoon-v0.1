@@ -6,6 +6,8 @@ from datetime import date, timedelta
 from copy import deepcopy
 from decimal import Decimal, ROUND_HALF_EVEN
 import sys
+import time
+from collections import deque
 
 from game.world_state import Stage1BootstrapError
 
@@ -24,10 +26,67 @@ class _EndOfInput(Exception):
 
 
 class _Terminal:
-    def __init__(self, input_stream, output_stream, session):
+    def __init__(self, input_stream, output_stream, session, *, input_source=None):
         self.input = input_stream
         self.output = output_stream
         self.session = session
+        self.input_source = input_source
+        self.pending_input = deque()
+        self.interrupt_requested = False
+        self.last_status = 0
+        self.last_diagnostic = None
+        self.session.on_advance_boundary = self.advance_boundary
+
+    def clock_status(self):
+        if self.session.active:
+            clock = self.session.world['simulation']
+            self.line(f"Clock: {clock['time_utc']} | {clock['clock_state']} | 7x | /pause /resume /status")
+            runtime = self.session.runtime
+            if runtime and runtime.diagnostic != self.last_diagnostic:
+                if runtime.diagnostic:
+                    self.line(runtime.diagnostic)
+                self.last_diagnostic = runtime.diagnostic
+
+    def read_answer(self):
+        if self.pending_input:
+            return self.pending_input.popleft()
+        if self.input_source is None:
+            return self.input.readline()
+        while True:
+            if self.interrupt_requested:
+                self.interrupt_requested = False
+                if self.session.active:
+                    self.session.pause()
+                raise KeyboardInterrupt
+            value = self.input_source.poll(0)
+            if value is not None:
+                if value and value.strip().lower() != '/pause':
+                    self.session.pump()
+                return value
+            self.session.pump()
+            if time.monotonic() - self.last_status >= 1:
+                self.clock_status()
+                self.output.flush()
+                self.last_status = time.monotonic()
+            # Do not busy-poll while waiting for the next pacing second.
+            value = self.input_source.poll(.02)
+            if value is not None:
+                return value
+
+    def advance_boundary(self):
+        """Only control input is applied inside a bulk processing command."""
+        value = self.input_source.poll(0) if self.input_source else None
+        if value == '' or (value and value.strip().lower() == '/pause') or self.interrupt_requested:
+            self.interrupt_requested = False
+            self.session.pause()
+            if value == '':
+                self.pending_input.append(value)
+        elif value is not None:
+            self.line('Bulk advancement is active; use /pause to stop before another action.')
+        if self.input_source and time.monotonic() - self.last_status >= 1:
+            self.clock_status()
+            self.output.flush()
+            self.last_status = time.monotonic()
 
     def line(self, text=""):
         self.output.write(f"{text}\n")
@@ -35,13 +94,21 @@ class _Terminal:
     def prompt(self, text, *, allow_blank=False, blank_message=None):
         """Display and flush one question before reading one answer."""
         while True:
+            self.clock_status()
             self.line(text)
             self.output.write("> ")
             self.output.flush()
-            value = self.input.readline()
+            value = self.read_answer()
             if value == "":
                 raise _EndOfInput
             value = value.rstrip("\r\n")
+            if self.session.active and value.strip().lower() in {'/pause', '/resume', '/status'}:
+                command = value.strip().lower()
+                if command == '/pause':
+                    self.session.pause()
+                elif command == '/resume':
+                    self.session.resume()
+                continue
             if value.strip() or allow_blank:
                 return value
             self.line(
@@ -151,6 +218,8 @@ class _Terminal:
             self.line("10. Quick fixed weekly round trip")
             self.line("11. Aircraft Catalogue")
             self.line("12. Purchase New Aircraft")
+            self.line("13. Leasing Marketplace")
+            self.line("14. Used Aircraft Marketplace")
             self.line("0. Exit")
             try:
                 choice = self.prompt("Select:").strip()
@@ -172,6 +241,8 @@ class _Terminal:
                 "10": self.plan_rotation,
                 "11": self.aircraft_catalogue,
                 "12": lambda: self.aircraft_catalogue(purchase=True),
+                "13": self.leasing_marketplace,
+                "14": self.used_aircraft_marketplace,
             }
             if choice == "0":
                 if self.confirm_exit():
@@ -187,6 +258,109 @@ class _Terminal:
             else:
                 self.line("Invalid selection. Enter a listed number.")
 
+    def _choose_delivery(self):
+        rows = self.session.delivery_locations()
+        choices = {str(index): row for index, row in enumerate(rows, 1)}
+        for key, row in choices.items():
+            self.line(f"{key}. {row['reference_code']} - {row['display_name']}")
+        choice = self.prompt("Delivery location (number or back):").strip().lower()
+        return None if choice in {"0", "back", "cancel"} else choices.get(choice)
+
+    def leasing_marketplace(self):
+        while True:
+            offers = self.session.leasing_offers()
+            self.line("Leasing Marketplace - current offers")
+            for index, row in enumerate(offers, 1):
+                self.line(f"{index}. {row['model_id']} - {row['available_quantity']} available; "
+                          f"value {self.money(row['aircraft_value_minor'])}")
+            self.line("R. Renew an operating lease | T. End a contract | 0. Back")
+            choice = self.prompt("Select offer or action:").strip().lower()
+            if choice in {"0", "back", "cancel"}:
+                return
+            try:
+                if choice == "r":
+                    contracts = [row for row in self.session.aircraft_contracts()
+                                 if row['contract_type'] == 'OPERATING_LEASE' and row['status'] == 'ACTIVE']
+                    for index, row in enumerate(contracts, 1):
+                        self.line(f"{index}. {row['aircraft_id']} expires {row['expires_at_utc']}")
+                    selected = self.prompt("Contract number or back:").strip()
+                    if selected not in {str(i) for i in range(1, len(contracts) + 1)}:
+                        continue
+                    row = contracts[int(selected) - 1]
+                    term = int(self.prompt("Renewal term in years (1-5):").strip())
+                    quote = self.session.preview_operating_renewal(row['aircraft_id'], term)
+                    self.line(f"New monthly rent: {self.money(quote.monthly_rent_minor)} "
+                              f"through {quote.expires_at_utc}.")
+                    if self.prompt("Confirm renewal? [y/N]", allow_blank=True).strip().lower() not in {'y', 'yes'}:
+                        continue
+                    command = f"terminal-renew-{row['aircraft_id']}-{row['expires_at_utc']}-{term}"
+                    contract_id = self.session.renew_operating_lease(
+                        row['aircraft_id'], term, command, quote.world_fingerprint)
+                    self.line(f"Renewal confirmed as {contract_id}.")
+                    continue
+                if choice == "t":
+                    contracts = [row for row in self.session.aircraft_contracts() if row['status'] == 'ACTIVE']
+                    for index, row in enumerate(contracts, 1):
+                        self.line(f"{index}. {row['aircraft_id']} {row['contract_type']} expires {row['expires_at_utc']}")
+                    selected = self.prompt("Contract number or back:").strip()
+                    if selected not in {str(i) for i in range(1, len(contracts) + 1)}:
+                        continue
+                    row = contracts[int(selected) - 1]
+                    if self.prompt("Return aircraft and settle now? [y/N]", allow_blank=True).strip().lower() not in {'y', 'yes'}:
+                        continue
+                    command = f"terminal-end-{row['aircraft_id']}-{self.session.world['simulation']['time_utc']}"
+                    settlement = self.session.terminate_contract(row['aircraft_id'], command)
+                    self.line(f"Contract ended; net cash settlement {self.money(settlement)}.")
+                    continue
+                if choice not in {str(i) for i in range(1, len(offers) + 1)}:
+                    self.line("Invalid leasing selection.")
+                    continue
+                offer = offers[int(choice) - 1]
+                product = self.prompt("1 Operating lease | 2 Lease-to-own:").strip()
+                contract_type = {'1': 'OPERATING_LEASE', '2': 'LEASE_TO_OWN'}.get(product)
+                term = int(self.prompt("Term in years (1-5):").strip())
+                location = self._choose_delivery()
+                if contract_type is None or location is None:
+                    continue
+                preview = self.session.preview_lease(offer['lease_offer_id'], contract_type,
+                                                     term, location['airport_id'])
+                monthly = preview.monthly_rent_minor or (
+                    preview.monthly_financing_minor + preview.principal_base_minor
+                    + (1 if preview.principal_remainder_installments else 0))
+                self.line(f"Monthly payment starts at {self.money(monthly)}; cash may become negative.")
+                if self.prompt("Confirm contract? [y/N]", allow_blank=True).strip().lower() in {'y', 'yes'}:
+                    aircraft_id = self.session.accept_lease(preview)
+                    self.line(f"Aircraft delivered as {aircraft_id}.")
+            except (ValueError, KeyError) as exc:
+                self.line(f"Lease rejected: {exc}")
+
+    def used_aircraft_marketplace(self):
+        listings = self.session.used_listings()
+        self.line("Used Aircraft Marketplace - unsold listings persist monthly")
+        for index, row in enumerate(listings, 1):
+            self.line(f"{index}. {row['display_registration']} {row['model_id']} - "
+                      f"{row['age_months']} months, {row['lifetime_cycles']:,} cycles, "
+                      f"condition {row['service_condition_bps'] / 100:.2f}% - "
+                      f"{self.money(row['asking_price_minor'])}")
+        choice = self.prompt("Listing number or back:").strip().lower()
+        if choice not in {str(i) for i in range(1, len(listings) + 1)}:
+            return
+        location = self._choose_delivery()
+        if location is None:
+            return
+        try:
+            preview = self.session.preview_used_purchase(
+                listings[int(choice) - 1]['used_listing_id'], location['airport_id'])
+            self.line(f"Cash after purchase: {self.money(preview.cash_after_minor)}")
+            if preview.cash_after_minor < 0:
+                self.line("Insufficient cash. No purchase made.")
+                return
+            if self.prompt("Confirm purchase? [y/N]", allow_blank=True).strip().lower() in {'y', 'yes'}:
+                aircraft_id = self.session.purchase_used(preview)
+                self.line(f"Specific airframe delivered as {aircraft_id}.")
+        except (ValueError, KeyError) as exc:
+            self.line(f"Used-aircraft purchase rejected: {exc}")
+
     def aircraft_catalogue(self, *, purchase=False):
         try:
             catalog = self.session.aircraft_catalog()
@@ -195,7 +369,7 @@ class _Terminal:
             return
         self.line("Aircraft Catalogue - reference models and game prices")
         self.line("Choose a model to preview its purchase." if purchase else
-                  "Select Purchase New Aircraft from the main menu to buy. Leasing is deferred.")
+                  "Select Purchase New Aircraft, Leasing Marketplace, or Used Aircraft Marketplace from the main menu.")
         manufacturers = catalog.manufacturers()
         while True:
             for number, row in enumerate(manufacturers, 1):
@@ -803,11 +977,17 @@ class _Terminal:
         )
 
 
-def run_terminal(input_stream, output_stream, *, session_factory=Stage1Session):
+def run_terminal(input_stream, output_stream, *, session_factory=Stage1Session,
+                 input_source=None, handle_signals=False):
     """Run the harness using injected text streams and deterministic newlines."""
     terminal = None
+    previous_signal = None
     try:
-        terminal = _Terminal(input_stream, output_stream, session_factory())
+        terminal = _Terminal(input_stream, output_stream, session_factory(), input_source=input_source)
+        if handle_signals:
+            import signal
+            previous_signal = signal.signal(signal.SIGINT,
+                lambda *_: setattr(terminal, 'interrupt_requested', True))
         return terminal.startup()
     except _EndOfInput:
         if terminal is None or terminal.confirm_exit():
@@ -821,10 +1001,22 @@ def run_terminal(input_stream, output_stream, *, session_factory=Stage1Session):
         if not integrity:
             output_stream.write("Authoritative world validation failed; the session cannot continue.\n")
         return 1
+    finally:
+        if terminal is not None:
+            terminal.session.close()
+        if input_source is not None:
+            input_source.close()
+        if previous_signal is not None:
+            import signal
+            signal.signal(signal.SIGINT, previous_signal)
 
 
 def main():
-    return run_terminal(sys.stdin, sys.stdout)
+    if not sys.stdin.isatty():
+        return run_terminal(sys.stdin, sys.stdout)
+    from .input_queue import TerminalInput
+    source = TerminalInput(sys.stdin)
+    return run_terminal(sys.stdin, sys.stdout, input_source=source, handle_signals=True)
 
 
 __all__ = ("main", "run_terminal")

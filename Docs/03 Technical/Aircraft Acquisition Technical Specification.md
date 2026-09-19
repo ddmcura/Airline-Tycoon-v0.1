@@ -1,5 +1,21 @@
 # PH 1.0 Basic New-Aircraft Acquisition
 
+## Step 5 compatibility and future manufacturer financing
+
+Schema-6 leasing and used-aircraft behavior is specified separately in the
+[Aircraft Marketplace Technical Specification](Aircraft%20Marketplace%20Technical%20Specification.md).
+It reuses this specification's immediate eligible-base/hub delivery, immutable
+catalog references, maximum-Economy configuration contract, deterministic
+registration allocation, atomic candidate commit and stale-preview boundary.
+Manufacturer outright purchase behavior is otherwise unchanged.
+
+Manufacturer installments remain future scope. The intended product requires a
+down payment, finances the remaining purchase price with interest, and gives the
+player ownership and configuration rights from delivery. It may offer greater
+availability and flexibility, potentially at a higher monthly cost than a
+comparable lease-to-own offer. Exact rates, terms, lender mechanics and
+refinancing are unresolved and are not schema-6 behavior.
+
 Status: Approved for implementation on 2026-09-16, PH release step 3.
 Persistent vocabulary follows the [schema-5 contract](Stage%201%20State%20Schema.md#approved-ph-acquisition-increment-schema-5)
 and [template mirror](../../Data/Templates/template_reference.txt).
@@ -33,6 +49,12 @@ revalidates all inputs and freshness, constructs and validates a detached
 candidate, then replaces authority. Exact committed-preview replay returns the
 original aircraft; conflicting command reuse rejects. Failure preserves all
 state, ID cursors, RNG and time.
+
+Base/hub delivery eligibility is a purchase-time command rule. The acquisition
+journal retains the immutable delivery airport as history; a later base or hub
+change does not invalidate that completed purchase. The referenced airport must
+still exist, and new previews continue to reject locations outside the airline's
+current base/hub set.
 
 ## Identity, configuration and presentation
 
@@ -94,9 +116,10 @@ validation, registration scans and sorted fleet IDs still scale with world size;
 this milestone does not claim tested interactive performance at tens of thousands
 of aircraft. Realistic profiling remains runtime-milestone work.
 
-No leasing, used sales, financing, delayed delivery, queues, maintenance,
-depreciation, cabin editing, payload-range, AI, continuous runtime, disk saves,
-graphics or existing-plan editing is implemented.
+This acquisition increment did not add leasing, used sales, financing, delayed
+delivery, queues, maintenance, depreciation, cabin editing, payload-range, AI,
+disk saves, graphics or existing-plan editing. Continuous runtime was implemented
+by the later PH step 4 increment and does not alter this acquisition contract.
 
 ## Verification
 

@@ -184,6 +184,7 @@ def set_operation_revision(envelope, owner_id, revision):
 
 def _owner_collections(envelope):
     world = envelope["world_state"]
+    market_state = world.get("aircraft_market_state", {})
     return {
         "airline": world["airlines"],
         "aircraft": world["aircraft"],
@@ -193,6 +194,12 @@ def _owner_collections(envelope):
         "booking": world["bookings"],
         "booking_checkpoint": world.get("booking_state", {}).get(
             "booking_checkpoints", {}
+        ),
+        "aircraft_contract": world.get("aircraft_contracts", {}),
+        "aircraft_market": (
+            {market_state.get("aircraft_market_id"): market_state}
+            if type(market_state) is dict and type(market_state.get("aircraft_market_id")) is str
+            else {}
         ),
     }
 
@@ -429,7 +436,7 @@ def _failure_result(started, envelope, failure, completed=(), skipped=()):
     )
 
 
-def process_events_through(
+def iter_events_through(
     envelope,
     target_time_utc,
     *,
@@ -438,7 +445,12 @@ def process_events_through(
     max_events=DEFAULT_MAX_EVENTS_PER_ADVANCE,
     max_generated_events=DEFAULT_MAX_GENERATED_EVENTS_PER_ADVANCE,
 ):
-    """Process eligible events transactionally, then stop at the exact target."""
+    """Yield committed event IDs; return the original processing result.
+
+    The caller owns the world exclusively. Send True after an intervening
+    validated management command to rebuild the derived queue. Limits belong
+    to this entire iterator, not to each yield. Closing it never undoes commits.
+    """
     max_events = _positive_int(max_events, "max_events")
     max_generated_events = _positive_int(
         max_generated_events, "max_generated_events"
@@ -532,6 +544,16 @@ def process_events_through(
                     tuple(skipped),
                 )
 
+        refresh = yield event_id
+        if refresh:
+            failure = _valid_world_failure(envelope)
+            if failure:
+                return _failure_result(started, envelope, failure, completed, skipped)
+            heap = build_event_queue_index(envelope)
+        if started_mode != "PAUSED" and envelope["simulation"]["clock_state"] == "PAUSED":
+            return ProcessingResult("STOPPED", started, envelope['simulation']['time_utc'],
+                                    tuple(completed), tuple(skipped))
+
     last_committed_time = envelope["simulation"]["time_utc"]
     envelope["simulation"]["time_utc"] = target_time_utc
     validation = validate_world(envelope)
@@ -552,6 +574,16 @@ def process_events_through(
         tuple(completed),
         tuple(skipped),
     )
+
+
+def process_events_through(envelope, target_time_utc, **kwargs):
+    """Synchronous compatibility entry point over the same transaction loop."""
+    work = iter_events_through(envelope, target_time_utc, **kwargs)
+    while True:
+        try:
+            next(work)
+        except StopIteration as done:
+            return done.value
 
 
 def process_next_event(envelope, *, registry=DEFAULT_EVENT_HANDLERS):

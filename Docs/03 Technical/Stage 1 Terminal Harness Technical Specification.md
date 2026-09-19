@@ -1,5 +1,29 @@
 # Stage 1 Terminal Harness Technical Specification
 
+## Schema-6 aircraft market controls
+
+Main-menu options 13 and 14 expose the implemented aircraft market. Leasing
+lists only current limited offers, requires product, one-to-five-year term and an
+eligible delivery base/hub, and shows the automatic monthly amount before
+confirmation. The same menu lists the player's active contracts for operating
+renewal and safe voluntary return. Used Aircraft Marketplace lists every unsold
+persistent listing with registration, age, cycles, condition and asking price,
+then uses the established delivery/preview/confirmation flow. These controls call
+the same isolated authoritative commands as tests; terminal selection and display
+state never determine contract or aircraft ownership.
+
+## Continuous runtime successor (2026-09-17)
+
+The [runtime contract](Continuous%20Runtime%20Technical%20Specification.md) adds
+7x progression, manual `/pause` and `/resume`, and visible `/status` at management
+prompts. Navigation does not pause. The terminal owner alone mutates authority;
+the input-only worker cannot access the world. Existing injected stream scripts
+remain deterministic. Weekly edits revalidate against current authority; purchase
+previews retain strict freshness and idempotency. Bulk advancement ends paused.
+This supersedes the original no-background-input/runtime restriction only within
+the new scope. See Current Development Status for verification and performance
+acceptance; this contract does not claim that any unmeasured gate has passed.
+
 ## PH acquisition successor (2026-09-16)
 
 Option 12 implements the [approved acquisition flow](Aircraft%20Acquisition%20Technical%20Specification.md).

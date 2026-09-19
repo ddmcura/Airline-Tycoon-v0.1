@@ -188,7 +188,8 @@ def project_airline_fleet(envelope, airline_id, *, limit=20, offset=0):
         return None
     rows = []
     selected = sorted(key for key, aircraft in world['aircraft'].items()
-                      if aircraft['airline_id'] == airline_id)[offset:offset + limit]
+                      if aircraft['airline_id'] == airline_id
+                      and aircraft.get('status') != 'RETURNED')[offset:offset + limit]
     for aircraft_id in selected:
         aircraft = world['aircraft'][aircraft_id]
         if aircraft["airline_id"] != airline_id:

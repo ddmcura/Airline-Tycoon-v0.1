@@ -1,3 +1,52 @@
+# Schema 6 PH 1.0 Step 5 aircraft market (canonical schema prevails)
+simulation.configuration.aircraft_market:
+  contract: PH_AIRCRAFT_MARKET_CONFIGURATION_V1
+  formula_version: ph-aircraft-market-v1
+  operating_rate_bps_by_term_years: {1:175,2:160,3:145,4:135,5:125}
+  lto_financing_bps_by_term_years: {1:100,2:85,3:70,4:60,5:50}
+  annual_depreciation_bps: 400; residual_value_bps: 2000
+  condition_value_floor_bps: 5000; restoration_max_bps: 2000
+world_state.aircraft_market_state:
+  aircraft_market_id, contract: PH_AIRCRAFT_MARKET_STATE_V1, current_month,
+  rotation_revision, next_rotation_at_utc, active_lease_offer_ids
+world collections: aircraft_market_counterparties, aircraft_lease_offers,
+  used_aircraft_listings, aircraft_contracts
+new ID types: aircraft_market, market_counterparty, lease_offer, used_listing,
+  airframe, aircraft_contract
+lease offers: persistent lessor ID, generation/expiry, catalog model/value,
+  supplied PH configuration, limited quantity, ACTIVE/EXHAUSTED/EXPIRED
+used listings: persistent listing+airframe+seller IDs, generation month,
+  model/configuration, manufactured date, derived age, lifetime flight seconds,
+  lifetime cycles, service condition bps, asking price, ACTIVE/SOLD
+aircraft.lifecycle (market aircraft; new schema-6 purchases):
+  airframe_id, acquisition_type, ownership_status, aircraft_contract_id?,
+  source_listing_id?, fixed_configuration, manufactured_date,
+  lifetime_flight_seconds, lifetime_cycles, service_condition_bps
+aircraft_contracts: type OPERATING_LEASE/LEASE_TO_OWN; status FUTURE/ACTIVE/
+  COMPLETED/RETURNED/CANCELLED; immutable parties, aircraft, offer, delivery,
+  predecessor/successor, dates, terms, pricing, installment progress,
+  next payment and command/fingerprint witnesses.
+Cancelled LTO adds: cancellation_depreciated_value_minor,
+  cancellation_equity_minor, cancellation_restoration_minor.
+Operating rent = ceil(new value * term bps / 10000); early termination is all
+unpaid rent only. Renewal is a repriced successor and preserves aircraft history.
+LTO principal divides exactly across term months; financing is separately stored.
+Cancellation net = max(0, age-depreciated value - remaining principal)
+  - unpaid financing - restoration. Remaining principal is extinguished.
+Age depreciation 4% per complete year, floor 20%; condition multiplier ranges
+50%-100%; restoration maximum 20% of new value. Integer USD minor units.
+Payments in arrears monthly, automatic, atomic and allowed to make cash negative.
+At equal timestamp: payment, then flight work, then expiry/return/transfer.
+No maintenance deterioration, defaults, bankruptcy threshold, installment new
+purchases, AI fleet sales, physical logistics, banking or LTO refinancing.
+
+# PH step 4 runtime (no schema version or field additions)
+# Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
+Resume uses existing simulation.configuration.clock_ratios.NORMAL = 7,
+simulation.clock_state = NORMAL. New sessions remain PAUSED.
+Pacing samples, fractional credit, input queues, iterators and diagnostics are
+runtime-only; never serialize them into the authoritative world.
+
 # Schema 5 acquisition extension (canonical schema prevails)
 aircraft.configuration (purchased aircraft only):
   contract: PH_MAX_ECONOMY_V1
@@ -14,6 +63,8 @@ transactions purchase journal:
   delivery_airport_id: selected existing airline base/hub
 Entries: +catalog price aircraft_assets, -catalog price cash; USD integer minor.
 Home remains existing independent home_airport_id; delivery sets current location.
+Commands enforce delivery base/hub eligibility at purchase time; later membership
+changes do not invalidate the journal's immutable delivery airport reference.
 Migration 4->5 changes only version; no backfilled purchases/configuration.
 planning_timing V2:
   contract: PH_SCHEDULING_TIMING_V2

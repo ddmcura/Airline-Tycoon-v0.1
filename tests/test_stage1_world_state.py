@@ -449,6 +449,26 @@ class Stage1ValidationTests(unittest.TestCase):
                 starting_money=1,
             )
 
+    def test_timestamp_normalization_rejects_utc_range_overflow_cleanly(self):
+        from datetime import datetime, timedelta, timezone
+        from game.world_state.timestamps import format_utc, normalize_utc_timestamp
+
+        cases = (
+            "0001-01-01T00:00:00+01:00",
+            "9999-12-31T23:59:59-01:00",
+            datetime(1, 1, 1, tzinfo=timezone(timedelta(hours=1))),
+            datetime(9999, 12, 31, 23, 59, 59,
+                     tzinfo=timezone(timedelta(hours=-1))),
+        )
+        for value in cases:
+            with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "canonical UTC range"):
+                normalize_utc_timestamp(value)
+        for value in cases[2:]:
+            with self.subTest(format_value=value), self.assertRaisesRegex(
+                    ValueError, "canonical UTC range"):
+                format_utc(value)
+
     def test_name_based_authoritative_reference_is_rejected(self):
         world = make_world()
         airline = next(iter(world["world_state"]["airlines"].values()))

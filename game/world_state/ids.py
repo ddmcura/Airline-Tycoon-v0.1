@@ -6,7 +6,8 @@ from .schema import (
     ENTITY_TYPES,
     MAX_ENTITY_ID_NUMBER,
     SCHEMA2_ENTITY_COLLECTIONS,
-    SCHEMA4_ENTITY_TYPES,
+    SCHEMA6_ENTITY_COLLECTIONS,
+    SCHEMA6_ENTITY_TYPES,
 )
 
 
@@ -19,7 +20,7 @@ def new_allocator_state():
 
 
 def format_entity_id(entity_type, number):
-    if entity_type not in SCHEMA4_ENTITY_TYPES:
+    if entity_type not in SCHEMA6_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
     if (
         isinstance(number, bool)
@@ -39,7 +40,7 @@ def parse_entity_id(value, expected_type=None):
     if not match:
         return None
     entity_type = match.group("entity_type")
-    if entity_type not in SCHEMA4_ENTITY_TYPES:
+    if entity_type not in SCHEMA6_ENTITY_TYPES:
         return None
     if expected_type is not None and entity_type != expected_type:
         return None
@@ -51,13 +52,13 @@ def parse_entity_id(value, expected_type=None):
 
 def allocate_id(envelope, entity_type):
     """Allocate once from authoritative state; allocated numbers are not reused."""
-    if entity_type not in SCHEMA4_ENTITY_TYPES:
+    if entity_type not in SCHEMA6_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
     if entity_type == "booking_checkpoint":
         metadata = envelope.get("metadata") if type(envelope) is dict else None
         if (
             type(metadata) is not dict
-            or metadata.get("save_schema_version") not in (3, 4, 5)
+            or metadata.get("save_schema_version") not in (3, 4, 5, 6)
         ):
             raise ValueError(
                 "booking_checkpoint IDs require save schema version 3"
@@ -82,8 +83,24 @@ def allocate_id(envelope, entity_type):
             .get("booking_state", {})
             .get(collection_name)
         )
+    elif entity_type == "aircraft_market":
+        collection_name = "aircraft_market_state"
+        state = envelope.get("world_state", {}).get(collection_name)
+        collection = {} if state is None else {state.get("aircraft_market_id"): state}
+    elif entity_type == "airframe":
+        # Airframes are embedded in aircraft/listings and use only the allocator.
+        collection_name = "airframe identities"
+        collection = {}
+        world = envelope.get("world_state", {})
+        for aircraft in world.get("aircraft", {}).values():
+            lifecycle = aircraft.get("lifecycle", {})
+            if type(lifecycle.get("airframe_id")) is str:
+                collection[lifecycle["airframe_id"]] = lifecycle
+        for listing in world.get("used_aircraft_listings", {}).values():
+            if type(listing.get("airframe_id")) is str:
+                collection[listing["airframe_id"]] = listing
     else:
-        collection_name = SCHEMA2_ENTITY_COLLECTIONS[entity_type][0]
+        collection_name = SCHEMA6_ENTITY_COLLECTIONS[entity_type][0]
         collection = envelope.get("world_state", {}).get(collection_name)
     if not isinstance(collection, dict):
         raise ValueError(f"Envelope does not contain a valid {collection_name} collection")

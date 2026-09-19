@@ -286,7 +286,7 @@ def prepare_daily_booking_checkpoint(
                 "REJECTED", checkpoint_date, {},
                 (BookingCheckpointIssue("INVALID_WORLD_STATE", issue.message, issue.path),),
             )
-        if envelope["metadata"]["save_schema_version"] not in (3, 4, 5):
+        if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6):
             raise ValueError("Booking checkpoint preparation requires schema 3 or 4")
         world = envelope["world_state"]
         configuration = envelope["simulation"]["configuration"]["booking"]
@@ -298,42 +298,19 @@ def prepare_daily_booking_checkpoint(
         configuration_revision = configuration["revision"]
         configuration_fingerprint = configuration["configuration_fingerprint"]
 
-        from .shopping import prepare_daily_booking_shopping
-
-        shopping = prepare_daily_booking_shopping(
-            deepcopy(envelope),
-            expected_demand_revision=demand_revision,
-            expected_market_pack_revision=market_pack_revision,
-            expected_booking_configuration_revision=configuration_revision,
-            expected_booking_configuration_fingerprint=configuration_fingerprint,
-            multipliers_by_market=multipliers_by_market,
-            demand_indexes=demand_indexes,
-            activation_providers=activation_providers,
-            dated_flight_indexes=dated_flight_indexes,
-        )
-        if not shopping.succeeded:
-            issue = shopping.issues[0]
-            return BookingCheckpointPreparation(
-                shopping.status, checkpoint_date, {},
-                (BookingCheckpointIssue(issue.code, issue.message, issue.path),),
-            )
-        inventory = {
-            offer.dated_flight_id: offer.observed_inventory_revision
-            for market in shopping.market_plans
-            for group in market.desired_date_groups
-            for offer in group.offers
-        }
         plan = prepare_daily_booking_allocation(
             deepcopy(envelope),
             expected_demand_revision=demand_revision,
             expected_market_pack_revision=market_pack_revision,
             expected_booking_configuration_revision=configuration_revision,
             expected_booking_configuration_fingerprint=configuration_fingerprint,
-            expected_inventory_revisions=inventory,
+            expected_inventory_revisions={},
             multipliers_by_market=multipliers_by_market,
             demand_indexes=demand_indexes,
             activation_providers=activation_providers,
             dated_flight_indexes=dated_flight_indexes,
+            _derive_expected_inventory=True,
+            _validated=True,
         )
         if not plan.succeeded:
             issue = plan.issues[0]
@@ -341,6 +318,10 @@ def prepare_daily_booking_checkpoint(
                 plan.status, checkpoint_date, {},
                 (BookingCheckpointIssue(issue.code, issue.message, issue.path),),
             )
+        inventory = {
+            observation.dated_flight_id: observation.observed_inventory_revision
+            for observation in plan.observed_inventory_revisions
+        }
         paid_airline_ids = {
             selected.airline_id
             for market in plan.market_results
@@ -392,7 +373,7 @@ def process_daily_booking_checkpoint(
     if not validation.is_valid:
         issue = validation.errors[0]
         return _reject(envelope, "INVALID_WORLD_STATE", issue.message, issue.path)
-    if envelope["metadata"]["save_schema_version"] not in (3, 4, 5):
+    if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6):
         return _reject(envelope, "INVALID_WORLD_STATE", "Booking checkpoints require schema 3")
     checkpoint_date = envelope["simulation"]["time_utc"][:10]
     try:

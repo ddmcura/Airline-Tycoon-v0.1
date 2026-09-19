@@ -1,8 +1,172 @@
 # Current Development Status
 
-Last updated: **2026-09-16**. Current snapshot, not operational authorization.
+Last updated: **2026-09-20**. Current snapshot, not operational authorization.
 
-## Checkpoint and verification
+## PH 1.0 Step 5 completion
+
+PH 1.0 Step 5 is implemented as save schema 6. The terminal exposes rotating
+operating-lease and lease-to-own offers, operating renewal/return, and persistent
+used-aircraft listings. Contracts use automatic monthly integer-USD postings that
+may make cash negative. Lease-to-own principal and financing are separate;
+ownership and ordinary configuration rights transfer after final settlement.
+Used purchases retain the exact listed airframe identity, age, block hours,
+cycles, condition and registration.
+
+Marketplace rotation, offer inventory and background seller listings are
+seed-keyed deterministic authority. Unaccepted lease offers expire; unsold used
+listings persist. Lease scheduling is bounded by the confirmed contract horizon,
+with payment before flight lifecycle and expiry/return after flight completion at
+equal timestamps. Schema-5 migration preserves legacy aircraft and history
+without inventing lifecycle facts. Exact formulas, constants, worked settlement
+examples and future boundaries are in the
+[Aircraft Marketplace Technical Specification](Aircraft%20Marketplace%20Technical%20Specification.md).
+
+The independent review corrected a condition double-counting risk in the first
+settlement draft: cancellation equity now uses age-depreciated value while
+condition is charged exactly once as restoration. It also added collision probing
+for used registrations, current-event cardinality validation to prevent duplicate
+payments, allocator checks for embedded airframes, and a genuine schema-5
+migration fixture rather than a partial version-number downgrade.
+
+Final verification evidence for this combined Step 4 and Step 5 working tree is
+recorded below. The verified scope is the complete working tree based on
+`e5c079cc98f931d74456662129ee2661c39d1abb`, including the previously completed
+Step 4 increment and Step 5. The next roadmap milestone is Step 6, simple
+versioned maintenance expenses. Advanced maintenance, manufacturer installments,
+active AI fleet sales, physical delivery/return, banking/loans, bankruptcy rules
+and lease-to-own refinancing remain future work.
+
+| Step 5 completion verification, 2026-09-20 | Result |
+| --- | --- |
+| `python -B -m unittest discover -s tests` | 583 passed in 324.598 s |
+| `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 |
+| 50-aircraft live 7× profile, 60 seconds | 60.949 active s; 416 simulation s; raw 6.825×; 10.644 s retained credit; accounted 7.000×; max pump 12.395 s; 4 events; no overload |
+| World State validation-first and Simulation-first import probes | Both passed |
+| Bulk versus same-timestamp-draining stepped marketplace rotation | Exact authoritative equality |
+| Changed-document local Markdown target check | Passed across 9 changed/new documents |
+| `git diff --check` | Passed before final commit preparation |
+
+The full suite used bundled CPython 3.12.14 with temporary, test-only
+`tabulate 0.10.0` and pinned `tzdata 2026.3`; neither dependency copy is in the
+repository. The live profile used the production 43-airport/1,806-market world,
+50 aircraft and production runtime controller. Raw clock progress waits for
+atomic transactions; retained credit accounts for the difference and is not
+discarded.
+
+## PH step 4 working-tree checkpoint
+
+Continuous runtime is implemented against clean starting revision
+`e5c079cc98f931d74456662129ee2661c39d1abb` on `master`. The bounded 1/10/50
+workloads and retained-credit live gate now pass on the documented host; PH step
+4 is complete in this uncommitted working tree. Unpaced throughput alone is not
+the acceptance evidence. Live `git ls-remote --heads origin
+refs/heads/master` on 2026-09-17 confirmed origin still at that base. No new commit
+or push was performed for this increment; the changes remain uncommitted.
+
+The terminal now supports `/resume`, `/pause` and `/status` throughout management
+navigation, with an input-only worker and one owner of world mutations. Resume
+uses the existing NORMAL ratio of 7. Monotonic active uptime excludes suspension;
+fractional credit, input queues and iterators are runtime-only. Schema 5 remained
+the authoritative version at that Step 4 checkpoint; Step 5 subsequently adds schema 6.
+Kernel iteration yields only between complete events and preserves processing
+limits across yields. Manual bulk advancement finishes paused. Live Ctrl+C
+requests a boundary stop. Weekly drafts revalidate explicit legs against current
+authority; strict purchase-preview freshness and idempotent replay are unchanged.
+See the [runtime contract](Continuous%20Runtime%20Technical%20Specification.md).
+
+| Verification, 2026-09-17 | Result |
+| --- | --- |
+| `python -B -m unittest discover -s tests -p test_stage1_event_kernel.py` | 53 passed, 1.509 s |
+| `python -B -m unittest discover -s tests -p test_stage1_aircraft_catalog.py` | 14 passed, 9.974 s |
+| `python -B -m unittest discover -s tests` | 569 passed, 486.483 s |
+| `python -B -m unittest discover -s tests -p test_stage1_runtime.py` | 21 passed, 83.437 s, including late input-only EOF fix |
+| `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 after final source/profiler edits |
+| Changed-document link/anchor check | Passed, including final status update |
+| `git diff --check` | Passed |
+| Actual Windows terminal smoke test | Clock advanced inside Aircraft Catalogue; explicit Pause froze 00:10:10Z through Main Menu and Airline Overview; exit 0 |
+
+The first full run (564 tests) found one controller-binding regression in sessions
+whose world was replaced directly. Lazy rebinding fixed it; the subsequent full
+run passed. Isolated kernel tests also exposed an existing planning-validation
+import cycle, fixed with a local import without changing validation semantics.
+The late EOF fix prevents live exit confirmation waiting on an exhausted input
+worker and passed the final 21-test runtime run. Tests used bundled Python 3.12.14 and
+the existing temporary test-only `tabulate 0.10.0` dependency via `PYTHONPATH`.
+No machine-specific dependency path or runtime artifact is committed.
+
+The 2026-09-18 audit follow-up added clean UTC-range failure coverage, historical
+purchase-delivery validation coverage and a regression ensuring checkpoint
+preparation executes shopping once. Focused runtime (21), acquisition (19) and
+shopping (29) suites passed; an allocation rollback regression exposed during
+the optimization was corrected before the final 573-test pass. Final whole-suite
+and compile results are recorded below.
+The World State planning-validation import cycle was rechecked in both import
+orders; the existing local import is the minimal correction and no package move
+or broader dependency redesign was needed.
+
+| Audit completion verification, 2026-09-18 | Result |
+| --- | --- |
+| `python -B -m unittest discover -s tests` | 573 passed, 262.030 s |
+| `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 |
+| World State planning-first and Scheduling-first import probes | Both passed |
+| Changed-document local link/anchor check | Passed |
+| `git diff --check` | Passed |
+
+## Runtime performance evidence
+
+Host: Windows 10 build 19045, Core i5-10400 @ 2.90 GHz, 12 logical CPUs,
+approximately 16 GB physical RAM, CPython 3.14.6. These are observed desktop
+measurements from the 2026-09-18 acceptance rerun.
+
+Commands: `python -B -m tests.profile_ph_runtime --fleets 1 10 50 --days 1`
+and `python -B -m tests.profile_ph_runtime --fleets 50 --days 1 --live-only --live-seconds 185`.
+The fixture uses the full 43-airport/1,806-market pack, test-only acquisition
+funding, one daily return pair per aircraft across five destinations, six days
+of Booking and one operating day. All domain processing is production code.
+
+| Aircraft | Processing seconds | Resolved events/history growth | Events/s | Max transaction | Unpaced capacity | Peak process working set | Serialized bytes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 12.179 | 11 | 0.903 | 2.199 s | 49,658x | 48,689,152 B | 1,608,264 |
+| 10 | 108.044 | 47 | 0.435 | 8.257 s | 5,598x | 91,869,184 B | 6,089,645 |
+| 50 | 660.077 | 207 | 0.314 | 14.056 s | 916x | 139,325,440 B | 12,137,356 |
+
+At 50 aircraft, p95 yielded-transaction latency was 3.437 s. The bulk profiler
+hit the generated-event limit once and explicitly continued; the live controller
+does not silently retry. Authoritative history and yielded-event count both grew
+by 207. Peak memory
+includes profiler snapshot copies, not just a single live world.
+
+The 185-second live run crossed the busy final Booking midnight and departures.
+Successive raw authoritative-clock windows were **6.822x, 7.007x and 6.994x**.
+Overall: 185.254 active seconds, 1,267 simulation seconds advanced, raw **6.839x**,
+nine resolved events, 29.775 simulation seconds of retained credit, max pump
+11.513 seconds and no overload. Advanced time plus retained credit was 1,296.775
+seconds, or **7.000x accounted pacing**. Each window likewise accounts to 7x;
+the raw clock can lag only at complete atomic boundaries and later catches up.
+No clock-credit discard, event omission, formula change or validation bypass was
+used. This satisfies the retained-credit sustained gate defined by the runtime
+contract; raw timestamp-only rate remains a latency diagnostic, not a loss metric.
+
+The current overload threshold is 120 active seconds of
+backlog persisting for another 30 seconds; the measured 14.056-second burst is
+well below it. Overload pauses visibly and retains credit. Input can still wait
+for the current transaction. Profiling confirmed redundant preparation: the
+checkpoint first ran shopping only to discover inventory revisions, then allocation
+immediately reran the same shopping work. Preparation now derives the exact
+inventory witness from its validated allocation result. Nested commands reuse an
+already validated caller boundary only through private flags and retain their own
+authoritative mutation/final validation boundaries. Atomicity, deterministic
+results, public invalid-world rejection and rollback coverage remain intact.
+Whole-world validation/copying remains the main future scale limitation; broad
+redesign was not needed for this milestone.
+
+An exploratory seven-operating-day run completed at one aircraft: 41 events,
+127.425 seconds processing, max transaction 13.125 seconds. The denser ten-aircraft
+run was stopped before completion to prioritize the bounded 1/10/50 comparison.
+No larger-fleet or multi-week sustained-runtime claim is made. The architectural
+thousands-of-aircraft objective remains future scale work, not tested capacity.
+
+## Previous completed acquisition checkpoint
 
 PH 1.0 step 3, basic new-aircraft acquisition, is implemented and verified.
 Verification base: `8d67ab0c2883247d304f6c622ab780b7a547c764`, the completed
@@ -79,9 +243,14 @@ See the [acquisition specification](Aircraft%20Acquisition%20Technical%20Specifi
 
 - No authoritative file save/load: exiting loses the session. In-memory state
   validation, JSON-compatible serialization and explicit migrations exist.
-- No continuous 7x runtime or interactive running-session pause/resume controls.
+- Runtime controls and the retained-credit performance gate are implemented above.
+  Individual event and management transactions can block input until their
+  completed boundary.
 - No leasing, lease-to-own, used sales, manufacturer queues/delays, financing,
   maintenance expenses, depreciation or editable cabin configuration.
+- Reconfiguration remains deferred. Before it is implemented, its contract must
+  preserve historical installed-configuration witnesses rather than validate old
+  purchases, plans or operations against only the aircraft's latest configuration.
 - No AI, connecting Booking, detailed disruptions, graphical planner or editing
   of already-published plans. Legacy modules remain migration evidence.
 - Starting-capital balancing is unchanged. The current PH scenario has USD
@@ -100,11 +269,9 @@ See the [acquisition specification](Aircraft%20Acquisition%20Technical%20Specifi
 
 ## Next action
 
-The next roadmap milestone is **PH 1.0 step 4: continuous deterministic runtime
-at 7x, manual pause/resume and integration of existing multi-day advancement**.
-Develop and approve its bounded contract before implementing it. It must keep
-wall-clock pacing runtime-only, retain ordered whole-second commands, profile
-realistic PH workloads and prove equivalent continuation across pacing/stepping.
+With PH step 4 accepted in the working tree, **step 5: leasing, lease-to-own and
+used aircraft** needs
+its own bounded approved contract before implementation.
 
 Leasing/lease-to-own/used aircraft, simplified maintenance, safe disk save/load
 and integrated PH verification follow in the existing provisional order. AI

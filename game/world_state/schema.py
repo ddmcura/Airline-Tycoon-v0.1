@@ -1,8 +1,8 @@
 """Concrete constants for the authoritative Stage 1 world schema."""
 
 SAVE_SCHEMA_VERSION = 1
-LATEST_SAVE_SCHEMA_VERSION = 5
-SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4, 5})
+LATEST_SAVE_SCHEMA_VERSION = 6
+SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4, 5, 6})
 DEFAULT_GAME_VERSION = "0.1"
 DEFAULT_REFERENCE_DATA_VERSION = "stage1-reference-v1"
 MAX_ENTITY_ID_NUMBER = 999_999_999_999
@@ -235,6 +235,14 @@ ENTITY_TYPES = (
 SCHEMA2_ENTITY_TYPES = ENTITY_TYPES + ("region", "country")
 SCHEMA3_ENTITY_TYPES = SCHEMA2_ENTITY_TYPES + ("booking_checkpoint",)
 SCHEMA4_ENTITY_TYPES = SCHEMA3_ENTITY_TYPES
+SCHEMA6_ENTITY_TYPES = SCHEMA4_ENTITY_TYPES + (
+    "aircraft_market",
+    "market_counterparty",
+    "lease_offer",
+    "used_listing",
+    "airframe",
+    "aircraft_contract",
+)
 
 ENTITY_COLLECTIONS = {
     "airline": ("airlines", "airline_id"),
@@ -255,6 +263,14 @@ SCHEMA2_ENTITY_COLLECTIONS = {
     **ENTITY_COLLECTIONS,
     "region": ("regions", "region_id"),
     "country": ("countries", "country_id"),
+}
+
+SCHEMA6_ENTITY_COLLECTIONS = {
+    **SCHEMA2_ENTITY_COLLECTIONS,
+    "market_counterparty": ("aircraft_market_counterparties", "counterparty_id"),
+    "lease_offer": ("aircraft_lease_offers", "lease_offer_id"),
+    "used_listing": ("used_aircraft_listings", "used_listing_id"),
+    "aircraft_contract": ("aircraft_contracts", "aircraft_contract_id"),
 }
 
 WORLD_COLLECTIONS = tuple(
@@ -307,3 +323,23 @@ WORLD_ROOTS = frozenset(
 SCHEMA2_WORLD_ROOTS = WORLD_ROOTS | frozenset({"regions", "countries"})
 SCHEMA3_WORLD_ROOTS = SCHEMA2_WORLD_ROOTS | frozenset({"booking_state"})
 SCHEMA4_WORLD_ROOTS = SCHEMA3_WORLD_ROOTS | frozenset({"flight_results"})
+SCHEMA6_WORLD_ROOTS = SCHEMA4_WORLD_ROOTS | frozenset({
+    "aircraft_market_state",
+    "aircraft_market_counterparties",
+    "aircraft_lease_offers",
+    "used_aircraft_listings",
+    "aircraft_contracts",
+})
+
+AIRCRAFT_MARKET_CONFIGURATION = {
+    "contract": "PH_AIRCRAFT_MARKET_CONFIGURATION_V1",
+    "formula_version": "ph-aircraft-market-v1",
+    "operating_rate_bps_by_term_years": {"1": 175, "2": 160, "3": 145, "4": 135, "5": 125},
+    "lto_financing_bps_by_term_years": {"1": 100, "2": 85, "3": 70, "4": 60, "5": 50},
+    "annual_depreciation_bps": 400,
+    "residual_value_bps": 2000,
+    "condition_value_floor_bps": 5000,
+    "restoration_max_bps": 2000,
+    "offers_per_lessor": 2,
+    "used_listings_per_month": 4,
+}

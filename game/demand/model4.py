@@ -208,7 +208,7 @@ def activate_model4(envelope, *, expected_revision, activation_provider=None):
     validation = validate_world(envelope)
     if not validation.is_valid:
         return Model4ActivationResult("REJECTED", current, current, issues=_structured_validation_issues(validation))
-    if envelope["metadata"]["save_schema_version"] not in (2, 3, 4, 5):
+    if envelope["metadata"]["save_schema_version"] not in (2, 3, 4, 5, 6):
         return _reject_activation(current, "INVALID_MARKET_UNIVERSE", "Model 4 activation requires schema 2 or 3")
     configuration = envelope["simulation"]["configuration"]["demand"]
     demand_state = envelope["world_state"]["demand_state"]
@@ -864,15 +864,16 @@ def resolve_model4_daily_cohort(envelope, market_id, cohort_date, *, multipliers
     )
 
 
-def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by_market=None, indexes=None, activation_start_utc=None, activation_end_utc=None, activation_providers=None, dated_flight_indexes=None):
+def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by_market=None, indexes=None, activation_start_utc=None, activation_end_utc=None, activation_providers=None, dated_flight_indexes=None, _validated=False):
     from .activation import discover_active_market_ids
 
     multipliers_by_market = {} if multipliers_by_market is None else multipliers_by_market
     revision = envelope.get("world_state", {}).get("demand_state", {}).get("demand_model_revision", 0)
     pack_revision = envelope.get("simulation", {}).get("configuration", {}).get("demand", {}).get("market_pack_configuration", {}).get("revision", 0)
-    validation = validate_world(envelope)
-    if not validation.is_valid:
-        return Model4ActiveDayResult("REJECTED", str(cohort_date), revision, pack_revision, issues=_validation_issues(validation))
+    if not _validated:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            return Model4ActiveDayResult("REJECTED", str(cohort_date), revision, pack_revision, issues=_validation_issues(validation))
     if not isinstance(multipliers_by_market, Mapping):
         return Model4ActiveDayResult("REJECTED", str(cohort_date), revision, pack_revision, issues=(DemandIssue("INVALID_MULTIPLIERS", "must be a market mapping"),))
     try:

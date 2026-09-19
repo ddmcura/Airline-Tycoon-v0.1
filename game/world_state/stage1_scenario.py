@@ -535,6 +535,9 @@ def create_stage1_new_game(
     from .migration import migrate_schema_4_to_5
     migration = migrate_schema_4_to_5(migration.world)
     _migration_failure("schema 4 to 5", migration)
+    from .migration import migrate_schema_5_to_6
+    migration = migrate_schema_5_to_6(migration.world)
+    _migration_failure("schema 5 to 6", migration)
     candidate = migration.world
     validation = validate_world(candidate)
     if not validation.is_valid:

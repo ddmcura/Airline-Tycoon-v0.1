@@ -24,8 +24,8 @@ def _validate(envelope):
     result = validate_world(envelope)
     if not result.is_valid:
         raise ValueError(result.errors[0].message)
-    if envelope['metadata']['save_schema_version'] != 5:
-        raise ValueError('purchase requires explicit schema 5 migration')
+    if envelope['metadata']['save_schema_version'] not in (5, 6):
+        raise ValueError('purchase requires explicit schema 5 or later migration')
 
 
 @dataclass(frozen=True)

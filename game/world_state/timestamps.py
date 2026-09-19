@@ -24,7 +24,10 @@ def parse_canonical_utc(value, field_name="timestamp"):
 def format_utc(value):
     if not isinstance(value, datetime) or value.tzinfo is None:
         raise ValueError("timestamp must include a UTC offset")
-    value = value.astimezone(timezone.utc)
+    try:
+        value = value.astimezone(timezone.utc)
+    except (OverflowError, ValueError) as exc:
+        raise ValueError("timestamp is outside the canonical UTC range") from exc
     if value.microsecond:
         raise ValueError("timestamp must use whole-second precision")
     return value.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -41,7 +44,6 @@ def normalize_utc_timestamp(value, field_name="timestamp"):
             ) from exc
     if not isinstance(value, datetime) or value.tzinfo is None:
         raise ValueError(f"{field_name} must include a UTC offset")
-    try:
-        return format_utc(value)
-    except ValueError as exc:
-        raise ValueError(f"{field_name} must use whole-second precision") from exc
+    if value.microsecond:
+        raise ValueError(f"{field_name} must use whole-second precision")
+    return format_utc(value)

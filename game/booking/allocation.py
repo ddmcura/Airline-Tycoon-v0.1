@@ -568,6 +568,8 @@ def prepare_daily_booking_allocation(
     demand_indexes=None,
     activation_providers=None,
     dated_flight_indexes=None,
+    _derive_expected_inventory=False,
+    _validated=False,
 ):
     """Return a detached 5C plan; commit at most the already-approved 5B marker."""
     try:
@@ -588,6 +590,7 @@ def prepare_daily_booking_allocation(
         demand_indexes=demand_indexes,
         activation_providers=activation_providers,
         dated_flight_indexes=dated_flight_indexes,
+        _validated=_validated,
     )
     if not shopping.succeeded:
         issue = shopping.issues[0]
@@ -621,6 +624,8 @@ def prepare_daily_booking_allocation(
                 f"inventory changed after shopping: {changed_after_shopping!r}",
                 status="STALE_REVISION",
             )
+        if _derive_expected_inventory:
+            expected_inventory_revisions = relevant
         try:
             _validate_expected_inventory(expected_inventory_revisions, relevant)
         except RuntimeError as exc:
@@ -800,6 +805,9 @@ def prepare_daily_booking_allocation(
             expected_inventory_revisions=relevant,
         ):
             return _reject(envelope, "RESULT_VALIDATION_FAILED", "Booking allocation result failed conservation or topology validation")
+        # Keep the command boundary independently validated even though shopping
+        # already validated its cohort-marker mutation. This preserves the
+        # allocation API's rollback contract under injected/future changes.
         final_validation = validate_world(candidate)
         if not final_validation.is_valid:
             issue = final_validation.errors[0]

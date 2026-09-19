@@ -3,6 +3,7 @@
 from hashlib import sha256
 
 from game.world_state.construction import add_aircraft
+from game.world_state.ids import allocate_id
 
 
 def delivery_locations(world, airline_id):
@@ -44,4 +45,48 @@ def enter_purchased_aircraft(candidate, airline_id, delivery_airport_id, view):
         raise ValueError('registration namespace exhausted')
     aircraft = world['aircraft'][aircraft_id]
     aircraft['display_registration'] = registration
+    if candidate.get('metadata', {}).get('save_schema_version') == 6:
+        airframe_id = allocate_id(candidate, 'airframe')
+        aircraft['lifecycle'] = {
+            'airframe_id': airframe_id, 'acquisition_type': 'NEW_PURCHASE',
+            'ownership_status': 'OWNED', 'aircraft_contract_id': None,
+            'source_listing_id': None, 'fixed_configuration': False,
+            'manufactured_date': candidate['simulation']['time_utc'][:10],
+            'lifetime_flight_seconds': 0, 'lifetime_cycles': 0,
+            'service_condition_bps': 10_000,
+        }
+    return aircraft_id
+
+
+def enter_market_aircraft(candidate, airline_id, delivery_airport_id, view, *,
+                          lifecycle, display_registration=None):
+    """Enter a specific leased/used airframe inside an isolated candidate."""
+    world = candidate['world_state']
+    if delivery_airport_id not in delivery_locations(world, airline_id):
+        raise ValueError('delivery must be an existing airline base or hub')
+    bases = world['airlines'][airline_id]['base_airport_ids']
+    if not bases:
+        raise ValueError('an existing home base is required')
+    home = sorted(bases)[0]
+    aircraft_id = add_aircraft(candidate, airline_id, 'PENDING',
+        view['model']['model_id'], home_airport_id=home,
+        current_airport_id=delivery_airport_id, configuration={
+            'contract': 'PH_MAX_ECONOMY_V1', 'catalog_version': view['catalog_version'],
+            'economy_capacity': view['model']['max_economy_seats'],
+            'performance_contract': 'PH_SCALAR_RANGE_V1',
+        })
+    used = {a['display_registration'] for key, a in world['aircraft'].items()
+            if key != aircraft_id}
+    if display_registration is None:
+        material = f"PH_MARKET_REGISTRATION_V1|{candidate['deterministic_state']['world_seed']}|{lifecycle['airframe_id']}"
+        start = int.from_bytes(sha256(material.encode('utf-8')).digest(), 'big') % 10**12
+        for attempt in range(len(used) + 1):
+            display_registration = f'RP-L{(start + attempt) % 10**12:012d}'
+            if display_registration not in used:
+                break
+    if type(display_registration) is not str or not display_registration or display_registration in used:
+        raise ValueError('market aircraft registration must be nonempty and unique')
+    aircraft = world['aircraft'][aircraft_id]
+    aircraft['display_registration'] = display_registration
+    aircraft['lifecycle'] = dict(lifecycle)
     return aircraft_id

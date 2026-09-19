@@ -1,5 +1,124 @@
 # Stage 1 State Schema
 
+## Approved PH 1.0 Step 5 aircraft-market increment (schema 6)
+
+Schema 6 adds deterministic aircraft leasing, lease-to-own contracts and a
+persistent used-aircraft market without rewriting schema-5 history. Migration
+creates market authority and schedules its first monthly rotation; it does not
+invent lifecycle facts for legacy aircraft. All money remains integer USD minor
+units and all timestamps remain exact whole-second UTC.
+
+`simulation.configuration.aircraft_market` is the immutable
+`PH_AIRCRAFT_MARKET_CONFIGURATION_V1` tuning contract. It records the operating
+lease and lease-to-own financing basis-point tables for terms one through five,
+the annual depreciation rate, residual-value floor, condition-value floor,
+maximum restoration share, offer counts and formula version. The initial term
+tables are operating `{1:175, 2:160, 3:145, 4:135, 5:125}` and lease-to-own
+financing `{1:100, 2:85, 3:70, 4:60, 5:50}` basis points per month. Lease-to-own
+financing is therefore always below comparable operating rent. Depreciation is
+400 basis points per completed year with a 2000-basis-point residual floor;
+condition multiplies value from a 5000-basis-point floor at zero condition to
+full value at 10000 condition. Restoration is at most 2000 basis points of new
+value, linearly proportional to missing condition.
+
+`world_state.aircraft_market_state` has exact fields `aircraft_market_id`,
+`contract: PH_AIRCRAFT_MARKET_STATE_V1`, `current_month`,
+`rotation_revision`, `next_rotation_at_utc`, and `active_lease_offer_ids`.
+The new keyed collections are `aircraft_market_counterparties`,
+`aircraft_lease_offers`, `used_aircraft_listings`, and `aircraft_contracts`.
+New allocator namespaces are `aircraft_market`, `market_counterparty`,
+`lease_offer`, `used_listing`, `airframe`, and `aircraft_contract`.
+
+Counterparties have an immutable ID, `counterparty_type` (`LESSOR` or
+`BACKGROUND_AIRLINE`), display name, active flag and a model-specialization
+list. Background airlines are marketplace identities only. Lease offers record
+their lessor, generation month, expiry, exact catalog/model/value/configuration,
+available quantity and `ACTIVE`, `EXHAUSTED`, or `EXPIRED` status. Every monthly
+rotation expires still-active lease offers and deterministically creates new
+limited offers. Existing signed contracts never depend on current offer or
+lessor visibility.
+
+Used listings record `used_listing_id`, immutable `airframe_id`, seller,
+generation month, exact catalog/model/configuration, manufactured date,
+lifetime flight seconds, lifetime cycles,
+service-condition basis points, asking price and `ACTIVE` or `SOLD` status. Age
+is derived from manufactured date and the requested simulation timestamp; it is
+not duplicated as mutable authority.
+Monthly rotation adds coherent deterministic background listings; unsold
+listings persist. Purchase changes the one listing to `SOLD`, links its acquired
+aircraft ID, and preserves all airframe facts.
+
+Schema-6 market aircraft require `lifecycle`, containing exactly `airframe_id`,
+`acquisition_type` (`NEW_PURCHASE`, `USED_PURCHASE`, `OPERATING_LEASE`, or
+`LEASE_TO_OWN`), `ownership_status` (`OWNED`, `LESSOR_OWNED`, or `RETURNED`),
+nullable `aircraft_contract_id` and `source_listing_id`, `fixed_configuration`,
+`manufactured_date`, `lifetime_flight_seconds`, `lifetime_cycles`, and
+`service_condition_bps`. Completed flights add their gate-to-gate duration and
+one cycle. Step 5 does not deteriorate condition. Returned aircraft records and
+history remain authoritative but are excluded from usable-fleet projections.
+
+Aircraft contracts record immutable parties, aircraft, accepted offer (nullable
+only for an operating renewal), predecessor/successor links, selected delivery
+airport, start/expiry, term, exact pricing witness, installment progress,
+next-payment timestamp, command/fingerprint witnesses and status. Contract type
+is `OPERATING_LEASE` or `LEASE_TO_OWN`; status is `FUTURE`, `ACTIVE`,
+`COMPLETED`, `RETURNED`, or `CANCELLED`. Monthly payments are in arrears at each
+monthly anniversary, including expiry. Payment events precede flight events;
+expiry/transfer/return follows all payments and flight completion at the same
+second. A leased flight must complete at or before the continuous confirmed
+contract horizon. Aircraft are never removed midflight.
+
+The exact common contract fields are `aircraft_contract_id`, `contract_type`,
+`status`, `airline_id`, `aircraft_id`, `lessor_id`, nullable `offer_id`, nullable
+`predecessor_contract_id`, nullable `successor_contract_id`,
+`delivery_airport_id`, `started_at_utc`, `expires_at_utc`, `term_years`,
+`total_installments`, `paid_installments`, `aircraft_value_minor`,
+`monthly_rent_minor`, `monthly_financing_minor`, `principal_base_minor`,
+`principal_remainder_installments`, `principal_paid_minor`,
+`financing_paid_minor`, nullable `next_payment_at_utc`, `command_id`, and
+`request_fingerprint`. A cancelled lease-to-own contract additionally records
+`cancellation_depreciated_value_minor`, `cancellation_equity_minor`, and
+`cancellation_restoration_minor`; no other contract gains those fields.
+
+Operating monthly rent is `ceil(new_value * term_rate_bps / 10000)`. Early
+termination charges every unpaid rent installment immediately and no other
+penalty. Renewal creates a priced successor operating contract beginning at
+current expiry, preserving airframe, aircraft, registration, configuration and
+history.
+
+Lease-to-own principal is the original aircraft value divided across all term
+months, with one minor unit added to the earliest remainder installments. Its
+monthly financing component is
+`ceil(original_value * term_financing_bps / 10000)`; only principal builds the
+aircraft asset and equity. Final payment transfers ownership and configuration
+rights. Early cancellation first computes age-depreciated value without a
+condition multiplier, then computes `equity_after_depreciation =
+max(0, depreciated_value - remaining_principal)`. The single net cash
+settlement is `equity_after_depreciation - all_unpaid_financing_components -
+restoration_cost`. Remaining principal is extinguished. This formulation applies
+depreciation once through depreciated value, applies condition once through the
+separate restoration charge, and never refunds more equity than paid principal.
+Positive settlement credits cash; negative settlement debits cash. The journal
+removes accumulated aircraft assets and posts the residual to operating expense.
+
+Market commands use the schema-5 isolated-candidate, whole-world freshness and
+idempotent command pattern. Journals use source types
+`AIRCRAFT_LEASE_PAYMENT`, `AIRCRAFT_LEASE_TERMINATION`,
+`AIRCRAFT_LTO_PAYMENT`, `AIRCRAFT_LTO_CANCELLATION`, and
+`USED_AIRCRAFT_PURCHASE`. Automatic payments and settlements may make cash
+negative. No delinquency, grace, default, repossession, loan, banking or
+bankruptcy threshold is represented. A future bankruptcy duration would count
+consecutive time below zero and reset on positive cash; its threshold is unresolved.
+
+The valuation/condition contract is deliberately minimal. Future maintenance
+may deteriorate condition using hours and cycles (short-haul flying accumulating
+more cycles per hour), add age-sensitive A/B/C/D-style checks, component
+overhauls, cost and downtime, and restore relevant condition without ever
+resetting age or lifetime history. Manufacturer installments, physical delivery
+and return, active AI fleet listings, AI distress/bankruptcy sales, banking,
+consecutive-negative-cash bankruptcy rules, and lease-to-own refinancing remain
+future behavior and are not schema-6 authority.
+
 ## Approved PH acquisition increment (schema 5)
 
 Schema 5 extends schema 4 without rewriting existing aircraft, schedules,
@@ -28,7 +147,11 @@ delivery event or elapsed time is created. Finance revision advances once.
 Delivery selection is from the owning airline's base/hub airport IDs and sets
 initial `current_airport_id` only. The independently required `home_airport_id`
 uses the airline's first base in immutable-ID order; delivery does not reassign
-it. New aircraft enter `PARKED`. No new base/hub relationship is introduced.
+it. Purchase-time commands enforce current base/hub eligibility. The retained
+journal continues to reference the immutable airport after a later base/hub
+change; validation must not reinterpret that historical choice against only the
+airline's current memberships. New aircraft enter `PARKED`. No new base/hub
+relationship is introduced.
 Registration is a display value, globally unique at allocation. PH registration
 uses RP-C plus a seeded SHA-256-derived 12-digit suffix (deterministic collision
 probing); this game namespace is not a real registration-format assertion.
@@ -1046,6 +1169,13 @@ minimal account foundation contains exactly one each of `cash`,
 `operating_expenses`; all belong to that airline and use its base currency.
 
 ## Clock and event contract
+
+PH step 4 uses these existing fields without changing schema 5. Explicit Resume
+sets `simulation.configuration.clock_ratios.NORMAL` to 7 and `clock_state` to
+`NORMAL`; new sessions remain paused. The pacing controller submits explicit
+whole-second kernel targets. Active-uptime samples, fractional credit, input
+queues, suspended iterators and overload diagnostics are runtime-only and must
+not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%20Specification.md).
 
 - New worlds start at their supplied canonical UTC timestamp in `PAUSED` mode.
 - `NORMAL` and `FAST` ratios are exact positive integers. Wall-clock readings,

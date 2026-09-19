@@ -36,6 +36,8 @@ from game.world_state import (
     validate_world,
 )
 from game.world_state.timestamps import format_utc, parse_canonical_utc
+from game.simulation.pacing import RuntimeController
+from game.simulation.kernel import iter_events_through, begin_fast_forward, stop_fast_forward
 
 
 @dataclass(frozen=True)
@@ -47,12 +49,15 @@ class AdvancementReport:
 class Stage1Session:
     """Holds authority in memory; runtime preferences never enter the world."""
 
-    def __init__(self):
+    def __init__(self, *, runtime_clock=None):
         scenario = load_stage1_scenario(STAGE1_SCENARIO_ID)
         self._display_rates = deepcopy(scenario["display_currencies"])
         self.world = None
         self.display_currency = "USD"
         self.changed = False
+        self.runtime = None
+        self.runtime_clock = runtime_clock
+        self.on_advance_boundary = None
 
     @property
     def active(self):
@@ -77,6 +82,43 @@ class Stage1Session:
         )
         self.display_currency = "USD"
         self.changed = True
+        self._ensure_runtime()
+
+    def _ensure_runtime(self):
+        if self.runtime is not None and self.runtime.world is self.world:
+            return
+        if self.runtime is not None:
+            self.runtime.cancel_work()
+            self.runtime.closed = True
+        options = {} if self.runtime_clock is None else {'clock': self.runtime_clock}
+        self.runtime = RuntimeController(self.world, **options)
+
+    def resume(self):
+        self._ensure_runtime()
+        self.runtime.resume()
+        self.changed = True
+
+    def pause(self):
+        self._ensure_runtime()
+        self.runtime.pause()
+        self.changed = True
+
+    def close(self):
+        if self.runtime is not None:
+            self.runtime.close()
+
+    def pump(self):
+        if not self.active:
+            return None
+        self._ensure_runtime()
+        result = self.runtime.pump()
+        if result is not None:
+            self.changed = True
+        return result
+
+    def _management_changed(self):
+        if self.runtime is not None:
+            self.runtime.management_changed()
 
     def available_airports(self):
         return tuple(
@@ -150,7 +192,82 @@ class Stage1Session:
         aircraft_id = purchase_aircraft(self.world, preview)
         if before != self.authoritative_bytes():
             self.changed = True
+            self._management_changed()
         return aircraft_id
+
+    def leasing_offers(self):
+        state = self.world['world_state']
+        return tuple(deepcopy(state['aircraft_lease_offers'][key]) for key in
+                     state['aircraft_market_state']['active_lease_offer_ids'])
+
+    def used_listings(self):
+        today = date.fromisoformat(self.world['simulation']['time_utc'][:10])
+        rows = []
+        for _key, record in sorted(self.world['world_state']['used_aircraft_listings'].items()):
+            if record['status'] != 'ACTIVE':
+                continue
+            row = deepcopy(record)
+            made = date.fromisoformat(row['manufactured_date'])
+            row['age_months'] = ((today.year - made.year) * 12 + today.month - made.month
+                                 - (1 if today.day < made.day else 0))
+            rows.append(row)
+        return tuple(rows)
+
+    def aircraft_contracts(self):
+        return tuple(deepcopy(row) for _key, row in sorted(
+            self.world['world_state']['aircraft_contracts'].items())
+            if row['airline_id'] == self.airline_id and row['status'] in {'ACTIVE', 'FUTURE'})
+
+    def preview_lease(self, offer_id, contract_type, term_years, delivery_airport_id):
+        from game.aircraft_market.step5 import preview_lease
+        return preview_lease(self.world, airline_id=self.airline_id, offer_id=offer_id,
+            contract_type=contract_type, term_years=term_years,
+            delivery_airport_id=delivery_airport_id)
+
+    def accept_lease(self, preview):
+        from game.aircraft_market.step5 import accept_lease
+        aircraft_id = accept_lease(self.world, preview)
+        self.changed = True
+        self._management_changed()
+        return aircraft_id
+
+    def preview_used_purchase(self, listing_id, delivery_airport_id):
+        from game.aircraft_market.step5 import preview_used_purchase
+        return preview_used_purchase(self.world, airline_id=self.airline_id,
+            listing_id=listing_id, delivery_airport_id=delivery_airport_id)
+
+    def purchase_used(self, preview):
+        from game.aircraft_market.step5 import purchase_used_aircraft
+        aircraft_id = purchase_used_aircraft(self.world, preview)
+        self.changed = True
+        self._management_changed()
+        return aircraft_id
+
+    def renew_operating_lease(self, aircraft_id, term_years, command_id,
+                              expected_world_fingerprint=None):
+        from game.aircraft_market.step5 import renew_operating_lease
+        if expected_world_fingerprint is None:
+            expected_world_fingerprint = self.preview_operating_renewal(
+                aircraft_id, term_years).world_fingerprint
+        result = renew_operating_lease(self.world, aircraft_id=aircraft_id,
+                                       term_years=term_years, command_id=command_id,
+                                       expected_world_fingerprint=expected_world_fingerprint)
+        self.changed = True
+        self._management_changed()
+        return result
+
+    def preview_operating_renewal(self, aircraft_id, term_years):
+        from game.aircraft_market.step5 import preview_operating_renewal
+        return preview_operating_renewal(self.world, aircraft_id=aircraft_id,
+                                         term_years=term_years)
+
+    def terminate_contract(self, aircraft_id, command_id):
+        from game.aircraft_market.step5 import terminate_contract
+        result = terminate_contract(self.world, aircraft_id=aircraft_id,
+                                    command_id=command_id)
+        self.changed = True
+        self._management_changed()
+        return result
 
     def flights(self):
         return project_airline_flights(self.world, self.airline_id, limit=20)
@@ -177,6 +294,7 @@ class Stage1Session:
         )
         if result.succeeded:
             self.changed = True
+            self._management_changed()
         elif self.authoritative_bytes() != before:
             raise RuntimeError("rejected rotation mutated authoritative state")
         return result
@@ -186,8 +304,9 @@ class Stage1Session:
         return WeeklyDraft(self.world, airline_id=self.airline_id, aircraft_id=aircraft_id)
 
     def save_scheduling(self, draft, *, repeat_until=None):
-        result = draft.save(self.world, repeat_until=repeat_until)
+        result = draft.save_current(self.world, repeat_until=repeat_until)
         self.changed = True
+        self._management_changed()
         return result
 
     def publish_next_rotation(self):
@@ -195,6 +314,7 @@ class Stage1Session:
         result = publish_next_rotation(self.world, airline_id=self.airline_id)
         if result.succeeded:
             self.changed = True
+            self._management_changed()
         elif self.authoritative_bytes() != before:
             raise RuntimeError("rejected publication mutated authoritative state")
         return result
@@ -209,7 +329,17 @@ class Stage1Session:
         return AdvancementReport(result, tuple(rows))
 
     def advance_next_event(self):
-        return self._report(process_next_event(self.world))
+        self._manual_start()
+        try:
+            return self._report(process_next_event(self.world))
+        finally:
+            stop_fast_forward(self.world)
+
+    def _manual_start(self):
+        self.pause()
+        self.runtime.cancel_work()
+        # An explicit time jump replaces the outstanding pacing target.
+        self.runtime.credit_ns = 0
 
     def advance_seconds(self, seconds):
         if isinstance(seconds, bool) or not isinstance(seconds, int) or seconds <= 0:
@@ -221,7 +351,23 @@ class Stage1Session:
         return self.advance_to(target)
 
     def advance_to(self, target_time_utc):
-        return self._report(process_events_through(self.world, target_time_utc))
+        target = parse_canonical_utc(target_time_utc)
+        if target < parse_canonical_utc(self.world['simulation']['time_utc']):
+            raise ValueError('simulation time cannot move backward')
+        self._manual_start()
+        begin_fast_forward(self.world, target_time_utc)
+        work = iter_events_through(self.world, target_time_utc)
+        try:
+            while True:
+                try:
+                    next(work)
+                except StopIteration as done:
+                    return self._report(done.value)
+                if self.on_advance_boundary is not None:
+                    self.on_advance_boundary()
+        finally:
+            work.close()
+            stop_fast_forward(self.world)
 
     def validate(self):
         if self.world is None:

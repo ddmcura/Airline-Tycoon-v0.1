@@ -54,6 +54,9 @@ from .schema import (
     SCHEMA3_WORLD_ROOTS,
     SCHEMA4_ENTITY_TYPES,
     SCHEMA4_WORLD_ROOTS,
+    SCHEMA6_ENTITY_COLLECTIONS,
+    SCHEMA6_ENTITY_TYPES,
+    SCHEMA6_WORLD_ROOTS,
     SCHEDULE_SERVICE_TYPES,
     SCHEDULE_STATUSES,
     SUPPORTED_SAVE_SCHEMA_VERSIONS,
@@ -633,7 +636,7 @@ class _Validator:
             self.add("unsupported_schema_version", "$.metadata.save_schema_version", f"must be one of {sorted(SUPPORTED_SAVE_SCHEMA_VERSIONS)}")
         else:
             self.schema_version = schema_version
-            if schema_version in (3, 4, 5):
+            if schema_version in (3, 4, 5, 6):
                 alias = _container_alias_error(self.envelope)
                 if alias is not None:
                     path, previous = alias
@@ -661,10 +664,12 @@ class _Validator:
             "scheduling",
             "demand",
         }
-        if self.schema_version in (3, 4, 5):
+        if self.schema_version in (3, 4, 5, 6):
             configuration_fields.add("booking")
-        if self.schema_version in (4, 5):
+        if self.schema_version in (4, 5, 6):
             configuration_fields.add("flight_fulfilment")
+        if self.schema_version == 6:
+            configuration_fields.add("aircraft_market")
         for field in sorted(set(configuration) - configuration_fields, key=repr):
             self.add(
                 "unknown_authoritative_field",
@@ -732,7 +737,7 @@ class _Validator:
             "daily_multiplier_min_bps",
             "daily_multiplier_max_bps",
         }
-        if self.schema_version in (2, 3, 4, 5):
+        if self.schema_version in (2, 3, 4, 5, 6):
             demand_configuration_fields.update(
                 {"market_pack_configuration", "travel_scope_configuration", "air_suitability_configuration"}
             )
@@ -744,7 +749,7 @@ class _Validator:
             )
         supported_models = (
             {DEMAND_MODEL_VERSION, MODEL4_DEMAND_MODEL_VERSION}
-            if self.schema_version in (2, 3, 4, 5)
+            if self.schema_version in (2, 3, 4, 5, 6)
             else {DEMAND_MODEL_VERSION}
         )
         if demand_configuration.get("model_version") not in supported_models or isinstance(
@@ -830,7 +835,7 @@ class _Validator:
                     f"$.simulation.configuration.demand.destination_type_weight_bps.{destination_type}",
                     "weights must be positive integer basis points",
                 )
-        if self.schema_version in (2, 3, 4, 5):
+        if self.schema_version in (2, 3, 4, 5, 6):
             self._validate_schema2_demand_configuration(demand_configuration)
         fast_forward = self.require_mapping(simulation.get("fast_forward"), "$.simulation.fast_forward")
         target = fast_forward.get("target_time_utc")
@@ -855,12 +860,14 @@ class _Validator:
         self.require_mapping(deterministic.get("streams"), "$.deterministic_state.streams")
         self.world = self.require_mapping(self.envelope.get("world_state"), "$.world_state")
         world_roots = (
-            SCHEMA4_WORLD_ROOTS
-            if self.schema_version in (4, 5)
+            SCHEMA6_WORLD_ROOTS
+            if self.schema_version == 6
+            else SCHEMA4_WORLD_ROOTS
+            if self.schema_version in (4, 5, 6)
             else SCHEMA3_WORLD_ROOTS
             if self.schema_version == 3
             else SCHEMA2_WORLD_ROOTS
-            if self.schema_version in (2, 3, 4, 5)
+            if self.schema_version in (2, 3, 4, 5, 6)
             else WORLD_ROOTS
         )
         for key in world_roots:
@@ -874,13 +881,17 @@ class _Validator:
     def validate_collections_and_ids(self):
         seen_primary_ids = {}
         entity_types = (
-            SCHEMA2_ENTITY_TYPES
-            if self.schema_version in (2, 3, 4, 5)
+            SCHEMA6_ENTITY_TYPES
+            if self.schema_version == 6
+            else SCHEMA2_ENTITY_TYPES
+            if self.schema_version in (2, 3, 4, 5, 6)
             else ENTITY_TYPES
         )
         entity_collections = (
-            SCHEMA2_ENTITY_COLLECTIONS
-            if self.schema_version in (2, 3, 4, 5)
+            SCHEMA6_ENTITY_COLLECTIONS
+            if self.schema_version == 6
+            else SCHEMA2_ENTITY_COLLECTIONS
+            if self.schema_version in (2, 3, 4, 5, 6)
             else ENTITY_COLLECTIONS
         )
         max_issued = {entity_type: 0 for entity_type in entity_types}
@@ -943,9 +954,10 @@ class _Validator:
                     seen_primary_ids[event_id] = "event_history"
 
         allocator_entity_types = entity_types
-        if self.schema_version in (3, 4, 5):
+        if self.schema_version in (3, 4, 5, 6):
             allocator_entity_types = (
-                SCHEMA4_ENTITY_TYPES if self.schema_version in (4, 5)
+                SCHEMA6_ENTITY_TYPES if self.schema_version == 6
+                else SCHEMA4_ENTITY_TYPES if self.schema_version in (4, 5)
                 else SCHEMA3_ENTITY_TYPES
             )
             max_issued["booking_checkpoint"] = 0
@@ -1039,12 +1051,12 @@ class _Validator:
         airports = valid_records(world.get("airports"), "$.world_state.airports")
         regions = (
             valid_records(world.get("regions"), "$.world_state.regions")
-            if self.schema_version in (2, 3, 4, 5)
+            if self.schema_version in (2, 3, 4, 5, 6)
             else {}
         )
         countries = (
             valid_records(world.get("countries"), "$.world_state.countries")
-            if self.schema_version in (2, 3, 4, 5)
+            if self.schema_version in (2, 3, 4, 5, 6)
             else {}
         )
         airlines = valid_records(world.get("airlines"), "$.world_state.airlines")
@@ -1061,7 +1073,7 @@ class _Validator:
         event_history = valid_records(world.get("event_history"), "$.world_state.event_history")
         operations = self.require_mapping(world.get("active_aircraft_operations"), "$.world_state.active_aircraft_operations")
 
-        if self.schema_version in (2, 3, 4, 5):
+        if self.schema_version in (2, 3, 4, 5, 6):
             region_codes = {}
             for region_id, record in regions.items():
                 path = f"$.world_state.regions.{region_id}"
@@ -1202,7 +1214,7 @@ class _Validator:
                 "active_until_date",
                 "demand_input_revision",
             }
-            if self.schema_version in (2, 3, 4, 5):
+            if self.schema_version in (2, 3, 4, 5, 6):
                 allowed_airport_fields.update(
                     {"country_id", "demand_allocation_member"}
                 )
@@ -1344,7 +1356,7 @@ class _Validator:
                     "airport",
                     airport_id,
                 )
-            if self.schema_version in (2, 3, 4, 5):
+            if self.schema_version in (2, 3, 4, 5, 6):
                 country_id = record.get("country_id")
                 if not isinstance(country_id, str) or country_id not in countries:
                     self.add("dangling_reference", f"{path}.country_id", "must reference an immutable country ID", "airport", airport_id)
@@ -1438,7 +1450,7 @@ class _Validator:
                 "hub_airport_ids",
                 "financial_account_ids",
             }
-            if self.schema_version in (3, 4, 5):
+            if self.schema_version in (3, 4, 5, 6):
                 allowed_airline_fields.add("finance_revision")
             for field in sorted(set(record) - allowed_airline_fields, key=repr):
                 self.add(
@@ -2051,8 +2063,8 @@ class _Validator:
                     "published_at_utc",
                     "superseded_by_schedule_revision",
                 }
-                | ({"inventory_revision"} if self.schema_version in (3, 4, 5) else set())
-                | ({"operation_revision"} if self.schema_version in (4, 5) else set()),
+                | ({"inventory_revision"} if self.schema_version in (3, 4, 5, 6) else set())
+                | ({"operation_revision"} if self.schema_version in (4, 5, 6) else set()),
                 path,
                 "dated_flight",
                 flight_id,
@@ -2209,7 +2221,7 @@ class _Validator:
         ) and minimum_turnaround >= 0 and _canonical_utc(simulation_time):
             active_statuses = (
                 {"PLANNED"}
-                if self.schema_version in (4, 5)
+                if self.schema_version in (4, 5, 6)
                 else {"PLANNED", "OPERATIONALLY_LOCKED"}
             )
             future_by_aircraft = {aircraft_id: [] for aircraft_id in aircraft}
@@ -2234,7 +2246,7 @@ class _Validator:
                 )
                 previous = None
                 expected_origin = aircraft_record.get("current_airport_id")
-                if self.schema_version in (4, 5) and aircraft_record.get("status") == "IN_FLIGHT":
+                if self.schema_version in (4, 5, 6) and aircraft_record.get("status") == "IN_FLIGHT":
                     in_flight = [
                         operation
                         for operation in operations.values()
@@ -2285,7 +2297,7 @@ class _Validator:
                     expected_origin = record.get("destination_airport_id")
 
         for itinerary_id, record in itineraries.items():
-            if self.schema_version in (3, 4, 5):
+            if self.schema_version in (3, 4, 5, 6):
                 continue
             path = f"$.world_state.itineraries.{itinerary_id}"
             reject_unknown_fields(
@@ -2312,7 +2324,7 @@ class _Validator:
                         self.add("invalid_ownership", f"{path}.dated_flight_ids[{index}]", "dated flight belongs to another airline", "itinerary", itinerary_id)
 
         for booking_id, record in bookings.items():
-            if self.schema_version in (3, 4, 5):
+            if self.schema_version in (3, 4, 5, 6):
                 continue
             path = f"$.world_state.bookings.{booking_id}"
             reject_unknown_fields(
@@ -2416,6 +2428,7 @@ class _Validator:
             if amounts_valid and total != 0:
                 self.add("unbalanced_transaction", f"{path}.entries", "entry amounts must sum to zero", "transaction", transaction_id)
 
+        market_state = world.get("aircraft_market_state", {})
         owner_targets = {
             "airline": airlines,
             "aircraft": aircraft,
@@ -2426,6 +2439,12 @@ class _Validator:
             "booking_checkpoint": (
                 world.get("booking_state", {}).get("booking_checkpoints", {})
                 if type(world.get("booking_state")) is dict
+                else {}
+            ),
+            "aircraft_contract": world.get("aircraft_contracts", {}),
+            "aircraft_market": (
+                {market_state.get("aircraft_market_id"): market_state}
+                if type(market_state) is dict and type(market_state.get("aircraft_market_id")) is str
                 else {}
             ),
         }
@@ -2537,7 +2556,7 @@ class _Validator:
             "rounding_policy",
             "processed_cohorts",
         }
-        if self.schema_version in (2, 3, 4, 5):
+        if self.schema_version in (2, 3, 4, 5, 6):
             demand_fields.update(
                 {
                     "processed_cohort_schema_version",
@@ -2640,7 +2659,7 @@ class _Validator:
                 "demand",
             )
         contexts = {}
-        if self.schema_version in (2, 3, 4, 5):
+        if self.schema_version in (2, 3, 4, 5, 6):
             if demand.get("processed_cohort_schema_version") != PROCESSED_COHORT_SCHEMA_VERSION or isinstance(demand.get("processed_cohort_schema_version"), bool):
                 self.add("invalid_processed_cohort_schema_version", "$.world_state.demand_state.processed_cohort_schema_version", f"must equal {PROCESSED_COHORT_SCHEMA_VERSION}", "demand")
             contexts = self._validate_model4_revision_contexts(demand)
@@ -2722,7 +2741,7 @@ class _Validator:
                     str(cohort_key),
                 )
                 continue
-            if self.schema_version in (2, 3, 4, 5):
+            if self.schema_version in (2, 3, 4, 5, 6):
                 wrapper_fields = {"contract", "payload"}
                 for field in sorted(set(record) - wrapper_fields, key=repr):
                     self.add("unknown_authoritative_field", f"{path}.{field}", "field is not part of a processed-cohort wrapper", "demand_cohort", cohort_key)
@@ -2945,9 +2964,9 @@ class _Validator:
             self.add("invalid_type", "$.ui_state.selected_screen", "must be null or a string")
         if type(ui.get("filters")) is not dict:
             self.add("invalid_type", "$.ui_state.filters", "must be a dictionary")
-        if self.schema_version in (3, 4, 5):
+        if self.schema_version in (3, 4, 5, 6):
             validate_schema3_booking_authority(self)
-        if self.schema_version in (4, 5):
+        if self.schema_version in (4, 5, 6):
             validate_schema4_fulfilment_authority(self)
 
     def validate_no_name_references_or_float_money(self):
@@ -3010,6 +3029,12 @@ class _Validator:
                 validate_planning(self.envelope)
             except (ValueError, TypeError, KeyError, OverflowError, OSError) as exc:
                 self.add("invalid_planning", "$.world_state.schedule_definitions", str(exc))
+        if not self.errors and self.schema_version == 6:
+            from .aircraft_market_validation import validate_aircraft_market
+            try:
+                validate_aircraft_market(self.envelope)
+            except (ValueError, TypeError, KeyError, OverflowError, OSError) as exc:
+                self.add("invalid_aircraft_market", "$.world_state", str(exc))
         return ValidationResult(tuple(self.errors))
 
 

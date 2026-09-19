@@ -428,7 +428,7 @@ def _common_checks(envelope, flight_id):
         else:
             code = "INVALID_WORLD_STATE"
         return None, _reject(envelope, flight_id, code, issue.message, issue.path)
-    if envelope["metadata"]["save_schema_version"] not in (4, 5):
+    if envelope["metadata"]["save_schema_version"] not in (4, 5, 6):
         return None, _reject(envelope, flight_id, "INVALID_WORLD_STATE", "flight fulfilment requires schema 4")
     flight = envelope["world_state"]["dated_flights"].get(flight_id)
     if type(flight) is not dict:
@@ -712,6 +712,14 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
         aircraft = cworld["aircraft"][coperation["actual_aircraft_id"]]
         aircraft["current_airport_id"] = cflight["destination_airport_id"]
         aircraft["status"] = "PARKED"
+        lifecycle = aircraft.get("lifecycle")
+        if type(lifecycle) is dict:
+            block_seconds = int((
+                parse_canonical_utc(cflight["scheduled_in_block_utc"])
+                - parse_canonical_utc(cflight["scheduled_off_block_utc"])
+            ).total_seconds())
+            lifecycle["lifetime_flight_seconds"] += block_seconds
+            lifecycle["lifetime_cycles"] += 1
         result = {
             "contract": FLIGHT_RESULT_CONTRACT,
             "result_version": FLIGHT_RESULT_VERSION,

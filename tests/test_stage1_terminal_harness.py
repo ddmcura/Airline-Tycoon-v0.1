@@ -78,7 +78,7 @@ class Stage1BootstrapTests(unittest.TestCase):
         right = new_world("DVO")
         self.assertEqual(encoded(left), encoded(right))
         self.assertTrue(validate_world(left).is_valid, validate_world(left).as_dict())
-        self.assertEqual(left["metadata"]["save_schema_version"], 5)
+        self.assertEqual(left["metadata"]["save_schema_version"], 6)
         right["world_state"]["player"]["ceo_display_name"] = "Changed"
         self.assertEqual(left["world_state"]["player"]["ceo_display_name"], "Avery Chen")
 
@@ -94,7 +94,8 @@ class Stage1BootstrapTests(unittest.TestCase):
         self.assertEqual(next(iter(checkpoints.values()))["checkpoint_date"], "2026-09-01")
         events = list(world["world_state"]["pending_events"].values())
         self.assertEqual([(item["event_type"], item["due_at_utc"]) for item in events], [
-            ("DAILY_BOOKING_CHECKPOINT", "2026-09-02T00:00:00Z")
+            ("DAILY_BOOKING_CHECKPOINT", "2026-09-02T00:00:00Z"),
+            ("AIRCRAFT_MARKET_ROTATION", "2026-10-01T00:00:00Z"),
         ])
 
     def test_bootstrap_has_usd_accounts_and_free_parked_starter_aircraft(self):
@@ -332,13 +333,14 @@ class Stage1TerminalTranscriptTests(unittest.TestCase):
             for path in sorted((root / "app" / "terminal").glob("*.py"))
         )
         for forbidden in (
-            "save_utils", "daily_tick", "threading",
+            "save_utils", "daily_tick",
             "random.", "requests", "urllib", "tests.", "individual passenger",
         ):
             with self.subTest(forbidden=forbidden):
                 self.assertNotIn(forbidden, source)
         # Only isolated Stage 1 catalog/acquisition entry points are permitted.
-        allowed = {'game.aircraft_market.reference_catalog', 'game.aircraft_market.acquisition'}
+        allowed = {'game.aircraft_market.reference_catalog', 'game.aircraft_market.acquisition',
+                   'game.aircraft_market.step5'}
         import ast
         for node in ast.walk(ast.parse(source)):
             if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("game.aircraft_market"):

@@ -18,7 +18,7 @@ from game.scheduling.eligibility import check_eligibility
 from game.scheduling.timing import timing_bounds
 from game.simulation import process_events_through, process_next_event
 from game.world_state import create_stage1_new_game, validate_world
-from game.world_state.migration import migrate_schema_4_to_5
+from game.world_state.migration import migrate_schema_4_to_5, migrate_schema_5_to_6
 from game.world_state.timestamps import parse_canonical_utc
 
 
@@ -100,6 +100,22 @@ class AcquisitionTests(unittest.TestCase):
         draft = WeeklyDraft(self.world, airline_id=self.owner, aircraft_id=aircraft_id)
         draft.add(self.airports['CEB'], self.airports['MNL'])
         self.assertTrue(draft.save(self.world).succeeded)
+
+    def test_historical_delivery_remains_valid_after_base_removal(self):
+        airline = self.world['world_state']['airlines'][self.owner]
+        airline['base_airport_ids'].append(self.airports['CEB'])
+        aircraft_id = purchase_aircraft(
+            self.world, self.preview(delivery_airport_id=self.airports['CEB']))
+        airline = self.world['world_state']['airlines'][self.owner]
+        airline['base_airport_ids'].remove(self.airports['CEB'])
+
+        self.assertEqual(
+            self.world['world_state']['aircraft'][aircraft_id]['current_airport_id'],
+            self.airports['CEB'],
+        )
+        self.assert_valid()
+        with self.assertRaisesRegex(ValueError, 'base or hub'):
+            self.preview(delivery_airport_id=self.airports['CEB'])
 
     def test_stale_tampered_invalid_and_reused_commands_are_atomic(self):
         p = self.preview(command_id='one')
@@ -218,14 +234,28 @@ class AcquisitionTests(unittest.TestCase):
         draft = WeeklyDraft(self.world, airline_id=self.owner, aircraft_id=starter)
         draft.add(self.airports['MNL'], self.airports['CEB'], departure_utc='2026-09-07T00:00:00Z')
         self.assertTrue(draft.save(self.world).succeeded)
-        self.world['metadata']['save_schema_version'] = 4
+        self.world['metadata']['save_schema_version'] = 5
+        self.world['simulation']['configuration'].pop('aircraft_market')
+        market_id = self.world['world_state']['aircraft_market_state']['aircraft_market_id']
+        self.world['simulation']['operation_revisions'].pop(market_id)
+        self.world['world_state']['pending_events'] = {
+            key: row for key, row in self.world['world_state']['pending_events'].items()
+            if row['event_type'] != 'AIRCRAFT_MARKET_ROTATION'
+        }
+        for key in ('aircraft_market_state', 'aircraft_market_counterparties',
+                    'aircraft_lease_offers', 'used_aircraft_listings', 'aircraft_contracts'):
+            self.world['world_state'].pop(key)
+        for key in ('aircraft_market', 'market_counterparty', 'lease_offer',
+                    'used_listing', 'airframe', 'aircraft_contract'):
+            self.world['deterministic_state']['id_allocator']['next_by_type'].pop(key)
         original = deepcopy(self.world)
-        result = migrate_schema_4_to_5(self.world)
+        result = migrate_schema_5_to_6(self.world)
         self.assertTrue(result.succeeded, result)
         self.assertEqual(encoded(self.world), encoded(original))
-        expected = deepcopy(original)
-        expected['metadata']['save_schema_version'] = 5
-        self.assertEqual(encoded(expected), encoded(result.world))
+        self.assertEqual(result.world['metadata']['save_schema_version'], 6)
+        self.assertEqual(
+            {key: value for key, value in result.world['world_state']['aircraft'].items()},
+            original['world_state']['aircraft'])
         self.assertNotIn('configuration', result.world['world_state']['aircraft'][starter])
 
     def test_corrupt_configuration_and_purchase_journals_reject(self):

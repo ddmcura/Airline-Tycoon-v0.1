@@ -32,7 +32,8 @@ def validate_acquisition(envelope):
                   if 'configuration' in value}
     purchases = [t for t in world['transactions'].values()
                  if t.get('source_type') == 'AIRCRAFT_PURCHASE']
-    if envelope['metadata']['save_schema_version'] != 5:
+    schema_version = envelope['metadata']['save_schema_version']
+    if schema_version not in (5, 6):
         if configured or purchases:
             raise ValueError('aircraft acquisition requires schema 5')
         return
@@ -68,8 +69,8 @@ def validate_acquisition(envelope):
         if type(fingerprint) is not str or re.fullmatch('[0-9a-f]{64}', fingerprint) is None:
             raise ValueError('invalid purchase request fingerprint')
         airline = world['airlines'][aircraft['airline_id']]
-        if transaction['delivery_airport_id'] not in airline['base_airport_ids'] + airline['hub_airport_ids']:
-            raise ValueError('invalid purchase delivery location')
+        if transaction['delivery_airport_id'] not in world['airports']:
+            raise ValueError('purchase delivery airport does not exist')
         if transaction['occurred_at_utc'] > envelope['simulation']['time_utc']:
             raise ValueError('purchase cannot be in the future')
         accounts = {world['financial_accounts'][key]['code']: key for key in airline['financial_account_ids']}
@@ -78,5 +79,16 @@ def validate_acquisition(envelope):
                 {'account_id': accounts['aircraft_assets'], 'amount_minor': price},
                 {'account_id': accounts['cash'], 'amount_minor': -price}]:
             raise ValueError('purchase journal must exchange cash for the catalog-price asset')
-    if seen_aircraft != set(configured):
+    if schema_version == 5 and seen_aircraft != set(configured):
         raise ValueError('configured aircraft requires purchase provenance')
+    if schema_version == 6:
+        new_purchase_aircraft = set()
+        legacy_purchase_aircraft = set()
+        for aircraft_id, aircraft in configured.items():
+            lifecycle = aircraft.get('lifecycle')
+            if lifecycle is None:
+                legacy_purchase_aircraft.add(aircraft_id)
+            elif type(lifecycle) is dict and lifecycle.get('acquisition_type') == 'NEW_PURCHASE':
+                new_purchase_aircraft.add(aircraft_id)
+        if seen_aircraft != new_purchase_aircraft | legacy_purchase_aircraft:
+            raise ValueError('new purchase requires exactly one AIRCRAFT_PURCHASE journal')
