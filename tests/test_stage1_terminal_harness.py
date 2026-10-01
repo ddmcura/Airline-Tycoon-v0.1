@@ -99,7 +99,15 @@ class Stage1BootstrapTests(unittest.TestCase):
         ])
 
     def test_bootstrap_has_usd_accounts_and_free_parked_starter_aircraft(self):
-        world = new_world("CEB")
+        session = Stage1Session()
+        session.new_game("Avery Chen", "Meridian Air", "CEB")
+        world = session.world
+        self.assertIsNotNone(session.career_id)
+        self.assertEqual(world["simulation"]["configuration"]["difficulty"], "Normal")
+        self.assertEqual(
+            world["metadata"]["reference_data_version"],
+            "stage1-philippines-v1-recovery-2026-10-01",
+        )
         state = world["world_state"]
         airline_id = state["player"]["primary_airline_id"]
         airline = state["airlines"][airline_id]
@@ -113,7 +121,7 @@ class Stage1BootstrapTests(unittest.TestCase):
             "passenger_revenue", "operating_expenses",
         })
         self.assertTrue(all(item["currency"] == "USD" for item in accounts.values()))
-        self.assertEqual(accounts["cash"]["balance_minor"], 100_000_000)
+        self.assertEqual(accounts["cash"]["balance_minor"], 30_000_000_000)
         self.assertEqual(accounts["debt"]["balance_minor"], 0)
         aircraft = next(iter(state["aircraft"].values()))
         base_id = airline["base_airport_ids"][0]

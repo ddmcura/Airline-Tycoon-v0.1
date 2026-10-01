@@ -28,7 +28,8 @@ acceptance; this contract does not claim that any unmeasured gate has passed.
 
 Option 12 implements the [approved acquisition flow](Aircraft%20Acquisition%20Technical%20Specification.md).
 Option 11 remains read-only browsing. New sessions explicitly migrate to schema 5;
-scenario capital remains unchanged. Purchased aircraft use Weekly Scheduler,
+acquisition did not change scenario capital. The later PH 1.0 Normal starting-capital
+correction sets new careers to USD 300 million. Purchased aircraft use Weekly Scheduler,
 installed Economy capacity, scalar range and V2 30/45-minute total turnaround.
 Quick Rotation remains starter-only. Fleet viewing/selection uses derived pages
 of 20; finance displays aircraft assets and purchase journals. No disk persistence
@@ -103,7 +104,7 @@ The pack fixes:
   recovery catalog, all in `Asia/Manila`;
 - the canonical Philippines country/region foundation;
 - USD as the authoritative currency;
-- 100,000,000 USD minor units of cash and zero debt;
+- 30,000,000,000 USD minor units of cash (USD 300,000,000) and zero debt for Normal;
 - one free `A320-200`, registration `RP-C0001`, parked at the selected base;
 - 180 published Economy seats;
 - the fixed 08:00–10:00 outbound and 12:00–14:00 return timetable; and
@@ -112,6 +113,10 @@ The pack fixes:
 The loader requires the exact scenario contract and rejects missing, extra,
 malformed, or unsupported data. It returns a detached copy. Every one of the
 43 active airport members is a legal base selection; inactive LGP is not.
+The starting-capital correction uses reference-data version
+`stage1-philippines-v1-recovery-2026-10-01`. It applies to new careers; existing
+careers retain their saved cash state. This is the approved PH 1.0 Normal start,
+not final economy or difficulty balancing.
 
 ## Atomic bootstrap
 

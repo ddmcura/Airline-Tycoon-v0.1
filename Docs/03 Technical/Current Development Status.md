@@ -2,6 +2,26 @@
 
 Last updated: **2026-10-01**. Current snapshot, not operational authorization.
 
+## PH 1.0 Normal starting-capital correction
+
+New Philippines careers remain `Normal` and start with USD 300,000,000
+(30,000,000,000 USD minor units) under reference-data version
+`stage1-philippines-v1-recovery-2026-10-01`. This matches the legacy Normal
+amount for integrated player-simulation verification; it is not final economy
+or difficulty balancing. Existing careers retain their saved cash. Schema 7,
+aircraft prices, acquisition and economy rules, and difficulty selection are
+unchanged. The next PH roadmap step remains Step 8 integrated player-simulation
+verification.
+
+Verified on the working tree based on `464cf04` on 2026-10-01:
+`python -m unittest tests.test_stage1_terminal_harness.Stage1BootstrapTests
+tests.test_stage1_aircraft_acquisition.AcquisitionTests
+tests.test_step7_save_load -q` passed **37 tests in 65.554 s**;
+`python -m unittest discover -s tests -q` passed **606 tests in 454.297 s**;
+`python -m compileall -q app game tests main.py make_snapshot.py settings.py
+test.py` exited 0. The career bootstrap test checks the Normal difficulty,
+revised reference version, and exact cash account balance.
+
 ## PH 1.0 Step 7 save/load completion
 
 The schema-7 whole world now saves durably at completed transaction boundaries.
@@ -327,10 +347,12 @@ See the [acquisition specification](Aircraft%20Acquisition%20Technical%20Specifi
   purchases, plans or operations against only the aircraft's latest configuration.
 - No AI, connecting Booking, detailed disruptions, graphical planner or editing
   of already-published plans. Legacy modules remain migration evidence.
-- Starting-capital balancing is unchanged. The current PH scenario has USD
-  1 million; legacy Easy difficulty has a 500-million setting. Neither observation
-  establishes a newly approved design target. Acquisition tests supply funds
-  independently. Current new games offer their one established base for delivery.
+- The approved PH 1.0 Normal starting capital is USD 300 million for newly
+  created careers, matching the legacy Normal amount. Reference-data version
+  `stage1-philippines-v1-recovery-2026-10-01` distinguishes this scenario
+  correction. Existing careers retain saved cash. This is not final economy or
+  difficulty balancing; acquisition tests supply funds independently. Current
+  new games offer their one established base for delivery.
 - PH scalar range is a temporary gameplay ceiling, not a full-load guarantee.
   Airport/runway compatibility is deferred: physically unsuitable airport/aircraft
   combinations are not yet rejected. Payload-range/cargo/weight remain future work.

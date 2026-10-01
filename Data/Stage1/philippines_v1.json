@@ -1,12 +1,12 @@
 {
   "contract": "STAGE1_CURATED_SCENARIO_V1",
   "scenario_id": "stage1-philippines-v1",
-  "reference_data_version": "stage1-philippines-v1-recovery-2026-09-01",
+  "reference_data_version": "stage1-philippines-v1-recovery-2026-10-01",
   "start_time_utc": "2026-09-01T00:00:00Z",
   "simulation_seed": 17012026,
   "canonical_timezone": "Asia/Manila",
   "authoritative_currency": "USD",
-  "starting_cash_minor": 100000000,
+  "starting_cash_minor": 30000000000,
   "starting_debt_minor": 0,
   "country_foundation": {
     "snapshot_version": "stage1-philippines-country-foundation-v1",

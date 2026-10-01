@@ -103,10 +103,10 @@ Existing aircraft, bookings, schedules, processed demand, event history, money
 and witnesses are preserved. Required unknown catalog/model/performance bindings
 fail explicitly. No historical purchases or configuration provenance are inferred.
 
-The unchanged scenario supplies USD 1 million and a free starter. This does not
-approve intended starting-capital balancing. Legacy `settings.py` has a
-500-million Easy setting and other difficulty amounts, but is not authority for
-PH scenario balancing. Tests independently supply valid ample cash.
+Acquisition did not change scenario capital and retains the free starter. The
+later approved PH 1.0 Normal starting-capital correction supplies USD 300 million
+to new careers; existing careers retain saved cash. This is not final economy or
+difficulty balancing. Acquisition tests independently supply valid ample cash.
 
 Runway support remains unvalidated: widebodies can be planned at PH airports
 without physical runway checks. Scalar range is temporary gameplay calibration,
