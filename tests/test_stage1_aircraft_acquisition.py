@@ -223,10 +223,27 @@ class AcquisitionTests(unittest.TestCase):
         self.assertEqual(encoded(self.world), encoded(other))
         self.assertTrue(self.world['world_state']['bookings'])
         self.assertEqual(len(self.world['world_state']['flight_results']), 4)
+        from game.maintenance.routine import maintenance_expense_minor
+        from game.world_state.maintenance_reference import class_for_model, FACTORS
         for flight in self.world['world_state']['dated_flights'].values():
             self.assertEqual(flight['status'], 'COMPLETED')
+            result = self.world['world_state']['flight_results'][flight['dated_flight_id']]
+            revision = self.world['world_state']['schedule_definitions'][flight['schedule_id']]['revisions'][str(flight['schedule_revision'])]
+            distance = revision['planning_timing']['distance_m']
+            model = self.world['world_state']['aircraft'][result['actual_aircraft_id']]['model_reference']
+            self.assertEqual(result['maintenance_distance_m'], distance)
+            self.assertEqual(result['maintenance_distance_source'], 'PLANNING_TIMING_V2')
+            self.assertEqual(result['maintenance_class'], class_for_model(model))
+            self.assertEqual(result['maintenance_expense_minor'],
+                             maintenance_expense_minor(distance, FACTORS[result['maintenance_class']]))
             if flight['service_type'] == 'DEADHEAD':
                 self.assertEqual(flight['capacity'], 0)
+                self.assertGreater(result['maintenance_expense_minor'], 0)
+        for aid in self.world['world_state']['aircraft']:
+            lifecycle = self.world['world_state']['aircraft'][aid].get('lifecycle')
+            if lifecycle and lifecycle['lifetime_cycles']:
+                self.assertEqual(lifecycle['lifetime_cycles'], 2)
+                self.assertGreater(lifecycle['lifetime_flight_seconds'], 0)
         self.assert_valid()
 
     def test_migration_preserves_exact_starter_and_published_history(self):
@@ -236,6 +253,7 @@ class AcquisitionTests(unittest.TestCase):
         self.assertTrue(draft.save(self.world).succeeded)
         self.world['metadata']['save_schema_version'] = 5
         self.world['simulation']['configuration'].pop('aircraft_market')
+        self.world['simulation']['configuration'].pop('maintenance')
         market_id = self.world['world_state']['aircraft_market_state']['aircraft_market_id']
         self.world['simulation']['operation_revisions'].pop(market_id)
         self.world['world_state']['pending_events'] = {

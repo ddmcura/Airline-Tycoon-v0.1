@@ -2,6 +2,8 @@
 
 from copy import deepcopy
 
+from game.maintenance.routine import departure_witness, maintenance_expense_minor
+
 from .fulfilment import (
     _PROJECTION_VALIDATION_TOKEN,
     build_confirmed_carriage_manifest,
@@ -77,6 +79,8 @@ def _project_flight(envelope, world, dated_flight_id):
         zero = result["zero_fare_passenger_count"]
         revenue = result["recognized_revenue_minor"]
         cost = result["operating_cost_minor"]
+        base_cost = result.get("base_operating_cost_minor", cost)
+        maintenance_cost = result.get("maintenance_expense_minor", 0)
         completion = result["completed_at_utc"]
         transaction_id = result["settlement_transaction_id"]
         identity = {
@@ -86,7 +90,19 @@ def _project_flight(envelope, world, dated_flight_id):
         }
     else:
         carried = paid = zero = revenue = 0
-        cost = calculate_operating_cost(envelope, flight)["operating_cost_minor"]
+        base_cost = calculate_operating_cost(envelope, flight)["operating_cost_minor"]
+        maintenance_cost = 0
+        active = world["active_aircraft_operations"].get(dated_flight_id)
+        if envelope["metadata"]["save_schema_version"] == 7 and (active is None or "maintenance_distance_m" in active):
+            aircraft_id = active["actual_aircraft_id"] if active else flight["planned_aircraft_id"]
+            witness = active if active else departure_witness(
+                world, flight, world["aircraft"][aircraft_id],
+                envelope["simulation"]["configuration"]["maintenance"],
+            )
+            maintenance_cost = maintenance_expense_minor(
+                witness["maintenance_distance_m"], witness["maintenance_factor_minor_per_km"]
+            )
+        cost = base_cost + maintenance_cost
         completion = transaction_id = identity = None
     capacity = flight["capacity"]
     booked_bps = 0 if capacity == 0 else (booked * 10_000) // capacity
@@ -136,6 +152,8 @@ def _project_flight(envelope, world, dated_flight_id):
         "load_factor_basis_points": carried_bps,
         "ticket_sales_minor": ticket_sales,
         "recognized_revenue_minor": revenue,
+        "base_operating_cost_minor": base_cost,
+        "maintenance_expense_minor": maintenance_cost,
         "operating_cost_minor": cost,
         "operating_profit_minor": revenue - cost,
         "completion_timestamp_utc": completion,

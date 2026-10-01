@@ -1,6 +1,43 @@
 # Current Development Status
 
-Last updated: **2026-09-20**. Current snapshot, not operational authorization.
+Last updated: **2026-10-01**. Current snapshot, not operational authorization.
+
+## PH 1.0 Step 6 completion
+
+Simple routine maintenance expenses are implemented as save schema 7 on the
+working tree based on `768556c56a52d3c4600e4037f02e11836d40791d`.
+The versioned dimensional classification reference covers all 20 catalog
+models plus the legacy A320-200 starter. New departures freeze the authoritative
+timing-snapshot distance or the shared geographic fallback and the actual
+aircraft's A–G class/rate. Successful completion, including deadheads, adds
+`ceil(distance_m × class_factor_minor_per_km / 1000)` to the unchanged base
+operating cost. The single existing fulfilment journal posts the combined
+operating expense and cash cost; per-flight projections and the terminal show
+the components separately. Negative cash, replay, event-step/bulk/7×
+equivalence and existing lifetime counters are covered by regressions.
+
+Detached schema 6→7 migration adds the maintenance configuration only. V1
+historical results and journals remain unchanged; locked V1 flights finish on
+V1 rules, while only new departures receive Step 6. There is no backfill or
+new maintenance account/event. The next PH roadmap step is Step 7 save/load.
+Scheduled checks, condition deterioration, facilities, downtime, failures,
+reserves, PBH and monthly maintenance settlement remain deferred.
+
+| Step 6 verification, 2026-10-01 | Result |
+| --- | --- |
+| `python -m unittest tests.test_step6_maintenance tests.test_stage1_aircraft_acquisition.AcquisitionTests.test_booking_fulfilment_mixed_fleet_deadhead_and_replay -q` | 11 passed in 131.210 s |
+| `python -m unittest tests.test_step6_maintenance -q` after detached-reference hardening | 10 passed in 108.609 s |
+| `python -m unittest discover -s tests -q` after detached-reference hardening | 593 passed in 451.683 s on the final source state |
+| `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py` | Exit 0 |
+| Changed-document local link-target check | Passed across 6 documents and 122 local targets |
+| `git diff --check` | Passed before commit preparation |
+
+The full suite used bundled CPython 3.12.14 and isolated, test-only
+`tabulate 0.10.0`/`tzdata 2026.3` outside the repository. An earlier run
+without those pinned dependencies had two import/version failures and one
+schema-5 fixture failure; the fixture now removes schema-7 configuration
+when reconstructing schema 5, and the final full run passed. No dependency
+copies are part of this working tree.
 
 ## PH 1.0 Step 5 completion
 

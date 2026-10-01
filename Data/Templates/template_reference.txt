@@ -1,3 +1,32 @@
+# Schema 7 PH 1.0 Step 6 routine maintenance
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md.
+# Detached 6->7 migration adds simulation.configuration.maintenance only.
+# Earlier completed results/journals and locked operations stay V1.
+simulation.configuration.maintenance:
+  contract: PH_ROUTINE_MAINTENANCE_CONFIGURATION_V1
+  configuration_version: ph-routine-maintenance-v1
+  classification_version: ph-aircraft-aerodrome-class-v1
+  factor_minor_per_km_by_class: {A:15,B:35,C:80,D:130,E:200,F:300,G:450}
+  configuration_fingerprint: SHA-256 sorted-key JSON excluding fingerprint
+Data/Stage1/aircraft_aerodrome_class_v1.json:
+  contract: PH_AIRCRAFT_AERODROME_CLASS_V1
+  classification_version: ph-aircraft-aerodrome-class-v1
+  band_basis: ICAO_WINGSPAN_WITH_PROJECT_G_EXTENSION
+  models: exact 20 catalog IDs plus legacy starter A320-200
+  each model: wingspan_mm, aerodrome_class, source_url
+new active_aircraft_operation maintenance witnesses:
+  maintenance_distance_m, maintenance_distance_source,
+  maintenance_classification_version, maintenance_class,
+  maintenance_factor_minor_per_km, maintenance_configuration_fingerprint
+new flight_result result_version 2:
+  existing V1 fields plus base_operating_cost_minor,
+  maintenance_expense_minor and six departure maintenance witnesses
+  operating_cost_minor = base_operating_cost_minor + maintenance_expense_minor
+  maintenance_expense_minor = ceil(distance_m * class_factor_minor_per_km / 1000)
+One existing FLIGHT_FULFILMENT journal posts total to operating_expenses and
+cash. No extra account, payable, reserve, journal or settlement event.
+
+
 # Schema 6 PH 1.0 Step 5 aircraft market (canonical schema prevails)
 simulation.configuration.aircraft_market:
   contract: PH_AIRCRAFT_MARKET_CONFIGURATION_V1

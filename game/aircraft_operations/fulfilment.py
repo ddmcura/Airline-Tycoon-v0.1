@@ -8,6 +8,7 @@ import hashlib
 import json
 
 from game.simulation.kernel import DEFAULT_EVENT_HANDLERS, schedule_event
+from game.maintenance.routine import departure_witness, maintenance_expense_minor
 from game.world_state.ids import allocate_id
 from game.world_state.schema import (
     AGGREGATE_BOOKING_CONTRACT,
@@ -428,7 +429,7 @@ def _common_checks(envelope, flight_id):
         else:
             code = "INVALID_WORLD_STATE"
         return None, _reject(envelope, flight_id, code, issue.message, issue.path)
-    if envelope["metadata"]["save_schema_version"] not in (4, 5, 6):
+    if envelope["metadata"]["save_schema_version"] not in (4, 5, 6, 7):
         return None, _reject(envelope, flight_id, "INVALID_WORLD_STATE", "flight fulfilment requires schema 4")
     flight = envelope["world_state"]["dated_flights"].get(flight_id)
     if type(flight) is not dict:
@@ -436,7 +437,7 @@ def _common_checks(envelope, flight_id):
     return flight, None
 
 
-def _departure(envelope, flight_id, *, resolve_event, expected_operation_revision=None,
+def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, expected_operation_revision=None,
                expected_booking_revision=None, expected_inventory_revision=None,
                expected_event_order_cursor=None, expected_configuration_revision=None,
                expected_configuration_fingerprint=None):
@@ -476,7 +477,14 @@ def _departure(envelope, flight_id, *, resolve_event, expected_operation_revisio
     next_event = _next_event(envelope)
     if next_event is None or next_event["event_id"] != event["event_id"]:
         return _reject(envelope, flight_id, "EVENT_NOT_NEXT", "departure event is not the next canonical pending event")
-    aircraft = world["aircraft"][flight["planned_aircraft_id"]]
+    if actual_aircraft_id is not None and (type(actual_aircraft_id) is not str or not actual_aircraft_id):
+        return _reject(envelope, flight_id, "AIRCRAFT_UNAVAILABLE", "actual aircraft ID must be a nonempty string")
+    chosen_aircraft_id = flight["planned_aircraft_id"] if actual_aircraft_id is None else actual_aircraft_id
+    if actual_aircraft_id is not None and envelope["metadata"]["save_schema_version"] != 7:
+        return _reject(envelope, flight_id, "INVALID_WORLD_STATE", "substitution requires schema 7")
+    aircraft = world["aircraft"].get(chosen_aircraft_id)
+    if type(aircraft) is not dict:
+        return _reject(envelope, flight_id, "AIRCRAFT_UNAVAILABLE", "actual aircraft does not exist")
     if aircraft["airline_id"] != flight["airline_id"]:
         return _reject(envelope, flight_id, "AIRCRAFT_OWNERSHIP_MISMATCH", "aircraft belongs to another airline")
     if aircraft.get("status") != "PARKED" or aircraft.get("current_airport_id") != flight["origin_airport_id"]:
@@ -493,13 +501,13 @@ def _departure(envelope, flight_id, *, resolve_event, expected_operation_revisio
         cflight["operation_revision"] += 1
         candidate["simulation"]["operation_revisions"][flight_id] = cflight["operation_revision"]
         cflight["status"] = "OPERATIONALLY_LOCKED"
-        caircraft = cworld["aircraft"][cflight["planned_aircraft_id"]]
+        caircraft = cworld["aircraft"][chosen_aircraft_id]
         caircraft["current_airport_id"] = None
         caircraft["status"] = "IN_FLIGHT"
         operation = {
             "contract": FLIGHT_FULFILMENT_OPERATION_CONTRACT,
             "dated_flight_id": flight_id,
-            "aircraft_id": cflight["planned_aircraft_id"],
+            "aircraft_id": chosen_aircraft_id,
             "state": "OPERATIONALLY_LOCKED",
             "revision": cflight["operation_revision"],
             "airline_id": cflight["airline_id"],
@@ -508,7 +516,7 @@ def _departure(envelope, flight_id, *, resolve_event, expected_operation_revisio
             "schedule_revision": cflight["schedule_revision"],
             "occurrence_key": cflight["occurrence_key"],
             "planned_aircraft_id": cflight["planned_aircraft_id"],
-            "actual_aircraft_id": cflight["planned_aircraft_id"],
+            "actual_aircraft_id": chosen_aircraft_id,
             "origin_airport_id": cflight["origin_airport_id"],
             "destination_airport_id": cflight["destination_airport_id"],
             "scheduled_off_block_utc": cflight["scheduled_off_block_utc"],
@@ -529,6 +537,11 @@ def _departure(envelope, flight_id, *, resolve_event, expected_operation_revisio
             "departure_event_id": event["event_id"],
             "completion_event_id": None,
         }
+        if candidate["metadata"]["save_schema_version"] == 7:
+            operation.update(departure_witness(
+                cworld, cflight, caircraft,
+                candidate["simulation"]["configuration"]["maintenance"],
+            ))
         cworld["active_aircraft_operations"][flight_id] = operation
         completion_id = schedule_event(
             candidate, event_type=FLIGHT_COMPLETION_EVENT_TYPE,
@@ -558,7 +571,7 @@ def _departure(envelope, flight_id, *, resolve_event, expected_operation_revisio
         return _reject(envelope, flight_id, code, message)
 
 
-def process_flight_departure(envelope, dated_flight_id, **witnesses):
+def process_flight_departure(envelope, dated_flight_id, *, actual_aircraft_id=None, **witnesses):
     required = {
         "expected_operation_revision", "expected_booking_revision",
         "expected_inventory_revision", "expected_event_order_cursor",
@@ -577,7 +590,8 @@ def process_flight_departure(envelope, dated_flight_id, **witnesses):
         )
     try:
         return _departure(
-            envelope, dated_flight_id, resolve_event=True, **witnesses
+            envelope, dated_flight_id, resolve_event=True,
+            actual_aircraft_id=actual_aircraft_id, **witnesses
         )
     except Exception as exc:
         return _reject(
@@ -676,6 +690,13 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
         if liability["balance_minor"] < revenue:
             raise ValueError("INSUFFICIENT_UNFLOWN_TICKET_LIABILITY")
         cost = calculate_operating_cost(candidate, cflight)
+        if "maintenance_distance_m" in coperation:
+            maintenance = maintenance_expense_minor(
+                coperation["maintenance_distance_m"],
+                coperation["maintenance_factor_minor_per_km"],
+            )
+            base = cost["operating_cost_minor"]
+            cost["operating_cost_minor"] = base + maintenance
         transaction_id = allocate_id(candidate, "transaction")
         entries = []
         if revenue:
@@ -761,6 +782,15 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
             "fulfilment_configuration_revision": configuration["current_revision"],
             "fulfilment_configuration_fingerprint": configuration["configuration_fingerprint"],
         }
+        if "maintenance_distance_m" in coperation:
+            result["result_version"] = 2
+            result["base_operating_cost_minor"] = base
+            result["maintenance_expense_minor"] = maintenance
+            result.update({key: coperation[key] for key in (
+                "maintenance_distance_m", "maintenance_distance_source",
+                "maintenance_classification_version", "maintenance_class",
+                "maintenance_factor_minor_per_km", "maintenance_configuration_fingerprint",
+            )})
         cworld["flight_results"][flight_id] = result
         del cworld["active_aircraft_operations"][flight_id]
         if resolve_event:

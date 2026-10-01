@@ -13,7 +13,7 @@ availability; consult Current Development Status and later completed increments.
 
 ## Philippines 1.0 release sequence
 
-Updated 2026-09-20. **Approved PH 1.0 scope; provisional implementation order.**
+Updated 2026-09-30. **Approved PH 1.0 scope; provisional implementation order.**
 This plan does not authorize implementation or replace bounded technical specifications.
 Existing Milestone 8/9 labels remain stable; the recovery order below governs execution.
 See [Current Development Status](Current%20Development%20Status.md) for completed work
@@ -30,7 +30,7 @@ first minimum-playable checkpoint, but remain PH 1.0 requirements, not post-1.0 
 | 3 | Basic new-aircraft acquisition | Atomic cash purchases, selected base/hub delivery, individual configuration, schema-5 migration, model capacity/range and versioned 30/45-minute turnaround. See the [acquisition contract](Aircraft%20Acquisition%20Technical%20Specification.md) and [verification snapshot](Current%20Development%20Status.md). |
 | 4 | Continuous deterministic runtime at 7×, manual pause/resume, and integration of existing multi-day advancement | Use the existing kernel and ordered whole-second commands with runtime-only wall-clock pacing. The [approved bounded contract](Continuous%20Runtime%20Technical%20Specification.md) requires management while running, preserved event limits, suspension exclusion and measured sustained 7x for 50 aircraft. See Current Development Status for implementation and acceptance evidence. |
 | 5 | Leasing, lease-to-own, and used aircraft | Implemented as schema 6: deterministic rotating lease offers, persistent used listings, automatic negative-cash-capable obligations, safe return/renewal, ownership transfer and contract-aware scheduling. See the [aircraft marketplace contract](Aircraft%20Marketplace%20Technical%20Specification.md) and Current Development Status. |
-| 6 | Simple versioned maintenance expenses | Specify simplified cost/accrual and Economy journals; distinguish cash from attributed costs, avoid double charging and preserve settled history. |
+| 6 | Simple versioned maintenance expenses | Add one class-and-distance routine cost to each completed flight's existing operating expense/cash journal, including deadheads, while preserving V1 history. See the [bounded specification](Routine%20Maintenance%20Technical%20Specification.md). No accrual or monthly maintenance settlement. |
 | 7 | Save/load (existing Milestone 8) | After main authoritative gameplay state and runtime are sufficiently established, integrate event-boundary snapshots, validated candidate loading, paused restoration, migrations, atomic replacement/recovery and manual/quick/autosave slots. |
 | 8 | Integrated PH 1.0 verification | Verify multiple weeks of scheduling, Booking, operations, finance, all acquisition modes, maintenance, runtime controls, multi-day advancement and reload. Prove deterministic equivalence across stepping/7×/reload and exclude legacy authority. |
 | 9 | AI after PH 1.0 | After the player simulation is complete and verified, add shared-rule AI and complete the broader Milestone 9 AI acceptance criteria. |
@@ -47,7 +47,7 @@ technical dependency. Retain the order above: specify market contracts and their
 future maintenance boundary before implementation, then integrate expenses at step 6.
 If a bounded technical specification establishes a different dependency, explain it
 before changing this provisional order. Schema 6 now establishes the bounded
-Step 5 condition and obligation foundation; full maintenance remains Step 6.
+Step 5 condition and obligation foundation; Step 6 adds only routine expenses.
 
 ### Explicitly deferred until later
 

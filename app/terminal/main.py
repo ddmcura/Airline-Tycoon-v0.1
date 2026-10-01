@@ -855,7 +855,9 @@ class _Terminal:
                     f"   Carried {row['carried_passenger_count']} "
                     f"({format_basis_points(row['carried_load_factor_basis_points'])}); "
                     f"revenue {self.money(row['recognized_revenue_minor'])}; "
-                    f"cost {self.money(row['operating_cost_minor'])}; "
+                    f"cost {self.money(row['operating_cost_minor'])} "
+                    f"(base {self.money(row['base_operating_cost_minor'])}, "
+                    f"maintenance {self.money(row['maintenance_expense_minor'])}); "
                     f"profit/loss {self.money(row['operating_profit_minor'])}"
                 )
             event = row["next_lifecycle_event"]

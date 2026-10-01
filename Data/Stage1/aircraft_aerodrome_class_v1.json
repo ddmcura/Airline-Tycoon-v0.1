@@ -1,0 +1,112 @@
+{
+  "contract": "PH_AIRCRAFT_AERODROME_CLASS_V1",
+  "classification_version": "ph-aircraft-aerodrome-class-v1",
+  "band_basis": "ICAO_WINGSPAN_WITH_PROJECT_G_EXTENSION",
+  "models": {
+    "airbus-a320neo": {
+      "wingspan_mm": 35800,
+      "aerodrome_class": "C",
+      "source_url": "https://www.aircraft.airbus.com/en/aircraft/a320-family/a320neo"
+    },
+    "airbus-a321neo": {
+      "wingspan_mm": 35800,
+      "aerodrome_class": "C",
+      "source_url": "https://www.aircraft.airbus.com/en/aircraft/a320-family/a321neo"
+    },
+    "airbus-a330-900": {
+      "wingspan_mm": 64000,
+      "aerodrome_class": "E",
+      "source_url": "https://www.airbus.com/en/newsroom/news/2018-11-airbus-delivers-new-generation-efficiency-comfort-and-profitability-with-its"
+    },
+    "airbus-a350-900": {
+      "wingspan_mm": 64750,
+      "aerodrome_class": "E",
+      "source_url": "https://www.aircraft.airbus.com/en/aircraft/a350/a350-900"
+    },
+    "boeing-737-8-200": {
+      "wingspan_mm": 35900,
+      "aerodrome_class": "C",
+      "source_url": "https://www.boeing.com/commercial/737max/"
+    },
+    "boeing-737-9": {
+      "wingspan_mm": 35900,
+      "aerodrome_class": "C",
+      "source_url": "https://www.boeing.com/commercial/737max/"
+    },
+    "boeing-787-9": {
+      "wingspan_mm": 60100,
+      "aerodrome_class": "E",
+      "source_url": "https://www.boeing.com/commercial/787.html"
+    },
+    "boeing-787-10": {
+      "wingspan_mm": 60100,
+      "aerodrome_class": "E",
+      "source_url": "https://www.boeing.com/commercial/787.html"
+    },
+    "dhc-twin-otter-300-g": {
+      "wingspan_mm": 19810,
+      "aerodrome_class": "B",
+      "source_url": "https://dehavilland.com/wp-content/uploads/2025/03/DHC_Twin_Otter_300-G_WHEELS_Spec_Sheet_v1_DIGITAL.pdf"
+    },
+    "dhc-dash-8-200": {
+      "wingspan_mm": 25910,
+      "aerodrome_class": "C",
+      "source_url": "https://dehavillandportal.com/assets/public-documents/D8200-APM.pdf"
+    },
+    "dhc-dash-8-300": {
+      "wingspan_mm": 27430,
+      "aerodrome_class": "C",
+      "source_url": "https://dehavillandportal.com/assets/public-documents/D8300-APM.pdf"
+    },
+    "dhc-dash-8-400": {
+      "wingspan_mm": 28420,
+      "aerodrome_class": "C",
+      "source_url": "https://dehavillandportal.com/assets/public-documents/D8400-APM.pdf"
+    },
+    "embraer-e175": {
+      "wingspan_mm": 28650,
+      "aerodrome_class": "C",
+      "source_url": "https://www.embraercommercialaviation.com/wp-content/uploads/2017/02/APM_E175.pdf"
+    },
+    "embraer-e190": {
+      "wingspan_mm": 28720,
+      "aerodrome_class": "C",
+      "source_url": "https://embraer.com/media/jwsj1u1u/e190apm_apm_190-1.pdf"
+    },
+    "embraer-e190-e2": {
+      "wingspan_mm": 33720,
+      "aerodrome_class": "C",
+      "source_url": "https://www.embraer.com/media/vmsjxvk5/e-jets-e2_apm_e-jetse2.pdf"
+    },
+    "embraer-e195-e2": {
+      "wingspan_mm": 35120,
+      "aerodrome_class": "C",
+      "source_url": "https://www.embraer.com/media/vmsjxvk5/e-jets-e2_apm_e-jetse2.pdf"
+    },
+    "bombardier-crj200": {
+      "wingspan_mm": 21210,
+      "aerodrome_class": "B",
+      "source_url": "https://www.mhi.com/business/products-services/aviation/aircraft-aftermarket-service/crj"
+    },
+    "bombardier-crj700": {
+      "wingspan_mm": 23200,
+      "aerodrome_class": "B",
+      "source_url": "https://www.mhi.com/business/products-services/aviation/aircraft-aftermarket-service/crj"
+    },
+    "bombardier-crj900": {
+      "wingspan_mm": 24900,
+      "aerodrome_class": "C",
+      "source_url": "https://www.mhi.com/business/products-services/aviation/aircraft-aftermarket-service/crj"
+    },
+    "bombardier-crj1000": {
+      "wingspan_mm": 26200,
+      "aerodrome_class": "C",
+      "source_url": "https://www.mhi.com/business/products-services/aviation/aircraft-aftermarket-service/crj"
+    },
+    "A320-200": {
+      "wingspan_mm": 35800,
+      "aerodrome_class": "C",
+      "source_url": "https://www.aircraft.airbus.com/en/aircraft/a320-family/a320ceo"
+    }
+  }
+}

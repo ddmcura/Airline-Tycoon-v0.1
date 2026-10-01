@@ -33,6 +33,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   atomic purchases, selected delivery, schema 5 and versioned PH performance.
 - [Aircraft marketplace specification](03%20Technical/Aircraft%20Marketplace%20Technical%20Specification.md):
   schema-6 operating leases, lease-to-own, rotating offers and persistent used listings.
+- [Routine maintenance specification](03%20Technical/Routine%20Maintenance%20Technical%20Specification.md):
+  schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
   7x pacing, management while running, exclusive world ownership and performance gates.
 - [Decision Register](03%20Technical/Decision%20Register.md):

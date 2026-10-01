@@ -12,6 +12,7 @@ from .demand_fingerprint import (
 from .ids import parse_entity_id
 from .booking_fingerprint import new_booking_configuration
 from .fulfilment_fingerprint import new_flight_fulfilment_configuration
+from .maintenance_reference import new_maintenance_configuration
 from .schema import (
     AIRCRAFT_MARKET_CONFIGURATION,
     DEFAULT_MARKET_PACK_CONFIGURATION,
@@ -109,6 +110,25 @@ def migrate_schema_5_to_6(envelope):
     if not validation.is_valid:
         return MigrationResult("REJECTED", source, 6, validation.errors)
     return MigrationResult("COMPLETED", source, 6, migrated_world=candidate)
+
+
+def migrate_schema_6_to_7(envelope):
+    """Add PH routine-maintenance authority without touching V1 history."""
+    metadata = envelope.get("metadata") if type(envelope) is dict else None
+    source = metadata.get("save_schema_version") if type(metadata) is dict else None
+    validation = validate_world(envelope)
+    if not validation.is_valid:
+        return MigrationResult("REJECTED", source, 7, validation.errors)
+    if source != 6:
+        return MigrationResult("REJECTED", source, 7,
+            (_issue("INVALID_SOURCE_SCHEMA", "$", "migration requires schema 6"),))
+    candidate = deepcopy(envelope)
+    candidate["metadata"]["save_schema_version"] = 7
+    candidate["simulation"]["configuration"]["maintenance"] = new_maintenance_configuration()
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return MigrationResult("REJECTED", source, 7, validation.errors)
+    return MigrationResult("COMPLETED", source, 7, migrated_world=candidate)
 
 
 def _issue(code, path, message, entity_type=None, entity_id=None):

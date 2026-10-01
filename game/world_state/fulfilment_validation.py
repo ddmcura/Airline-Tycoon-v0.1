@@ -3,6 +3,8 @@
 import hashlib
 import json
 
+from game.maintenance.routine import departure_witness, maintenance_expense_minor
+from .maintenance_reference import validate_maintenance_configuration
 from .fulfilment_fingerprint import (
     calculate_flight_fulfilment_configuration_fingerprint,
 )
@@ -235,6 +237,18 @@ def _validate_configuration(validator):
     return configuration
 
 
+def _validate_maintenance_witness(validator, record, path, world, flight):
+    try:
+        configuration = validator.envelope["simulation"]["configuration"]["maintenance"]
+        validate_maintenance_configuration(configuration)
+        aircraft = world["aircraft"][record["actual_aircraft_id"]]
+        expected = departure_witness(world, flight, aircraft, configuration)
+        if any(record.get(key) != value for key, value in expected.items()):
+            raise ValueError("frozen maintenance authority differs from model, distance, or configuration")
+    except (KeyError, TypeError, ValueError) as exc:
+        _add(validator, "invalid_maintenance_witness", path, str(exc))
+
+
 OPERATION_FIELDS = {
     "contract", "dated_flight_id", "aircraft_id", "state", "revision",
     "airline_id", "market_id", "schedule_id", "schedule_revision",
@@ -248,6 +262,12 @@ OPERATION_FIELDS = {
     "operation_revision_before", "fulfilment_configuration_revision",
     "fulfilment_configuration_fingerprint", "departure_event_id",
     "completion_event_id",
+}
+
+MAINTENANCE_WITNESS_FIELDS = {
+    "maintenance_distance_m", "maintenance_distance_source",
+    "maintenance_classification_version", "maintenance_class",
+    "maintenance_factor_minor_per_km", "maintenance_configuration_fingerprint",
 }
 
 RESULT_FIELDS = {
@@ -465,10 +485,14 @@ def _validate_schema4_fulfilment_authority(validator):
         for flight_id, operation in operations.items():
             path = f"$.world_state.active_aircraft_operations.{flight_id}"
             flight = flights.get(flight_id, {})
-            if type(operation) is not dict or set(operation) != OPERATION_FIELDS:
+            has_maintenance = type(operation) is dict and "maintenance_distance_m" in operation
+            allowed_fields = OPERATION_FIELDS | (MAINTENANCE_WITNESS_FIELDS if has_maintenance and validator.schema_version == 7 else set())
+            if type(operation) is not dict or set(operation) != allowed_fields:
                 _add(validator, "result_validation_failed", path,
                      "active operation must contain exactly the canonical fields")
                 continue
+            if has_maintenance:
+                _validate_maintenance_witness(validator, operation, path, world, flight)
             if (
                 operation.get("contract") != FLIGHT_FULFILMENT_OPERATION_CONTRACT
                 or operation.get("state") != "OPERATIONALLY_LOCKED"
@@ -486,8 +510,8 @@ def _validate_schema4_fulfilment_authority(validator):
                 or operation.get("schedule_revision") != flight.get("schedule_revision")
                 or operation.get("occurrence_key") != flight.get("occurrence_key")
                 or operation.get("planned_aircraft_id") != flight.get("planned_aircraft_id")
-                or operation.get("aircraft_id") != flight.get("planned_aircraft_id")
-                or operation.get("actual_aircraft_id") != flight.get("planned_aircraft_id")
+                or operation.get("aircraft_id") != operation.get("actual_aircraft_id")
+                or (not has_maintenance and operation.get("actual_aircraft_id") != flight.get("planned_aircraft_id"))
                 or operation.get("actual_aircraft_id") != operation.get("aircraft_id")
                 or operation.get("market_id") != world.get("connections", {}).get(
                     flight.get("connection_id"), {}
@@ -576,13 +600,17 @@ def _validate_schema4_fulfilment_authority(validator):
     for flight_id, result in results.items():
         path = f"$.world_state.flight_results.{flight_id}"
         flight = flights.get(flight_id, {})
-        if type(result) is not dict or set(result) != RESULT_FIELDS:
+        has_maintenance = type(result) is dict and result.get("result_version") == 2
+        allowed_fields = RESULT_FIELDS | (MAINTENANCE_WITNESS_FIELDS | {
+            "base_operating_cost_minor", "maintenance_expense_minor"
+        } if has_maintenance and validator.schema_version == 7 else set())
+        if type(result) is not dict or set(result) != allowed_fields:
             _add(validator, "result_validation_failed", path,
                  "flight result must contain exactly the canonical immutable fields")
             continue
         if (
             result.get("contract") != FLIGHT_RESULT_CONTRACT
-            or result.get("result_version") != FLIGHT_RESULT_VERSION
+            or result.get("result_version") != (2 if has_maintenance else FLIGHT_RESULT_VERSION)
             or result.get("dated_flight_id") != flight_id
             or result.get("actual_departure_utc") != flight.get("scheduled_off_block_utc")
             or result.get("actual_arrival_utc") != flight.get("scheduled_in_block_utc")
@@ -598,7 +626,7 @@ def _validate_schema4_fulfilment_authority(validator):
             or result.get("schedule_revision") != flight.get("schedule_revision")
             or result.get("occurrence_key") != flight.get("occurrence_key")
             or result.get("planned_aircraft_id") != flight.get("planned_aircraft_id")
-            or result.get("actual_aircraft_id") != flight.get("planned_aircraft_id")
+            or (not has_maintenance and result.get("actual_aircraft_id") != flight.get("planned_aircraft_id"))
             or result.get("origin_airport_id") != flight.get("origin_airport_id")
             or result.get("destination_airport_id") != flight.get("destination_airport_id")
             or result.get("scheduled_off_block_utc") != flight.get("scheduled_off_block_utc")
@@ -608,6 +636,16 @@ def _validate_schema4_fulfilment_authority(validator):
                  "result identity, timestamps, capacity, or Booking partition is invalid")
         _validate_manifest_witnesses(validator, result, path, world, flight)
         expected_cost = _expected_operating_cost(configuration, world, flight)
+        if has_maintenance:
+            _validate_maintenance_witness(validator, result, path, world, flight)
+            expense = maintenance_expense_minor(
+                result["maintenance_distance_m"], result["maintenance_factor_minor_per_km"]
+            ) if _integer(result.get("maintenance_distance_m")) and _integer(result.get("maintenance_factor_minor_per_km")) else None
+            if (result.get("base_operating_cost_minor") != expected_cost
+                    or result.get("maintenance_expense_minor") != expense):
+                _add(validator, "result_validation_failed", path,
+                     "base and maintenance components must equal frozen authority")
+            expected_cost = expected_cost + expense if expected_cost is not None and expense is not None else None
         if expected_cost is None or result.get("operating_cost_minor") != expected_cost:
             _add(validator, "result_validation_failed",
                  f"{path}.operating_cost_minor",

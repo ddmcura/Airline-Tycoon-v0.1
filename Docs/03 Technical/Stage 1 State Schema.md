@@ -1,5 +1,59 @@
 # Stage 1 State Schema
 
+## Approved PH 1.0 Step 6 routine maintenance increment (schema 7)
+Schema 7 adds a direct cash routine-maintenance component at successful flight
+completion. Detached 6-to-7 migration adds only the maintenance configuration;
+it preserves historical results, journals, aircraft, events and allocators.
+Flights already locked at migration retain V1 settlement. No historical cost
+or aircraft lifecycle fact is backfilled.
+
+`simulation.configuration.maintenance` has exactly `contract:
+PH_ROUTINE_MAINTENANCE_CONFIGURATION_V1`, `configuration_version:
+ph-routine-maintenance-v1`, `classification_version:
+ph-aircraft-aerodrome-class-v1`, `factor_minor_per_km_by_class`, and
+`configuration_fingerprint`. The integer USD minor-unit factors per kilometre
+for A through G are 15, 35, 80, 130, 200, 300 and 450. The fingerprint is
+SHA-256 of sorted-key canonical JSON excluding the fingerprint itself.
+`maintenance_expense_minor = ceil(distance_m * factor_minor_per_km / 1000)`.
+Hours, cycles, age and condition are not formula inputs.
+
+`Data/Stage1/aircraft_aerodrome_class_v1.json` is immutable external
+reference authority. Its exact fields are `contract:
+PH_AIRCRAFT_AERODROME_CLASS_V1`, `classification_version`,
+`band_basis: ICAO_WINGSPAN_WITH_PROJECT_G_EXTENSION`, and `models`. The model map covers
+the 20 catalog IDs and legacy starter `A320-200`. Each entry records
+`wingspan_mm`, `aerodrome_class` (A..G), and `source_url`. A..F use the
+ICAO wingspan bands [0,15000), [15000,24000), [24000,36000),
+[36000,52000), [52000,65000), [65000,80000) mm. G is the project
+extension at 80000 mm or more. Airport `max_aircraft_class` is never used
+to classify an aircraft. Legacy `A320` model references resolve to the
+starter entry solely for pre-PH world compatibility.
+
+New departures add to the active operation: `maintenance_distance_m`,
+`maintenance_distance_source`, `maintenance_classification_version`,
+`maintenance_class`, `maintenance_factor_minor_per_km`, and
+`maintenance_configuration_fingerprint`. Distance source is one of
+`PLANNING_TIMING_V1`, `PLANNING_TIMING_V2`, or
+`AIRPORT_COORDINATE_FALLBACK_V1`. The schedule revision's immutable
+`planning_timing.distance_m` wins where present, preserving V1 truncation
+and V2 ceiling. Otherwise the existing shared geographic distance from
+authoritative airport coordinates is converted to integer metres and frozen
+at departure. The actual aircraft supplies the model class. Older locked
+operations have none of these fields and remain V1.
+
+New completed results retain `STAGE1_FLIGHT_RESULT_V1` with
+`result_version: 2` and add exactly `base_operating_cost_minor`,
+`maintenance_expense_minor`, and the six maintenance departure witnesses.
+`operating_cost_minor = base_operating_cost_minor + maintenance_expense_minor`.
+The base uses the unchanged flight-fulfilment revision-1 formula. Historical
+V1 results and their exact journals keep their original fields and meaning.
+One `FLIGHT_FULFILMENT` journal debits `operating_expenses` and credits
+`cash` by the total, with existing revenue entries unchanged. Completion
+increments finance revision once. Deadheads pay; uncompleted flights do not.
+Negative cash is permitted. Replay is idempotent. Existing lifetime seconds
+and cycles continue independently. No maintenance account, payable, reserve,
+second journal or calendar event is introduced.
+
 ## Approved PH 1.0 Step 5 aircraft-market increment (schema 6)
 
 Schema 6 adds deterministic aircraft leasing, lease-to-own contracts and a
