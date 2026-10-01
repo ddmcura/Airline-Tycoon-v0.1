@@ -2,6 +2,47 @@
 
 Last updated: **2026-10-01**. Current snapshot, not operational authorization.
 
+## PH 1.0 Kivy GUI foundation
+
+The approved Kivy foundation now uses `app.session.Stage1Session` as the one
+application owner shared by `app.gui` and the retained `app.terminal` developer
+harness. The historical terminal session import remains a compatibility
+re-export. The modern GUI launches with `python -m app.gui` under a
+Kivy-compatible Python environment. Development verification used Python
+3.12.14 and Kivy 2.3.1; the host's default Python 3.14 environment has no
+compatible installed Kivy wheel. `requirements.txt` now specifies Kivy.
+
+The graphical title creates PH Normal careers or loads current airline career
+saves, with manual/autosave recovery and bookmark choices. The game shell shows
+airline/CEO/base, cash, exact UTC and paused/7x state, with in-place status
+refresh. It offers pause/resume and explicit next-event/day/duration/UTC
+advancement. Fleet, flights/Bookings/operations and finance are read-only
+derived views. Manual save and bookmark create/load/delete use the existing
+validated persistence; unsaved return/exit/load offers Save, discard or cancel.
+No authoritative schema field or save format changed. The GUI remains a single
+world owner with no simulation worker thread; explicit bulk work yields after
+complete event transactions. Flight projection paging is a bounded derived
+view extension. The old Kivy title stub no longer invokes legacy gameplay.
+
+Verified on the complete working tree based on `20cc38c` on 2026-10-01:
+focused GUI tests passed **7 tests**; the earlier focused GUI, runtime, save
+and terminal set passed **58 tests in 124.366 s**; the final
+`python -m unittest discover -s tests -q` passed **613 tests in 484.746 s**
+using the isolated Python 3.12.14 environment with `requirements.txt` installed.
+`python -m compileall -q app game tests main.py make_snapshot.py settings.py
+test.py` exited 0, and `git diff --check` passed. A Kivy event-loop smoke run
+started and stopped. In a newly created PH career, 30 GUI pump callbacks using
+an injected fake clock measured **40.173 ms median, 100.315 ms maximum** on
+this host. This small-world smoke measure is not a 50-aircraft GUI performance
+gate or a mobile measurement. Existing complete-event transaction latency can
+still delay UI response until its boundary.
+
+The next bounded GUI gameplay slice is aircraft acquisition, market research
+and weekly scheduling actions. Step 8 deterministic engine checks can proceed
+independently; the sustained graphical player run needs those GUI actions.
+This foundation does not add cabin editing, aircraft sale, advanced maintenance,
+AI, a map or extra player speeds.
+
 ## PH 1.0 Normal starting-capital correction
 
 New Philippines careers remain `Normal` and start with USD 300,000,000

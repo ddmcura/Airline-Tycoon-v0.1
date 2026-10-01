@@ -37,6 +37,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
   7x pacing, management while running, exclusive world ownership and performance gates.
+- [PH GUI foundation specification](03%20Technical/PH%20GUI%20Foundation%20Technical%20Specification.md):
+  approved Kivy frontend, shared application session and graphical playtest scope.
 - [Decision Register](03%20Technical/Decision%20Register.md):
   durable decisions and links to their canonical definitions.
 - [Project Foundation](01%20Core%20Simulation/Project%20Foundation.md):

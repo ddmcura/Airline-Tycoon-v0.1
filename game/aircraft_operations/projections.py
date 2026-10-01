@@ -170,9 +170,11 @@ def project_flight_fulfilment(envelope, dated_flight_id):
     return _project_flight(envelope, world, dated_flight_id)
 
 
-def project_airline_flights(envelope, airline_id, *, limit=20, statuses=None):
+def project_airline_flights(envelope, airline_id, *, limit=20, offset=0, statuses=None):
     if isinstance(limit, bool) or not isinstance(limit, int) or not 0 <= limit <= 100:
         raise ValueError("limit must be an integer from 0 through 100")
+    if type(offset) is not int or offset < 0:
+        raise ValueError("offset must be a non-negative integer")
     if statuses is not None:
         if not isinstance(statuses, (set, frozenset, tuple, list)) or any(
             not isinstance(status, str) for status in statuses
@@ -192,7 +194,7 @@ def project_airline_flights(envelope, airline_id, *, limit=20, statuses=None):
     )
     return deepcopy([
         _project_flight(envelope, world, flight["dated_flight_id"])
-        for flight in flights[:limit]
+        for flight in flights[offset:offset + limit]
     ])
 
 

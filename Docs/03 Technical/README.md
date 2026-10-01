@@ -8,6 +8,7 @@ Documentation for implementation-wide structures and engineering rules.
 - [Decision Register](Decision%20Register.md)
 - [Stage 1 State Schema](Stage%201%20State%20Schema.md)
 - [Stage 1 Terminal Harness Technical Specification](Stage%201%20Terminal%20Harness%20Technical%20Specification.md)
+- [PH GUI Foundation Technical Specification](PH%20GUI%20Foundation%20Technical%20Specification.md)
 
 - [Game State & Save Architecture](Game%20State%20%26%20Save%20Architecture.md)
 - [Game State & Save Technical Specification](Game%20State%20%26%20Save%20Technical%20Specification.md)

@@ -19,7 +19,7 @@ from .formatting import (
     parse_usd_fare,
     parse_utc_timestamp,
 )
-from .session import Stage1Session
+from app.session import Stage1Session
 
 
 class _EndOfInput(Exception):
@@ -143,13 +143,15 @@ class _Terminal:
         answer = answer.strip().lower()
         if answer in {'s', 'save'}:
             try:
-                self.session.save_manual()
+                self.session.resolve_departure('save')
             except SaveError as exc:
                 self.line(f"Save failed [{exc.code}]: {exc}")
                 return False
             self.line('Game saved.')
             return True
-        return answer in {'d', 'discard', 'y', 'yes'}
+        return self.session.resolve_departure(
+            'discard' if answer in {'d', 'discard', 'y', 'yes'} else 'cancel'
+        )
 
     def startup(self):
         self.line("Airline Tycoon - Stage 1 Terminal")
@@ -276,7 +278,7 @@ class _Terminal:
                 confirmation = self.prompt(f"Delete bookmark {row['name']}? [y/N]", allow_blank=True)
                 if confirmation.strip().lower() in {'y', 'yes'}:
                     try:
-                        self.session.save_store.delete_bookmark(self.session.career_id, row['bookmark_id'])
+                        self.session.delete_bookmark(row['bookmark_id'])
                         self.line('Bookmark deleted.')
                     except SaveError as exc:
                         self.line(f"Delete failed [{exc.code}]: {exc}")

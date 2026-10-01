@@ -35,6 +35,13 @@ first minimum-playable checkpoint, but remain PH 1.0 requirements, not post-1.0 
 | 8 | Integrated PH 1.0 verification | Verify multiple weeks of scheduling, Booking, operations, finance, all acquisition modes, maintenance, runtime controls, multi-day advancement and reload. Prove deterministic equivalence across stepping/7×/reload and exclude legacy authority. |
 | 9 | AI after PH 1.0 | After the player simulation is complete and verified, add shared-rule AI and complete the broader Milestone 9 AI acceptance criteria. |
 
+The approved [Kivy GUI foundation](PH%20GUI%20Foundation%20Technical%20Specification.md)
+is an interface increment before the player-facing portion of Step 8. Engine
+integration and deterministic verification may proceed independently. The
+foundation gives graphical observation, time controls and saves; aircraft-market
+and weekly-scheduling GUI actions require a later bounded gameplay slice before
+a GUI-only full player run. Step 8's simulation acceptance criteria are unchanged.
+
 Catalog precedes acquisition; leases precede lease-to-own. Each new persistent contract
 must first update the canonical schema and subordinate template, with validation,
 migration and serialization coverage even before disk save/load. The approved save
