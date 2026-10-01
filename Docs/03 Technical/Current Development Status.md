@@ -1,6 +1,48 @@
 # Current Development Status
 
-Last updated: **2026-10-01**. Current snapshot, not operational authorization.
+Last updated: **2026-10-02**. Current snapshot, not operational authorization.
+
+## PH 1.0 playtest acquisition and fare guidance
+
+On the working tree based on `35cb29521d21230a3788dc980ed34cf813bbffe8`,
+Acquire now navigates current catalog manufacturers, their models, then the
+existing new purchase, operating lease, lease-to-own and used-listing preview/
+commit paths available for the chosen model. Manufacturer names and model
+specifications come from the immutable catalog; active offers/listings come
+from the market. No acquisition economics or domain command changed.
+
+A modern `game.economy.fare_reference` helper derives a neutral Economy
+suggestion for a directional market from the same 0.001-km authoritative
+coordinate distance used by PH market/planning, multiplied by exactly USD
+0.12/km and rounded half-even to the nearest whole USD. MNL to DVO currently
+suggests USD 116. The shared session exposes the integer-minor-unit value; the
+Kivy passenger-leg form displays and can copy it into the editable fare input.
+Changing endpoints refreshes the suggestion without overwriting typed fare.
+This is view-time guidance, not persisted state, a profit optimum, or a Booking
+willingness-to-pay rule. Demand and relative-offer Booking choice are unchanged.
+
+The fresh A320-200 starter remains V1. The current immutable 20-model catalog
+excludes it, and schema-7 configuration/provenance validation ties configured
+aircraft to catalog-backed specifications and purchase/market lineage. Legacy
+A320-200 source values do not establish an approved versioned catalog price,
+range, model provenance and free construction-grant configuration contract.
+A modern starter therefore needs an explicit catalog/data and free-grant
+contract decision before implementation. Existing saves, published V1 timing
+snapshots and historical results were untouched. Its V1-specific capacity,
+Quick Rotation and maintenance compatibility paths remain for separate review.
+
+Python 3.12.14 / Kivy 2.3.1 verification on that working tree: focused
+`python -m unittest tests.test_gui_gameplay tests.test_gui_foundation
+tests.test_stage1_terminal_harness -q` passed **35 tests in 79.121 s**;
+`python -m unittest discover -s tests -q` passed **622 tests in 526.620 s**;
+application-scope `python -m compileall -q app game tests main.py
+make_snapshot.py settings.py test.py` exited 0. A temporary-career Kivy widget
+smoke navigated Research, catalog manufacturer/model purchase, MNL-DVO
+scheduling with USD 116 suggestion and editable override, published two legs,
+advanced time and observed two completed flights. This confirms command wiring
+and state behavior, not human playtest quality. The next scoped architecture
+question is approval of A320-200 catalog calibration and free-grant binding;
+absolute fare sensitivity remains a separate economy design task.
 
 ## PH 1.0 first graphical gameplay action loop
 

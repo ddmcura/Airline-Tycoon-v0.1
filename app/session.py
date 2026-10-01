@@ -299,6 +299,13 @@ class Stage1Session:
             self.world, origin_airport_id=origin_airport_id, limit=limit
         )
 
+    def suggested_economy_fare(self, origin_airport_id, destination_airport_id):
+        from game.economy.fare_reference import suggested_economy_fare_minor
+
+        return suggested_economy_fare_minor(
+            self.world["world_state"], origin_airport_id, destination_airport_id
+        )
+
     def authoritative_bytes(self):
         if self.world is None:
             return b""

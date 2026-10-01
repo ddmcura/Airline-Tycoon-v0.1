@@ -1339,7 +1339,14 @@ Composite offer weight is the exact rational numerator
 Decimal context participates.
 
 There is no absolute willingness-to-pay authority, so V1 has no
-`PRICE_REJECTION`. The outside option competes in every choice round; one
+`PRICE_REJECTION`. The separate PH 1.0 Suggested Economy Fare is informational:
+for an existing directional market, use the modern authoritative distance in
+kilometres (quantized to 0.001 km), multiply by exactly USD 0.12 per km with
+Decimal arithmetic, then round to the nearest whole USD using half-even ties.
+It is a player-editable starting reference, not a willingness-to-pay threshold,
+booking input, price rejection rule, demand multiplier, or profit optimum. The
+value is derived at view time in `game/economy/fare_reference.py` and is not
+persisted. The outside option competes in every choice round; one
 perfect offer therefore receives 80 percent and outside receives 20 percent
 when the total divides exactly. Floors plus largest remainders conserve each
 aggregate group. Exact residual ties use

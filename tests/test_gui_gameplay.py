@@ -5,7 +5,9 @@ os.environ.setdefault('KIVY_NO_ARGS', '1')
 os.environ.setdefault('KIVY_NO_FILELOG', '1')
 
 from datetime import timedelta
+from decimal import Decimal, getcontext
 from pathlib import Path
+from unittest.mock import patch
 import tempfile
 import unittest
 
@@ -17,6 +19,7 @@ from kivy.uix.textinput import TextInput
 from app.gui.app import AirlineTycoonApp
 from app.session import Stage1Session
 from app.terminal.session import Stage1Session as TerminalSession
+from game.economy.fare_reference import suggested_economy_fare_minor
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
 
@@ -65,6 +68,87 @@ class GameplayGuiTests(unittest.TestCase):
         self.assertTrue(self.app._popup)
         self.app._dismiss()
 
+    def test_manufacturer_model_navigation_uses_current_catalog_and_market(self):
+        session = self.app.session
+        catalog = session.aircraft_catalog()
+        makers = [m for m in catalog.manufacturers()
+                  if catalog.models(m['manufacturer_id'])]
+        before = session.authoritative_bytes()
+        self.app.show_view('Acquire')
+        buttons = [w.text for w in self.app.content.children if isinstance(w, Button)]
+        self.assertEqual(set(buttons), {m['display_name'] for m in makers})
+        self.assertEqual(len(buttons), len(makers))
+        maker = makers[0]
+        self.app.choose_acquisition_maker(maker['manufacturer_id'])
+        buttons = [w.text for w in self.app.content.children if isinstance(w, Button)]
+        self.assertIn('Back to Manufacturers', buttons)
+        self.assertEqual(
+            {text for text in buttons if text.startswith('Select ')},
+            {f"Select {m['display_name']}" for m in catalog.models(maker['manufacturer_id'])})
+        model = catalog.models(maker['manufacturer_id'])[0]
+        self.app.choose_acquisition_model(model['model_id'])
+        self.assertTrue(any(w.text == 'Review new aircraft purchase'
+                            for w in self.app.content.children if isinstance(w, Button)))
+        self.app.back_to_acquisition_models()
+        self.assertIsNone(self.app._acquire_model)
+        self.app.back_to_acquisition_makers()
+        self.assertIsNone(self.app._acquire_maker)
+        self.assertEqual(session.authoritative_bytes(), before)
+
+        for mode, records, model_key, button_prefix in (
+                ('lease', session.leasing_offers(), 'model_id', 'Review operating lease'),
+                ('used', session.used_listings(), 'model_id', 'Review used purchase')):
+            record = records[0]
+            detail = catalog.model(record[model_key])
+            self.app.choose_acquisition_maker(detail['manufacturer']['manufacturer_id'])
+            self.app.choose_acquisition_model(record[model_key])
+            self.assertTrue(any(w.text.startswith(button_prefix)
+                                for w in self.app.content.children if isinstance(w, Button)), mode)
+            self.app.back_to_acquisition_makers()
+
+    def test_suggested_fare_uses_exact_authoritative_distance_and_editable_form(self):
+        session = self.app.session
+        airports = {a['reference_code']: a['airport_id'] for a in session.airports()}
+        before = session.authoritative_bytes()
+        self.assertEqual(session.suggested_economy_fare(airports['MNL'], airports['DVO']), 11_600)
+        self.assertEqual(session.authoritative_bytes(), before)
+        world = session.world['world_state']
+        old_precision = getcontext().prec
+        try:
+            getcontext().prec = 4
+            with patch('game.economy.fare_reference.distance_km', return_value=Decimal('12.5')):
+                self.assertEqual(suggested_economy_fare_minor(world, airports['MNL'], airports['DVO']), 200)
+            with patch('game.economy.fare_reference.distance_km', return_value=Decimal('37.5')):
+                self.assertEqual(suggested_economy_fare_minor(world, airports['MNL'], airports['DVO']), 400)
+        finally:
+            getcontext().prec = old_precision
+        with self.assertRaises(ValueError):
+            session.suggested_economy_fare(airports['MNL'], airports['MNL'])
+
+        aircraft_id = session.fleet(limit=100)[0]['aircraft_id']
+        self.app.show_view('Schedule')
+        self.app.start_schedule(aircraft_id)
+        self.app.show_add_leg()
+        airport_spinners = [w for w in self.form_fields() if isinstance(w, Spinner)
+                            and any(value.startswith('MNL - ') for value in w.values)]
+        origin = next(w for w in airport_spinners if w.text.startswith('MNL - '))
+        destination = next(w for w in airport_spinners if w is not origin)
+        destination.text = next(value for value in destination.values if value.startswith('DVO - '))
+        labels = [w.text for w in self.app._popup.content.walk() if isinstance(w, Label)]
+        self.assertTrue(any('Suggested Economy fare: USD 116.00' in text for text in labels))
+        self.click('Use Suggested Fare')
+        fare = next(w for w in self.form_fields() if isinstance(w, TextInput) and w.text == '116.00')
+        fare.text = '130.25'
+        self.assertEqual(fare.text, '130.25')
+        destination.text = next(value for value in destination.values if value.startswith('CEB - '))
+        labels = [w.text for w in self.app._popup.content.walk() if isinstance(w, Label)]
+        self.assertFalse(any('Suggested Economy fare: USD 116.00' in text for text in labels))
+        self.assertEqual(fare.text, '130.25')
+        destination.text = next(value for value in destination.values if value.startswith('DVO - '))
+        self.click('Use Suggested Fare')
+        self.assertEqual(fare.text, '116.00')
+        self.assertEqual(session.authoritative_bytes(), before)
+
     def test_new_purchase_preview_commit_and_stale_rejection(self):
         session = self.app.session
         catalog = session.aircraft_catalog()
@@ -73,7 +157,11 @@ class GameplayGuiTests(unittest.TestCase):
         model = min(models, key=lambda m: catalog.model(m['model_id'])['reference_price']['amount_minor'])
         self.app.show_view('Acquire')
         before = session.authoritative_bytes()
-        self.app.begin_acquisition('new', model)
+        maker_id = model['manufacturer_id']
+        self.app.choose_acquisition_maker(maker_id)
+        self.app.choose_acquisition_model(model['model_id'])
+        next(w for w in self.app.content.children if isinstance(w, Button)
+             and w.text == 'Review new aircraft purchase').dispatch('on_release')
         self.assertEqual(session.world['simulation']['clock_state'], 'PAUSED')
         self.click('Continue')
         self.assertIn('Cash after', self.app._popup.content.children[-1].text)
@@ -124,6 +212,22 @@ class GameplayGuiTests(unittest.TestCase):
         self.click('Confirm')
         self.assertIn('Acquisition rejected', self.app._popup.title)
         self.assertEqual(session.authoritative_bytes(), before)
+
+    def test_operating_lease_from_model_screen(self):
+        session = self.app.session
+        offer = session.leasing_offers()[0]
+        catalog = session.aircraft_catalog()
+        maker = catalog.model(offer['model_id'])['manufacturer']['manufacturer_id']
+        self.app.show_view('Acquire')
+        self.app.choose_acquisition_maker(maker)
+        self.app.choose_acquisition_model(offer['model_id'])
+        next(w for w in self.app.content.children if isinstance(w, Button)
+             and w.text == 'Review operating lease or lease-to-own').dispatch('on_release')
+        self.click('Continue')
+        self.assertIn('Monthly rent', self.app._popup.content.children[-1].text)
+        self.click('Confirm')
+        self.assertEqual(len(session.fleet(limit=100)), 2)
+        self.assertTrue(session.validate())
 
     def test_lease_used_and_invalid_acquisition(self):
         session = self.app.session

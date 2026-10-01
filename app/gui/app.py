@@ -68,6 +68,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self._popup = None
         self._draft = None
         self._research_origin = None
+        self._acquire_maker = None
+        self._acquire_model = None
 
     def build(self):
         self.title = 'Airline Tycoon - PH 1.0'
@@ -281,6 +283,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self.view_offset = 0
         self._draft = None
         self._research_origin = None
+        self._acquire_maker = None
+        self._acquire_model = None
         self._last_revision = None
         self.screens.current = 'game'
         self.refresh(force=True)
@@ -327,6 +331,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self.status.text = f"{sim['time_utc']} UTC  |  {mode}  |  Cash {_money(self._cash)}"
 
     def show_view(self, view):
+        if view == 'Acquire' and self.current_view != 'Acquire':
+            self._acquire_maker = self._acquire_model = None
         self.current_view = view
         self.view_offset = 0
         self.refresh(force=True)

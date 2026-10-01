@@ -22,7 +22,7 @@ def airport_label(row):
 class GameplayViews:
     """UI-only mixin. Session/domain commands own every authoritative mutation."""
 
-    def _choice_form(self, title, fields, submit):
+    def _choice_form(self, title, fields, submit, *, decorate=None):
         from app.gui.app import _button, _label
         content = BoxLayout(orientation='vertical', spacing=dp(6), padding=dp(8))
         scroll = ScrollView()
@@ -37,6 +37,8 @@ class GameplayViews:
                               size_hint_y=None, height=dp(52)))
             column.add_widget(widget)
             widgets[key] = widget
+            if decorate is not None:
+                decorate(column, widgets, key)
         scroll.add_widget(column)
         content.add_widget(scroll)
 
@@ -96,41 +98,91 @@ class GameplayViews:
 
     def render_acquisition(self):
         from app.gui.app import _button, _label
-        self.content.add_widget(_label('New aircraft · current catalog'))
         catalog = self.session.aircraft_catalog()
-        for maker in catalog.manufacturers():
-            for model in catalog.models(maker['manufacturer_id']):
+        makers = {maker['manufacturer_id']: maker for maker in catalog.manufacturers()
+                  if catalog.models(maker['manufacturer_id'])}
+        maker_id = self._acquire_maker
+        model_id = self._acquire_model
+        if maker_id not in makers:
+            self._acquire_maker = self._acquire_model = None
+            maker_id = model_id = None
+        if maker_id is None:
+            self.content.add_widget(_label('Choose manufacturer'))
+            for maker in makers.values():
+                self.content.add_widget(_button(
+                    maker['display_name'],
+                    lambda identity=maker['manufacturer_id']: self.choose_acquisition_maker(identity)))
+            return
+
+        maker = makers[maker_id]
+        self.content.add_widget(_button('Back to Manufacturers', self.back_to_acquisition_makers))
+        models = catalog.models(maker_id)
+        if model_id not in {model['model_id'] for model in models}:
+            self._acquire_model = None
+            model_id = None
+        if model_id is None:
+            self.content.add_widget(_label(f"{maker['display_name']} · Choose aircraft model"))
+            for model in models:
                 detail = catalog.model(model['model_id'])
                 self.content.add_widget(_label(
                     f"{model['display_name']} · {model['aircraft_category']} · "
                     f"{model['max_economy_seats']} seats · reference range "
                     f"{model['reference_range_km']} km\n"
-                    f"Game price {self._money(detail['reference_price']['amount_minor'])}",
+                    f"New aircraft game price {self._money(detail['reference_price']['amount_minor'])}",
                     height=76))
                 self.content.add_widget(_button(
-                    'Review new aircraft purchase',
-                    lambda item=model: self.begin_acquisition('new', item)))
-        self.content.add_widget(_label('Operating lease or lease-to-own · current offers'))
+                    f"Select {model['display_name']}",
+                    lambda identity=model['model_id']: self.choose_acquisition_model(identity)))
+            return
+
+        detail = catalog.model(model_id)
+        model = detail['model']
+        self.content.add_widget(_button('Back to Aircraft Models', self.back_to_acquisition_models))
+        self.content.add_widget(_label(
+            f"{maker['display_name']} {model['display_name']} · {model['aircraft_category']}\n"
+            f"{model['max_economy_seats']} seats · {model['reference_range_km']} km reference range",
+            height=76))
+        self.content.add_widget(_label(
+            f"New aircraft game price {self._money(detail['reference_price']['amount_minor'])}"))
+        self.content.add_widget(_button(
+            'Review new aircraft purchase',
+            lambda: self.begin_acquisition('new', model)))
         for offer in self.session.leasing_offers():
-            model = catalog.model(offer['model_id'])['model']
+            if offer['model_id'] != model_id or offer['available_quantity'] <= 0:
+                continue
             self.content.add_widget(_label(
-                f"{model['display_name']} · {offer['available_quantity']} available\n"
-                f"Aircraft value {self._money(offer['aircraft_value_minor'])}",
-                height=76))
+                f"Lease offer · {offer['available_quantity']} available · "
+                f"aircraft value {self._money(offer['aircraft_value_minor'])}", height=64))
             self.content.add_widget(_button(
-                'Review lease offer',
+                'Review operating lease or lease-to-own',
                 lambda item=offer: self.begin_acquisition('lease', item)))
-        self.content.add_widget(_label('Used aircraft · current listings'))
         for listing in self.session.used_listings():
+            if listing['model_id'] != model_id:
+                continue
             self.content.add_widget(_label(
-                f"{listing['display_registration']} · {listing['model_id']} · "
-                f"{listing['age_months']} months · condition "
-                f"{listing['service_condition_bps'] / 100:.2f}%\n"
-                f"Asking price {self._money(listing['asking_price_minor'])}",
-                height=76))
+                f"{listing['display_registration']} · {listing['age_months']} months · "
+                f"condition {listing['service_condition_bps'] / 100:.2f}%\n"
+                f"Asking price {self._money(listing['asking_price_minor'])}", height=76))
             self.content.add_widget(_button(
-                'Review used aircraft purchase',
+                f"Review used purchase {listing['display_registration']}",
                 lambda item=listing: self.begin_acquisition('used', item)))
+
+    def choose_acquisition_maker(self, manufacturer_id):
+        self._acquire_maker = manufacturer_id
+        self._acquire_model = None
+        self.refresh(force=True)
+
+    def back_to_acquisition_makers(self):
+        self._acquire_maker = self._acquire_model = None
+        self.refresh(force=True)
+
+    def choose_acquisition_model(self, model_id):
+        self._acquire_model = model_id
+        self.refresh(force=True)
+
+    def back_to_acquisition_models(self):
+        self._acquire_model = None
+        self.refresh(force=True)
 
     def begin_acquisition(self, mode, item):
         if not self._management_ready():
@@ -258,6 +310,37 @@ class GameplayViews:
              ('Reject', 'Add explicit positioning flight'), 'Reject'),
         ]
 
+        def decorate(column, widgets, key):
+            if key != 'fare':
+                return
+            from app.gui.app import _button, _label
+            suggestion = _label('', height=72)
+            column.add_widget(suggestion)
+            value = {'minor': None}
+
+            def update(*_args):
+                try:
+                    minor = self.session.suggested_economy_fare(
+                        by_label[widgets['origin'].text],
+                        by_label[widgets['destination'].text])
+                except ValueError:
+                    minor = None
+                value['minor'] = minor
+                suggestion.text = (
+                    'Suggested Economy fare unavailable for this market.' if minor is None
+                    else f'Suggested Economy fare: {self._money(minor)}. '
+                         'Reference only; not a profit or booking guarantee.'
+                )
+
+            def use_suggestion():
+                if value['minor'] is not None:
+                    widgets['fare'].text = f"{value['minor'] // 100}.00"
+
+            widgets['origin'].bind(text=update)
+            widgets['destination'].bind(text=update)
+            column.add_widget(_button('Use Suggested Fare', use_suggestion))
+            update()
+
         def selected(values):
             origin, dest = by_label[values['origin']], by_label[values['destination']]
             floor = format_utc(local_departure(self.session.world['world_state'],
@@ -276,7 +359,7 @@ class GameplayViews:
             self._dismiss()
             self.refresh(force=True)
 
-        self._choice_form('Add weekly leg', fields, selected)
+        self._choice_form('Add weekly leg', fields, selected, decorate=decorate)
 
     def add_return(self):
         if self._draft is None or not self._management_ready():

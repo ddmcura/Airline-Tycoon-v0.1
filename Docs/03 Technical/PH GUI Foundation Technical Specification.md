@@ -83,6 +83,18 @@ rows, form values and dialogs never enter the canonical world or save.
 Leaving or loading another career with an unpublished draft requires an
 explicit discard choice before the existing world unsaved-progress guard.
 
+Acquire now browses dynamically through current catalog manufacturers, their
+models, then available new-purchase, operating-lease, lease-to-own and used
+options for the selected model. Catalog names/specifications and active market
+terms remain the sources; Kivy retains only navigation selection. The passenger
+leg form displays the modern economy domain's USD 0.12/km neutral Suggested
+Economy Fare, rounded to whole USD, with an explicit Use Suggested Fare action.
+Changing endpoints refreshes the displayed reference without replacing a fare
+already typed by the player. Booking's relative-offer scoring and demand remain
+unchanged. The fresh A320-200 starter remains on its V1 compatibility path until
+approved catalog specifications and a versioned modern configuration can bind it
+without changing old saves or published timing witnesses.
+
 A player can now research, acquire, schedule, publish, advance or run, inspect
 flights/Bookings/finance, and save through Kivy. The terminal remains the
 developer/debug frontend. Existing-plan editing, aircraft sale, cabin changes,
