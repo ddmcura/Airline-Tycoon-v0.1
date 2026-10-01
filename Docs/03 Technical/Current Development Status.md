@@ -2,6 +2,41 @@
 
 Last updated: **2026-10-01**. Current snapshot, not operational authorization.
 
+## PH 1.0 Step 7 save/load completion
+
+The schema-7 whole world now saves durably at completed transaction boundaries.
+An opaque file-level career ID keeps each airline game separate even if display
+names collide or change. One explicit current manual save, three rotating
+autosaves and player-named, explicitly deletable bookmarks belong to the career.
+Autosaves use the first of 15 active real minutes or seven simulated days of
+ordinary continuous runtime; nearby triggers coalesce. Explicit bulk advancement
+does not produce intermediate weekly saves. There are no before-action or exit
+autosaves. Unsaved exit and return-to-title paths offer Save, discard or cancel.
+
+Loads check container integrity, run adjacent migrations on a detached candidate,
+validate the complete world, rebuild the event queue index, and replace the active
+world only on success. Restoration is paused at the exact saved UTC second, with
+no offline progress. Schemas 2–7 migrate automatically; schema 1 requires its
+matching approved foundation snapshot and otherwise reports a compatibility
+failure. Newer schemas and unversioned legacy saves are not loaded. A previous
+valid recovery copy protects replaced files. Autosave and bookmark loads do not
+change the manual file; a newer autosave offers a recovery choice.
+
+The verified implementation scope is the working tree based on
+`fcb6aa73a9e10e3f01d7c738e26bad08662f3251`. The focused save, terminal and
+runtime run passed **51 tests in 109.607 s**. After the final source changes,
+`python -m unittest discover -s tests -q` passed **606 tests in 454.170 s**.
+The application-scope `python -m compileall -q app game tests main.py
+make_snapshot.py settings.py test.py` exited 0. Local links in the six changed
+technical documents passed target validation, and `git diff --check` passed.
+A representative 50-aircraft scheduled PH world with 102 pending events and
+672,851 serialized JSON bytes saved in **0.203 s** and loaded in **0.171 s**
+with exact world equality on this host. This measures the bounded scheduled
+workload, not a multi-week processed-history scale claim.
+The next PH roadmap step is Step 8 integrated player-simulation verification.
+Disk layout, save serials, integrity metadata, autosave timers and recovery
+copies add no authoritative world field or schema version.
+
 ## PH 1.0 Step 6 completion
 
 Simple routine maintenance expenses are implemented as save schema 7 on the
@@ -278,13 +313,15 @@ See the [acquisition specification](Aircraft%20Acquisition%20Technical%20Specifi
 
 ## Limitations and remaining work
 
-- No authoritative file save/load: exiting loses the session. In-memory state
-  validation, JSON-compatible serialization and explicit migrations exist.
+- Authoritative file save/load is implemented above. A schema-1 file without a
+  matching approved foundation snapshot remains a reported compatibility failure;
+  unversioned legacy import is outside PH 1.0 Step 7.
 - Runtime controls and the retained-credit performance gate are implemented above.
   Individual event and management transactions can block input until their
   completed boundary.
-- No leasing, lease-to-own, used sales, manufacturer queues/delays, financing,
-  maintenance expenses, depreciation or editable cabin configuration.
+- Leasing, lease-to-own, used listings and simple routine maintenance are
+  implemented. Manufacturer queues/delays, banking/loans, full depreciation and
+  editable cabin configuration remain deferred.
 - Reconfiguration remains deferred. Before it is implemented, its contract must
   preserve historical installed-configuration witnesses rather than validate old
   purchases, plans or operations against only the aircraft's latest configuration.
@@ -306,11 +343,8 @@ See the [acquisition specification](Aircraft%20Acquisition%20Technical%20Specifi
 
 ## Next action
 
-With PH step 4 accepted in the working tree, **step 5: leasing, lease-to-own and
-used aircraft** needs
-its own bounded approved contract before implementation.
-
-Leasing/lease-to-own/used aircraft, simplified maintenance, safe disk save/load
-and integrated PH verification follow in the existing provisional order. AI
-follows the verified player-operated PH simulation. This status authorizes none
-of those future increments. No unrelated changes were found in final review.
+**PH Step 8 integrated verification** follows Step 7. Exercise multiple weeks of
+scheduling, Booking, operations, finance, all acquisition modes, maintenance,
+runtime controls, multi-day advancement and reload as one player-operated
+scenario. AI follows the verified PH player simulation. This status does not
+authorize the next implementation increment.

@@ -36,6 +36,7 @@ from game.world_state import (
     validate_world,
 )
 from game.world_state.timestamps import format_utc, parse_canonical_utc
+from game.world_state.persistence import SaveStore, SaveError
 from game.simulation.pacing import RuntimeController
 from game.simulation.kernel import iter_events_through, begin_fast_forward, stop_fast_forward
 
@@ -49,7 +50,7 @@ class AdvancementReport:
 class Stage1Session:
     """Holds authority in memory; runtime preferences never enter the world."""
 
-    def __init__(self, *, runtime_clock=None):
+    def __init__(self, *, runtime_clock=None, save_root=None):
         scenario = load_stage1_scenario(STAGE1_SCENARIO_ID)
         self._display_rates = deepcopy(scenario["display_currencies"])
         self.world = None
@@ -58,6 +59,14 @@ class Stage1Session:
         self.runtime = None
         self.runtime_clock = runtime_clock
         self.on_advance_boundary = None
+        self.save_store = SaveStore() if save_root is None else SaveStore(save_root)
+        self.career_id = None
+        self.progression_revision = 0
+        self.unsaved_progress = False
+        self._active_start_ns = None
+        self._last_auto_active_ns = None
+        self._last_auto_sim_time = None
+        self.autosave_error = None
 
     @property
     def active(self):
@@ -81,8 +90,103 @@ class Stage1Session:
             base_airport_reference_code=base_code,
         )
         self.display_currency = "USD"
+        self.career_id = self.save_store.new_career_id()
+        self.progression_revision = 0
+        self.unsaved_progress = True
+        self.autosave_error = None
+        self._reset_autosave_clocks()
         self.changed = True
         self._ensure_runtime()
+
+    def _clock_ns(self):
+        from game.simulation.pacing import active_monotonic_ns
+        return (self.runtime_clock or active_monotonic_ns)()
+
+    def _reset_autosave_clocks(self):
+        self._active_start_ns = self._clock_ns()
+        self._last_auto_active_ns = self._active_start_ns
+        self._last_auto_sim_time = self.world['simulation']['time_utc']
+
+    def _mark_progress(self):
+        self.changed = True
+        self.unsaved_progress = True
+        self.progression_revision += 1
+
+    def save_manual(self):
+        if not self.active:
+            raise SaveError('NO_GAME', 'No active game')
+        now = self._clock_ns()
+        self.save_store.save(self.career_id, 'manual', self.world,
+                             progression_revision=self.progression_revision)
+        self.unsaved_progress = False
+        self._last_auto_active_ns = now
+        self._last_auto_sim_time = self.world['simulation']['time_utc']
+        return self.career_id
+
+    def save_bookmark(self, name):
+        if not self.active:
+            raise SaveError('NO_GAME', 'No active game')
+        now = self._clock_ns()
+        bookmark_id = self.save_store.save(self.career_id, 'bookmark', self.world,
+                                           bookmark_name=name,
+                                           progression_revision=self.progression_revision)
+        self._last_auto_active_ns = now
+        self._last_auto_sim_time = self.world['simulation']['time_utc']
+        return bookmark_id
+
+    def load_saved(self, career_id, kind='manual', *, bookmark_id=None,
+                   foundation_snapshot=None):
+        candidate, data = self.save_store.load(career_id, kind, bookmark_id=bookmark_id,
+                                                foundation_snapshot=foundation_snapshot)
+        now = self._clock_ns()
+        options = {} if self.runtime_clock is None else {'clock': self.runtime_clock}
+        new_runtime = RuntimeController(candidate, **options)
+        if self.runtime is not None:
+            self.runtime.cancel_work()
+            self.runtime.closed = True
+        self.world = candidate
+        self.career_id = career_id
+        self.progression_revision = data['progression_revision']
+        self.unsaved_progress = False
+        self.autosave_error = None
+        self.display_currency = 'USD'
+        self.runtime = new_runtime
+        self._active_start_ns = now
+        self._last_auto_active_ns = now
+        self._last_auto_sim_time = candidate['simulation']['time_utc']
+        self.changed = True
+        return data
+
+    def list_careers(self):
+        return self.save_store.list_careers()
+
+    def list_bookmarks(self, career_id=None):
+        return self.save_store.list_bookmarks(career_id or self.career_id)
+
+    def newer_autosave(self, career_id):
+        return self.save_store.newer_autosave(career_id)
+
+    def maybe_autosave(self):
+        if not self.active or self.career_id is None:
+            return False
+        now = self._clock_ns()
+        elapsed_real = now - self._last_auto_active_ns
+        elapsed_sim = (parse_canonical_utc(self.world['simulation']['time_utc']) -
+                       parse_canonical_utc(self._last_auto_sim_time)).total_seconds()
+        if elapsed_real < 15 * 60 * 1_000_000_000 and elapsed_sim < 7 * 86400:
+            return False
+        try:
+            self.save_store.save(self.career_id, 'autosave', self.world,
+                                 progression_revision=self.progression_revision)
+        except SaveError as exc:
+            self.autosave_error = f'{exc.code}: {exc}'
+            self._last_auto_active_ns = now  # throttle repeated storage failures
+            self._last_auto_sim_time = self.world['simulation']['time_utc']
+            return False
+        self.autosave_error = None
+        self._last_auto_active_ns = now
+        self._last_auto_sim_time = self.world['simulation']['time_utc']
+        return True
 
     def _ensure_runtime(self):
         if self.runtime is not None and self.runtime.world is self.world:
@@ -95,17 +199,32 @@ class Stage1Session:
 
     def resume(self):
         self._ensure_runtime()
+        before = (self.world['simulation']['clock_state'],
+                  self.world['simulation']['configuration']['clock_ratios']['NORMAL'])
         self.runtime.resume()
-        self.changed = True
+        after = (self.world['simulation']['clock_state'],
+                 self.world['simulation']['configuration']['clock_ratios']['NORMAL'])
+        if after != before:
+            self._mark_progress()
 
     def pause(self):
         self._ensure_runtime()
+        before = self.world['simulation']['clock_state']
         self.runtime.pause()
-        self.changed = True
+        if self.world['simulation']['clock_state'] != before:
+            self._mark_progress()
 
     def close(self):
         if self.runtime is not None:
             self.runtime.close()
+
+    def leave_game(self):
+        if self.runtime is not None:
+            self.runtime.close()
+        self.world = None
+        self.runtime = None
+        self.career_id = None
+        self.unsaved_progress = False
 
     def pump(self):
         if not self.active:
@@ -113,10 +232,12 @@ class Stage1Session:
         self._ensure_runtime()
         result = self.runtime.pump()
         if result is not None:
-            self.changed = True
+            self._mark_progress()
+        self.maybe_autosave()
         return result
 
     def _management_changed(self):
+        self._mark_progress()
         if self.runtime is not None:
             self.runtime.management_changed()
 
@@ -325,7 +446,7 @@ class Stage1Session:
         if result.completed_event_ids or result.skipped_event_ids or (
             result.ended_at_utc != result.started_at_utc
         ):
-            self.changed = True
+            self._mark_progress()
         return AdvancementReport(result, tuple(rows))
 
     def advance_next_event(self):
@@ -334,6 +455,7 @@ class Stage1Session:
             return self._report(process_next_event(self.world))
         finally:
             stop_fast_forward(self.world)
+            self._last_auto_sim_time = self.world['simulation']['time_utc']
 
     def _manual_start(self):
         self.pause()
@@ -368,6 +490,7 @@ class Stage1Session:
         finally:
             work.close()
             stop_fast_forward(self.world)
+            self._last_auto_sim_time = self.world['simulation']['time_utc']
 
     def validate(self):
         if self.world is None:

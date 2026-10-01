@@ -46,7 +46,10 @@ SaveEnvelope
 
 This is a responsibility map, not an approved field schema. The final representation may divide data differently provided no responsibility is lost.
 
-`save_kind` distinguishes manual, quick, autosave, and recovery copies without changing simulation semantics.
+The implemented file container distinguishes manual, autosave and bookmark
+copies without changing simulation semantics. Recovery copies are internal file
+metadata. File-level career IDs, bookmark names, real timestamps, save serials
+and integrity digests are not authoritative world fields.
 
 ## Snapshot Coordination
 
@@ -287,14 +290,18 @@ Integrity metadata should detect truncation and accidental corruption. It is not
 
 ## Slots and Autosaves
 
-The storage layer supports:
+The storage layer groups saves by a stable file-level career ID, while the
+airline display name labels each career in Load Game. It supports one current
+manual save per career, three rotating autosaves, independent player-named
+bookmarks, and a previous-valid recovery copy for replaced targets. Save Game
+alone changes the manual save. Bookmark creation rejects an existing name;
+deletion is explicit. Autosave/bookmark loading leaves the manual file intact.
 
-- user-named manual slots;
-- one quick-save lineage;
-- a configurable rotating autosave set; and
-- a recovery copy associated with each actively replaced target.
-
-Autosave triggers include configurable simulation-time intervals and approved major irreversible actions. Multiple triggers close together should coalesce into one pending save request where appropriate.
+Autosave triggers at the first of 15 active real minutes or seven simulated days
+of ordinary continuous runtime since the last autosave. Both thresholds reset
+after one autosave. Explicit bulk advancement coalesces crossed simulation-time
+thresholds and creates no intermediate weekly autosaves. Ordinary management
+actions and exit do not trigger automatic saves.
 
 Autosaves occur only at a safe boundary. An autosave request must not interrupt and persist half an aircraft-operation, booking, or financial transaction.
 
@@ -427,12 +434,12 @@ No step should silently reinterpret existing game data merely to make a file loa
 
 The following remain outside the first implementation pass:
 
-- exact file format and compression choice;
+- optional compression choice beyond the implemented versioned JSON container;
 - cloud synchronization and cross-device conflict resolution;
 - multiplayer authoritative-server persistence;
 - replay or rewind support;
 - save encryption or anti-tamper requirements;
-- final retention durations and autosave counts;
+- final historical retention durations;
 - user-approved recovery for permanently missing mods; and
 - background-save memory and threading optimizations beyond the safe snapshot contract.
 

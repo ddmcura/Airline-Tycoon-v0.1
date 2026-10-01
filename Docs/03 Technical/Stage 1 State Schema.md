@@ -1,5 +1,20 @@
 # Stage 1 State Schema
 
+## PH 1.0 Step 7 durable save boundary (schema 7 unchanged)
+
+Disk persistence captures the complete validated schema-7 envelope at a completed
+transaction boundary. File-level career IDs, slot kinds, bookmark names, save
+serials, real-time timestamps, integrity digests and recovery copies are outside
+the authoritative world. The player airline's `display_name` labels its career,
+but is not a filesystem key or foreign key. Loading a detached candidate sets
+`simulation.clock_state` to `PAUSED` and clears any fast-forward target at the
+saved exact UTC second. No offline time is applied. `ui_state` remains optional
+presentation state, never the scope of the saved world. Pacing credit, active
+timers, and autosave cadence are runtime-only and are not persisted as world
+authority. Schema-1 migration requires the matching approved foundation snapshot;
+schemas 2–7 use explicit adjacent migrations. No new authoritative field or
+schema version is introduced by Step 7.
+
 ## Approved PH 1.0 Step 6 routine maintenance increment (schema 7)
 Schema 7 adds a direct cash routine-maintenance component at successful flight
 completion. Detached 6-to-7 migration adds only the maintenance configuration;

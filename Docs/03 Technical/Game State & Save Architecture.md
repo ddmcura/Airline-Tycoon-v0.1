@@ -128,15 +128,19 @@ A crash or storage failure must not destroy the last valid copy. At least one pr
 
 ## Save Types
 
-The initial player-facing system supports:
+The player-facing slot is one airline career, identified by its displayed
+airline name and a separate stable file-level career ID. Each career has one
+current manual save, updated only by an explicit Save Game action. It also has
+three rotating autosaves and player-named bookmarks that remain until explicitly
+deleted. Loading an autosave or bookmark does not replace the manual save.
 
-- named manual save slots;
-- quick save;
-- rotating autosaves;
-- autosaves at configurable simulation-time intervals; and
-- autosaves before major irreversible actions where practical.
-
-The system must not write a full save after every simulation event. Autosave frequency is a policy and performance setting, not a simulation requirement.
+An autosave occurs after 15 minutes of active real play or seven simulated days
+of ordinary continuous runtime, whichever threshold is reached first. Nearby
+triggers coalesce; bulk time advancement does not produce intermediate weekly
+autosaves. No before-action or exit autosave is made. When an autosave contains
+later authoritative progression than the manual save, loading the career offers
+the player manual/autosave/cancel choices. The system does not save after every
+event.
 
 ## Historical Retention
 
@@ -191,7 +195,7 @@ Stage 1 establishes:
 - event-queue and deterministic-random continuity;
 - explicit versions and sequential migrations;
 - atomic files and one recoverable prior copy;
-- manual, quick, and rotating autosave behavior; and
+- current manual, rotating autosave and named bookmark behavior; and
 - validation and compatibility reporting.
 
 Advanced cloud synchronization, multiplayer server snapshots, user-editable save formats, replay recording, and final long-term compaction thresholds are deferred.

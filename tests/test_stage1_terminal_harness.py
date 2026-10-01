@@ -296,7 +296,7 @@ class Stage1RotationBookingAndProjectionTests(unittest.TestCase):
 
 
 class Stage1TerminalTranscriptTests(unittest.TestCase):
-    def test_complete_scripted_transcript_and_temporary_exit_warning(self):
+    def test_complete_scripted_transcript_and_unsaved_exit_warning(self):
         script = "\n".join((
             "1", "Ada", "Deterministic Air", "26",
             "10", "1", "6", "100.00", "", "y",
@@ -315,9 +315,9 @@ class Stage1TerminalTranscriptTests(unittest.TestCase):
         self.assertIn("maintenance $453.59 USD", transcript)
         self.assertIn("Cumulative operating contribution: $21,712.82 USD", transcript)
         self.assertIn("Published 2 next weekly occurrence(s) for 2026-09-14", transcript)
-        self.assertIn("This temporary session will be lost. Exit? [y/N]", transcript)
-        self.assertNotIn("Save", transcript)
-        self.assertNotIn("Load", transcript)
+        self.assertIn("Unsaved progression. [s] Save and leave", transcript)
+        self.assertIn("15. Save Game", transcript)
+        self.assertIn("2. Load Game", transcript)
 
     def test_invalid_menu_recovery_back_and_eof(self):
         output = StringIO()

@@ -1,3 +1,9 @@
+# PH 1.0 Step 7 disk persistence: no new authoritative field or schema version.
+# File-level career/slot/bookmark IDs, save serial, real time, integrity and
+# recovery copies are outside the schema-7 world. Save the entire world at a
+# completed transaction boundary; load the detached validated candidate paused
+# at the same UTC second. See canonical Stage 1 State Schema for authority.
+
 # Schema 7 PH 1.0 Step 6 routine maintenance
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md.
 # Detached 6->7 migration adds simulation.configuration.maintenance only.

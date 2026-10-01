@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 
 # Local game state
-Saves/*.json
+Saves/
 Snapshots/
 
 # Generated developer reference bundles

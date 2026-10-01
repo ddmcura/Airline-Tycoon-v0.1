@@ -10,6 +10,7 @@ import time
 from collections import deque
 
 from game.world_state import Stage1BootstrapError
+from game.world_state.persistence import SaveError
 
 from .formatting import (
     format_basis_points,
@@ -35,6 +36,7 @@ class _Terminal:
         self.interrupt_requested = False
         self.last_status = 0
         self.last_diagnostic = None
+        self.last_autosave_error = None
         self.session.on_advance_boundary = self.advance_boundary
 
     def clock_status(self):
@@ -46,6 +48,10 @@ class _Terminal:
                 if runtime.diagnostic:
                     self.line(runtime.diagnostic)
                 self.last_diagnostic = runtime.diagnostic
+            if self.session.autosave_error != self.last_autosave_error:
+                if self.session.autosave_error:
+                    self.line(f"Autosave failed: {self.session.autosave_error}")
+                self.last_autosave_error = self.session.autosave_error
 
     def read_answer(self):
         if self.pending_input:
@@ -124,22 +130,33 @@ class _Terminal:
     def confirm_exit(self):
         if not self.session.active:
             return True
+        if not self.session.unsaved_progress:
+            return True
         try:
             answer = self.prompt(
-                "This temporary session will be lost. Exit? [y/N]",
+                "Unsaved progression. [s] Save and leave / [d] Leave without saving / [c] Cancel",
                 allow_blank=True,
             )
         except (_EndOfInput, KeyboardInterrupt):
             self.line()
             return True
-        return answer.strip().lower() in {"y", "yes"}
+        answer = answer.strip().lower()
+        if answer in {'s', 'save'}:
+            try:
+                self.session.save_manual()
+            except SaveError as exc:
+                self.line(f"Save failed [{exc.code}]: {exc}")
+                return False
+            self.line('Game saved.')
+            return True
+        return answer in {'d', 'discard', 'y', 'yes'}
 
     def startup(self):
-        self.line("Airline Tycoon - Stage 1 Temporary Terminal")
-        self.line("Sessions are deterministic and in-memory only; exiting loses the session.")
+        self.line("Airline Tycoon - Stage 1 Terminal")
         while True:
             self.line()
             self.line("1. New Stage 1 Game")
+            self.line("2. Load Game")
             self.line("0. Exit")
             try:
                 choice = self.prompt("Select:").strip()
@@ -148,14 +165,121 @@ class _Terminal:
                 return 0
             if choice == "0":
                 return 0
-            if choice != "1":
-                self.line("Invalid selection. Enter 1 or 0.")
+            if choice not in {"1", "2"}:
+                self.line("Invalid selection. Enter 1, 2 or 0.")
                 continue
             try:
-                if self.new_game_form():
-                    return self.main_menu()
+                ready = self.new_game_form() if choice == '1' else self.load_game_menu()
+                if ready:
+                    result = self.main_menu()
+                    if result != 'TITLE':
+                        return result
             except KeyboardInterrupt:
-                self.line("\nNew-game form cancelled.")
+                self.line("\nAction cancelled.")
+
+    def load_game_menu(self):
+        careers = self.session.list_careers()
+        if not careers:
+            self.line('No saved airline games found.')
+            return False
+        self.line('Load Game')
+        for index, career in enumerate(careers, 1):
+            self.line(f"{index}. {career['airline_name']} - {career['simulation_time_utc']}")
+        self.line('0. Back')
+        choice = self.prompt('Select airline:').strip()
+        if choice == '0' or choice.lower() == 'back':
+            return False
+        if not choice.isdigit() or not 1 <= int(choice) <= len(careers):
+            self.line('Invalid airline selection.')
+            return False
+        career = careers[int(choice) - 1]
+        if career.get('unreadable'):
+            if career.get('diagnostic') == 'NEWER_SCHEMA':
+                self.line('Load failed [NEWER_SCHEMA]: This game uses a newer unsupported save schema.')
+            else:
+                self.line('Load failed [CORRUPT_FILE]: This career has no readable save or recovery copy.')
+            return False
+        career_id = career['career_id']
+        bookmarks = self.session.list_bookmarks(career_id)
+        if bookmarks:
+            if not career['has_manual'] and not career['has_autosave']:
+                action = 'b'
+            else:
+                action = self.prompt('Load current game, or [b] browse bookmarks?',
+                                     allow_blank=True).strip().lower()
+            if action == 'b':
+                for index, row in enumerate(bookmarks, 1):
+                    self.line(f"{index}. {row['name']} - {row['simulation_time_utc']}")
+                bookmark_choice = self.prompt('Select bookmark (0 to cancel):').strip()
+                if not bookmark_choice.isdigit() or not 1 <= int(bookmark_choice) <= len(bookmarks):
+                    return False
+                row = bookmarks[int(bookmark_choice) - 1]
+                return self._load_choice(career_id, 'bookmark', bookmark_id=row['bookmark_id'])
+        kind = 'manual'
+        if not career['has_manual']:
+            kind = 'autosave'
+        elif self.session.newer_autosave(career_id):
+            recovery = self.prompt('Newer autosave found. [a] Autosave / [m] Manual / [c] Cancel:').strip().lower()
+            if recovery in {'a', 'autosave'}:
+                kind = 'autosave'
+            elif recovery not in {'m', 'manual'}:
+                return False
+        return self._load_choice(career_id, kind)
+
+    def _load_choice(self, career_id, kind, *, bookmark_id=None):
+        try:
+            data = self.session.load_saved(career_id, kind, bookmark_id=bookmark_id)
+        except SaveError as exc:
+            self.line(f"Load failed [{exc.code}]: {exc}")
+            return False
+        self.line(f"Loaded {self.session.overview()['airline_display_name']} at "
+                  f"{self.session.world['simulation']['time_utc']} (paused; {data['kind']}).")
+        if data.get('_recovered_from_previous'):
+            self.line('Loaded the previous valid recovery copy; the current file was unusable.')
+        return True
+
+    def save_game(self):
+        try:
+            self.session.save_manual()
+            self.line('Game saved.')
+        except SaveError as exc:
+            self.line(f"Save failed [{exc.code}]: {exc}")
+
+    def bookmarks_menu(self):
+        while True:
+            bookmarks = self.session.list_bookmarks()
+            self.line('Bookmarks')
+            for index, row in enumerate(bookmarks, 1):
+                self.line(f"{index}. {row['name']} - {row['simulation_time_utc']}")
+            self.line('[n] New / [l] Load / [d] Delete / 0 Back')
+            action = self.prompt('Select:').strip().lower()
+            if action in {'0', 'back'}:
+                return
+            if action == 'n':
+                name = self.prompt('Bookmark name:').strip()
+                try:
+                    self.session.save_bookmark(name)
+                    self.line('Bookmark saved.')
+                except SaveError as exc:
+                    self.line(f"Bookmark failed [{exc.code}]: {exc}")
+                continue
+            if action in {'l', 'd'}:
+                number = self.prompt('Bookmark number (0 to cancel):').strip()
+                if not number.isdigit() or not 1 <= int(number) <= len(bookmarks):
+                    continue
+                row = bookmarks[int(number) - 1]
+                if action == 'l':
+                    if not self.confirm_exit():
+                        continue
+                    self._load_choice(self.session.career_id, 'bookmark', bookmark_id=row['bookmark_id'])
+                    return
+                confirmation = self.prompt(f"Delete bookmark {row['name']}? [y/N]", allow_blank=True)
+                if confirmation.strip().lower() in {'y', 'yes'}:
+                    try:
+                        self.session.save_store.delete_bookmark(self.session.career_id, row['bookmark_id'])
+                        self.line('Bookmark deleted.')
+                    except SaveError as exc:
+                        self.line(f"Delete failed [{exc.code}]: {exc}")
 
     def new_game_form(self):
         self.line()
@@ -220,6 +344,9 @@ class _Terminal:
             self.line("12. Purchase New Aircraft")
             self.line("13. Leasing Marketplace")
             self.line("14. Used Aircraft Marketplace")
+            self.line("15. Save Game")
+            self.line("16. Bookmarks")
+            self.line("17. Return to Title")
             self.line("0. Exit")
             try:
                 choice = self.prompt("Select:").strip()
@@ -243,10 +370,16 @@ class _Terminal:
                 "12": lambda: self.aircraft_catalogue(purchase=True),
                 "13": self.leasing_marketplace,
                 "14": self.used_aircraft_marketplace,
+                "15": self.save_game,
+                "16": self.bookmarks_menu,
             }
             if choice == "0":
                 if self.confirm_exit():
                     return 0
+            elif choice == '17':
+                if self.confirm_exit():
+                    self.session.leave_game()
+                    return 'TITLE'
             elif choice in actions:
                 try:
                     actions[choice]()
