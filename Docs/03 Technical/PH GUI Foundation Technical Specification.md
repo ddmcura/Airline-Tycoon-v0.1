@@ -49,11 +49,41 @@ or right-click. This is a functional playtest layout, not final art or mobile UX
 
 The GUI does not add or alter persistent fields, gameplay formulas, speeds,
 offline progress, AI, save migration, or domain authority. The legacy Kivy
-title stub and hybrid gameplay loop do not supply commands or state. Aircraft
-purchase/lease forms, market research, and a graphical weekly scheduler are
-deferred to the next bounded GUI gameplay slice. Cabin editing, aircraft sale,
-route-wide fare editing, advanced maintenance, and a map remain deferred by
-their owning domain contracts.
+title stub and hybrid gameplay loop do not supply commands or state. The
+second bounded GUI slice now supplies graphical new-aircraft purchase,
+operating lease, lease-to-own, used-aircraft purchase, market research and a
+list/form weekly planner. Its controls call the same modern session and domain
+commands as the terminal. A draft, form or preview remains transient GUI state;
+acquisition commits revalidate the original preview, and schedule save
+revalidates draft legs against the current world before atomic publication.
+Cabin editing, aircraft sale, route-wide fare editing, advanced maintenance,
+and a map remain deferred by their owning domain contracts.
 
 Launch with `python -m app.gui` after installing `requirements.txt` in a
 Kivy-compatible Python environment. The terminal remains `python -m app.terminal`.
+
+## First graphical gameplay action loop
+
+The game shell adds Research, Acquire and Schedule navigation. Research shows
+existing directional market projections for a selected origin. Acquire shows
+current reference models, lease offers and used listings; each action collects
+an authoritative delivery airport ID, presents the domain preview, and commits
+only the confirmed original preview. The same domain command rejects stale or
+unaffordable purchases. The GUI computes no price, demand or financial rule.
+
+Schedule selects a parked aircraft by ID and holds a detached WeeklyDraft.
+List/form controls add passenger or explicit positioning legs, choose earliest
+or exact Philippine local departure, add the supported earliest return, copy
+draft days, undo, and save with an optional inclusive weekly repeat end date.
+The session's save_current path revalidates draft legs against the current
+world and publishes atomically; the separate next-rotation command remains
+available. The planner pauses the shared session when an edit begins, and
+Kivy callbacks remain serialized with the runtime pump. Navigation, draft
+rows, form values and dialogs never enter the canonical world or save.
+Leaving or loading another career with an unpublished draft requires an
+explicit discard choice before the existing world unsaved-progress guard.
+
+A player can now research, acquire, schedule, publish, advance or run, inspect
+flights/Bookings/finance, and save through Kivy. The terminal remains the
+developer/debug frontend. Existing-plan editing, aircraft sale, cabin changes,
+advanced maintenance, maps, final art, and mobile packaging remain deferred.

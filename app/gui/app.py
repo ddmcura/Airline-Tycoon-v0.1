@@ -18,6 +18,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.core.window import Window
 
 from app.session import Stage1Session
+from app.gui.gameplay import GameplayViews
 from app.inputs import parse_duration_seconds
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
@@ -50,7 +51,7 @@ def _column():
     return layout
 
 
-class AirlineTycoonApp(App):
+class AirlineTycoonApp(GameplayViews, App):
     """One Kivy/UI owner calls one shared session at completed event boundaries."""
 
     def __init__(self, *, session_factory=Stage1Session, **kwargs):
@@ -65,6 +66,8 @@ class AirlineTycoonApp(App):
         self._allow_close = False
         self._ticker = None
         self._popup = None
+        self._draft = None
+        self._research_origin = None
 
     def build(self):
         self.title = 'Airline Tycoon - PH 1.0'
@@ -113,6 +116,9 @@ class AirlineTycoonApp(App):
         root.add_widget(self._horizontal_buttons([
             ('Overview', lambda: self.show_view('Overview')),
             ('Fleet', lambda: self.show_view('Fleet')),
+            ('Research', lambda: self.show_view('Research')),
+            ('Acquire', lambda: self.show_view('Acquire')),
+            ('Schedule', lambda: self.show_view('Schedule')),
             ('Flights / Bookings', lambda: self.show_view('Flights')),
             ('Finance', lambda: self.show_view('Finance')),
             ('Save / Bookmarks', lambda: self.show_view('Saves')),
@@ -273,6 +279,8 @@ class AirlineTycoonApp(App):
     def _enter_game(self):
         self.current_view = 'Overview'
         self.view_offset = 0
+        self._draft = None
+        self._research_origin = None
         self._last_revision = None
         self.screens.current = 'game'
         self.refresh(force=True)
@@ -336,6 +344,12 @@ class AirlineTycoonApp(App):
                 self.content.add_widget(_label(self.session.runtime.diagnostic, height=70))
             if self.session.autosave_error:
                 self.content.add_widget(_label('Autosave failed: ' + self.session.autosave_error, height=70))
+        elif view == 'Research':
+            self.render_research()
+        elif view == 'Acquire':
+            self.render_acquisition()
+        elif view == 'Schedule':
+            self.render_scheduling()
         elif view == 'Fleet':
             rows = self.session.fleet(offset=self.view_offset, limit=20)
             for row in rows:
@@ -380,6 +394,8 @@ class AirlineTycoonApp(App):
             for text, action in [('Save Game', self.save_game), ('Bookmarks / Checkpoints', self.show_bookmarks)]:
                 self.content.add_widget(_button(text, action))
             self.content.add_widget(_label('One current manual save; autosaves run by the existing session policy.', height=65))
+
+    _money = staticmethod(_money)
 
     def _page_buttons(self, count, size):
         if self.view_offset:
@@ -498,6 +514,13 @@ class AirlineTycoonApp(App):
         if self.session.advancing:
             self._error('Advance Time', 'Cancel or finish advancement first.')
             return
+        if self._draft is not None:
+            self._dialog('Unpublished schedule draft',
+                         'This draft has not been published and is not part of a game save.',
+                         [('Discard draft and continue',
+                           lambda: self._discard_draft_then(action)),
+                          ('Cancel', lambda: None)])
+            return
         if not self.session.active or not self.session.unsaved_progress:
             action()
             return
@@ -509,6 +532,10 @@ class AirlineTycoonApp(App):
             ('Cancel', lambda: decide('cancel')),
         ])
 
+    def _discard_draft_then(self, action):
+        self._draft = None
+        self._guard_unsaved(action)
+
     def _resolve_departure(self, choice, action):
         try:
             if self.session.resolve_departure(choice):
@@ -519,6 +546,7 @@ class AirlineTycoonApp(App):
     def return_to_title(self):
         def leave():
             self.session.leave_game()
+            self._draft = None
             self._last_revision = None
             self.screens.current = 'title'
         self._guard_unsaved(leave)

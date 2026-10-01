@@ -2,6 +2,50 @@
 
 Last updated: **2026-10-01**. Current snapshot, not operational authorization.
 
+## PH 1.0 first graphical gameplay action loop
+
+The second bounded Kivy slice adds Research, Acquire and Schedule to the
+existing game shell. Market research reads the modern directional opportunity
+projection. Acquisition uses modern catalog, lease-offer and used-listing
+views, authoritative delivery airport IDs, and the existing preview/commit
+commands for new purchases, operating leases, lease-to-own and used purchases.
+A rejected or stale preview leaves the world unchanged. Weekly scheduling
+holds a detached UI draft by aircraft ID; list/form controls add passenger or
+explicit positioning legs, earliest or exact Philippine local departure,
+return, copy day, undo and optional repeat-through. Saving calls the shared
+session's live-world revalidation and atomic publication. The next-rotation
+command is also available. The runtime is paused for management input, and
+Kivy's pump and commands remain serialized on one event-loop thread. An
+unpublished draft requires an explicit discard choice before leaving or
+loading another career; it never enters a game save.
+
+The graphical loop now reaches market research, acquisition, fleet
+confirmation, weekly schedule publication, simulation, operations/Bookings,
+finance and manual save without the terminal. The terminal remains the
+developer/debug frontend. The only shared input change moves exact USD fare
+parsing from terminal presentation into frontend-neutral app.inputs; the
+session API, canonical schema, template mirror, save format and domain rules
+are unchanged. No legacy gameplay or visual assets were restored. Existing
+plan editing, sale, cabin reconfiguration, advanced maintenance, map, final
+art and mobile packaging remain deferred. Step 8 integrated PH verification
+remains the next engine/player verification milestone.
+
+Verified on the working tree based on
+d49d02d25b69cfb6972ccc36f13b0d2ac6e8b5fa on 2026-10-01 using
+Python 3.12.14 and Kivy 2.3.1: focused
+python -m unittest tests.test_gui_gameplay tests.test_gui_foundation
+tests.test_stage1_terminal_harness -q passed **32 tests in 84.529 s**;
+python -m unittest discover -s tests -q passed **619 tests in
+553.425 s** on the final source state; application-scope
+python -m compileall -q app game tests main.py make_snapshot.py settings.py
+test.py exited 0. An actual Kivy
+event-loop smoke created a temporary PH career and navigated Research,
+Acquire, Schedule, Fleet, Flights and Finance successfully. A separate
+automated Kivy-widget test exercised purchase, scheduling, publication,
+cooperative advancement, result inspection, save and paused reload. These
+checks confirm command wiring and state behavior, not human usability on a
+small display or sustained 50-aircraft GUI frame performance.
+
 ## PH 1.0 Kivy GUI foundation
 
 The approved Kivy foundation now uses `app.session.Stage1Session` as the one

@@ -38,9 +38,10 @@ first minimum-playable checkpoint, but remain PH 1.0 requirements, not post-1.0 
 The approved [Kivy GUI foundation](PH%20GUI%20Foundation%20Technical%20Specification.md)
 is an interface increment before the player-facing portion of Step 8. Engine
 integration and deterministic verification may proceed independently. The
-foundation gives graphical observation, time controls and saves; aircraft-market
-and weekly-scheduling GUI actions require a later bounded gameplay slice before
-a GUI-only full player run. Step 8's simulation acceptance criteria are unchanged.
+foundation gives graphical observation, time controls and saves. The
+second bounded GUI action slice adds modern market research, acquisition and
+weekly scheduling, enabling the graphical player loop. Step 8's simulation
+acceptance criteria are unchanged.
 
 Catalog precedes acquisition; leases precede lease-to-own. Each new persistent contract
 must first update the canonical schema and subordinate template, with validation,

@@ -2,25 +2,9 @@
 
 from __future__ import annotations
 
-import re
-from app.inputs import parse_duration_seconds
+from app.inputs import parse_duration_seconds, parse_usd_fare
 
 from game.world_state.timestamps import normalize_utc_timestamp
-
-
-_FARE = re.compile(r"(?:0|[1-9][0-9]*)(?:\.([0-9]{1,2}))?\Z")
-MAX_NUMERIC_INPUT_LENGTH = 32
-
-
-def parse_usd_fare(text):
-    if not isinstance(text, str) or not text or len(text) > MAX_NUMERIC_INPUT_LENGTH:
-        raise ValueError("fare must be a short USD amount such as 0, 99, or 99.50")
-    match = _FARE.fullmatch(text)
-    if match is None:
-        raise ValueError("fare must be a non-negative USD amount with at most two decimals")
-    whole_text, fraction_text = text.split(".", 1) if "." in text else (text, "")
-    fraction = int(fraction_text.ljust(2, "0")) if fraction_text else 0
-    return int(whole_text) * 100 + fraction
 
 
 def parse_utc_timestamp(text):
