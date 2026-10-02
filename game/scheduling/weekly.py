@@ -262,6 +262,8 @@ class WeeklyDraft:
         anchor = parse_canonical_utc(selected[0]["departure_utc"])
         return {"contract": "WEEKLY_DRAFT_CLIPBOARD_V1",
                 "aircraft_id": self.aircraft_id,
+                "anchor_local_time": anchor.astimezone(
+                    load_named_timezone('Asia/Manila')).strftime('%H:%M'),
                 "legs": tuple({
                     "origin_airport_id": leg["origin_airport_id"],
                     "destination_airport_id": leg["destination_airport_id"],
@@ -317,6 +319,87 @@ class WeeklyDraft:
         self._undo_stack.append(deepcopy(self._legs))
         self._legs = candidate._legs
         return len(legs)
+
+    def _commit_edited_sequence(self, candidate):
+        """Validate a detached edit and record one undo step, never world state."""
+        if candidate._legs:
+            candidate._candidate(candidate._legs)
+        self._undo_stack.append(deepcopy(self._legs))
+        self._legs = deepcopy(candidate._legs)
+
+    def add_weekdays(self, origin, destination, local_dates, local_time,
+                     *, earliest=False, return_flight=False, fare_minor=0):
+        """Add selected local dates atomically through the normal planner."""
+        if not local_dates or len(set(local_dates)) != len(local_dates):
+            raise ValueError('select one or more distinct weekdays')
+        candidate = deepcopy(self)
+        zone = load_named_timezone('Asia/Manila')
+        for local_date in sorted(local_dates):
+            try:
+                requested = local_departure(candidate._base['world_state'],
+                                            origin, local_date, local_time)
+                departure = (candidate.earliest(origin, destination,
+                             not_before=format_utc(requested)) if earliest
+                             else format_utc(requested))
+                if parse_canonical_utc(departure).astimezone(zone).date().isoformat() != local_date:
+                    raise ValueError('no available departure on the selected local day')
+                candidate.add(origin, destination, departure_utc=departure,
+                              fare_minor=fare_minor)
+                if return_flight:
+                    candidate.add_return(fare_minor=fare_minor)
+            except (ValueError, KeyError) as exc:
+                raise ValueError(f'{local_date}: {exc}') from exc
+        count = len(candidate._legs) - len(self._legs)
+        self._commit_edited_sequence(candidate)
+        return count
+
+    def paste_weekdays(self, clipboard, local_dates, local_time):
+        """Apply every target through paste_sequence; all or none become draft."""
+        if not local_dates or len(set(local_dates)) != len(local_dates):
+            raise ValueError('select one or more distinct paste weekdays')
+        candidate = deepcopy(self)
+        total = 0
+        for local_date in sorted(local_dates):
+            try:
+                total += candidate.paste_sequence(clipboard, local_date, local_time)
+            except (ValueError, KeyError) as exc:
+                raise ValueError(f'{local_date}: {exc}') from exc
+        self._commit_edited_sequence(candidate)
+        return total
+
+    def delete_selection(self, indices):
+        """Delete draft indices only; published reservations are not addressable."""
+        if not indices or any(type(index) is not int or index < 0 or index >= len(self._legs)
+                              for index in indices) or len(set(indices)) != len(indices):
+            raise ValueError('select one or more unpublished draft flights')
+        remaining = [leg for index, leg in enumerate(self._legs)
+                     if index not in set(indices)]
+        candidate = WeeklyDraft(self._base, airline_id=self.airline_id,
+                                aircraft_id=self.aircraft_id)
+        for leg in sorted(remaining, key=lambda row: row['departure_utc']):
+            candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                          departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
+                          deadhead=leg['service_type'] == 'DEADHEAD')
+        self._commit_edited_sequence(candidate)
+        return len(indices)
+
+    def reschedule(self, index, local_date, local_time):
+        """Move one unpublished leg to an exact local slot through validation."""
+        if type(index) is not int or index < 0 or index >= len(self._legs):
+            raise ValueError('select an unpublished draft flight')
+        intents = deepcopy(self._legs)
+        moved = intents[index]
+        moved['departure_utc'] = format_utc(local_departure(
+            self._base['world_state'], moved['origin_airport_id'],
+            local_date, local_time))
+        candidate = WeeklyDraft(self._base, airline_id=self.airline_id,
+                                aircraft_id=self.aircraft_id)
+        for leg in sorted(intents, key=lambda row: row['departure_utc']):
+            candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                          departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
+                          deadhead=leg['service_type'] == 'DEADHEAD')
+        self._commit_edited_sequence(candidate)
+        return deepcopy(moved)
 
     def undo(self):
         if self._undo_stack:

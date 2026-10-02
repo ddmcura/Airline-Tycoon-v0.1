@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from kivy.uix.button import Button
+from app.gui.weekday_picker import WeekdayPicker
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.textinput import TextInput
 
@@ -134,6 +135,8 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
         self.app.create_new_game('CEO', 'Workspace Air', 'MNL')
         self.app.show_view('Schedule')
         self.app.start_schedule(self.app.session.fleet()[0]['aircraft_id'])
+        self.initial_week = self.app._schedule_week
+        self.app.change_schedule_week(1)
         self.airports = {row['reference_code']: row['airport_id']
                          for row in self.app.session.airports()}
 
@@ -158,7 +161,14 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
         time_widgets = list(reversed(outer.children[0].children[0].children))
         return outer, day_widgets, time_widgets
 
+    @staticmethod
+    def block_text(block):
+        return (block.text if isinstance(block, Button) else
+                next(widget.text for widget in block.children
+                     if isinstance(widget, Button) and 'DRAFT' in widget.text))
+
     def test_seven_weekday_controls_dates_and_add_targets(self):
+        self.assertEqual(self.initial_week, date(2026, 8, 31))
         self.assertEqual(self.app._schedule_week, date(2026, 9, 7))
         expected = [date(2026, 9, 7) + timedelta(days=offset)
                     for offset in range(7)]
@@ -209,14 +219,13 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
         self.plan_monday()
         self.app.select_schedule_day('2026-09-07')
         self.app.copy_day()
-        captured = {}
-        self.app._choice_form = lambda title, fields, submit, **kwargs: captured.update(
-            {key: (choices, initial) for key, _label, choices, initial in fields})
         self.app.show_paste()
-        self.assertEqual(captured['target'][0], tuple(
+        picker = next(widget for widget in self.app._popup.content.walk()
+                      if isinstance(widget, WeekdayPicker))
+        self.assertEqual(tuple(day.isoformat() for day in picker.week_dates), tuple(
             (date(2026, 9, 7) + timedelta(days=offset)).isoformat()
             for offset in range(7)))
-        self.assertEqual(captured['target'][1], '2026-09-07')
+        self.app._dismiss()
         self.app._paste_selected({'target': '2026-09-09', 'time': '14:00'})
         rows = self.app._draft.week_rows('2026-09-07')
         self.assertEqual([row['departure_local'][:10] for row in rows],
@@ -239,10 +248,10 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
                 self.assertLessEqual(rendered_y + block.height, line.top)
         self.assertGreater(lines[1].children[0].to_window(*lines[1].children[0].pos)[1],
                            lines[7].top)
-        self.assertEqual(sorted(block.text.split('\n')[1][:11]
+        self.assertEqual(sorted(self.block_text(block).split('\n')[1][:11]
                                 for block in lines[1].children),
                          ['08:00-09:40', '10:10-11:50'])
-        self.assertEqual(sorted(block.text.split('\n')[1][:11]
+        self.assertEqual(sorted(self.block_text(block).split('\n')[1][:11]
                                 for block in lines[3].children),
                          ['14:00-15:40', '16:10-17:50'])
         self.app.select_schedule_day('2026-09-07')
@@ -261,7 +270,7 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
         self.assertEqual(len(lines), 8)
         for offset, day in enumerate(self.app._week_dates()):
             self.assertEqual(len(lines[offset + 1].children), 2, day)
-            self.assertTrue(all('DRAFT' in block.text
+            self.assertTrue(all('DRAFT' in self.block_text(block)
                                 for block in lines[offset + 1].children))
             self.assertEqual(days[offset + 1].children[-1].text.split('\n')[0],
                              f'{day:%a %d %b}')

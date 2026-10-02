@@ -2,6 +2,46 @@
 
 Last updated: **2026-10-02**. Current snapshot, not operational authorization.
 
+## Scheduling workspace playtest polish (2026-10-02)
+
+On the working tree based on `116830faa74ff99b90131c4c6545a98010670155`,
+the Kivy Schedule view now starts on the PH-local current Monday-Sunday week,
+shows its calendar range, and places a persistent multi-day flight builder above
+the timeline. The builder uses searchable airport IDs, the session's editable
+suggested Economy fare, 00:00 exact default, optional earliest departure,
+optional domain-timed return, weekday presets and manual weekday toggles.
+`WeeklyDraft` validates all requested dates on a detached candidate and records
+one undo step; past pre-departure work and existing scheduling conflicts reject
+the whole request. Current-week future slots remain usable. A selected draft
+sequence may be pasted to several weekdays at a chosen time, deleted, or moved
+using a horizontal five-minute drag proposal; every change is validated by the
+scheduling domain, and published reservations remain protected. GUI clipboard,
+selection and builder controls remain outside authoritative state and saves.
+
+The desktop window prefers maximized nonexclusive mode. Axis-aware scroll
+containers expose wheel/touch and visible bars, with Shift+wheel on the
+horizontal timeline. The airport popup uses the same scroll behavior. A GUI
+calendar supplies existing canonical dates for the secondary single-flight and
+finite repeat-through forms. No schema, booking, fare formula, scheduling
+timing, turnaround, simulation rule, or recurrence contract changed. True
+indefinite recurrence and published-flight cancellation remain separate design
+work; see the PH GUI Foundation specification for their boundaries.
+
+Python 3.12.14 / Kivy 2.3.1 verification on this working tree:
+`python -m unittest tests.test_gui_schedule_polish
+tests.test_gui_weekly_workspace tests.test_gui_gameplay -q` passed 32 tests
+in 60.181 s; `python -m unittest discover -s tests -q` passed 650 tests
+in 603.689 s; `python -m compileall -q app game tests main.py
+make_snapshot.py settings.py test.py` and `git diff --check` exited 0.
+A temporary-career Kivy smoke opened a maximized 2560x1377 nonexclusive
+window, prefilled MNL-DVO USD 116, built MWF 08:00 outbound/10:10 returns,
+pasted a copied pair to Tuesday/Thursday, rejected a conflict, moved and
+undid a draft leg, deleted and undid a pair, published ten flights, completed
+all ten, opened Fleet/Flights/Bookings/Finance, and loaded a valid paused
+manual save. Synthetic Kivy touch dispatch also confirmed the dedicated drag
+handle receives presses through its scroll container. No production save data
+was modified.
+
 ## Weekly Schedule row-placement regression correction (2026-10-02)
 
 On the working tree based on `cd42bea135531595b8eb889e3a574369d0b63f28`,

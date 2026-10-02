@@ -7,7 +7,7 @@ from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.uix.scrollview import ScrollView
+from app.gui.scrolling import AxisScrollView
 from kivy.uix.textinput import TextInput
 
 
@@ -74,7 +74,7 @@ class AirportSelector(BoxLayout):
         search = TextInput(hint_text="Search code, city or airport name",
                            multiline=False, size_hint_y=None, height=dp(52))
         root.add_widget(search)
-        scroll = ScrollView(do_scroll_x=False)
+        scroll = AxisScrollView(do_scroll_x=False)
         results = GridLayout(cols=1, spacing=dp(5), size_hint_y=None)
         results.bind(minimum_height=results.setter("height"))
         scroll.add_widget(results)

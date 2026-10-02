@@ -149,3 +149,38 @@ sets that same date before opening the existing scheduling form. Entering or
 changing a week brings Monday into view after Kivy lays out the workspace.
 The domain's `week_rows()` departure dates still decide which row owns each
 published or draft block; no flight timing, publication, or date rule changed.
+
+### Scheduling playtest controls (2026-10-02)
+
+The desktop window prefers maximized, nonexclusive mode. Axis-aware GUI scroll
+containers expose mouse-wheel scrolling on the vertical page, horizontal
+timeline/weekday scrolling, visible bars, and touch content movement. Scheduling
+date fields use a GUI calendar that returns the existing canonical local date.
+
+The Schedule view starts on the PH-local current week and identifies its exact
+Monday-Sunday range. Its persistent builder selects authoritative airport IDs,
+prefills the editable Economy fare from `Stage1Session.suggested_economy_fare`,
+defaults exact departure to 00:00, and offers the existing earliest mode. MWF,
+TThS, Even, Odd, Daily and Clear set transient weekday checkboxes; players may
+toggle them afterward. One Add Flight action submits all selected dates to the
+detached `WeeklyDraft`. Optional returns use the domain's `add_return()` timing.
+The domain validates the whole batch before one draft/undo change, including
+past pre-departure work, position, turnaround, overlap and publication horizon.
+Past days are labeled; past slots are rejected by domain authority. No past
+flights or financial records are synthesized.
+
+Copy/Paste can target several weekdays in one atomic detached edit, retaining
+the copied relative offsets. Selected unpublished draft legs can be deleted
+with one undo step. Their dedicated horizontal drag handle proposes a five-
+minute UI slot; the normal domain planner accepts or rejects that exact time.
+Rejected drops restore the original block and report the domain error. Published
+reservations have no draft delete or drag control. Selection, clipboard,
+checkboxes, gestures, calendar view and scroll position remain GUI-only.
+
+The existing finite inclusive repeat-through date remains the only repeat
+choice exposed by this planner. Schema 4 already permits open recurrence and
+the publication API enforces a configured rolling horizon, but a player-facing indefinite
+contract still needs approved stop/edit semantics and handling of already
+published or booked future flights. Published cancellation likewise needs a
+separate Booking/refund/journal and airline-impact design. Neither is part of
+this playtest control pass.

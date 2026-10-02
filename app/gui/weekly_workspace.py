@@ -8,15 +8,21 @@ from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput
 from kivy.uix.relativelayout import RelativeLayout
-from kivy.uix.scrollview import ScrollView
 
 from app.inputs import parse_usd_fare
+from app.gui.scrolling import AxisScrollView
 from game.scheduling.weekly import local_departure, monday
-from game.world_state.timestamps import format_utc
+from game.world_state.timezones import load_named_timezone
+from game.world_state.timestamps import format_utc, parse_canonical_utc
+from app.gui.schedule_builder import ScheduleBuilder
+from app.gui.drag_block import DraftFlightBlock
+from app.gui.weekday_picker import WeekdayPicker
 
 
-class WeeklyWorkspace:
+class WeeklyWorkspace(ScheduleBuilder):
     """Presentation, intent and clipboard; schedule authority stays in game.scheduling."""
 
     def render_scheduling(self):
@@ -42,21 +48,27 @@ class WeeklyWorkspace:
             rows = draft.week_rows(self._schedule_week.isoformat())
             draft_count = sum(row['draft_index'] is not None for row in rows)
             published_count = len(rows) - draft_count
+            week_end = self._schedule_week + timedelta(days=6)
+            week_label = (f'{self._schedule_week:%b} {self._schedule_week.day}–'
+                          + (f'{week_end.day}, {week_end.year}'
+                             if self._schedule_week.month == week_end.month else
+                             f'{week_end:%b} {week_end.day}, {week_end.year}'))
             self.content.add_widget(_label(
                 f"{aircraft['display_registration']} - {self._schedule_model_label}  |  "
                 f"Home {aircraft['home_airport_reference_code']}  |  "
                 f"Current {aircraft['current_airport_reference_code']}\n"
-                f"Week of Monday {self._schedule_week:%Y-%m-%d} (PH local)  |  "
-                f"{draft_count} local draft / {published_count} published reservation(s)",
-                height=96))
+                f"Week: {week_label} (PH local)  |  "
+                f"{draft_count} draft / {published_count} published", height=78))
             self.content.add_widget(_label(
                 'Green blocks are unpublished draft flights; gray blocks are already published. '
                 'This draft is local until Publish Schedule and is not in a game save.', height=78))
             self.content.add_widget(self._horizontal_buttons([
                 ('Previous week', lambda: self.change_schedule_week(-1)),
                 ('Next week', lambda: self.change_schedule_week(1)),
-                ('Add Flight', self.show_add_leg), ('Add earliest return', self.add_return),
+                ('Advanced single flight', self.show_add_leg),
+                ('Add earliest return', self.add_return),
             ]))
+            self._render_builder()
             self.content.add_widget(self._timeline(rows, airports))
             self.content.add_widget(_label(
                 f"Selected: {len(self._schedule_selected)} draft flight(s)  |  "
@@ -75,7 +87,8 @@ class WeeklyWorkspace:
                         f"{leg['service_type']}  Fare {self._money(leg['fare_minor'])}", height=62))
             self.content.add_widget(self._horizontal_buttons([
                 ('Copy Selected', self.copy_selected), ('Copy Day', self.copy_day),
-                ('Paste', self.show_paste), ('Undo', self.undo_leg),
+                ('Paste', self.show_paste), ('Delete Selected', self.delete_selected),
+                ('Undo', self.undo_leg),
                 ('Review & Publish', self.show_save_schedule),
                 ('Discard Draft', self.discard_schedule),
             ]))
@@ -91,7 +104,8 @@ class WeeklyWorkspace:
         days = BoxLayout(orientation='vertical', size_hint=(None, None),
                          width=dp(180), height=grid_height)
         days.add_widget(Label(text='DAY / ACTION', size_hint_y=None, height=row_height))
-        timeline = ScrollView(do_scroll_y=False, do_scroll_x=True,
+        timeline = AxisScrollView(do_scroll_y=False, do_scroll_x=True,
+                                  eager_drag_handles=True,
                               size_hint_y=None, height=grid_height)
         timeline.scroll_x = self._schedule_scroll_x
         timeline.bind(scroll_x=lambda _widget, value: setattr(self, '_schedule_scroll_x', value))
@@ -131,21 +145,32 @@ class WeeklyWorkspace:
                 end = datetime.fromisoformat(row['arrival_local'])
                 hour = start.hour + start.minute / 60 + start.second / 3600
                 # Coordinates only: duration comes from the domain's projected timestamps.
-                visual_width = max(dp(140), (end - start).total_seconds() / 3600 * hour_width)
+                visual_width = max(dp(180), (end - start).total_seconds() / 3600 * hour_width)
                 index = row['draft_index']
                 selected = index is not None and index in self._schedule_selected
                 color = ([.16, .57, .84, 1] if selected else
                          [.23, .55, .28, 1] if index is not None else
                          [.42, .43, .45, 1])
-                block = Button(
-                    text=f"{airports[row['origin_airport_id']]} -> "
+                label = (f"{airports[row['origin_airport_id']]} -> "
                          f"{airports[row['destination_airport_id']]}\n"
                          f"{start:%H:%M}-{end:%H:%M}  "
-                         f"{'DRAFT' if index is not None else 'PUBLISHED'}",
-                    size_hint=(None, None), size=(visual_width, dp(72)),
-                    pos=(hour * hour_width, dp(10)),
-                    background_normal='', background_color=color, font_size='13sp')
-                block.bind(on_release=lambda _button, item=row: self.select_schedule_block(item))
+                         f"{'DRAFT' if index is not None else 'PUBLISHED'}")
+                geometry = dict(size_hint=(None, None),
+                                size=(visual_width, dp(72)),
+                                pos=(hour * hour_width, dp(10)))
+                if index is None:
+                    block = Button(text=label, background_normal='',
+                                   background_color=color, font_size='13sp',
+                                   **geometry)
+                    block.bind(on_release=lambda _button, item=row:
+                               self.select_schedule_block(item))
+                else:
+                    block = DraftFlightBlock(
+                        label=label, color=color,
+                        on_select=lambda item=row: self.select_schedule_block(item),
+                        on_drop=lambda delta, draft_index=index, local=row['departure_local']:
+                        self.reschedule_from_drag(draft_index, local, delta),
+                        **geometry)
                 line.add_widget(block)
             column.add_widget(line)
         timeline.add_widget(column)
@@ -157,6 +182,10 @@ class WeeklyWorkspace:
         return tuple(self._schedule_week + timedelta(days=offset)
                      for offset in range(7))
 
+    def _current_ph_date(self):
+        return parse_canonical_utc(self.session.world['simulation']['time_utc']).astimezone(
+            load_named_timezone('Asia/Manila')).date()
+
     def _focus_week_start(self):
         self.content.parent.scroll_y = 1
 
@@ -167,6 +196,35 @@ class WeeklyWorkspace:
                 self.content.parent.scroll_to(button, padding=dp(8))
 
         Clock.schedule_once(focus, .3)
+
+    def reschedule_from_drag(self, index, departure_local, delta_px):
+        """Translate a gesture to a five-minute UI slot; domain validates it."""
+        departure = datetime.fromisoformat(departure_local)
+        minute = departure.hour * 60 + departure.minute
+        proposed = round((minute + delta_px * 60 / dp(100)) / 5) * 5
+        if proposed == minute:
+            self.refresh(force=True)
+            return None
+        if proposed < 0 or proposed >= 24 * 60:
+            self.refresh(force=True)
+            self._error('Reschedule rejected', 'Drag within the same local weekday.')
+            return None
+        if not self._management_ready():
+            self.refresh(force=True)
+            return None
+        try:
+            working = deepcopy(self._draft)
+            moved = working.reschedule(index, departure.date().isoformat(),
+                                       f'{proposed // 60:02d}:{proposed % 60:02d}')
+            working.validate_current(self.session.world)
+            self._draft = working
+            self._schedule_selected.clear()
+            self.refresh(force=True)
+            return moved
+        except Exception as exc:
+            self.refresh(force=True)
+            self._error('Reschedule rejected', exc)
+            return None
 
     def change_schedule_week(self, weeks):
         self._schedule_week += timedelta(days=7 * weeks)
@@ -189,13 +247,14 @@ class WeeklyWorkspace:
                                               + ' ' + model['model']['display_name'])
             except ValueError:
                 self._schedule_model_label = self._schedule_aircraft['model_reference']
-            self._schedule_week = monday(date.fromisoformat(self.session.default_operating_date()))
+            self._schedule_week = monday(self._current_ph_date())
             self._schedule_day = self._schedule_week.isoformat()
             self._schedule_selected = set()
             self._schedule_clipboard = None
             self._schedule_scroll_x = 0
+            self._init_builder()
             self.refresh(force=True)
-            self._focus_week_start()
+            self.content.parent.scroll_y = 1
         except Exception as exc:
             self._error('Weekly planner', exc)
 
@@ -250,23 +309,60 @@ class WeeklyWorkspace:
         if self._draft is None or not self._schedule_clipboard or not self._management_ready():
             self._error('Paste', 'Copy one or more draft flights first.')
             return
-        days = tuple(day.isoformat() for day in self._week_dates())
-        self._choice_form('Paste selected flights', [
-            ('target', 'Target weekday in this week', days, self._schedule_day),
-            ('time', 'Start time at first origin (PH local HH:MM)', None, '08:00'),
-        ], self._paste_selected)
+        from app.gui.app import _button, _label
+        body = BoxLayout(orientation='vertical', spacing=dp(6), padding=dp(10),
+                         size_hint_y=None, height=dp(430))
+        body.add_widget(_label('Anchor copied sequence at this PH-local time', height=42))
+        start = TextInput(text=self._schedule_clipboard.get('anchor_local_time', '08:00'),
+                          multiline=False, size_hint_y=None, height=dp(52))
+        body.add_widget(start)
+        body.add_widget(_label('Choose every target weekday; all targets succeed or none.', height=50))
+        picker = WeekdayPicker(self._week_dates(), past_before=self._current_ph_date())
+        body.add_widget(picker)
+
+        def apply():
+            try:
+                self._paste_selected({'targets': picker.selected_dates(),
+                                      'time': start.text.strip()})
+            except Exception as exc:
+                self._error('Paste rejected', exc)
+
+        body.add_widget(_button('Paste to selected weekdays', apply))
+        body.add_widget(_button('Cancel', self._dismiss))
+        scroll = AxisScrollView(do_scroll_x=False)
+        scroll.add_widget(body)
+        self._popup = Popup(title='Paste copied flights', content=scroll,
+                            size_hint=(.94, .9), auto_dismiss=False)
+        self._popup.open()
 
     def _paste_selected(self, values):
         working = deepcopy(self._draft)
-        count = working.paste_sequence(self._schedule_clipboard,
-                                       values['target'], values['time'])
+        targets = values['targets'] if 'targets' in values else (values['target'],)
+        count = working.paste_weekdays(self._schedule_clipboard,
+                                       targets, values['time'])
         working.validate_current(self.session.world)
         self._draft = working
-        self._schedule_day = values['target']
+        self._schedule_day = targets[0]
         self._schedule_selected.clear()
         self._dismiss()
         self.refresh(force=True)
         return count
+
+    def delete_selected(self):
+        if self._draft is None or not self._schedule_selected or not self._management_ready():
+            self._error('Delete draft flights', 'Select unpublished draft blocks first.')
+            return
+        try:
+            working = deepcopy(self._draft)
+            count = working.delete_selection(sorted(self._schedule_selected))
+            working.validate_current(self.session.world)
+            self._draft = working
+            self._schedule_selected.clear()
+            self.refresh(force=True)
+            return count
+        except Exception as exc:
+            self._error('Delete rejected', exc)
+            return None
 
     def show_add_leg(self, target_date=None):
         if self._draft is None or not self._management_ready():
@@ -300,7 +396,7 @@ class WeeklyWorkspace:
             from app.gui.app import _button, _label
             suggestion = _label('', height=72)
             column.add_widget(suggestion)
-            value = {'minor': None}
+            value = {'minor': None, 'manual': False, 'prefilling': False}
 
             def update(*_args):
                 try:
@@ -310,6 +406,10 @@ class WeeklyWorkspace:
                 except ValueError:
                     minor = None
                 value['minor'] = minor
+                if minor is not None and not value['manual']:
+                    value['prefilling'] = True
+                    widgets['fare'].text = f'{minor // 100}.{minor % 100:02d}'
+                    value['prefilling'] = False
                 suggestion.text = (
                     'Suggested Economy fare unavailable for this market.' if minor is None
                     else f'Suggested Economy fare: {self._money(minor)}. '
@@ -317,10 +417,14 @@ class WeeklyWorkspace:
 
             def use_suggestion():
                 if value['minor'] is not None:
-                    widgets['fare'].text = f"{value['minor'] // 100}.00"
+                    value['manual'] = False
+                    update()
 
             widgets['origin'].bind(selected_id=update)
             widgets['destination'].bind(selected_id=update)
+            widgets['fare'].bind(text=lambda _widget, _text:
+                                 value.__setitem__('manual', True)
+                                 if not value['prefilling'] else None)
             column.add_widget(_button('Use Suggested Fare', use_suggestion))
             update()
 

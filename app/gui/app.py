@@ -11,14 +11,16 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
 from kivy.core.window import Window
+from kivy.utils import platform
 
 from app.session import Stage1Session
 from app.gui.gameplay import GameplayViews
 from app.gui.airport_selector import AirportSelector
+from app.gui.scrolling import AxisScrollView
+from app.gui.windowing import configure_startup_window
 from app.inputs import parse_duration_seconds
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
@@ -88,6 +90,9 @@ class AirlineTycoonApp(GameplayViews, App):
         Window.bind(on_request_close=self._window_close)
         return self.screens
 
+    def on_start(self):
+        configure_startup_window(Window, platform)
+
     def on_stop(self):
         if self._ticker is not None:
             self._ticker.cancel()
@@ -133,7 +138,7 @@ class AirlineTycoonApp(GameplayViews, App):
             ('Finance', lambda: self.show_view('Finance')),
             ('Save / Bookmarks', lambda: self.show_view('Saves')),
         ]))
-        scroll = ScrollView(do_scroll_x=False)
+        scroll = AxisScrollView(do_scroll_x=False, eager_drag_handles=True)
         self.content = _column()
         scroll.add_widget(self.content)
         root.add_widget(scroll)
@@ -144,7 +149,7 @@ class AirlineTycoonApp(GameplayViews, App):
         return screen
 
     def _horizontal_buttons(self, actions):
-        scroll = ScrollView(size_hint_y=None, height=dp(58), do_scroll_y=False)
+        scroll = AxisScrollView(size_hint_y=None, height=dp(58), do_scroll_y=False)
         row = BoxLayout(size_hint_x=None, spacing=dp(5))
         row.width = sum(max(112, len(text) * 11 + 30) + 5 for text, _ in actions)
         for text, action in actions:
@@ -236,7 +241,7 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def _list_popup(self, title, actions):
         root = BoxLayout(orientation='vertical', spacing=dp(5), padding=dp(8))
-        scroll = ScrollView(do_scroll_x=False)
+        scroll = AxisScrollView(do_scroll_x=False)
         column = _column()
         for text, action in actions:
             column.add_widget(_button(text, lambda callback=action: (self._dismiss(), callback())))

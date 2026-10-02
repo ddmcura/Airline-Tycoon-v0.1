@@ -3,11 +3,12 @@
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 
 from app.gui.airport_selector import AirportSelector, airport_label
+from app.gui.date_picker import DatePicker
+from app.gui.scrolling import AxisScrollView
 from app.gui.weekly_workspace import WeeklyWorkspace
 
 
@@ -17,18 +18,25 @@ class GameplayViews(WeeklyWorkspace):
     def _choice_form(self, title, fields, submit, *, decorate=None):
         from app.gui.app import _button, _label
         content = BoxLayout(orientation='vertical', spacing=dp(6), padding=dp(8))
-        scroll = ScrollView()
+        scroll = AxisScrollView()
         column = BoxLayout(orientation='vertical', spacing=dp(5), size_hint_y=None)
         column.bind(minimum_height=column.setter('height'))
         widgets = {}
         for key, caption, choices, initial in fields:
             column.add_widget(_label(caption, height=36))
-            widget = (TextInput(text=initial, multiline=False, size_hint_y=None, height=dp(52))
-                      if choices is None else
-                      AirportSelector(choices, selected_id=initial)
-                      if choices and isinstance(choices[0], dict) else
-                      Spinner(text=initial or choices[0], values=choices,
-                              size_hint_y=None, height=dp(52)))
+            if choices is None and key in {'date', 'repeat'}:
+                widget = DatePicker(selected_date=initial,
+                                    display_date=(self._schedule_week.isoformat()
+                                                  if self._schedule_week else None),
+                                    allow_clear=key == 'repeat')
+            elif choices is None:
+                widget = TextInput(text=initial, multiline=False,
+                                   size_hint_y=None, height=dp(52))
+            elif choices and isinstance(choices[0], dict):
+                widget = AirportSelector(choices, selected_id=initial)
+            else:
+                widget = Spinner(text=initial or choices[0], values=choices,
+                                 size_hint_y=None, height=dp(52))
             column.add_widget(widget)
             widgets[key] = widget
             if decorate is not None:
