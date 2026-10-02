@@ -1,6 +1,88 @@
 # Current Development Status
 
-Last updated: **2026-10-02**. Current snapshot, not operational authorization.
+Last updated: **2026-10-03**. Current snapshot, not operational authorization.
+
+## Airport-local recurring weekly planner (2026-10-03 working tree)
+
+Implementation scope is the working tree based on live `origin/master`
+`83cf6921452bc681a335ed24e24a7349172c04df`. This successor replaces the
+older past-slot rejection and graphical recurrence deferrals recorded below.
+It reuses canonical schedule definitions, effective-dated revisions, retained
+planning timing, occurrence keys, the bounded publisher and transactional event
+kernel. The existing schema already holds authoritative airport IANA zones and
+pinned tzdata; no airport data or GUI timezone map was added.
+
+Scheduling now interprets departure input in the origin's local timezone and
+shows arrival in the destination's zone, including midnight/date differences.
+The weekly timeline uses the aircraft's explicitly labeled home-airport zone;
+the dashboard shows hub-local time alongside UTC. UTC remains the sole engine,
+event and save timeline. DST folds are represented by the existing canonical
+fold field; nonexistent local slots reject rather than shift. PH controls remain
+unchanged where every endpoint shares Asia/Manila.
+
+Every weekday row Add uses the persistent builder through the same atomic
+`WeeklyDraft.add_weekdays` path as the main multi-day button, without a second
+entry popup. The baseline already contained this correction; it is preserved.
+Elapsed slots in the current local week are reusable PATTERN ONLY intent.
+Publication creates no past dated flights, bookings, operations, utilization or
+financial records. Future slots still obey projected location, reservations,
+turnaround and conflict rules. PARKED or IN_FLIGHT aircraft can enter planning;
+immediate gameplay actions retain their existing state requirements.
+
+Review & Publish offers This week / one-off, Repeat until date and Continuous
+recurring. The finite option enables the existing reusable calendar; editing a
+finite pattern retains its end-date/mode defaults. Schema 7 adds optional
+`recurrence.publication_policy` and `recurrence.enabled` after updating the
+[canonical schema](Stage%201%20State%20Schema.md#approved-airport-local-recurring-weekly-planner-2026-10-03)
+and template mirror. No new collection or schema version is needed. The policy
+is necessary to distinguish automatic publication from older manually published
+schedules; disabled future revisions stop removed movements without cancellation.
+The existing generic event queue stores one airline-owned weekly publication
+event. At base-local Monday midnight it deterministically extends the current
+week plus four future calendar weeks. Only opted-in definitions are extended;
+older manual definitions remain manual. Finite recurrence ends inclusively;
+continuous recurrence uses no artificial distant end date.
+
+Edit recurring pattern loads the saved aircraft movements into the first safe
+unpublished home-local future week. Revisions stage atomically; all existing
+published/booked flights remain unchanged. A western origin can still be Sunday
+at a home-Monday boundary: whole origin-local revision dates must remain after
+protected occurrences, so replacement uses the next safe week when necessary.
+Already queued immutable revision weeks are followed by subsequent edits.
+Deleting every pattern leg and publishing stops expansion after existing
+obligations. Opening the template is not itself an undoable deletion. Pattern
+previews, draft selections, clipboard, builder controls and undo stay transient.
+
+A displayed Kivy 2.3.1 temporary-career smoke exercised the actual row Add,
+weekday controls, Repeat Until calendar and publication dialogs. A finite
+Monday/Wednesday pattern through September 23 published 14 future flights;
+continuous Monday/Wednesday/Friday published 28. Past August 31 slots never
+operated. Planning during September 2's outbound rejected 09:50 DVO departure
+before the authoritative turnaround, and accepted a valid future pair. The
+September 7 week boundary extended to 36 retained dated flights, with six real
+completed results. A replacement beginning October 12 preserved all published
+records and appeared on the next rolling horizon. GUI event-by-event advances
+to September 2, 7 and 14 took 1.09, 12.58 and 34.96 seconds locally. Save/reload
+matched authoritative bytes exactly and restored paused. Screenshots confirmed
+visible Monday blocks and readable PATTERN ONLY labels; unmaterialized services
+have distinct PATTERN PREVIEW labels. The desktop window
+was maximized, nonexclusive (2560 x 1377 on this machine). Production saves/data
+were untouched. These elapsed measurements are observations, not performance
+acceptance thresholds; larger history/publication costs remain a separate
+profiling task. Published cancellation/refunds/reputation remain out of scope.
+
+Python 3.12.10 / Kivy 2.3.1 verification on this working-tree scope:
+`python -m unittest tests.test_scheduling_recurrence
+tests.test_stage1_weekly_planner tests.test_stage1_flight_publication
+tests.test_gui_schedule_polish tests.test_gui_weekly_workspace
+tests.test_gui_gameplay tests.test_gui_foundation
+tests.test_stage1_aircraft_acquisition tests.test_stage1_runtime -q`
+passed 185 tests in 221.468 s.
+`python -m unittest discover -s tests -q` passed 678 tests in 550.342 s.
+`python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+and `git diff --check` exited 0. Changed documentation's local links resolved.
+The existing untracked `.venv/` was used as an interpreter and left untracked;
+no dependency installation or production save change was required.
 
 ## Scheduling row Add Flight correction (2026-10-02 working tree)
 

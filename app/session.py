@@ -287,6 +287,7 @@ class Stage1Session:
                 "reference_code": airport["reference_code"],
                 "display_name": airport["display_name"],
                 "city": airport.get("city"),
+                "timezone": airport["timezone"],
             }
             for airport_id, airport in sorted(
                 self.world["world_state"]["airports"].items(),
@@ -464,12 +465,27 @@ class Stage1Session:
             raise RuntimeError("rejected rotation mutated authoritative state")
         return result
 
-    def begin_scheduling(self, aircraft_id):
-        from game.scheduling.weekly import WeeklyDraft
-        return WeeklyDraft(self.world, airline_id=self.airline_id, aircraft_id=aircraft_id)
+    def local_datetime(self, airport_id=None):
+        from game.scheduling.local_time import airport_local
+        if airport_id is None:
+            airport_id = self.world['world_state']['airlines'][self.airline_id]['base_airport_ids'][0]
+        return airport_local(self.world['world_state'], airport_id, self.world['simulation']['time_utc'])
 
-    def save_scheduling(self, draft, *, repeat_until=None):
-        result = draft.save_current(self.world, repeat_until=repeat_until)
+    def local_clock(self, airport_id=None):
+        local = self.local_datetime(airport_id)
+        return f"{local:%Y-%m-%d %H:%M:%S} {local.tzinfo.key}"
+
+    def has_recurring_pattern(self, aircraft_id):
+        from game.scheduling.recurrence import rolling_schedules
+        return bool(rolling_schedules(self.world, self.airline_id, aircraft_id))
+
+    def begin_scheduling(self, aircraft_id, *, edit_recurring=False):
+        from game.scheduling.weekly import WeeklyDraft
+        factory = WeeklyDraft.edit_recurring if edit_recurring else WeeklyDraft
+        return factory(self.world, airline_id=self.airline_id, aircraft_id=aircraft_id)
+
+    def save_scheduling(self, draft, *, repeat_until=None, continuous=False):
+        result = draft.save_current(self.world, repeat_until=repeat_until, continuous=continuous)
         self.changed = True
         self._management_changed()
         return result

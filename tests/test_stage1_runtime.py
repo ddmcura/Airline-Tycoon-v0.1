@@ -343,7 +343,7 @@ class RuntimeGameplayTests(unittest.TestCase):
             session.advance_to('2020-01-01T00:00:00Z')
         self.assertEqual(before, session.world)
 
-    def test_current_draft_rejection_does_not_overwrite_history(self):
+    def test_elapsed_current_draft_is_inert_and_does_not_overwrite_history(self):
         session, clock = self.session()
         aircraft = next(iter(session.world['world_state']['aircraft']))
         draft = session.begin_scheduling(aircraft)
@@ -351,10 +351,14 @@ class RuntimeGameplayTests(unittest.TestCase):
         draft.add(airports['MNL'], airports['CEB'])
         session.advance_seconds(3600)
         before = deepcopy(session.world)
-        with self.assertRaises(ValueError):
-            session.save_scheduling(draft)
-        self.assertEqual(before, session.world)
-        self.assertEqual(len(draft.legs), 1)
+        result = session.save_scheduling(draft)
+        self.assertEqual(result.created_dated_flight_ids, ())
+        self.assertEqual(session.world['simulation']['time_utc'], before['simulation']['time_utc'])
+        for key in ('dated_flights', 'bookings', 'flight_results', 'transactions',
+                    'active_aircraft_operations', 'event_history', 'aircraft'):
+            self.assertEqual(before['world_state'][key], session.world['world_state'][key])
+        self.assertTrue(session.world['world_state']['schedule_definitions'])
+        self.assertEqual(draft.legs, [])
 
 
 if __name__ == '__main__':

@@ -187,3 +187,46 @@ contract still needs approved stop/edit semantics and handling of already
 published or booked future flights. Published cancellation likewise needs a
 separate Booking/refund/journal and airline-impact design. Neither is part of
 this playtest control pass.
+
+
+### Airport-local recurrence and future pattern editing (2026-10-03)
+
+This approved successor supersedes the earlier past-slot rejection and recurrence
+deferrals above. The GUI's persistent builder and all seven row Add actions
+converge on `WeeklyDraft.add_weekdays`; rows supply only the target date and open
+no second entry form. The Advanced form remains for explicit positioning.
+
+Airport selectors retain authoritative IDs and search by code/city/name. Origin
+labels identify the authoritative named timezone; input converts in Scheduling,
+not Kivy. Arrivals display destination-local time and date when it crosses
+midnight. The timeline uses the aircraft's home-airport timezone for dates and
+positions and labels endpoint zones when they differ. The header shows hub-local
+and UTC clocks. Departures, reservations, events and saves remain UTC authority.
+
+The whole current-week pattern is editable, including elapsed slots labeled
+PATTERN ONLY. They never become historical dated flights or financial activity.
+Published blocks stay protected; unmaterialized recurring services are distinctly
+labeled PATTERN PREVIEW. Draft selection, checkbox presets, clipboard and undo
+remain transient and are absent from saves.
+
+Review & Publish exposes This week / one-off, Repeat until date, and Continuous
+recurring. Repeat until date enables the existing reusable `DatePicker`; the
+calendar emits canonical dates; finite-pattern edits preserve their mode/end
+defaults. Repeating services use Scheduling's persisted
+weekly rolling-publication event, maintaining the active calendar week plus four
+future weeks. Continuous recurrence has no fake end date. Finite recurrence stops
+at its inclusive date. No graphical timer owns publication.
+
+Edit recurring pattern opens an aircraft's saved policy-managed definitions in
+the first unpublished home-local future week. Editing, copying, deleting and
+rescheduling use the same draft commands. Review identifies the effective week.
+Publication stages schedule revisions atomically and preserves every existing
+published/booked flight. Deleting every pattern leg and publishing stops future
+recurrence after those obligations. Queued immutable revisions are followed by
+subsequent edits, rather than rewritten.
+
+Current physical PARKED status is unnecessary for future planning. Airborne
+craft appear in selection; Scheduling projects their active arrival, location,
+reserved block and turnaround. Neither GUI controls nor future revisions permit
+published-flight cancellation/refunds. Larger fleets/history and publication
+transaction costs belong to the separate profiling/optimization pass.

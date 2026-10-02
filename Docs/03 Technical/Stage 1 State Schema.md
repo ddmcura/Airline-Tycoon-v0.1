@@ -1,5 +1,50 @@
 # Stage 1 State Schema
 
+## Approved airport-local recurring weekly planner (2026-10-03)
+
+Schema 7 accepts two optional `schedule_revision.recurrence` fields:
+
+- `publication_policy`: when present, exactly `ROLLING_FOUR_WEEKS_V1`.
+  Scheduling maintains the current airline-base-local Monday–Sunday week plus
+  four future calendar weeks through the existing bounded publisher. Finite
+  recurrence retains `until_local_date`; its absence means continuous recurrence.
+  Absence of this policy preserves manual publication of older schedules.
+- `enabled`: optional boolean, default true. A false effective-dated revision
+  stops future expansion of that movement, retaining earlier revisions and all
+  already-published obligations. It creates no cancellation or refund.
+
+The generic persisted event `STAGE1_WEEKLY_PUBLICATION` is airline-owned, uses
+the airline's current operation revision, priority 0, and payload exactly
+`{"contract": "ROLLING_FOUR_WEEKS_V1"}`. Its next due time is the following
+Monday 00:00 in the airline's first authoritative base airport timezone,
+converted to canonical UTC with pinned tzdata. One pending event per participating
+airline extends publication atomically and schedules the next week; no UI timer
+or offline progression participates. No new world collection or schema version
+is required. Existing saves without the optional policy gain no new events.
+
+Weekly drafts may contain elapsed slots in the current airport-local week as
+pattern intent only. The publisher excludes elapsed departures/preparation:
+these slots never create dated flights, bookings, operations, history, journals,
+or utilization. Schedule definitions can retain their local pattern start date.
+Default pattern replacement starts on the first base-local Monday after all
+published aircraft reservations, and never earlier than the next week. Since
+revisions cover whole origin-local dates, a western-origin Sunday already
+published on that boundary defers replacement to the next safe home-local week. Existing
+published/booked flight records remain byte-for-byte unchanged. Replacement uses
+atomic effective-dated revisions; removed movements receive `enabled: false`.
+The aircraft's rolling definitions together form its editable weekly pattern;
+pattern identity requires no duplicate persistent state.
+
+Scheduling inputs use origin-airport-local time; arrivals use destination-local
+time. Policy-managed occurrences derive UTC arrival from their retained
+`planning_timing` maximum block duration and UTC departure; the revision local
+arrival fields describe the prototype rather than freezing a destination clock
+across DST changes. Older manual revisions retain exact local-arrival intent. The pinned IANA timezone/fold/gap rules below apply. Weekly row dates and
+coordinates use the aircraft's authoritative home-airport timezone, explicitly
+labeled when it differs from the flight endpoint zones. Planning may use an
+airborne aircraft's authoritative active operation to project its arrival
+location, reservation and turnaround; current PARKED status is not a prerequisite.
+
 ## PH 1.0 Step 7 durable save boundary (schema 7 unchanged)
 
 Disk persistence captures the complete validated schema-7 envelope at a completed

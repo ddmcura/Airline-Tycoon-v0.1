@@ -38,6 +38,7 @@ _REVISION_FIELDS = frozenset(
         "capacity",
         "fare_offer",
         "passenger_service_classification",
+        "planning_timing",
     }
 )
 
@@ -309,6 +310,7 @@ def create_schedule_definition(
     status="ACTIVE",
     planning_timing=None,
     until_local_date=None,
+    publication_policy=None,
 ):
     """Create one structurally valid repeating plan without publishing it."""
     initial_validation = validate_world(envelope)
@@ -347,6 +349,8 @@ def create_schedule_definition(
         revision["planning_timing"] = deepcopy(planning_timing)
     if until_local_date is not None:
         revision["recurrence"]["until_local_date"] = until_local_date
+    if publication_policy is not None:
+        revision["recurrence"]["publication_policy"] = publication_policy
     candidate["world_state"]["schedule_definitions"][schedule_id] = {
         "schedule_id": schedule_id,
         "airline_id": airline_id,
@@ -355,6 +359,13 @@ def create_schedule_definition(
         "revisions": {"1": revision},
     }
     set_operation_revision(candidate, schedule_id, 1)
+    if publication_policy is not None:
+        from .recurrence import ensure_publication_event
+        try:
+            ensure_publication_event(candidate, airline_id)
+        except (ValueError, KeyError) as exc:
+            return ScheduleDefinitionResult('REJECTED', conflicts=(
+                SchedulingConflict('INVALID_PUBLICATION_POLICY', str(exc)),))
     validation = validate_world(candidate)
     if not validation.is_valid:
         return ScheduleDefinitionResult(
@@ -396,13 +407,16 @@ def _occurrence_record(envelope, schedule, revision, local_date, *, flight_id=No
         )
     except OverflowError as exc:
         raise ValueError("arrival local date exceeds the supported range") from exc
-    arrival = _local_to_utc(
-        arrival_local_date,
-        recurrence["arrival_local_time"],
-        recurrence["arrival_local_fold"],
-        destination_zone,
-        "arrival_local_time",
-    )
+    if recurrence.get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1' and 'planning_timing' in revision:
+        arrival = departure + timedelta(seconds=timing_bounds(revision['planning_timing'])[1][1])
+    else:
+        arrival = _local_to_utc(
+            arrival_local_date,
+            recurrence["arrival_local_time"],
+            recurrence["arrival_local_fold"],
+            destination_zone,
+            "arrival_local_time",
+        )
     if arrival <= departure:
         raise ValueError("scheduled arrival must be after scheduled departure in UTC")
     local_date_text = local_date.isoformat()
@@ -487,8 +501,12 @@ def _reconcile_schema4_departure_events(candidate):
 def _expand_schedule(envelope, schedule, window_start, window_end):
     desired = {}
     conflicts = []
+    known_occurrences = {flight['occurrence_key'] for flight in envelope['world_state']['dated_flights'].values()}
+    now = parse_canonical_utc(envelope['simulation']['time_utc'])
     for revision_number in range(1, schedule["current_revision"] + 1):
         revision = schedule["revisions"][str(revision_number)]
+        if not revision["recurrence"].get("enabled", True):
+            continue
         try:
             origin_zone = _timezone_for(envelope, revision["origin_airport_id"])
         except ValueError as exc:
@@ -528,6 +546,12 @@ def _expand_schedule(envelope, schedule, window_start, window_end):
                         occurrence["scheduled_off_block_utc"]
                     )
                     if window_start <= departure <= window_end:
+                        known = occurrence['occurrence_key'] in known_occurrences
+                        preparation = departure - timedelta(seconds=timing_bounds(
+                            revision['planning_timing'])[1][0]) if 'planning_timing' in revision else departure
+                        if (revision['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1'
+                                and not known and preparation < now):
+                            continue
                         desired[occurrence["occurrence_key"]] = occurrence
             current += timedelta(days=1)
     return desired, conflicts
@@ -645,9 +669,9 @@ def configured_publication_horizon_utc(envelope):
 
 
 def publish_occurrences_through(
-    envelope, target_horizon_utc, *, expected_schedule_revisions=None
+    envelope, target_horizon_utc, *, expected_schedule_revisions=None, schedule_ids=None
 ):
-    """Atomically publish or revise all active occurrences through a UTC horizon."""
+    """Atomically publish selected (default all) active plans through a UTC horizon."""
     try:
         target = parse_canonical_utc(target_horizon_utc, "target_horizon_utc")
     except ValueError as exc:
@@ -727,6 +751,13 @@ def publish_occurrences_through(
         )
 
     schedules = envelope["world_state"]["schedule_definitions"]
+    selected_ids = None
+    if schedule_ids is not None:
+        if (not isinstance(schedule_ids, (list, tuple, set, frozenset))
+                or any(not isinstance(key, str) or key not in schedules for key in schedule_ids)):
+            return PublicationResult('REJECTED', target_horizon_utc, conflicts=(
+                SchedulingConflict('INVALID_SCHEDULE_SELECTION', 'select existing authoritative schedule IDs'),))
+        selected_ids = frozenset(schedule_ids)
     stale = []
     for schedule_id, expected in sorted((expected_schedule_revisions or {}).items()):
         schedule = schedules.get(schedule_id)
@@ -744,7 +775,7 @@ def publish_occurrences_through(
     expansion_conflicts = []
     for schedule_id in sorted(candidate["world_state"]["schedule_definitions"]):
         schedule = candidate["world_state"]["schedule_definitions"][schedule_id]
-        if schedule["status"] != "ACTIVE":
+        if schedule["status"] != "ACTIVE" or (selected_ids is not None and schedule_id not in selected_ids):
             continue
         schedule_desired, conflicts = _expand_schedule(
             candidate, schedule, start, target
@@ -771,6 +802,9 @@ def publish_occurrences_through(
 
     for key, flight_id in sorted(existing_by_key.items()):
         flight = flights[flight_id]
+        if selected_ids is not None and flight["schedule_id"] not in selected_ids:
+            unchanged.append(flight_id)
+            continue
         if key not in desired and not (
             candidate["simulation"]["time_utc"]
             <= flight["scheduled_off_block_utc"]
@@ -1007,6 +1041,7 @@ def revise_future_schedule(
     *,
     effective_from_local_date,
     expected_revision=None,
+    _defer_publication=False,
     **changes,
 ):
     """Create an effective-dated revision and reconcile unlocked publication."""
@@ -1096,6 +1131,9 @@ def revise_future_schedule(
     candidate_schedule["current_revision"] = new_revision
     set_operation_revision(candidate, schedule_id, new_revision)
 
+    if proposed['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1':
+        from .recurrence import ensure_publication_event
+        ensure_publication_event(candidate, candidate_schedule['airline_id'])
     structural = validate_world(candidate)
     if not structural.is_valid:
         return ScheduleDefinitionResult(
@@ -1104,10 +1142,15 @@ def revise_future_schedule(
             current_revision,
             _conflicts_from_validation(structural),
         )
-    if candidate_schedule["status"] == "ACTIVE":
-        publication = publish_configured_window(
-            candidate, expected_schedule_revisions={schedule_id: new_revision}
-        )
+    if candidate_schedule["status"] == "ACTIVE" and not _defer_publication:
+        if proposed['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1':
+            from .recurrence import rolling_horizon
+            publication = publish_occurrences_through(candidate,
+                rolling_horizon(candidate, candidate_schedule['airline_id']),
+                expected_schedule_revisions={schedule_id: new_revision})
+        else:
+            publication = publish_configured_window(
+                candidate, expected_schedule_revisions={schedule_id: new_revision})
         if not publication.succeeded:
             return ScheduleDefinitionResult(
                 publication.status,

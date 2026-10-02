@@ -1,4 +1,4 @@
-"""GUI-only PH-local calendar selector; emits canonical YYYY-MM-DD text."""
+"""GUI-only local calendar selector; emits canonical YYYY-MM-DD text."""
 
 import calendar
 from datetime import date

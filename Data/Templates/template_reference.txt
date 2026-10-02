@@ -1,3 +1,22 @@
+# Schema 7 optional airport-local recurring planner fields (2026-10-03)
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md.
+schedule_revision.recurrence.publication_policy (optional): ROLLING_FOUR_WEEKS_V1
+schedule_revision.recurrence.enabled (optional): boolean, absent = true
+# until_local_date retained for finite recurrence; absent = continuous.
+# Absent publication_policy preserves legacy manual publication behavior.
+# Removed pattern movements stop via effective-dated enabled:false revisions.
+# Replacement week must not split any protected published origin-local date.
+STAGE1_WEEKLY_PUBLICATION:
+  owner_type: airline; owner_id: authoritative airline ID
+  operation_revision: airline current revision; priority: 0
+  payload: {contract: ROLLING_FOUR_WEEKS_V1}
+  due_at_utc: next base-local Monday 00:00 converted with pinned IANA tzdata
+# Policy-managed arrival UTC = departure UTC + retained maximum block seconds;
+# arrival local fields describe prototype; destination DST conversion is derived.
+# Current week + four future weeks, normal bounded/idempotent publication.
+# Elapsed current-week draft slots remain intent, never historical operations.
+# No GUI clipboard/selection or new world collection; schema version stays 7.
+
 # PH 1.0 Step 7 disk persistence: no new authoritative field or schema version.
 # File-level career/slot/bookmark IDs, save serial, real time, integrity and
 # recovery copies are outside the schema-7 world. Save the entire world at a

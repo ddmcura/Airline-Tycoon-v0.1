@@ -67,7 +67,7 @@ from .schema import (
 )
 from .serialization import json_compatibility_error
 from .timezones import load_named_timezone
-from .timestamps import is_canonical_utc, parse_canonical_utc
+from .timestamps import is_canonical_utc, parse_canonical_utc, format_utc
 
 
 @dataclass(frozen=True)
@@ -1879,6 +1879,8 @@ class _Validator:
                     recurrence,
                     {
                         "frequency",
+                        "publication_policy",
+                        "enabled",
                         "until_local_date",
                         "weekdays",
                         "departure_local_time",
@@ -1899,6 +1901,17 @@ class _Validator:
                         "schedule",
                         schedule_id,
                     )
+                if "publication_policy" in recurrence and (
+                    self.schema_version != 7
+                    or recurrence["publication_policy"] != "ROLLING_FOUR_WEEKS_V1"
+                ):
+                    self.add("invalid_publication_policy", f"{revision_path}.recurrence.publication_policy",
+                             "schema 7 supports ROLLING_FOUR_WEEKS_V1 only", "schedule", schedule_id)
+                if "enabled" in recurrence and (
+                    self.schema_version != 7 or type(recurrence["enabled"]) is not bool
+                ):
+                    self.add("invalid_recurrence", f"{revision_path}.recurrence.enabled",
+                             "schema 7 requires a boolean", "schedule", schedule_id)
                 weekdays = recurrence.get("weekdays")
                 if (
                     not isinstance(weekdays, list)
@@ -2188,6 +2201,15 @@ class _Validator:
                             recurrence.get("arrival_local_fold"),
                             airports[destination].get("timezone"),
                         )
+                    if (departure_expected is not None
+                            and recurrence.get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1'
+                            and type(revision.get('planning_timing')) is dict):
+                        from game.scheduling.timing import timing_bounds
+                        try:
+                            arrival_expected = format_utc(parse_canonical_utc(departure_expected)
+                                + timedelta(seconds=timing_bounds(revision['planning_timing'])[1][1]))
+                        except (KeyError, TypeError, ValueError, OverflowError):
+                            arrival_expected = None
                     if departure_expected is None or arrival_expected is None:
                         self.add(
                             "invalid_local_occurrence",
@@ -3031,6 +3053,12 @@ class _Validator:
                 validate_planning(self.envelope)
             except (ValueError, TypeError, KeyError, OverflowError, OSError) as exc:
                 self.add("invalid_planning", "$.world_state.schedule_definitions", str(exc))
+        if not self.errors and self.schema_version == 7:
+            from .recurrence_validation import validate_recurrence
+            try:
+                validate_recurrence(self.envelope)
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                self.add('invalid_weekly_recurrence', '$.world_state.pending_events', str(exc))
         if not self.errors and self.schema_version == 7:
             from .maintenance_reference import validate_maintenance_configuration
             try:

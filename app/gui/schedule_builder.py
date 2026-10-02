@@ -55,6 +55,14 @@ class ScheduleBuilder:
     def _builder_airport_changed(self, key, identity):
         setattr(self, key, identity)
         self._sync_suggested_fare()
+        label = getattr(self, '_builder_departure_label', None)
+        if label is not None:
+            label.text = self._departure_caption()
+
+    def _departure_caption(self):
+        airport = next(row for row in self.session.airports()
+                       if row['airport_id'] == self._builder_origin)
+        return f"Departure {airport['reference_code']} local ({airport['timezone']}) HH:MM"
 
     def _builder_fare_changed(self, value):
         self._builder_fare = value
@@ -86,7 +94,8 @@ class ScheduleBuilder:
 
         input_row = BoxLayout(size_hint_y=None, height=dp(90), spacing=dp(5))
         departure = BoxLayout(orientation='vertical')
-        departure.add_widget(_label('Departure PH local (HH:MM)', height=28))
+        self._builder_departure_label = _label(self._departure_caption(), height=28)
+        departure.add_widget(self._builder_departure_label)
         time = TextInput(text=self._builder_time, multiline=False,
                          size_hint_y=None, height=dp(52))
         time.disabled = self._builder_earliest

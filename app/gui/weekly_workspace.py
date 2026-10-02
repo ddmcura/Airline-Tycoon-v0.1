@@ -15,8 +15,7 @@ from kivy.uix.relativelayout import RelativeLayout
 from app.inputs import parse_usd_fare
 from app.gui.scrolling import AxisScrollView
 from game.scheduling.weekly import local_departure, monday
-from game.world_state.timezones import load_named_timezone
-from game.world_state.timestamps import format_utc, parse_canonical_utc
+from game.world_state.timestamps import format_utc
 from app.gui.schedule_builder import ScheduleBuilder
 from app.gui.drag_block import DraftFlightBlock
 from app.gui.weekday_picker import WeekdayPicker
@@ -30,14 +29,18 @@ class WeeklyWorkspace(ScheduleBuilder):
         self.content.add_widget(_label('WEEKLY AIRCRAFT SCHEDULE', height=48))
         if self._draft is None:
             self.content.add_widget(_label(
-                'Select a parked aircraft to inspect its Monday-Sunday week and start a local draft.',
+                'Select an aircraft to plan its Monday-Sunday week. Future availability is validated.',
                 height=68))
             for row in self.session.fleet(offset=0, limit=100):
-                if row['status'] == 'PARKED':
+                if row['status'] in {'PARKED', 'IN_FLIGHT'}:
                     self.content.add_widget(_button(
                         f"Plan {row['display_registration']} - {row['model_reference']} at "
-                        f"{row['current_airport_reference_code']}",
+                        f"{row['current_airport_reference_code'] or row['status']}",
                         lambda item=row: self.start_schedule(item['aircraft_id'])))
+                    if self.session.has_recurring_pattern(row['aircraft_id']):
+                        self.content.add_widget(_button(
+                            f"Edit recurring pattern - {row['display_registration']}",
+                            lambda item=row: self.start_schedule(item['aircraft_id'], edit_recurring=True)))
         else:
             draft = self._draft
             aircraft = next((row for row in self.session.fleet(limit=100)
@@ -47,7 +50,8 @@ class WeeklyWorkspace(ScheduleBuilder):
                         for row in self.session.airports()}
             rows = draft.week_rows(self._schedule_week.isoformat())
             draft_count = sum(row['draft_index'] is not None for row in rows)
-            published_count = len(rows) - draft_count
+            published_count = sum(row.get('published', row['draft_index'] is None) for row in rows)
+            preview_count = len(rows) - draft_count - published_count
             week_end = self._schedule_week + timedelta(days=6)
             week_label = (f'{self._schedule_week:%b} {self._schedule_week.day}–'
                           + (f'{week_end.day}, {week_end.year}'
@@ -56,16 +60,22 @@ class WeeklyWorkspace(ScheduleBuilder):
             self.content.add_widget(_label(
                 f"{aircraft['display_registration']} - {self._schedule_model_label}  |  "
                 f"Home {aircraft['home_airport_reference_code']}  |  "
-                f"Current {aircraft['current_airport_reference_code']}\n"
-                f"Week: {week_label} (PH local)  |  "
-                f"{draft_count} draft / {published_count} published", height=78))
+                f"Current {aircraft['current_airport_reference_code'] or aircraft['status']}\n"
+                f"Week: {week_label} ({draft.context_timezone})  |  "
+                f"{draft_count} draft / {published_count} published / {preview_count} pattern previews", height=78))
+            if draft.revision_from:
+                self.content.add_widget(_label(
+                    f'Recurring pattern replacement effective week: {draft.revision_from}. '
+                    'Published/booked flights stay unchanged.', height=70))
             self.content.add_widget(_label(
                 'Green blocks are unpublished draft flights; gray blocks are already published. '
+                'Elapsed slots are pattern only and never operate retroactively. '
                 'This draft is local until Publish Schedule and is not in a game save.', height=78))
             self.content.add_widget(self._horizontal_buttons([
                 ('Previous week', lambda: self.change_schedule_week(-1)),
                 ('Next week', lambda: self.change_schedule_week(1)),
                 ('Advanced single flight', self.show_add_leg),
+                ('Edit recurring pattern', self.edit_recurring_schedule),
                 ('Add earliest return', self.add_return),
             ]))
             self._render_builder()
@@ -92,8 +102,8 @@ class WeeklyWorkspace(ScheduleBuilder):
                 ('Review & Publish', self.show_save_schedule),
                 ('Discard Draft', self.discard_schedule),
             ]))
-        self.content.add_widget(_button(
-            'Publish next rotation of active schedules', self.publish_next_schedule))
+        # Graphical recurrence is managed by the rolling publisher.
+        # The legacy single-day rotation command remains in the terminal API.
 
     def _timeline(self, rows, airports):
         hour_width, row_height = dp(100), dp(94)
@@ -120,7 +130,7 @@ class WeeklyWorkspace(ScheduleBuilder):
                                     pos=(hour_width * hour, dp(20))))
         column.add_widget(header)
         for day in self._week_dates():
-            day_rows = sorted((row for row in rows if row['departure_local'][:10] == day.isoformat()),
+            day_rows = sorted((row for row in rows if row.get('timeline_departure_local', row['departure_local'])[:10] == day.isoformat()),
                               key=lambda row: row['departure_local'])
             actions = BoxLayout(orientation='horizontal', size_hint_y=None,
                                 height=row_height, spacing=dp(3))
@@ -141,8 +151,10 @@ class WeeklyWorkspace(ScheduleBuilder):
             days.add_widget(actions)
             line = RelativeLayout(size_hint=(None, None), size=(width, row_height))
             for row in day_rows:
-                start = datetime.fromisoformat(row['departure_local'])
-                end = datetime.fromisoformat(row['arrival_local'])
+                start = datetime.fromisoformat(row.get('timeline_departure_local', row['departure_local']))
+                end = datetime.fromisoformat(row.get('timeline_arrival_local', row['arrival_local']))
+                display_start = datetime.fromisoformat(row['departure_local'])
+                display_end = datetime.fromisoformat(row['arrival_local'])
                 hour = start.hour + start.minute / 60 + start.second / 3600
                 # Coordinates only: duration comes from the domain's projected timestamps.
                 visual_width = max(dp(180), (end - start).total_seconds() / 3600 * hour_width)
@@ -150,11 +162,18 @@ class WeeklyWorkspace(ScheduleBuilder):
                 selected = index is not None and index in self._schedule_selected
                 color = ([.16, .57, .84, 1] if selected else
                          [.23, .55, .28, 1] if index is not None else
-                         [.42, .43, .45, 1])
+                         [.42, .43, .45, 1] if row.get('published', True) else [.39, .30, .52, 1])
+                state_label = ('PATTERN ONLY' if index is not None and row.get('pattern_only')
+                               else 'DRAFT' if index is not None
+                               else 'PUBLISHED' if row.get('published', True)
+                               else 'PATTERN PREVIEW')
                 label = (f"{airports[row['origin_airport_id']]} -> "
                          f"{airports[row['destination_airport_id']]}\n"
-                         f"{start:%H:%M}-{end:%H:%M}  "
-                         f"{'DRAFT' if index is not None else 'PUBLISHED'}")
+                         f"{display_start:%H:%M}-{display_end:%H:%M}"
+                         + (f" ({display_end:%d %b})" if display_end.date() != display_start.date() else '')
+                         + f"\n{state_label}")
+                if row.get('departure_timezone') != self._draft.context_timezone or row.get('arrival_timezone') != self._draft.context_timezone:
+                    label += f"\n{row['departure_timezone']} / {row['arrival_timezone']}"
                 geometry = dict(size_hint=(None, None),
                                 size=(visual_width, dp(72)),
                                 pos=(hour * hour_width, dp(10)))
@@ -168,7 +187,7 @@ class WeeklyWorkspace(ScheduleBuilder):
                     block = DraftFlightBlock(
                         label=label, color=color,
                         on_select=lambda item=row: self.select_schedule_block(item),
-                        on_drop=lambda delta, draft_index=index, local=row['departure_local']:
+                        on_drop=lambda delta, draft_index=index, local=row.get('timeline_departure_local', row['departure_local']):
                         self.reschedule_from_drag(draft_index, local, delta),
                         **geometry)
                 line.add_widget(block)
@@ -183,8 +202,8 @@ class WeeklyWorkspace(ScheduleBuilder):
                      for offset in range(7))
 
     def _current_ph_date(self):
-        return parse_canonical_utc(self.session.world['simulation']['time_utc']).astimezone(
-            load_named_timezone('Asia/Manila')).date()
+        # Compatibility name; date now comes from the draft's home-airport zone.
+        return self.session.local_datetime(self._draft.context_airport_id).date()
 
     def _focus_week_start(self):
         self.content.parent.scroll_y = 1
@@ -214,7 +233,7 @@ class WeeklyWorkspace(ScheduleBuilder):
             return None
         try:
             working = deepcopy(self._draft)
-            moved = working.reschedule(index, departure.date().isoformat(),
+            moved = working.reschedule_in_context(index, departure.date().isoformat(),
                                        f'{proposed // 60:02d}:{proposed % 60:02d}')
             working.validate_current(self.session.world)
             self._draft = working
@@ -233,11 +252,11 @@ class WeeklyWorkspace(ScheduleBuilder):
         self.refresh(force=True)
         self._focus_week_start()
 
-    def start_schedule(self, aircraft_id):
+    def start_schedule(self, aircraft_id, *, edit_recurring=False):
         if not self._management_ready():
             return
         try:
-            self._draft = self.session.begin_scheduling(aircraft_id)
+            self._draft = self.session.begin_scheduling(aircraft_id, edit_recurring=edit_recurring)
             self._schedule_aircraft = next(row for row in self.session.fleet(limit=100)
                                            if row['aircraft_id'] == aircraft_id)
             try:
@@ -247,7 +266,8 @@ class WeeklyWorkspace(ScheduleBuilder):
                                               + ' ' + model['model']['display_name'])
             except ValueError:
                 self._schedule_model_label = self._schedule_aircraft['model_reference']
-            self._schedule_week = monday(self._current_ph_date())
+            self._schedule_week = monday(date.fromisoformat(self._draft.revision_from)
+                                         if self._draft.revision_from else self._current_ph_date())
             self._schedule_day = self._schedule_week.isoformat()
             self._schedule_selected = set()
             self._schedule_clipboard = None
@@ -262,19 +282,20 @@ class WeeklyWorkspace(ScheduleBuilder):
         self._schedule_day = target_date
         rows = self._draft.week_rows(self._schedule_week.isoformat())
         self._schedule_selected = {row['draft_index'] for row in rows
-                                   if row['departure_local'][:10] == target_date
+                                   if row.get('timeline_departure_local', row['departure_local'])[:10] == target_date
                                    and row['draft_index'] is not None}
         self.refresh(force=True)
 
     def select_schedule_block(self, row):
         index = row['draft_index']
         if index is None:
-            self._dialog('Published flight',
+            self._dialog('Published flight' if row.get('published', True) else 'Recurring pattern preview',
                          f"{row['departure_local']} -> {row['arrival_local']}\n"
-                         'Published reservations cannot be edited in this draft.',
+                         + ('Published reservations cannot be edited in this draft.' if row.get('published', True)
+                          else 'Not materialized/bookable yet. Use Edit recurring pattern to change future weeks.'),
                          [('OK', lambda: None)])
             return
-        self._schedule_day = row['departure_local'][:10]
+        self._schedule_day = row.get('timeline_departure_local', row['departure_local'])[:10]
         if index in self._schedule_selected:
             self._schedule_selected.remove(index)
         else:
@@ -297,7 +318,7 @@ class WeeklyWorkspace(ScheduleBuilder):
             return
         rows = self._draft.week_rows(self._schedule_week.isoformat())
         indices = [row['draft_index'] for row in rows
-                   if row['departure_local'][:10] == self._schedule_day
+                   if row.get('timeline_departure_local', row['departure_local'])[:10] == self._schedule_day
                    and row['draft_index'] is not None]
         if not indices:
             self._error('Copy Day', 'Select a day with draft flights first.')
@@ -312,7 +333,7 @@ class WeeklyWorkspace(ScheduleBuilder):
         from app.gui.app import _button, _label
         body = BoxLayout(orientation='vertical', spacing=dp(6), padding=dp(10),
                          size_hint_y=None, height=dp(430))
-        body.add_widget(_label('Anchor copied sequence at this PH-local time', height=42))
+        body.add_widget(_label("Anchor copied sequence at the first origin's local time", height=42))
         start = TextInput(text=self._schedule_clipboard.get('anchor_local_time', '08:00'),
                           multiline=False, size_hint_y=None, height=dp(52))
         body.add_widget(start)
@@ -375,7 +396,7 @@ class WeeklyWorkspace(ScheduleBuilder):
             ('origin', 'Origin (aircraft must be present or explicitly positioned)',
              airports, origin),
             ('destination', 'Destination', airports, destination),
-            ('date', 'Local departure date YYYY-MM-DD', None,
+            ('date', 'Origin-local departure date (calendar)', None,
              self._schedule_day),
             ('time', 'Local time HH:MM', None, '08:00'),
             ('timing', 'Departure timing',
@@ -469,35 +490,69 @@ class WeeklyWorkspace(ScheduleBuilder):
         self._schedule_clipboard = None
         self.refresh(force=True)
 
+    def edit_recurring_schedule(self):
+        if self._draft is None:
+            return
+        aircraft_id = self._draft.aircraft_id
+        self._dialog('Edit recurring pattern',
+                     'Replace this local draft with the saved recurring pattern? '
+                     'Changes begin in its first unpublished future week.', [
+                         ('Edit pattern', lambda: self.start_schedule(aircraft_id, edit_recurring=True)),
+                         ('Cancel', lambda: None)])
+
     def show_save_schedule(self):
         if self._draft is None or not self._management_ready():
             return
+        defaults = self._draft.publication_defaults
+        def decorate(column, widgets, key):
+            if key == 'repeat':
+                picker = widgets['repeat']
+                self._repeat_date_picker = picker
+                def sync(_widget=None, value=None):
+                    picker.disabled = widgets['mode'].text != 'Repeat until date'
+                widgets['mode'].bind(text=sync)
+                sync()
         self._choice_form('Review weekly publication', [
-            ('repeat', 'Optional inclusive weekly repeat-through date YYYY-MM-DD '
-             '(blank = selected dates only)', None, ''),
-        ], self._review_schedule)
+            ('mode', 'Operation / recurrence',
+             ('This week / one-off', 'Repeat until date', 'Continuous recurring'),
+             defaults['mode']),
+            ('repeat', 'Until (inclusive airport-local date; choose from calendar)', None, defaults['repeat']),
+        ], self._review_schedule, decorate=decorate)
 
     def _review_schedule(self, values):
-        repeat = values['repeat'] or None
+        mode = values.get('mode', 'Repeat until date' if values.get('repeat') else 'This week / one-off')
+        repeat = (values.get('repeat') or None) if mode == 'Repeat until date' else None
+        continuous = mode == 'Continuous recurring'
+        if mode == 'Repeat until date' and repeat is None:
+            raise ValueError('choose an inclusive Repeat Until date from the calendar')
         if repeat is not None and date.fromisoformat(repeat).isoformat() != repeat:
-            raise ValueError('use canonical YYYY-MM-DD')
+            raise ValueError('choose a valid calendar date')
         self._dismiss()
-        self._dialog('Publish Schedule',
-                     f"Publish {len(self._draft.legs)} local draft flight(s)"
-                     + (f" weekly through {repeat}?" if repeat
-                        else ' on their selected dates?'), [
-                         ('Publish Schedule', lambda: self._save_schedule(repeat)),
+        effective = self._draft.revision_from
+        stopping = not self._draft.legs and effective is not None
+        message = (f'Stop this recurring pattern beginning {effective}? '
+                   'Existing published/booked flights will still operate.' if stopping else
+                   f"Publish pattern with {len(self._draft.legs)} local flight(s)"
+                   + (f" effective week {effective}" if effective else '')
+                   + (' continuously, keeping four future weeks bookable?' if continuous else
+                      f" weekly through {repeat}?" if repeat else ' on their selected dates only?')
+                   + ' Elapsed slots remain pattern only. Published flights stay protected.')
+        self._dialog('Publish Schedule', message, [
+                         ('Publish Schedule', lambda: self._save_schedule(repeat, continuous=continuous)),
                          ('Cancel', lambda: None)])
 
-    def _save_schedule(self, repeat):
+    def _save_schedule(self, repeat, *, continuous=False):
         try:
-            result = self.session.save_scheduling(self._draft, repeat_until=repeat)
+            stopping = not self._draft.legs and self._draft.revision_from is not None
+            result = self.session.save_scheduling(self._draft, repeat_until=repeat, continuous=continuous)
             self._draft = None
             self._schedule_selected.clear()
             self._schedule_clipboard = None
             self.refresh(force=True)
             self._dialog('Schedule published',
-                         f"Published {len(result.created_dated_flight_ids)} dated flight(s).",
+                         ("Recurring pattern stopped after existing published flights." if stopping else
+                          f"Published {len(result.created_dated_flight_ids)} new dated flight(s). ")
+                         + ('Recurring schedules extend automatically each week.' if not stopping and (continuous or repeat) else ''),
                          [('OK', lambda: None)])
         except Exception as exc:
             self._error('Schedule rejected', exc)

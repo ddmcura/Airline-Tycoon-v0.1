@@ -348,7 +348,7 @@ class AirlineTycoonApp(GameplayViews, App):
         mode = 'RUNNING 7x' if sim['clock_state'] == 'NORMAL' else 'PAUSED'
         if self.session.advancing:
             mode = 'ADVANCING (event boundaries)'
-        self.status.text = f"{sim['time_utc']} UTC  |  {mode}  |  Cash {_money(self._cash)}"
+        self.status.text = f"{self.session.local_clock()} hub local | {sim['time_utc']} UTC | {mode} | Cash {_money(self._cash)}"
 
     def show_view(self, view):
         if view == 'Acquire' and self.current_view != 'Acquire':

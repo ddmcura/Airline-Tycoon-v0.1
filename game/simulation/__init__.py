@@ -57,3 +57,6 @@ from game.aircraft_operations import fulfilment as _flight_fulfilment  # noqa: E
 # Schema-6 marketplace payment/rotation/expiry handlers are likewise runtime
 # registrations, never persisted callables.
 from game.aircraft_market import step5 as _aircraft_market_step5  # noqa: E402,F401
+
+# The weekly recurrence pump is a deterministic scheduling-domain event.
+from game.scheduling import recurrence as _weekly_recurrence  # noqa: E402,F401

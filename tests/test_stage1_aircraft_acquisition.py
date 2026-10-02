@@ -253,6 +253,15 @@ class AcquisitionTests(unittest.TestCase):
         draft = WeeklyDraft(self.world, airline_id=self.owner, aircraft_id=starter)
         draft.add(self.airports['MNL'], self.airports['CEB'], departure_utc='2026-09-07T00:00:00Z')
         self.assertTrue(draft.save(self.world).succeeded)
+        # Reconstruct an actual pre-policy schema-5 fixture, rather than
+        # relabeling newly authored schema-7 recurrence as historical state.
+        for schedule in self.world['world_state']['schedule_definitions'].values():
+            for revision in schedule['revisions'].values():
+                revision['recurrence'].pop('publication_policy', None)
+        self.world['world_state']['pending_events'] = {
+            key: row for key, row in self.world['world_state']['pending_events'].items()
+            if row['event_type'] != 'STAGE1_WEEKLY_PUBLICATION'
+        }
         self.world['metadata']['save_schema_version'] = 5
         self.world['simulation']['configuration'].pop('aircraft_market')
         self.world['simulation']['configuration'].pop('maintenance')

@@ -93,6 +93,9 @@ def validate_planning(envelope):
             elif (type(revision.get('planning_timing')) is dict
                   and revision['planning_timing'].get('contract') == 'PH_SCHEDULING_TIMING_V2'):
                 raise ValueError('V2 timing requires purchased aircraft configuration')
+            if (revision['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1'
+                    and 'planning_timing' not in revision):
+                raise ValueError('rolling pattern requires retained planning timing')
             until = revision['recurrence'].get('until_local_date')
             if until is not None:
                 if envelope['metadata']['save_schema_version'] not in (4, 5, 6, 7):
@@ -113,6 +116,8 @@ def validate_planning(envelope):
     for flight in world['dated_flights'].values():
         revision = world['schedule_definitions'][flight['schedule_id']]['revisions'][
             str(flight['schedule_revision'])]
+        if not revision['recurrence'].get('enabled', True):
+            raise ValueError('dated flight cannot originate from a disabled pattern revision')
         until = revision['recurrence'].get('until_local_date')
         if until is not None and flight['scheduled_departure_local_date'] > until:
             raise ValueError('dated flight exceeds retained revision recurrence end date')

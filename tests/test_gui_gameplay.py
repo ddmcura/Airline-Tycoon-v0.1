@@ -271,6 +271,7 @@ class GameplayGuiTests(unittest.TestCase):
                         if row['aircraft_id'] not in prior_ids)
         self.app.show_view('Schedule')
         self.app.start_schedule(aircraft['aircraft_id'])
+        self.app.change_schedule_week(1)  # This smoke requires real future operations.
         before = session.authoritative_bytes()
         self.app.show_add_leg()
         selectors = [w for w in self.app._popup.content.walk()

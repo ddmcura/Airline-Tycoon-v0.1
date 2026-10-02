@@ -140,7 +140,7 @@ class WeeklyPlannerTests(unittest.TestCase):
         self.assertEqual(self.draft.legs, before)
 
     def test_past_preparation_invalid_fare_and_same_endpoint_reject(self):
-        for kwargs in ({'departure':'2026-09-01T00:00:00Z'}, {'fare_minor':True},
+        for kwargs in ({'departure':'2026-08-24T00:00:00Z'}, {'fare_minor':True},
                        {'fare_minor':-1}, {'destination':'MNL'}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 self.add(**kwargs)
@@ -160,7 +160,7 @@ class WeeklyPlannerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.add(departure='2026-12-01T00:00:00Z')
         self.round_trip()
-        for end in ('2026-09-01','bad','2026-12-31'):
+        for end in ('2026-09-01','bad'):
             with self.assertRaises(ValueError):
                 self.draft.save(self.world, repeat_until=end)
             self.assertEqual(self.world, self.base)

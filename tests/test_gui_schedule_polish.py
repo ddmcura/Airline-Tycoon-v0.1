@@ -85,9 +85,9 @@ class DraftEditTests(unittest.TestCase):
                          self.airports['DVO'], self.dates(0), '00:00', earliest=True), 1)
         self.assertEqual(self.draft.legs[0]['departure_utc'], '2026-09-06T16:00:00Z')
         before = self.draft.legs
-        with self.assertRaisesRegex(ValueError, 'past'):
+        with self.assertRaisesRegex(ValueError, 'current local week'):
             self.draft.add_weekdays(self.airports['MNL'], self.airports['DVO'],
-                                    ('2026-08-31',), '08:00')
+                                    ('2026-08-24',), '08:00')
         self.assertEqual(self.draft.legs, before)
 
     def test_multi_paste_relative_atomic_delete_and_undo(self):
@@ -268,6 +268,68 @@ class GuiWorkspacePolishTests(unittest.TestCase):
                       if isinstance(widget, Button) and widget.text == '+ Add')
         action.dispatch('on_release')
 
+    def test_recurrence_choices_wire_existing_calendar_and_local_clock(self):
+        from kivy.uix.spinner import Spinner
+        app = self.app
+        app._builder_airport_changed('_builder_destination', self.airports['DVO'])
+        self.assertIn('MNL local (Asia/Manila)', app._departure_caption())
+        self.assertIn('08:00:00 Asia/Manila', app.status.text)
+        app.show_save_schedule()
+        widgets = list(app._popup.content.walk())
+        mode = next(widget for widget in widgets if isinstance(widget, Spinner))
+        self.assertEqual(tuple(mode.values),
+                         ('This week / one-off', 'Repeat until date', 'Continuous recurring'))
+        self.assertIsInstance(app._repeat_date_picker, DatePicker)
+        self.assertTrue(app._repeat_date_picker.disabled)
+        mode.text = 'Repeat until date'
+        self.assertFalse(app._repeat_date_picker.disabled)
+        popup = app._repeat_date_picker.open_calendar()
+        app._repeat_date_picker.select('2026-09-30')
+        self.assertEqual(app._repeat_date_picker.text, '2026-09-30')
+        self.assertIsNone(app._repeat_date_picker._popup)
+        with self.assertRaisesRegex(ValueError, 'calendar'):
+            app._review_schedule({'mode': 'Repeat until date', 'repeat': ''})
+        mode.text = 'Continuous recurring'
+        self.assertTrue(app._repeat_date_picker.disabled)
+        popup.dismiss()
+
+    def test_finite_pattern_edit_keeps_repeat_mode_and_calendar_default(self):
+        from kivy.uix.spinner import Spinner
+        app = self.app
+        app._builder_airport_changed('_builder_destination', self.airports['DVO'])
+        app._builder_time = '08:00'
+        self.row_add(0)
+        app._save_schedule('2026-11-30')
+        app._dismiss()
+        app.start_schedule(app.session.fleet()[0]['aircraft_id'], edit_recurring=True)
+        app.show_save_schedule()
+        mode = next(w for w in app._popup.content.walk() if isinstance(w, Spinner))
+        self.assertEqual(mode.text, 'Repeat until date')
+        self.assertEqual(app._repeat_date_picker.text, '2026-11-30')
+        self.assertFalse(app._repeat_date_picker.disabled)
+
+    def test_recurring_edit_reopens_first_unpublished_week_with_protected_blocks(self):
+        app = self.app
+        app._builder_airport_changed('_builder_destination', self.airports['DVO'])
+        app._builder_time = '08:00'
+        self.row_add(0)
+        self.assertEqual(len(app._draft.legs), 2)
+        app._save_schedule(None, continuous=True)
+        self.assertIsNone(app._draft)
+        app._dismiss()
+        aircraft_id = app.session.fleet()[0]['aircraft_id']
+        before = deepcopy(app.session.world['world_state']['dated_flights'])
+        app.start_schedule(aircraft_id, edit_recurring=True)
+        self.assertEqual(app._schedule_week, date(2026, 10, 5))
+        self.assertEqual(app._schedule_day, '2026-10-05')
+        self.assertEqual(len(app._draft.legs), 2)
+        rows = app._draft.week_rows('2026-10-05')
+        self.assertTrue(all(row['draft_index'] is not None for row in rows))
+        self.assertEqual(len(rows), 2)
+        app._draft.reschedule(0, '2026-10-05', '07:50')
+        app._save_schedule(None, continuous=True)
+        self.assertEqual(app.session.world['world_state']['dated_flights'], before)
+
     def test_row_add_uses_builder_exact_time_fare_return_without_dialog(self):
         app = self.app
         app.change_schedule_week(1)
@@ -312,17 +374,22 @@ class GuiWorkspacePolishTests(unittest.TestCase):
         self.assertEqual(len([row for row in app._draft.week_rows('2026-09-07')
                               if row['departure_local'][:10] == '2026-09-10']), 1)
 
-    def test_row_add_rejects_past_day_without_mutating_draft(self):
+    def test_row_add_accepts_elapsed_current_week_as_inert_pattern(self):
         app = self.app
         app._builder_airport_changed('_builder_destination', self.airports['DVO'])
         app._builder_time = '08:00'
-        before = app._draft.legs
-        self.row_add(0)  # Monday Aug 31 is past at the initial PH clock.
-        self.assertEqual(app._draft.legs, before)
-        self.assertEqual(app._popup.title, 'Add Flight rejected')
-        self.assertTrue(any('past' in widget.text.lower()
-                            for widget in app._popup.content.walk()
-                            if hasattr(widget, 'text')))
+        before = app.session.authoritative_bytes()
+        self.row_add(0)
+        self.assertIsNone(app._popup)
+        self.assertEqual(app._schedule_day, '2026-08-31')
+        self.assertEqual(len(app._draft.legs), 2)
+        self.assertTrue(all(row['pattern_only'] for row in app._draft.week_rows('2026-08-31')))
+        self.assertEqual(app.session.authoritative_bytes(), before)
+        result = app.session.save_scheduling(app._draft)
+        self.assertEqual(result.created_dated_flight_ids, ())
+        state = app.session.world['world_state']
+        for field in ('dated_flights', 'bookings', 'flight_results', 'active_aircraft_operations', 'transactions'):
+            self.assertEqual(state[field], {})
 
     def test_row_earliest_conflict_and_main_add_share_domain_path(self):
         app = self.app
@@ -413,7 +480,9 @@ class GuiWorkspacePolishTests(unittest.TestCase):
         app._builder_time = '08:00'
         app._builder_day_picker.apply_preset('MWF')
         before = app._draft.legs
-        self.assertIsNone(app.add_builder_flights())  # Monday Aug 31 is past.
+        self.assertEqual(app.add_builder_flights(), 6)  # Monday is inert pattern intent.
+        self.assertEqual(app.session.world['world_state']['dated_flights'], {})
+        app.undo_leg()
         self.assertEqual(app._draft.legs, before)
         app.change_schedule_week(1)
         app._builder_day_picker.apply_preset('MWF')

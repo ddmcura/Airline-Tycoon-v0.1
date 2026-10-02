@@ -1,5 +1,50 @@
 # Airline Tycoon - Flight Scheduling Architecture
 
+## Approved airport-local recurring planner — 2026-10-03
+
+This successor uses the existing weekly definitions, effective-dated revisions,
+UTC publication, occurrence keys, reservation validation and event transactions.
+Planning is available for parked and airborne aircraft; physical availability,
+projected arrival location and turnaround at the requested time remain domain
+constraints. Immediate maintenance/acquisition behavior is unchanged.
+
+Origin-local departure input and destination-local arrival display use authoritative
+airport IANA timezones and pinned tzdata, including midnight, fold and gap rules.
+The timeline identifies its home-airport zone and projects all blocks into that
+coordinate system; endpoint local dates/times remain visible. The hub clock can
+show local time alongside the exact UTC simulation clock.
+
+Elapsed slots within the current local week are reusable pattern intent only.
+They never publish past dated flights, Bookings, operation results, journals or
+utilization. Future occurrences retain ordinary feasibility and settlement rules.
+One-off publication ends each movement on its selected date. Repeat Until is
+inclusive; continuous recurrence has no end date. Both repeating modes publish
+only a bounded calendar horizon (current base-local week plus four future weeks),
+then extend at persisted base-local Monday events. This is simulation behavior,
+not a UI timer, daily tick or offline progression. Old schedules lacking the new
+optional policy retain manual publication semantics.
+
+An aircraft's policy-managed schedule definitions form its editable pattern.
+Default replacements start at the first home-local week after all published
+reservations and any queued revision boundary. Movement revisions are staged
+atomically, then validated/published as one sequence. Existing dated/booked
+flights are preserved; additional movements use new definitions and removed
+movements receive disabled future revisions. Removing the entire pattern stops
+future recurrence after existing obligations, without cancelling those flights.
+Repeated edits follow already queued immutable revision weeks.
+
+Policy-managed arrivals are derived from retained maximum block seconds and
+UTC departure, then converted to the destination zone; this avoids freezing an
+arrival clock across destination DST changes. Departure gaps reject with an
+explanation; no time is silently shifted. Generic manual revisions preserve
+their historical exact local-arrival contract. Conflicting future expansion
+blocks atomically through the ordinary kernel transaction, preserving the prior
+world for diagnosis/revision.
+
+The concrete optional schema-7 fields and event contract are in the
+[canonical schema](../03%20Technical/Stage%201%20State%20Schema.md#approved-airport-local-recurring-weekly-planner-2026-10-03).
+Published cancellation, refunds and reputation effects remain separate work.
+
 ## PH acquisition timing successor (2026-09-16)
 
 The [approved acquisition increment](../03%20Technical/Aircraft%20Acquisition%20Technical%20Specification.md)
