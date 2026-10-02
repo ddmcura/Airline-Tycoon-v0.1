@@ -1,7 +1,7 @@
 {
   "contract": "STAGE1_CURATED_SCENARIO_V1",
   "scenario_id": "stage1-philippines-v1",
-  "reference_data_version": "stage1-philippines-v1-recovery-2026-10-01",
+  "reference_data_version": "stage1-philippines-v1-starter-grant-2026-10-02",
   "start_time_utc": "2026-09-01T00:00:00Z",
   "simulation_seed": 17012026,
   "canonical_timezone": "Asia/Manila",
@@ -1142,9 +1142,8 @@
     ]
   },
   "starter_aircraft": {
-    "model_reference": "A320-200",
+    "model_reference": "airbus-a320neo",
     "display_registration": "RP-C0001",
-    "economy_capacity": 180,
     "status": "PARKED"
   },
   "rotation": {

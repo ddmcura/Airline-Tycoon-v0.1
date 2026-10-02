@@ -324,7 +324,7 @@ class _Terminal:
         )
         self.line(
             f"Starter aircraft: {fleet[0]['display_registration']} "
-            f"{fleet[0]['model_reference']} (180 Economy seats, free bootstrap grant)."
+            f"{fleet[0]['model_reference']} (free scenario grant)."
         )
         return True
 

@@ -22,6 +22,7 @@ from .construction import (
 )
 from .migration import migrate_schema_1_to_2, migrate_schema_2_to_3, migrate_schema_3_to_4
 from .demand_fingerprint import calculate_market_pack_fingerprint
+from .ids import allocate_id
 from .schema import LATEST_SAVE_SCHEMA_VERSION
 from .validation import validate_world
 
@@ -294,16 +295,23 @@ def _validate_scenario(pack):
     )
     starter = pack["starter_aircraft"]
     if type(starter) is not dict or set(starter) != {
-        "model_reference", "display_registration", "economy_capacity", "status"
+        "model_reference", "display_registration", "status"
     }:
         _reject("INVALID_SCENARIO", "invalid starter-aircraft reference")
     if (
-        starter["model_reference"] != "A320-200"
+        starter["model_reference"] != "airbus-a320neo"
         or starter["display_registration"] != "RP-C0001"
         or starter["status"] != "PARKED"
-        or starter["economy_capacity"] != 180
     ):
-        _reject("INVALID_SCENARIO", "unsupported starter-aircraft configuration")
+        _reject("INVALID_SCENARIO", "unsupported starter-aircraft grant")
+    from game.aircraft_market.reference_catalog import (
+        PH_AIRCRAFT_CATALOG_VERSION, load_aircraft_catalog,
+    )
+    try:
+        load_aircraft_catalog(catalog_version=PH_AIRCRAFT_CATALOG_VERSION).model(
+            starter["model_reference"])
+    except (OSError, ValueError) as exc:
+        _reject("INVALID_SCENARIO", f"starter model is unavailable: {exc}")
     rotation = pack["rotation"]
     if type(rotation) is not dict or set(rotation) != {
         "outbound_departure_local_time", "outbound_arrival_local_time",
@@ -489,17 +497,8 @@ def create_stage1_new_game(
             issue.message if issue else activation.status,
             issue.path if issue else None,
         )
-    airline_id = world["world_state"]["player"]["primary_airline_id"]
-    starter = pack["starter_aircraft"]
-    add_aircraft(
-        world,
-        airline_id,
-        starter["display_registration"],
-        starter["model_reference"],
-        home_airport_id=airport_ids[base_code],
-        current_airport_id=airport_ids[base_code],
-        status=starter["status"],
-    )
+    # Catalog-backed grants enter only after the sequential legacy-compatible
+    # schema migrations have installed configuration and lifecycle authority.
     migration = migrate_schema_2_to_3(world)
     _migration_failure("schema 2 to 3", migration)
     world = migration.world
@@ -542,6 +541,33 @@ def create_stage1_new_game(
     migration = migrate_schema_6_to_7(migration.world)
     _migration_failure("schema 6 to 7", migration)
     candidate = migration.world
+    from game.aircraft_market.reference_catalog import (
+        PH_AIRCRAFT_CATALOG_VERSION, load_aircraft_catalog,
+    )
+    starter = pack["starter_aircraft"]
+    view = load_aircraft_catalog(
+        catalog_version=PH_AIRCRAFT_CATALOG_VERSION).model(starter["model_reference"])
+    airline_id = candidate["world_state"]["player"]["primary_airline_id"]
+    aircraft_id = add_aircraft(
+        candidate, airline_id, starter["display_registration"],
+        view["model"]["model_id"], home_airport_id=airport_ids[base_code],
+        current_airport_id=airport_ids[base_code], status=starter["status"],
+        configuration={
+            "contract": "PH_MAX_ECONOMY_V1",
+            "catalog_version": view["catalog_version"],
+            "economy_capacity": view["model"]["max_economy_seats"],
+            "performance_contract": "PH_SCALAR_RANGE_V1",
+        },
+    )
+    candidate["world_state"]["aircraft"][aircraft_id]["lifecycle"] = {
+        "airframe_id": allocate_id(candidate, "airframe"),
+        "acquisition_type": "STARTER_GRANT", "ownership_status": "OWNED",
+        "aircraft_contract_id": None, "source_listing_id": None,
+        "fixed_configuration": False,
+        "manufactured_date": candidate["metadata"]["world_created_at_utc"][:10],
+        "lifetime_flight_seconds": 0, "lifetime_cycles": 0,
+        "service_condition_bps": 10_000,
+    }
     validation = validate_world(candidate)
     if not validation.is_valid:
         issue = validation.errors[0]

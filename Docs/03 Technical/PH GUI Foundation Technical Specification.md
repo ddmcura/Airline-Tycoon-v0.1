@@ -91,9 +91,9 @@ leg form displays the modern economy domain's USD 0.12/km neutral Suggested
 Economy Fare, rounded to whole USD, with an explicit Use Suggested Fare action.
 Changing endpoints refreshes the displayed reference without replacing a fare
 already typed by the player. Booking's relative-offer scoring and demand remain
-unchanged. The fresh A320-200 starter remains on its V1 compatibility path until
-approved catalog specifications and a versioned modern configuration can bind it
-without changing old saves or published timing witnesses.
+unchanged. The subsequently approved `STARTER_GRANT` increment now gives fresh
+PH careers a configured catalog A320neo and V2 timing; saved A320-200 aircraft
+and their published timing witnesses remain on the V1 compatibility path.
 
 A player can now research, acquire, schedule, publish, advance or run, inspect
 flights/Bookings/finance, and save through Kivy. The terminal remains the

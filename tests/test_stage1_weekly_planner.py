@@ -14,6 +14,7 @@ from game.scheduling.timing import timing_bounds, flight_reservation
 from game.scheduling.publication import publish_occurrences_through, revise_future_schedule, create_schedule_definition
 from game.simulation import process_events_through, process_next_event
 from game.world_state import create_stage1_new_game, validate_world
+from tests.legacy_starter_fixture import with_legacy_starter
 from game.world_state.planning_reference import planning_snapshot
 from game.world_state.planning_validation import validate_timing
 from game.world_state.timestamps import parse_canonical_utc, format_utc
@@ -26,8 +27,8 @@ def encoded(world):
 class WeeklyPlannerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.base = create_stage1_new_game(scenario_id='stage1-philippines-v1',
-            ceo_display_name='A', airline_display_name='B', base_airport_reference_code='MNL')
+        cls.base = with_legacy_starter(create_stage1_new_game(scenario_id='stage1-philippines-v1',
+            ceo_display_name='A', airline_display_name='B', base_airport_reference_code='MNL'))
 
     def setUp(self):
         self.world = deepcopy(self.base)

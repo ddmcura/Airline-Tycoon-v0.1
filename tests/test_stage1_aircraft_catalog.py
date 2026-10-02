@@ -15,6 +15,7 @@ from game.aircraft_market.reference_catalog import (
     AircraftCatalog, PH_AIRCRAFT_CATALOG_VERSION, load_aircraft_catalog,
 )
 from game.world_state.aircraft_catalog import parse_aircraft_catalog, validate_aircraft_catalog
+from tests.legacy_starter_fixture import with_legacy_starter
 
 
 def pack():
@@ -223,6 +224,7 @@ class CatalogTerminalTests(unittest.TestCase):
 
     def test_booked_published_world_and_continuation_are_unchanged(self):
         left = self.session()
+        left.world = with_legacy_starter(left.world)
         aircraft_id = next(iter(left.world["world_state"]["aircraft"]))
         self.assertTrue(left.plan_rotation(aircraft_id,"CEB",10_000,"2026-09-07").succeeded)
         left.advance_seconds(86400)

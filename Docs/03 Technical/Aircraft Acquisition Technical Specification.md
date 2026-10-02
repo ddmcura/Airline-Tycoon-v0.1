@@ -67,8 +67,10 @@ new persisted RNG cursor is used. Future re-registration preserves aircraft IDs.
 
 Purchased aircraft bind an exact catalog version and maximum-Economy installed
 configuration; existing `model_reference` holds the catalog model ID. Scheduling,
-Booking and fulfilment consume installed capacity. The free A320-200 remains a
-separate compatibility aircraft without invented acquisition/configuration facts.
+Booking and fulfilment consume installed capacity. Fresh PH careers now grant a
+configured catalog `airbus-a320neo` under the schema-7 `STARTER_GRANT` contract.
+Saved unconfigured A320-200 aircraft remain separate compatibility aircraft
+without inferred acquisition/configuration facts.
 
 Fleet display/selection extend the existing detached projection with pages of
 20, showing registration, model, physical location and operational state. Lists,
@@ -90,9 +92,11 @@ and taxi-in remain separate in block time. No post-arrival handling or
 taxi-to-stand is added. The first departure reserves the same preparation time.
 Existing minimum turnaround remains a lower bound (30 minutes in PH). Cruise
 flight time retains upward five-minute rounding. Retained snapshots do not reload
-current taxi references. V1 starter critical-path timing remains unchanged.
+current taxi references. Saved A320-200 V1 critical-path timing remains unchanged; fresh configured
+A320neo starters use V2.
 
-Quick Rotation remains starter-only; purchased aircraft use Weekly Scheduler.
+Quick Rotation remains an unconfigured A320-200 compatibility command; fresh
+A320neo starters and purchased aircraft use Weekly Scheduler.
 Deadheads retain zero passenger capacity/revenue and the existing fixed cost.
 Fulfilment cost revision 1 is unchanged; model operating-cost balancing is deferred.
 
@@ -103,7 +107,8 @@ Existing aircraft, bookings, schedules, processed demand, event history, money
 and witnesses are preserved. Required unknown catalog/model/performance bindings
 fail explicitly. No historical purchases or configuration provenance are inferred.
 
-Acquisition did not change scenario capital and retains the free starter. The
+Acquisition did not change scenario capital. Fresh careers now receive the
+catalog-backed A320neo starter as a non-cash opening grant. The
 later approved PH 1.0 Normal starting-capital correction supplies USD 300 million
 to new careers; existing careers retain saved cash. This is not final economy or
 difficulty balancing. Acquisition tests independently supply valid ample cash.

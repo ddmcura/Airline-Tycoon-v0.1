@@ -65,9 +65,11 @@ rather than reusing launch, certification, first-flight or delivery years.
 ## Compatibility and non-goals
 
 No world/save fields, schema-version changes, migrations, aircraft acquisition,
-cash movements, delivery events, or availability gating are introduced. The
-180-seat free A320-200 remains the starter and is not one of the 20 catalog
-offers. Existing aircraft model references, capacity witnesses, timing profiles,
+cash movements, delivery events, or availability gating are introduced. At this catalog-only milestone, the 180-seat free A320-200 remained the
+starter outside the 20 catalog offers. A later approved `STARTER_GRANT`
+increment makes the existing catalog `airbus-a320neo` the fresh-career starter;
+saved A320-200 aircraft remain unchanged. Existing aircraft model references,
+capacity witnesses, timing profiles,
 serialized worlds and processed history remain unchanged. Browsing does not
 alter the session dirty flag, IDs, events, money or time. Catalog load failures
 report unavailability and preserve the active game.

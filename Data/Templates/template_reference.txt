@@ -53,10 +53,20 @@ lease offers: persistent lessor ID, generation/expiry, catalog model/value,
 used listings: persistent listing+airframe+seller IDs, generation month,
   model/configuration, manufactured date, derived age, lifetime flight seconds,
   lifetime cycles, service condition bps, asking price, ACTIVE/SOLD
-aircraft.lifecycle (market aircraft; new schema-6 purchases):
+aircraft.lifecycle (market aircraft; new schema-6 purchases; fresh starter grant):
   airframe_id, acquisition_type, ownership_status, aircraft_contract_id?,
   source_listing_id?, fixed_configuration, manufactured_date,
   lifetime_flight_seconds, lifetime_cycles, service_condition_bps
+  acquisition_type: NEW_PURCHASE/USED_PURCHASE/OPERATING_LEASE/LEASE_TO_OWN/
+    STARTER_GRANT
+STARTER_GRANT: at most one configured catalog-backed aircraft, owned by the
+  primary player airline, created only in fresh scenario construction. Null
+  contract/listing, fixed_configuration false; initial date = scenario start,
+  condition 10000 bps, lifetime hours/cycles zero. No purchase/lease/used
+  journal or obligation, cash deduction, or aircraft-asset ledger posting.
+  Catalog price remains a reference, not an opening balance. No player-market
+  grant command. Old unconfigured A320-200 saves and V1 witnesses stay valid.
+  Fresh PH scenario grants airbus-a320neo with normal V2 timing/maintenance.
 aircraft_contracts: type OPERATING_LEASE/LEASE_TO_OWN; status FUTURE/ACTIVE/
   COMPLETED/RETURNED/CANCELLED; immutable parties, aircraft, offer, delivery,
   predecessor/successor, dates, terms, pricing, installment progress,
@@ -83,7 +93,7 @@ Pacing samples, fractional credit, input queues, iterators and diagnostics are
 runtime-only; never serialize them into the authoritative world.
 
 # Schema 5 acquisition extension (canonical schema prevails)
-aircraft.configuration (purchased aircraft only):
+aircraft.configuration (catalog-backed acquired aircraft or STARTER_GRANT):
   contract: PH_MAX_ECONOMY_V1
   catalog_version: exact immutable catalog version
   economy_capacity: positive integer maximum Economy layout
@@ -111,7 +121,7 @@ planning_timing V2:
   taxi_out_seconds: [minimum, maximum]
   taxi_in_seconds: [minimum, maximum]
 Total stand turnaround reserved once before off-block: 1800 seconds, widebody 2700.
-Taxi separate. Scalar range through versioned eligibility; V1 unchanged.
+Taxi separate. Scalar range through versioned eligibility; saved V1 unchanged.
 PH registration: seeded deterministic RP-C plus 12-digit suffix; collision probing.
 No additional authoritative summaries, RNG cursor, or physical reference copies.
 
@@ -136,7 +146,9 @@ All numeric fields are integers, not booleans/floats. Production years null or
 Model source_ids: nonempty unique list of resolving IDs. Prices cover all models.
 Dates do not gate availability. Range is reference only; prices are calibration.
 Exact version selection, duplicate JSON keys reject, detached projections.
-No changes to starter, scheduling, historical snapshots or aircraft model_reference.
+Published catalog v1 and saved legacy starter model references remain immutable;
+historical scheduling snapshots are not rewritten. Fresh PH starter uses its
+existing airbus-a320neo catalog reference through STARTER_GRANT.
 
 # Stage 1 weekly planner optional schema-4 revision reference
 # Subordinate to Docs/03 Technical/Stage 1 State Schema.md.

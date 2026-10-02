@@ -92,3 +92,10 @@ def validate_acquisition(envelope):
                 new_purchase_aircraft.add(aircraft_id)
         if seen_aircraft != new_purchase_aircraft | legacy_purchase_aircraft:
             raise ValueError('new purchase requires exactly one AIRCRAFT_PURCHASE journal')
+        grants = [aircraft for aircraft in configured.values()
+                  if type(aircraft.get('lifecycle')) is dict
+                  and aircraft['lifecycle'].get('acquisition_type') == 'STARTER_GRANT']
+        if len(grants) > 1:
+            raise ValueError('only one configured starter grant is supported')
+        if grants and grants[0]['airline_id'] != world['player']['primary_airline_id']:
+            raise ValueError('starter grant must belong to the player airline')

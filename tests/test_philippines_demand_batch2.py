@@ -24,6 +24,7 @@ from game.world_state.air_suitability_validation import (
     validate_air_suitability_configuration,
 )
 from game.world_state.demand_fingerprint import calculate_model4_input_fingerprint
+from tests.legacy_starter_fixture import with_legacy_starter
 from tests.test_philippines_v1_recovery import (
     EXPECTED_ACTIVE_CODES, encoded, new_world, publish_mnl_mbt,
 )
@@ -158,7 +159,7 @@ class PhilippinesSuitabilityTests(unittest.TestCase):
         self.assertEqual(encoded(world), before)
 
     def test_curve_and_airport_revision_preserves_real_processed_history(self):
-        world = deepcopy(self.world)
+        world = with_legacy_starter(self.world)
         publish_mnl_mbt(world)
         run = process_events_through(world, "2026-09-02T00:00:00Z")
         self.assertTrue(run.succeeded, run.failure)
@@ -224,7 +225,7 @@ class PhilippinesSuitabilityTests(unittest.TestCase):
         self.assertNotEqual(calculate_model4_input_fingerprint(world), before)
 
     def test_service_fares_availability_and_ui_are_excluded_from_v2_fingerprint(self):
-        world = deepcopy(self.world)
+        world = with_legacy_starter(self.world)
         before = calculate_model4_input_fingerprint(world)
         publish_mnl_mbt(world)
         self.assertEqual(calculate_model4_input_fingerprint(world), before)

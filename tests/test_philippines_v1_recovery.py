@@ -16,6 +16,7 @@ from game.demand import (
 from game.demand.model4 import resolve_model4_active_daily_cohorts
 from game.scheduling import create_weekly_round_trip_rotation
 from game.simulation import process_events_through
+from tests.legacy_starter_fixture import with_legacy_starter
 from game.world_state import (
     PHILIPPINES_ACTIVE_AIRPORT_COUNT,
     PHILIPPINES_AIRPORT_PACK_REFERENCE_DATE,
@@ -189,7 +190,7 @@ class PhilippinesDemandAndResearchTests(unittest.TestCase):
         self.assertEqual(encoded(world), before)
 
     def test_processed_cohorts_reuse_without_reroll(self):
-        world = new_world()
+        world = with_legacy_starter(new_world())
         publish_mnl_mbt(world)
         first = resolve_model4_active_daily_cohorts(world, "2026-09-01")
         self.assertTrue(first.succeeded, first.issues)
@@ -200,7 +201,7 @@ class PhilippinesDemandAndResearchTests(unittest.TestCase):
         self.assertEqual(encoded(world), snapshot)
 
     def test_booking_checkpoint_scales_only_to_service_markets(self):
-        world = new_world()
+        world = with_legacy_starter(new_world())
         publish_mnl_mbt(world)
         result = process_events_through(world, "2026-09-02T00:00:00Z")
         self.assertTrue(result.succeeded, result.failure)
@@ -256,7 +257,7 @@ class PhilippinesDemandAndResearchTests(unittest.TestCase):
         )
 
     def test_projection_exposes_current_player_service_without_creating_more(self):
-        world = new_world()
+        world = with_legacy_starter(new_world())
         publish_mnl_mbt(world)
         before = encoded(world)
         row = next(

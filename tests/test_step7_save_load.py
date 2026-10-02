@@ -16,6 +16,7 @@ from game.simulation import process_events_through
 from game.simulation.kernel import configure_clock_ratios, schedule_event
 from game.simulation.pacing import NANOSECOND, RuntimeController
 from game.world_state import create_stage1_new_game, validate_world
+from tests.legacy_starter_fixture import with_legacy_starter
 from game.world_state.persistence import SaveError, SaveStore
 from game.world_state.timestamps import parse_canonical_utc
 
@@ -56,6 +57,7 @@ class SaveLoadTests(unittest.TestCase):
             self.store.save(self.career, 'manual', other_world)
 
     def test_market_obligation_and_inflight_exact_future(self):
+        self.world = with_legacy_starter(self.world)
         state = self.world['world_state']
         owner = state['player']['primary_airline_id']
         home = state['airlines'][owner]['base_airport_ids'][0]

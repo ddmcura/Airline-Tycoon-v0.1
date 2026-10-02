@@ -118,13 +118,31 @@ listings persist. Purchase changes the one listing to `SOLD`, links its acquired
 aircraft ID, and preserves all airframe facts.
 
 Schema-6 market aircraft require `lifecycle`, containing exactly `airframe_id`,
-`acquisition_type` (`NEW_PURCHASE`, `USED_PURCHASE`, `OPERATING_LEASE`, or
-`LEASE_TO_OWN`), `ownership_status` (`OWNED`, `LESSOR_OWNED`, or `RETURNED`),
-nullable `aircraft_contract_id` and `source_listing_id`, `fixed_configuration`,
+`acquisition_type` (`NEW_PURCHASE`, `USED_PURCHASE`, `OPERATING_LEASE`,
+`LEASE_TO_OWN`, or `STARTER_GRANT`), `ownership_status` (`OWNED`,
+`LESSOR_OWNED`, or `RETURNED`), nullable `aircraft_contract_id` and `source_listing_id`, `fixed_configuration`,
 `manufactured_date`, `lifetime_flight_seconds`, `lifetime_cycles`, and
 `service_condition_bps`. Completed flights add their gate-to-gate duration and
 one cycle. Step 5 does not deteriorate condition. Returned aircraft records and
 history remain authoritative but are excluded from usable-fleet projections.
+
+`STARTER_GRANT` is the canonical provenance for one configured, catalog-backed
+player aircraft supplied only during fresh scenario construction. It uses the
+existing lifecycle fields and immutable airframe ID; no new aircraft field or
+purchased-model specification copy is added. The grant is `OWNED`, has null
+contract and listing links, an unlocked configuration, and no purchase, used or
+lease transaction or obligation. Its initial manufacture date is the scenario
+start date, condition is 10000 basis points, and lifetime hours/cycles are zero;
+subsequent operations update those lifetime values normally. Validation permits
+at most one grant, owned by the primary player airline, with the catalog-backed
+configuration and no purchase journal. The player market has no grant command.
+The grant is an opening scenario fact: it does not debit cash or create a
+transaction or aircraft-asset ledger entry. The catalog reference price remains
+a detached reference, not an opening balance. Existing unconfigured A320-200
+aircraft and their V1 timing/history retain their saved compatibility meaning.
+Fresh PH careers select catalog model `airbus-a320neo` for this grant and use
+normal configured-aircraft V2 timing and maintenance. No saved career is
+converted by validation or migration.
 
 Aircraft contracts record immutable parties, aircraft, accepted offer (nullable
 only for an operating renewal), predecessor/successor links, selected delivery
@@ -239,7 +257,8 @@ boundary. Flight time retains upward five-minute rounding. Turnaround is 1800
 seconds for turboprops/regional jets/narrowbodies and 2700 for widebodies. Reserve
 it once before off-block; no additional post-arrival handling or taxi-to-stand
 is added. Taxi-out/in remain in gate-to-gate time. First departure reserves the
-same preparation allowance. V1 snapshots and starter behavior remain unchanged.
+same preparation allowance. Existing V1 snapshots and saved A320-200
+starter behavior remain unchanged; a fresh configured A320neo grant uses V2.
 
 Preview/confirmation data and whole-world freshness fingerprints are runtime
 values. A successful journal retains the request fingerprint for idempotent
@@ -1395,9 +1414,13 @@ choices, and display conversions are detached derived presentation data.
 
 `stage1-philippines-v1` constructs a private candidate from an immutable curated
 reference pack, advances it through the approved schema/configuration
-transitions, establishes the first production Booking checkpoint and recurrence,
-installs one free `A320-200` construction grant, validates the complete schema-4
-candidate, and only then returns it. The grant posts no acquisition transaction.
+transitions, and establishes the first production Booking checkpoint and
+recurrence. The original terminal milestone installed one free `A320-200`
+before the later market schemas.
+The current fresh-career path completes migration to schema 7, then installs
+one configured catalog `airbus-a320neo` with `STARTER_GRANT` lifecycle and
+validates the complete candidate. The grant posts no acquisition transaction.
+Saved unconfigured `A320-200` aircraft retain their existing meaning.
 
 USD is the only authoritative scenario currency. PHP and EUR display values use
 scenario-defined integer ratios with round-to-nearest, ties-to-even minor-unit

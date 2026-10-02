@@ -31,6 +31,8 @@ from game.scheduling import (
     publish_next_rotation,
 )
 from game.simulation import process_events_through, process_next_event
+from tests.legacy_starter_fixture import with_legacy_starter
+from unittest.mock import patch
 from game.world_state import (
     STAGE1_SCENARIO_ID,
     Stage1BootstrapError,
@@ -56,7 +58,7 @@ def new_world(base="MNL"):
 
 
 def planned_world(*, fare=10_000):
-    world = new_world()
+    world = with_legacy_starter(new_world())
     airline_id = world["world_state"]["player"]["primary_airline_id"]
     aircraft_id = next(iter(world["world_state"]["aircraft"]))
     result = create_weekly_round_trip_rotation(
@@ -106,7 +108,7 @@ class Stage1BootstrapTests(unittest.TestCase):
         self.assertEqual(world["simulation"]["configuration"]["difficulty"], "Normal")
         self.assertEqual(
             world["metadata"]["reference_data_version"],
-            "stage1-philippines-v1-recovery-2026-10-01",
+            "stage1-philippines-v1-starter-grant-2026-10-02",
         )
         state = world["world_state"]
         airline_id = state["player"]["primary_airline_id"]
@@ -127,9 +129,11 @@ class Stage1BootstrapTests(unittest.TestCase):
         base_id = airline["base_airport_ids"][0]
         self.assertEqual(
             (aircraft["display_registration"], aircraft["model_reference"], aircraft["status"]),
-            ("RP-C0001", "A320-200", "PARKED"),
+            ("RP-C0001", "airbus-a320neo", "PARKED"),
         )
         self.assertEqual(aircraft["current_airport_id"], base_id)
+        self.assertEqual(aircraft["lifecycle"]["acquisition_type"], "STARTER_GRANT")
+        self.assertEqual(aircraft["configuration"]["economy_capacity"], 194)
         self.assertEqual(state["transactions"], {})
 
     def test_bootstrap_rejects_bad_inputs_and_never_returns_partial_authority(self):
@@ -214,7 +218,7 @@ class Stage1RotationBookingAndProjectionTests(unittest.TestCase):
         self.assertTrue(validate_world(world).is_valid)
 
     def test_rotation_rejections_leave_world_byte_identical(self):
-        world = new_world()
+        world = with_legacy_starter(new_world())
         state = world["world_state"]
         airline_id = state["player"]["primary_airline_id"]
         aircraft_id = next(iter(state["aircraft"]))
@@ -312,7 +316,13 @@ class Stage1TerminalTranscriptTests(unittest.TestCase):
             "4", "6", "7", "0", "y", "",
         ))
         output = StringIO()
-        status = run_terminal(StringIO(script), output)
+        class LegacyTranscriptSession(Stage1Session):
+            def new_game(self, ceo_display_name, airline_display_name, base_code):
+                original = create_stage1_new_game
+                with patch("app.session.create_stage1_new_game", side_effect=lambda **kwargs: with_legacy_starter(original(**kwargs))):
+                    super().new_game(ceo_display_name, airline_display_name, base_code)
+
+        status = run_terminal(StringIO(script), output, session_factory=LegacyTranscriptSession)
         transcript = output.getvalue()
         self.assertEqual(status, 0)
         self.assertIn("Published rotation with 2 flights", transcript)

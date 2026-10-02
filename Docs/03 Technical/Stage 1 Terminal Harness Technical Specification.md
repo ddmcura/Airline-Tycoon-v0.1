@@ -105,17 +105,19 @@ The pack fixes:
 - the canonical Philippines country/region foundation;
 - USD as the authoritative currency;
 - 30,000,000,000 USD minor units of cash (USD 300,000,000) and zero debt for Normal;
-- one free `A320-200`, registration `RP-C0001`, parked at the selected base;
-- 180 published Economy seats;
+- one free catalog `airbus-a320neo` with `STARTER_GRANT` provenance,
+  registration `RP-C0001`, parked at the selected base;
+- the catalog maximum-Economy layout (currently 194 seats);
 - the fixed 08:00–10:00 outbound and 12:00–14:00 return timetable; and
 - optional presentation-only USD/PHP/EUR rational conversion rates.
 
 The loader requires the exact scenario contract and rejects missing, extra,
 malformed, or unsupported data. It returns a detached copy. Every one of the
 43 active airport members is a legal base selection; inactive LGP is not.
-The starting-capital correction uses reference-data version
-`stage1-philippines-v1-recovery-2026-10-01`. It applies to new careers; existing
-careers retain their saved cash state. This is the approved PH 1.0 Normal start,
+Fresh grants use reference-data version
+`stage1-philippines-v1-starter-grant-2026-10-02`. The earlier starting-capital
+correction and this grant apply to new careers; existing careers retain saved
+cash and aircraft state. This is the approved PH 1.0 Normal start,
 not final economy or difficulty balancing.
 
 ## Atomic bootstrap
@@ -131,12 +133,13 @@ Construction occurs only on a private candidate:
 3. add the remaining curated airports and all 1,806 directional markets;
 4. migrate to schema 2 with the curated country foundation;
 5. activate Demand Model 4 through its expected-revision command;
-6. add the free starter aircraft through canonical aircraft construction;
-7. migrate to schema 3;
-8. transition Booking configuration from revision 1 to production revision 2;
-9. execute the initial production daily Booking checkpoint, which establishes
+6. migrate to schema 3;
+7. transition Booking configuration from revision 1 to production revision 2;
+8. execute the initial production daily Booking checkpoint, which establishes
    the next-midnight recurrence;
-10. migrate to schema 4 and install fulfilment configuration revision 1; and
+9. migrate through schemas 4�7, installing the approved fulfilment, market,
+   and maintenance configuration;
+10. add the configured catalog A320neo and canonical `STARTER_GRANT` lifecycle; and
 11. validate the complete candidate and return a final detached copy.
 
 Failure raises a structured bootstrap rejection and exposes no partial world.

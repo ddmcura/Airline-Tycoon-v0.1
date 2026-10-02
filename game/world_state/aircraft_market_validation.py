@@ -184,7 +184,8 @@ def validate_aircraft_market(envelope):
                              "service_condition_bps"}:
             raise ValueError("aircraft lifecycle has noncanonical fields")
         if lifecycle.get("acquisition_type") not in {
-                "NEW_PURCHASE", "USED_PURCHASE", "OPERATING_LEASE", "LEASE_TO_OWN"}:
+                "NEW_PURCHASE", "USED_PURCHASE", "OPERATING_LEASE", "LEASE_TO_OWN",
+                "STARTER_GRANT"}:
             raise ValueError("invalid aircraft acquisition type")
         if lifecycle.get("ownership_status") not in {"OWNED", "LESSOR_OWNED", "RETURNED"}:
             raise ValueError("invalid aircraft ownership status")
@@ -201,6 +202,18 @@ def validate_aircraft_market(envelope):
             raise ValueError("lessor-owned aircraft requires a fixed configuration and contract")
         if lifecycle["ownership_status"] == "OWNED" and lifecycle["fixed_configuration"]:
             raise ValueError("owned aircraft cannot retain the lessor configuration lock")
+        if lifecycle["acquisition_type"] == "STARTER_GRANT":
+            if ("configuration" not in aircraft
+                    or lifecycle["ownership_status"] != "OWNED"
+                    or lifecycle["aircraft_contract_id"] is not None
+                    or lifecycle["source_listing_id"] is not None
+                    or lifecycle["fixed_configuration"]
+                    or lifecycle["manufactured_date"] != envelope["metadata"]["world_created_at_utc"][:10]
+                    or any(contract["aircraft_id"] == aircraft["aircraft_id"]
+                           for contract in contracts.values())
+                    or any(listing.get("sold_aircraft_id") == aircraft["aircraft_id"]
+                           for listing in listings.values())):
+                raise ValueError("starter grant requires a configured, unencumbered opening aircraft")
         if lifecycle["acquisition_type"] == "USED_PURCHASE" and (
                 lifecycle.get("source_listing_id") not in listings
                 or listings[lifecycle["source_listing_id"]].get("sold_aircraft_id") != aircraft.get("aircraft_id")):

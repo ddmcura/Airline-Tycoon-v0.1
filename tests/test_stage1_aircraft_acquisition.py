@@ -18,6 +18,7 @@ from game.scheduling.eligibility import check_eligibility
 from game.scheduling.timing import timing_bounds
 from game.simulation import process_events_through, process_next_event
 from game.world_state import create_stage1_new_game, validate_world
+from tests.legacy_starter_fixture import with_legacy_starter
 from game.world_state.migration import migrate_schema_4_to_5, migrate_schema_5_to_6
 from game.world_state.timestamps import parse_canonical_utc
 
@@ -247,6 +248,7 @@ class AcquisitionTests(unittest.TestCase):
         self.assert_valid()
 
     def test_migration_preserves_exact_starter_and_published_history(self):
+        self.world = with_legacy_starter(self.world)
         starter = next(iter(self.world['world_state']['aircraft']))
         draft = WeeklyDraft(self.world, airline_id=self.owner, aircraft_id=starter)
         draft.add(self.airports['MNL'], self.airports['CEB'], departure_utc='2026-09-07T00:00:00Z')

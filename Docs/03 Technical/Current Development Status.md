@@ -2,6 +2,30 @@
 
 Last updated: **2026-10-02**. Current snapshot, not operational authorization.
 
+## Fresh PH starter grant (2026-10-02 working tree)
+
+On the working tree based on `ba77534091d9e9e746d13ea850938818d38100d6`, the approved schema-7 `STARTER_GRANT` provenance now supplies one player-owned,
+catalog-backed `airbus-a320neo` to fresh PH careers. Construction uses the
+published catalog maximum-Economy layout and standard lifecycle fields, with
+no purchase journal, lease, cash deduction or aircraft-asset ledger entry.
+PH Normal starts at USD 300 million. The configured starter uses normal V2
+scheduling/maintenance; MNL 08:00 to DVO 09:40 permits a 10:10 return after
+30 minutes on the ground. Saved unconfigured A320-200 aircraft and their V1
+snapshots remain compatible; the old Quick Rotation command still applies only
+to that saved-style aircraft. This is opening-state accounting, not a new
+equity/balance-sheet model.
+
+Python 3.12.14 / Kivy 2.3.1 verification on this working tree: the
+seven-module affected suite passed 117 tests in 282.299 s; focused grant tests
+passed 5 tests in 3.476 s; three additional legacy-compatibility regressions
+passed in 7.143 s; `python -m unittest discover -s tests -q` passed 627 tests
+in 524.835 s. Application-scope `python -m compileall -q app game tests
+main.py make_snapshot.py settings.py test.py` exited 0. A temporary-career
+Kivy smoke displayed the A320neo in Fleet, published the 08:00 MNL-DVO leg
+and 10:10 return, completed both flights, displayed finance, and restored a
+manual save paused. The remaining step is integrated player verification and
+future opening-asset accounting design if a balance-sheet system is approved.
+
 ## PH 1.0 playtest acquisition and fare guidance
 
 On the working tree based on `35cb29521d21230a3788dc980ed34cf813bbffe8`,
@@ -21,13 +45,14 @@ Changing endpoints refreshes the suggestion without overwriting typed fare.
 This is view-time guidance, not persisted state, a profit optimum, or a Booking
 willingness-to-pay rule. Demand and relative-offer Booking choice are unchanged.
 
-The fresh A320-200 starter remains V1. The current immutable 20-model catalog
+Before the starter-grant decision, the fresh A320-200 starter remained V1.
+The current immutable 20-model catalog
 excludes it, and schema-7 configuration/provenance validation ties configured
 aircraft to catalog-backed specifications and purchase/market lineage. Legacy
 A320-200 source values do not establish an approved versioned catalog price,
 range, model provenance and free construction-grant configuration contract.
-A modern starter therefore needs an explicit catalog/data and free-grant
-contract decision before implementation. Existing saves, published V1 timing
+That analysis led to the subsequently approved `STARTER_GRANT` contract and
+existing catalog A320neo selection. Existing saves, published V1 timing
 snapshots and historical results were untouched. Its V1-specific capacity,
 Quick Rotation and maintenance compatibility paths remain for separate review.
 
@@ -40,9 +65,9 @@ make_snapshot.py settings.py test.py` exited 0. A temporary-career Kivy widget
 smoke navigated Research, catalog manufacturer/model purchase, MNL-DVO
 scheduling with USD 116 suggestion and editable override, published two legs,
 advanced time and observed two completed flights. This confirms command wiring
-and state behavior, not human playtest quality. The next scoped architecture
-question is approval of A320-200 catalog calibration and free-grant binding;
-absolute fare sensitivity remains a separate economy design task.
+and state behavior, not human playtest quality. That verification predates the
+fresh A320neo grant; absolute fare sensitivity remains a separate economy
+design task.
 
 ## PH 1.0 first graphical gameplay action loop
 
@@ -422,11 +447,13 @@ schedule-to-Booking-to-flight-to-finance loop. PH recovery supplies 43 active
 commercial airports, 1,806 directional markets, selectable starting base, market
 research, versioned air suitability and destination-only tourism.
 
-`python -m app.terminal` starts a paused session with a free 180-seat A320-200.
+`python -m app.terminal` starts a paused session with a free, catalog-backed
+A320neo (194 maximum-Economy seats) in a fresh career. Saved A320-200 careers
+retain their old aircraft and timing.
 Weekly Scheduler supports one-way chains, explicit return/positioning, custom
 local times, day copy, undo, bounded repeat, Monday-week views and atomic
 publication. It validates unpublished recurrences without extending the actual
-publication window. Quick Rotation remains the starter compatibility path.
+publication window. Quick Rotation remains the saved A320-200 compatibility path.
 Explicit next-event, day, positive-duration/multi-day and exact UTC-target
 advancement exist. PHP/EUR conversion remains presentation-only.
 
