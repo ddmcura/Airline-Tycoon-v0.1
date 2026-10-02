@@ -183,7 +183,7 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
         self.assertEqual(outer.children[1].height, outer.children[0].height)
         self.assertEqual(outer.children[0].children[0].height, outer.height)
         add_targets = []
-        self.app.show_add_leg = lambda target_date=None: add_targets.append(target_date)
+        self.app.add_builder_flights = lambda *, target_dates=None: add_targets.append(target_dates)
         for offset, day in enumerate(expected):
             actions = days[offset + 1]
             choose = next(widget for widget in actions.children
@@ -197,12 +197,13 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
                                 for widget in self.app.content.walk()
                                 if hasattr(widget, 'text')))
             add.dispatch('on_release')
-        self.assertEqual(add_targets, [day.isoformat() for day in expected])
-        del self.app.show_add_leg
+        self.assertEqual(add_targets, [(day.isoformat(),) for day in expected])
+        del self.app.add_builder_flights
         add_form = {}
         self.app._choice_form = lambda title, fields, submit, **kwargs: add_form.update(
             {key: initial for key, _label, _choices, initial in fields})
-        self.app.show_add_leg('2026-09-07')
+        self.app.select_schedule_day('2026-09-07')
+        self.app.show_add_leg()
         self.assertEqual(add_form['date'], '2026-09-07')
         self.assertEqual(self.app._schedule_day, '2026-09-07')
         self.assertTrue(any('Day: 2026-09-07' in widget.text

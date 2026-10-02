@@ -144,9 +144,12 @@ sequence. Each hour header and day row uses a local Kivy `RelativeLayout`
 coordinate space, so its labels and flight blocks render within that row when
 the enclosing weekly workspace scrolls. The pinned day pane and time pane have
 identical eight-row heights (one header plus Monday through Sunday). Selecting
-a day changes the selected PH-local draft date, and a row's Add Flight action
-sets that same date before opening the existing scheduling form. Entering or
-changing a week brings Monday into view after Kivy lays out the workspace.
+a day changes the selected PH-local draft date. A row's Add Flight action
+submits the persistent builder to exactly that row's PH-local date through the
+same atomic `WeeklyDraft.add_weekdays()` path as the main multi-day button.
+The separate Advanced single flight form remains available for explicit
+positioning and service choices. Entering or changing a week brings Monday
+into view after Kivy lays out the workspace.
 The domain's `week_rows()` departure dates still decide which row owns each
 published or draft block; no flight timing, publication, or date rule changed.
 

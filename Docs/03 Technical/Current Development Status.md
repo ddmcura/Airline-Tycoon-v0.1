@@ -2,6 +2,32 @@
 
 Last updated: **2026-10-02**. Current snapshot, not operational authorization.
 
+## Scheduling row Add Flight correction (2026-10-02 working tree)
+
+On the working tree based on `60409e717b0c1496dc5f1724e4697dc54120d93f`,
+each Monday-Sunday timeline row's + Add now submits the current persistent
+flight builder to that row's PH-local date. The main multi-day button uses
+the same detached `WeeklyDraft.add_weekdays()` validation and atomic draft
+edit; row buttons supply a single target date without changing checkbox
+selection. Successful row edits select the target day and render its new
+blocks immediately. The obsolete row-to-form callback and its date-target
+branch were removed. The separate Advanced single flight form remains for
+explicit positioning and service choices. No scheduling, fare, turnaround,
+publication, persistence, or schema rule changed.
+
+Python 3.12.14 / Kivy 2.3.1 verification on this working tree:
+`python -m unittest tests.test_gui_schedule_polish
+tests.test_gui_weekly_workspace -q` passed 25 tests in 43.557 s; the
+additional past-day row regression passed separately in 1.343 s;
+`python -m unittest discover -s tests -q` passed 659 tests in 495.842 s.
+`python -m compileall -q app game tests main.py make_snapshot.py
+settings.py test.py` and `git diff --check` exited 0.
+A temporary-career Kivy displayed-widget smoke used the row buttons to add
+the 08:00 MNL-DVO return pair on Monday and a changed route/time on Thursday,
+used the main builder to add Tuesday and Saturday, then rejected a conflicting
+Monday add without changing eight draft legs. No secondary flight-entry form
+opened; no authoritative dated flight or production save was changed.
+
 ## GUI/runtime scaling correction (2026-10-02 working tree)
 
 On the working tree based on `666300b3af2e7c0b5b10a8c6a0ef9209f89ef877`,

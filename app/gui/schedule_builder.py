@@ -70,7 +70,7 @@ class ScheduleBuilder:
 
         body = BoxLayout(orientation='vertical', size_hint_y=None,
                          height=dp(500), spacing=dp(4))
-        body.add_widget(_label('FLIGHT BUILDER — choose one or more weekdays', height=35))
+        body.add_widget(_label('FLIGHT BUILDER — select weekdays below or use + Add on a day row', height=35))
         airports = self.session.airports()
         endpoint_row = BoxLayout(size_hint_y=None, height=dp(86), spacing=dp(5))
         for caption, key in (('Origin', '_builder_origin'),
@@ -130,12 +130,14 @@ class ScheduleBuilder:
         body.add_widget(_button('+ ADD FLIGHT', self.add_builder_flights))
         self.content.add_widget(body)
 
-    def add_builder_flights(self):
+    def add_builder_flights(self, *, target_dates=None):
+        """Submit the current builder to selected days or one timeline row."""
         if self._draft is None or not self._management_ready():
             return
         try:
-            dates = tuple(self._week_dates()[index].isoformat()
-                          for index in sorted(self._builder_weekdays))
+            dates = (tuple(self._week_dates()[index].isoformat()
+                           for index in sorted(self._builder_weekdays))
+                     if target_dates is None else tuple(target_dates))
             fare = parse_usd_fare(self._builder_fare)
             working = deepcopy(self._draft)
             count = working.add_weekdays(
@@ -144,6 +146,8 @@ class ScheduleBuilder:
                 return_flight=self._builder_return, fare_minor=fare)
             working.validate_current(self.session.world)
             self._draft = working
+            if target_dates is not None:
+                self._schedule_day = dates[0]
             self._schedule_selected.clear()
             self.refresh(force=True)
             return count

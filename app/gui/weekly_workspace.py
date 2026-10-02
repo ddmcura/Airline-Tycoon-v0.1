@@ -136,7 +136,7 @@ class WeeklyWorkspace(ScheduleBuilder):
             actions.add_widget(choose)
             add = Button(text='+ Add')
             add.bind(on_release=lambda _button, target=day.isoformat():
-                     self.show_add_leg(target))
+                     self.add_builder_flights(target_dates=(target,)))
             actions.add_widget(add)
             days.add_widget(actions)
             line = RelativeLayout(size_hint=(None, None), size=(width, row_height))
@@ -364,13 +364,9 @@ class WeeklyWorkspace(ScheduleBuilder):
             self._error('Delete rejected', exc)
             return None
 
-    def show_add_leg(self, target_date=None):
+    def show_add_leg(self):
         if self._draft is None or not self._management_ready():
             return
-        if target_date is not None:
-            self._schedule_day = target_date
-            self._schedule_selected.clear()
-            self.refresh(force=True)
         airports = self.session.airports()
         origin = self._draft.last_stop
         destination = next(row['airport_id'] for row in airports
@@ -380,7 +376,7 @@ class WeeklyWorkspace(ScheduleBuilder):
              airports, origin),
             ('destination', 'Destination', airports, destination),
             ('date', 'Local departure date YYYY-MM-DD', None,
-             target_date or self._schedule_day),
+             self._schedule_day),
             ('time', 'Local time HH:MM', None, '08:00'),
             ('timing', 'Departure timing',
              ('Earliest available', 'Exact local time'), 'Earliest available'),

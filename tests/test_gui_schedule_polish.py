@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import date, timedelta
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
@@ -256,6 +257,117 @@ class GuiWorkspacePolishTests(unittest.TestCase):
         self.app._dismiss()
         self.app.on_stop()
         self.temp.cleanup()
+
+    def row_add(self, weekday_index):
+        rows = self.app._draft.week_rows(self.app._schedule_week.isoformat())
+        airports = {row['airport_id']: row['reference_code']
+                    for row in self.app.session.airports()}
+        timeline = self.app._timeline(rows, airports)
+        days = list(reversed(timeline.children[1].children))
+        action = next(widget for widget in days[weekday_index + 1].children
+                      if isinstance(widget, Button) and widget.text == '+ Add')
+        action.dispatch('on_release')
+
+    def test_row_add_uses_builder_exact_time_fare_return_without_dialog(self):
+        app = self.app
+        app.change_schedule_week(1)
+        app._builder_airport_changed('_builder_destination', self.airports['DVO'])
+        self.assertEqual(app._builder_fare, '116')
+        app._builder_fare_changed('125')
+        app._builder_time = '08:00'
+        self.assertTrue(app._builder_return)
+        before = app.session.authoritative_bytes()
+        with patch.object(app, 'show_add_leg',
+                          side_effect=AssertionError('legacy form opened')):
+            self.row_add(0)
+        self.assertIsNone(app._popup)
+        self.assertEqual(app._schedule_day, '2026-09-07')
+        self.assertEqual(len(app._draft.legs), 2)
+        self.assertEqual([leg['departure_utc'] for leg in app._draft.legs],
+                         ['2026-09-07T00:00:00Z', '2026-09-07T02:10:00Z'])
+        self.assertEqual([leg['fare_minor'] for leg in app._draft.legs],
+                         [12_500, 12_500])
+        self.assertEqual([leg['destination_airport_id'] for leg in app._draft.legs],
+                         [self.airports['DVO'], self.airports['MNL']])
+        self.assertEqual(app.session.authoritative_bytes(), before)
+        self.assertEqual(len([row for row in app._draft.week_rows('2026-09-07')
+                              if row['departure_local'][:10] == '2026-09-07']), 2)
+
+        # Row targets override checkbox selection, and current builder edits apply.
+        app._builder_day_picker.apply_preset('MWF')
+        selected_days = set(app._builder_weekdays)
+        app._builder_airport_changed('_builder_destination', self.airports['CEB'])
+        app._builder_fare_changed('90')
+        app._builder_time = '12:00'
+        app._builder_return = False
+        self.row_add(3)  # Thursday, not selected by MWF.
+        self.assertIsNone(app._popup)
+        self.assertEqual(app._schedule_day, '2026-09-10')
+        self.assertEqual(app._builder_weekdays, selected_days)
+        self.assertEqual(len(app._draft.legs), 3)
+        thursday = app._draft.legs[-1]
+        self.assertEqual(thursday['departure_utc'], '2026-09-10T04:00:00Z')
+        self.assertEqual(thursday['destination_airport_id'], self.airports['CEB'])
+        self.assertEqual(thursday['fare_minor'], 9_000)
+        self.assertEqual(len([row for row in app._draft.week_rows('2026-09-07')
+                              if row['departure_local'][:10] == '2026-09-10']), 1)
+
+    def test_row_add_rejects_past_day_without_mutating_draft(self):
+        app = self.app
+        app._builder_airport_changed('_builder_destination', self.airports['DVO'])
+        app._builder_time = '08:00'
+        before = app._draft.legs
+        self.row_add(0)  # Monday Aug 31 is past at the initial PH clock.
+        self.assertEqual(app._draft.legs, before)
+        self.assertEqual(app._popup.title, 'Add Flight rejected')
+        self.assertTrue(any('past' in widget.text.lower()
+                            for widget in app._popup.content.walk()
+                            if hasattr(widget, 'text')))
+
+    def test_row_earliest_conflict_and_main_add_share_domain_path(self):
+        app = self.app
+        app.change_schedule_week(1)
+        app._builder_airport_changed('_builder_destination', self.airports['DVO'])
+        app._builder_time = '00:00'
+        app._builder_earliest = True
+        app._builder_return = True
+        expected = deepcopy(app._draft)
+        expected.add_weekdays(self.airports['MNL'], self.airports['DVO'],
+                              ('2026-09-07',), '00:00', earliest=True,
+                              return_flight=True, fare_minor=11_600)
+        original = WeeklyDraft.add_weekdays
+        calls = []
+
+        def traced(draft, *args, **kwargs):
+            calls.append((args, kwargs))
+            return original(draft, *args, **kwargs)
+
+        with patch.object(WeeklyDraft, 'add_weekdays', traced):
+            self.row_add(0)
+            self.assertEqual(app._draft.legs, expected.legs)
+            self.assertEqual(calls[0][0][2], ('2026-09-07',))
+            self.assertTrue(calls[0][1]['earliest'])
+            self.assertTrue(calls[0][1]['return_flight'])
+            before = app._draft.legs
+            app._builder_earliest = False
+            app._builder_time = '00:00'
+            self.row_add(0)
+            self.assertEqual(app._draft.legs, before)
+            self.assertEqual(app._popup.title, 'Add Flight rejected')
+            self.assertTrue(any('2026-09-07' in widget.text
+                                for widget in app._popup.content.walk()
+                                if hasattr(widget, 'text')))
+            app._dismiss()
+
+            app._builder_day_picker.apply_preset('MWF')
+            app._builder_day_picker.buttons[0].state = 'normal'
+            self.assertEqual(app.add_builder_flights(), 4)
+            self.assertEqual(calls[-1][0][2],
+                             ('2026-09-09', '2026-09-11'))
+            self.assertEqual(len(app._draft.legs), 6)
+            self.assertEqual(app.session.world['world_state']['dated_flights'], {})
+            app.undo_leg()
+            self.assertEqual(app._draft.legs, before)
 
     def test_current_week_builder_defaults_suggestion_override_and_search(self):
         self.assertEqual(self.app._schedule_week, date(2026, 8, 31))
