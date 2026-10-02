@@ -1,10 +1,12 @@
 """Searchable airports and graphical weekly draft copy/paste boundaries."""
 
 from copy import deepcopy
+from datetime import date, timedelta
 import tempfile
 import unittest
 
 from kivy.uix.button import Button
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.textinput import TextInput
 
 from app.gui.airport_selector import AirportSelector, airport_identity, matching_airports
@@ -146,6 +148,123 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
                   departure_utc='2026-09-07T00:00:00Z', fare_minor=11600)
         draft.add_return()
         self.app.refresh(force=True)
+
+    def week_grid(self):
+        rows = self.app._draft.week_rows(self.app._schedule_week.isoformat())
+        airports = {row['airport_id']: row['reference_code']
+                    for row in self.app.session.airports()}
+        outer = self.app._timeline(rows, airports)
+        day_widgets = list(reversed(outer.children[1].children))
+        time_widgets = list(reversed(outer.children[0].children[0].children))
+        return outer, day_widgets, time_widgets
+
+    def test_seven_weekday_controls_dates_and_add_targets(self):
+        self.assertEqual(self.app._schedule_week, date(2026, 9, 7))
+        expected = [date(2026, 9, 7) + timedelta(days=offset)
+                    for offset in range(7)]
+        self.assertEqual(self.app._week_dates(), tuple(expected))
+        outer, days, lines = self.week_grid()
+        self.assertEqual(len(days), 8)  # one header and exactly seven days
+        self.assertEqual(len(lines), 8)
+        self.assertEqual(days[0].text, 'DAY / ACTION')
+        self.assertIsInstance(lines[0], RelativeLayout)
+        self.assertEqual(days[0].height, lines[0].height)
+        self.assertEqual(outer.height, days[0].height * 8)
+        self.assertEqual(outer.children[1].height, outer.children[0].height)
+        self.assertEqual(outer.children[0].children[0].height, outer.height)
+        add_targets = []
+        self.app.show_add_leg = lambda target_date=None: add_targets.append(target_date)
+        for offset, day in enumerate(expected):
+            actions = days[offset + 1]
+            choose = next(widget for widget in actions.children
+                          if isinstance(widget, Button) and 'Select Day' in widget.text)
+            add = next(widget for widget in actions.children
+                       if isinstance(widget, Button) and widget.text == '+ Add')
+            self.assertEqual(choose.text.split('\n')[0], f'{day:%a %d %b}')
+            choose.dispatch('on_release')
+            self.assertEqual(self.app._schedule_day, day.isoformat())
+            self.assertTrue(any(f'Day: {day.isoformat()}' in widget.text
+                                for widget in self.app.content.walk()
+                                if hasattr(widget, 'text')))
+            add.dispatch('on_release')
+        self.assertEqual(add_targets, [day.isoformat() for day in expected])
+        del self.app.show_add_leg
+        add_form = {}
+        self.app._choice_form = lambda title, fields, submit, **kwargs: add_form.update(
+            {key: initial for key, _label, _choices, initial in fields})
+        self.app.show_add_leg('2026-09-07')
+        self.assertEqual(add_form['date'], '2026-09-07')
+        self.assertEqual(self.app._schedule_day, '2026-09-07')
+        self.assertTrue(any('Day: 2026-09-07' in widget.text
+                            for widget in self.app.content.walk()
+                            if hasattr(widget, 'text')))
+        self.app._schedule_week = date(2026, 12, 28)
+        self.assertEqual(self.app._week_dates()[-1], date(2027, 1, 3))
+        self.app.change_schedule_week(1)
+        self.assertEqual(self.app._schedule_week, date(2027, 1, 4))
+        self.assertEqual(self.app._schedule_day, '2027-01-04')
+        self.assertEqual(self.app._week_dates()[-1], date(2027, 1, 10))
+
+    def test_flights_render_in_exact_weekday_rows_and_paste_targets(self):
+        self.plan_monday()
+        self.app.select_schedule_day('2026-09-07')
+        self.app.copy_day()
+        captured = {}
+        self.app._choice_form = lambda title, fields, submit, **kwargs: captured.update(
+            {key: (choices, initial) for key, _label, choices, initial in fields})
+        self.app.show_paste()
+        self.assertEqual(captured['target'][0], tuple(
+            (date(2026, 9, 7) + timedelta(days=offset)).isoformat()
+            for offset in range(7)))
+        self.assertEqual(captured['target'][1], '2026-09-07')
+        self.app._paste_selected({'target': '2026-09-09', 'time': '14:00'})
+        rows = self.app._draft.week_rows('2026-09-07')
+        self.assertEqual([row['departure_local'][:10] for row in rows],
+                         ['2026-09-07', '2026-09-07',
+                          '2026-09-09', '2026-09-09'])
+        self.assertEqual(self.app._schedule_day, '2026-09-09')
+        _, days, lines = self.week_grid()
+        self.assertEqual(len(days), 8)
+        self.assertEqual([len(line.children) for line in lines[1:]],
+                         [2, 0, 2, 0, 0, 0, 0])
+        self.assertTrue(all(isinstance(line, RelativeLayout) for line in lines))
+        self.assertTrue(all(block.y == 10 for line in (lines[1], lines[3])
+                            for block in line.children))
+        lines[0].parent.do_layout()
+        self.assertEqual(lines[1].top, lines[0].y)
+        for line in (lines[1], lines[3]):
+            for block in line.children:
+                rendered_y = block.to_window(*block.pos)[1]
+                self.assertGreaterEqual(rendered_y, line.y)
+                self.assertLessEqual(rendered_y + block.height, line.top)
+        self.assertGreater(lines[1].children[0].to_window(*lines[1].children[0].pos)[1],
+                           lines[7].top)
+        self.assertEqual(sorted(block.text.split('\n')[1][:11]
+                                for block in lines[1].children),
+                         ['08:00-09:40', '10:10-11:50'])
+        self.assertEqual(sorted(block.text.split('\n')[1][:11]
+                                for block in lines[3].children),
+                         ['14:00-15:40', '16:10-17:50'])
+        self.app.select_schedule_day('2026-09-07')
+        self.app.copy_day()
+        self.assertEqual(len(self.app._schedule_clipboard['legs']), 2)
+        self.assertEqual([leg['offset_seconds'] for leg in
+                          self.app._schedule_clipboard['legs']], [0, 7800])
+
+    def test_each_of_seven_days_owns_only_its_departing_blocks(self):
+        self.plan_monday()
+        copied = self.app._draft.copy_selection([0, 1])
+        for day in self.app._week_dates()[1:]:
+            self.app._draft.paste_sequence(copied, day.isoformat(), '08:00')
+        _, days, lines = self.week_grid()
+        self.assertEqual(len(days), 8)
+        self.assertEqual(len(lines), 8)
+        for offset, day in enumerate(self.app._week_dates()):
+            self.assertEqual(len(lines[offset + 1].children), 2, day)
+            self.assertTrue(all('DRAFT' in block.text
+                                for block in lines[offset + 1].children))
+            self.assertEqual(days[offset + 1].children[-1].text.split('\n')[0],
+                             f'{day:%a %d %b}')
 
     def test_week_rows_blocks_selection_and_copy_day(self):
         self.plan_monday()

@@ -2,6 +2,31 @@
 
 Last updated: **2026-10-02**. Current snapshot, not operational authorization.
 
+## Weekly Schedule row-placement regression correction (2026-10-02)
+
+On the working tree based on `cd42bea135531595b8eb889e3a574369d0b63f28`,
+the weekly GUI now uses row-local Kivy coordinates for hour labels and flight
+blocks. The prior `FloatLayout` placed block pixels outside their own row and
+made Monday flights appear over Sunday. The domain week-date calculation was
+correct: the seven controls and rows are Monday 7 Sep through Sunday 13 Sep in
+the observed week. Both panes now have equal eight-row heights; choosing a row
+highlights and sets its exact PH-local date, row Add Flight sets the same date,
+and entering/changing a week brings Monday into view. Copy Day and Paste
+use the same seven-date sequence. Scheduling, timing, publication and persistence rules did
+not change. Regression coverage exercises all seven row labels, callbacks,
+block placement, the Monday/Wednesday paste, and a year-crossing week.
+
+Python 3.12.14 / Kivy 2.3.1 verification on this working tree:
+`python -m unittest tests.test_gui_weekly_workspace tests.test_gui_gameplay
+tests.test_gui_foundation tests.test_stage1_weekly_planner -q` passed 59 tests
+in 75.650 s; `python -m unittest discover -s tests -q` passed 639 tests in
+547.982 s; `python -m compileall -q app game tests main.py make_snapshot.py
+settings.py test.py` exited 0. A temporary-career Kivy callback smoke selected
+Monday, added the 08:00 MNL-DVO and 10:10 DVO-MNL pair through the GUI form,
+copied Monday, pasted Wednesday at 14:00, and verified two blocks in each
+correct row with block bounds inside their own row. A running Kivy layout
+check brought Monday into view at the week start. No production saves changed.
+
 ## Weekly Kivy scheduling workspace (2026-10-02 working tree)
 
 On the working tree based on `9d81352f0d87e126e0571a4e667805acb1552cb1`,

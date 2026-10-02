@@ -136,3 +136,16 @@ Defining that player contract, stop/retirement behavior, rolling publication
 and already-booked obligations requires separate design approval. No persistent
 schema field, airport record, scheduling rule or recurrence command changed in
 this slice.
+
+### Weekday row placement correction (2026-10-02)
+
+The seven weekday controls and seven timeline rows share a Monday-derived date
+sequence. Each hour header and day row uses a local Kivy `RelativeLayout`
+coordinate space, so its labels and flight blocks render within that row when
+the enclosing weekly workspace scrolls. The pinned day pane and time pane have
+identical eight-row heights (one header plus Monday through Sunday). Selecting
+a day changes the selected PH-local draft date, and a row's Add Flight action
+sets that same date before opening the existing scheduling form. Entering or
+changing a week brings Monday into view after Kivy lays out the workspace.
+The domain's `week_rows()` departure dates still decide which row owns each
+published or draft block; no flight timing, publication, or date rule changed.

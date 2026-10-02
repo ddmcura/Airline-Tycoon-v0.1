@@ -3,11 +3,12 @@
 from copy import deepcopy
 from datetime import date, datetime, timedelta
 
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.scrollview import ScrollView
 
 from app.inputs import parse_usd_fare
@@ -84,39 +85,47 @@ class WeeklyWorkspace:
     def _timeline(self, rows, airports):
         hour_width, row_height = dp(100), dp(94)
         width = hour_width * 24 + dp(100)
+        grid_height = row_height * 8
         outer = BoxLayout(orientation='horizontal', size_hint_y=None,
-                          height=dp(8 * 94 + 12))
+                          height=grid_height)
         days = BoxLayout(orientation='vertical', size_hint=(None, None),
-                         width=dp(180), height=dp(8 * 94))
+                         width=dp(180), height=grid_height)
         days.add_widget(Label(text='DAY / ACTION', size_hint_y=None, height=row_height))
-        timeline = ScrollView(do_scroll_y=False, do_scroll_x=True)
+        timeline = ScrollView(do_scroll_y=False, do_scroll_x=True,
+                              size_hint_y=None, height=grid_height)
         timeline.scroll_x = self._schedule_scroll_x
         timeline.bind(scroll_x=lambda _widget, value: setattr(self, '_schedule_scroll_x', value))
         column = BoxLayout(orientation='vertical', size_hint=(None, None),
-                           width=width, height=dp(8 * 94))
-        header = FloatLayout(size_hint=(None, None), size=(width, row_height))
+                           width=width, height=grid_height)
+        # RelativeLayout keeps each hour label and flight block in its own
+        # header/day coordinate space as the outer week scrolls vertically.
+        header = RelativeLayout(size_hint=(None, None), size=(width, row_height))
         for hour in range(0, 25, 4):
             header.add_widget(Label(text=f'{hour:02d}:00', size_hint=(None, None),
                                     size=(dp(76), dp(52)),
                                     pos=(hour_width * hour, dp(20))))
         column.add_widget(header)
-        for offset in range(7):
-            day = self._schedule_week + timedelta(days=offset)
+        for day in self._week_dates():
             day_rows = sorted((row for row in rows if row['departure_local'][:10] == day.isoformat()),
                               key=lambda row: row['departure_local'])
             actions = BoxLayout(orientation='horizontal', size_hint_y=None,
                                 height=row_height, spacing=dp(3))
+            chosen = day.isoformat() == self._schedule_day
             choose = Button(text=f'{day:%a %d %b}\nSelect Day', size_hint_x=None,
-                            width=dp(105))
+                            width=dp(105), background_normal='',
+                            background_color=([.16, .57, .84, 1] if chosen else
+                                              [.42, .43, .45, 1]))
             choose.bind(on_release=lambda _button, target=day.isoformat():
                         self.select_schedule_day(target))
+            if day == self._schedule_week:
+                self._schedule_monday_button = choose
             actions.add_widget(choose)
             add = Button(text='+ Add')
             add.bind(on_release=lambda _button, target=day.isoformat():
                      self.show_add_leg(target))
             actions.add_widget(add)
             days.add_widget(actions)
-            line = FloatLayout(size_hint=(None, None), size=(width, row_height))
+            line = RelativeLayout(size_hint=(None, None), size=(width, row_height))
             for row in day_rows:
                 start = datetime.fromisoformat(row['departure_local'])
                 end = datetime.fromisoformat(row['arrival_local'])
@@ -144,11 +153,27 @@ class WeeklyWorkspace:
         outer.add_widget(timeline)
         return outer
 
+    def _week_dates(self):
+        return tuple(self._schedule_week + timedelta(days=offset)
+                     for offset in range(7))
+
+    def _focus_week_start(self):
+        self.content.parent.scroll_y = 1
+
+        def focus(_dt):
+            button = self._schedule_monday_button
+            if (self._draft is not None and self.current_view == 'Schedule'
+                    and button.get_root_window() is not None):
+                self.content.parent.scroll_to(button, padding=dp(8))
+
+        Clock.schedule_once(focus, .3)
+
     def change_schedule_week(self, weeks):
         self._schedule_week += timedelta(days=7 * weeks)
         self._schedule_day = self._schedule_week.isoformat()
         self._schedule_selected.clear()
         self.refresh(force=True)
+        self._focus_week_start()
 
     def start_schedule(self, aircraft_id):
         if not self._management_ready():
@@ -170,6 +195,7 @@ class WeeklyWorkspace:
             self._schedule_clipboard = None
             self._schedule_scroll_x = 0
             self.refresh(force=True)
+            self._focus_week_start()
         except Exception as exc:
             self._error('Weekly planner', exc)
 
@@ -224,8 +250,7 @@ class WeeklyWorkspace:
         if self._draft is None or not self._schedule_clipboard or not self._management_ready():
             self._error('Paste', 'Copy one or more draft flights first.')
             return
-        days = tuple((self._schedule_week + timedelta(days=offset)).isoformat()
-                     for offset in range(7))
+        days = tuple(day.isoformat() for day in self._week_dates())
         self._choice_form('Paste selected flights', [
             ('target', 'Target weekday in this week', days, self._schedule_day),
             ('time', 'Start time at first origin (PH local HH:MM)', None, '08:00'),
@@ -246,6 +271,10 @@ class WeeklyWorkspace:
     def show_add_leg(self, target_date=None):
         if self._draft is None or not self._management_ready():
             return
+        if target_date is not None:
+            self._schedule_day = target_date
+            self._schedule_selected.clear()
+            self.refresh(force=True)
         airports = self.session.airports()
         origin = self._draft.last_stop
         destination = next(row['airport_id'] for row in airports
