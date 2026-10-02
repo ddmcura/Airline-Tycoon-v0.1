@@ -99,3 +99,40 @@ A player can now research, acquire, schedule, publish, advance or run, inspect
 flights/Bookings/finance, and save through Kivy. The terminal remains the
 developer/debug frontend. Existing-plan editing, aircraft sale, cabin changes,
 advanced maintenance, maps, final art, and mobile packaging remain deferred.
+
+## Weekly scheduling workspace and searchable airport input (2026-10-02)
+
+The graphical Schedule view selects a parked aircraft, then shows its Monday-
+Sunday PH-local week as a horizontally scrollable time grid with pinned day
+labels. Green blocks are local unpublished draft legs, gray blocks are existing
+published reservations, and selected draft blocks are blue. Flight labels and
+details use `WeeklyDraft.week_rows()` projections for local departure and arrival;
+visual placement is derived only from those projected timestamps. Week navigation,
+selected blocks, clipboard, scroll position, forms and dialogs are frontend-only.
+
+The player can add a passenger or explicit positioning leg on a selected day,
+choose earliest or exact local departure, add the earliest return, select one or
+more draft blocks, select/copy a full day, paste onto a weekday at a chosen
+start time, and undo the whole pasted sequence. The domain `WeeklyDraft`
+constructs detached relative offsets and replays every pasted leg through its
+existing `add` validation on an isolated draft. The GUI revalidates the result
+against the current world before accepting it. A rejected paste does not alter
+the draft or world; the domain may suggest its earliest valid first-leg slot.
+Only Publish Schedule commits the draft through the shared session's existing
+atomic publication path. A game save cannot save an unpublished draft.
+
+`app.gui.airport_selector` is a GUI-local searchable airport picker over the
+current detached airport projection. It matches code, city and display name
+case-insensitively, returning immutable airport IDs in an active career and the
+curated reference code before career creation. It is used for New Game base,
+Research origin/destination filter, scheduling endpoints, and acquisition
+delivery. Manufacturer/model/acquisition controls are unchanged.
+
+The existing weekly repeat-through date remains inclusive and finite in this
+GUI. `WeeklyDraft` supplies a one-date end for ordinary publication or an
+explicit end date for weekly repeat. The schema permits an absent recurrence
+end, but this GUI does not expose a new indefinite-until-stopped workflow.
+Defining that player contract, stop/retirement behavior, rolling publication
+and already-booked obligations requires separate design approval. No persistent
+schema field, airport record, scheduling rule or recurrence command changed in
+this slice.

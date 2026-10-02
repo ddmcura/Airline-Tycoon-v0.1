@@ -12,13 +12,13 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
 from kivy.core.window import Window
 
 from app.session import Stage1Session
 from app.gui.gameplay import GameplayViews
+from app.gui.airport_selector import AirportSelector
 from app.inputs import parse_duration_seconds
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
@@ -68,6 +68,14 @@ class AirlineTycoonApp(GameplayViews, App):
         self._popup = None
         self._draft = None
         self._research_origin = None
+        self._research_destination = None
+        self._schedule_week = None
+        self._schedule_day = None
+        self._schedule_selected = set()
+        self._schedule_clipboard = None
+        self._schedule_aircraft = None
+        self._schedule_model_label = None
+        self._schedule_scroll_x = 0
         self._acquire_maker = None
         self._acquire_model = None
 
@@ -185,7 +193,6 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def show_new_game(self):
         airports = self.session.available_airports()
-        choices = [f"{row['reference_code']} - {row['city']}" for row in airports]
         content = BoxLayout(orientation='vertical', spacing=dp(7), padding=dp(10))
         content.add_widget(_label('CEO name', height=28))
         ceo = TextInput(multiline=False, size_hint_y=None, height=dp(48))
@@ -194,11 +201,11 @@ class AirlineTycoonApp(GameplayViews, App):
         airline = TextInput(multiline=False, size_hint_y=None, height=dp(48))
         content.add_widget(airline)
         content.add_widget(_label('Philippines home base (Normal, USD 300 million)', height=42))
-        base = Spinner(text=choices[0], values=choices, size_hint_y=None, height=dp(52))
+        base = AirportSelector(airports, selected_id=airports[0]['reference_code'])
         content.add_widget(base)
         def create():
             self.create_new_game(ceo.text.strip(), airline.text.strip(),
-                                 base.text.split(' - ', 1)[0])
+                                 base.selected_id)
         content.add_widget(_button('Create Game', create))
         content.add_widget(_button('Cancel', self._dismiss))
         self._popup = Popup(title='New PH 1.0 Game', content=content,
@@ -283,6 +290,14 @@ class AirlineTycoonApp(GameplayViews, App):
         self.view_offset = 0
         self._draft = None
         self._research_origin = None
+        self._research_destination = None
+        self._schedule_week = None
+        self._schedule_day = None
+        self._schedule_selected = set()
+        self._schedule_clipboard = None
+        self._schedule_aircraft = None
+        self._schedule_model_label = None
+        self._schedule_scroll_x = 0
         self._acquire_maker = None
         self._acquire_model = None
         self._last_revision = None
@@ -540,6 +555,8 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def _discard_draft_then(self, action):
         self._draft = None
+        self._schedule_selected.clear()
+        self._schedule_clipboard = None
         self._guard_unsaved(action)
 
     def _resolve_departure(self, choice, action):
@@ -553,6 +570,8 @@ class AirlineTycoonApp(GameplayViews, App):
         def leave():
             self.session.leave_game()
             self._draft = None
+            self._schedule_selected.clear()
+            self._schedule_clipboard = None
             self._last_revision = None
             self.screens.current = 'title'
         self._guard_unsaved(leave)

@@ -1,8 +1,5 @@
 """Kivy presentation for modern market, acquisition, and weekly scheduling."""
 
-from copy import deepcopy
-from datetime import date
-
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.popup import Popup
@@ -10,16 +7,11 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 
-from app.inputs import parse_usd_fare
-from game.scheduling.weekly import local_departure
-from game.world_state.timestamps import format_utc
+from app.gui.airport_selector import AirportSelector, airport_label
+from app.gui.weekly_workspace import WeeklyWorkspace
 
 
-def airport_label(row):
-    return f"{row['reference_code']} - {row['city']}"
-
-
-class GameplayViews:
+class GameplayViews(WeeklyWorkspace):
     """UI-only mixin. Session/domain commands own every authoritative mutation."""
 
     def _choice_form(self, title, fields, submit, *, decorate=None):
@@ -33,6 +25,8 @@ class GameplayViews:
             column.add_widget(_label(caption, height=36))
             widget = (TextInput(text=initial, multiline=False, size_hint_y=None, height=dp(52))
                       if choices is None else
+                      AirportSelector(choices, selected_id=initial)
+                      if choices and isinstance(choices[0], dict) else
                       Spinner(text=initial or choices[0], values=choices,
                               size_hint_y=None, height=dp(52)))
             column.add_widget(widget)
@@ -44,7 +38,8 @@ class GameplayViews:
 
         def apply():
             try:
-                submit({key: widget.text.strip() for key, widget in widgets.items()})
+                submit({key: (widget.selected_id if isinstance(widget, AirportSelector)
+                              else widget.text.strip()) for key, widget in widgets.items()})
             except Exception as exc:
                 self._error(title, exc)
 
@@ -67,11 +62,25 @@ class GameplayViews:
         airports = self.session.airports()
         if self._research_origin not in {a['airport_id'] for a in airports}:
             self._research_origin = self.session.overview()['base_airports'][0]['airport_id']
-        self.content.add_widget(_button('Choose origin', self.choose_research_origin))
+        self._research_origin_selector = AirportSelector(airports, selected_id=self._research_origin)
+        self._research_origin_selector.bind(selected_id=lambda _widget, identity:
+                                            self._set_research_origin(identity))
+        self.content.add_widget(_label('Research origin'))
+        self.content.add_widget(self._research_origin_selector)
+        self._research_destination_selector = AirportSelector(
+            airports, selected_id=self._research_destination, allow_clear=True,
+            placeholder='All destinations')
+        self._research_destination_selector.bind(selected_id=lambda _widget, identity:
+                                                 self._set_research_destination(identity))
+        self.content.add_widget(_label('Research destination filter'))
+        self.content.add_widget(self._research_destination_selector)
         origin = next(a for a in airports if a['airport_id'] == self._research_origin)
         self.content.add_widget(_label(f"Directional opportunities from {airport_label(origin)}"))
         rows = self.session.market_opportunities(origin_airport_id=self._research_origin,
                                                  limit=100)
+        if self._research_destination:
+            rows = [row for row in rows if row['destination_airport_id'] ==
+                    self._research_destination]
         for row in rows:
             fare = '—' if row['player_fare_minor'] is None else self._money(row['player_fare_minor'])
             self.content.add_widget(_label(
@@ -88,12 +97,17 @@ class GameplayViews:
             'Actual bookings depend on fare, schedule, capacity and competition.', height=60))
 
     def choose_research_origin(self):
-        self._list_popup('Market origin', [
-            (airport_label(row), lambda item=row: self._set_research_origin(item['airport_id']))
-            for row in self.session.airports()])
+        self._popup = self._research_origin_selector.open_dropdown()
+
+    def choose_research_destination(self):
+        self._popup = self._research_destination_selector.open_dropdown()
 
     def _set_research_origin(self, airport_id):
         self._research_origin = airport_id
+        self.refresh(force=True)
+
+    def _set_research_destination(self, airport_id):
+        self._research_destination = airport_id or None
         self.refresh(force=True)
 
     def render_acquisition(self):
@@ -188,8 +202,8 @@ class GameplayViews:
         if not self._management_ready():
             return
         locations = self.session.delivery_locations()
-        by_label = {airport_label(row): row['airport_id'] for row in locations}
-        fields = [('delivery', 'Delivery base or hub', tuple(by_label), next(iter(by_label)))]
+        fields = [('delivery', 'Delivery base or hub', locations,
+                   locations[0]['airport_id'])]
         if mode == 'lease':
             fields.extend((
                 ('product', 'Lease product', ('Operating lease', 'Lease-to-own'), 'Operating lease'),
@@ -197,7 +211,7 @@ class GameplayViews:
             ))
 
         def selected(values):
-            location = by_label[values['delivery']]
+            location = values['delivery']
             if mode == 'new':
                 preview = self.session.preview_purchase(item['model_id'], location)
                 message = (f"{item['display_name']} · immediate delivery\n"
@@ -216,7 +230,7 @@ class GameplayViews:
                          f"(+1 cent for first {preview.principal_remainder_installments} months)")
                 message = (f"{item['model_id']} · {values['product']} · {preview.term_years} years\n"
                            f"{terms}; cash may become negative.\n"
-                           f"Immediate delivery to {values['delivery']}")
+                           f"Immediate delivery to {next(airport_label(row) for row in locations if row['airport_id'] == location)}")
                 commit = self.session.accept_lease
             elif mode == 'used':
                 preview = self.session.preview_used_purchase(item['used_listing_id'], location)
@@ -242,203 +256,3 @@ class GameplayViews:
                          [('OK', lambda: None)])
         except Exception as exc:
             self._error('Acquisition rejected', exc)
-
-    def render_scheduling(self):
-        from app.gui.app import _button, _label
-        if self._draft is None:
-            self.content.add_widget(_label(
-                'Choose a parked aircraft to begin a transient weekly draft.', height=62))
-            for row in self.session.fleet(offset=0, limit=100):
-                if row['status'] == 'PARKED':
-                    self.content.add_widget(_button(
-                        f"Plan {row['display_registration']} · {row['model_reference']} at "
-                        f"{row['current_airport_reference_code']}",
-                        lambda item=row: self.start_schedule(item['aircraft_id'])))
-        else:
-            draft = self._draft
-            airports = {a['airport_id']: a['reference_code'] for a in self.session.airports()}
-            self.content.add_widget(_label(
-                f"Draft aircraft {draft.aircraft_id} · current stop {airports[draft.last_stop]}\n"
-                f"{len(draft.legs)} unsaved leg(s). Philippine local dates and times.", height=78))
-            for leg in draft.legs:
-                self.content.add_widget(_label(
-                    f"{leg['service_type']}  {airports[leg['origin_airport_id']]} → "
-                    f"{airports[leg['destination_airport_id']]}  "
-                    f"{leg['departure_utc']} UTC  Fare {self._money(leg['fare_minor'])}",
-                    height=65))
-            for text, action in [
-                ('Add flight or positioning leg', self.show_add_leg),
-                ('Add earliest return', self.add_return),
-                ('Copy draft day', self.show_copy_day),
-                ('Undo last leg', self.undo_leg),
-                ('Save and publish draft', self.show_save_schedule),
-                ('Discard draft', self.discard_schedule),
-            ]:
-                self.content.add_widget(_button(text, action))
-        self.content.add_widget(_button(
-            'Publish next rotation of active schedules', self.publish_next_schedule))
-
-    def start_schedule(self, aircraft_id):
-        if not self._management_ready():
-            return
-        try:
-            self._draft = self.session.begin_scheduling(aircraft_id)
-            self.refresh(force=True)
-        except Exception as exc:
-            self._error('Weekly planner', exc)
-
-    def show_add_leg(self):
-        if self._draft is None or not self._management_ready():
-            return
-        airports = self.session.airports()
-        by_label = {airport_label(row): row['airport_id'] for row in airports}
-        origin_label = next(label for label, aid in by_label.items()
-                            if aid == self._draft.last_stop)
-        dest_label = next(label for label, aid in by_label.items()
-                          if aid != self._draft.last_stop)
-        fields = [
-            ('origin', 'Origin (aircraft must be present or explicitly positioned)',
-             tuple(by_label), origin_label),
-            ('destination', 'Destination', tuple(by_label), dest_label),
-            ('date', 'Earliest local departure date YYYY-MM-DD', None,
-             self.session.default_operating_date()),
-            ('time', 'Earliest local time HH:MM', None, '08:00'),
-            ('timing', 'Departure timing', ('Earliest available', 'Exact local time'), 'Earliest available'),
-            ('fare', 'Economy fare USD (passenger leg)', None, '99.00'),
-            ('service', 'Service', ('Passenger', 'Positioning'), 'Passenger'),
-            ('position', 'If aircraft is elsewhere',
-             ('Reject', 'Add explicit positioning flight'), 'Reject'),
-        ]
-
-        def decorate(column, widgets, key):
-            if key != 'fare':
-                return
-            from app.gui.app import _button, _label
-            suggestion = _label('', height=72)
-            column.add_widget(suggestion)
-            value = {'minor': None}
-
-            def update(*_args):
-                try:
-                    minor = self.session.suggested_economy_fare(
-                        by_label[widgets['origin'].text],
-                        by_label[widgets['destination'].text])
-                except ValueError:
-                    minor = None
-                value['minor'] = minor
-                suggestion.text = (
-                    'Suggested Economy fare unavailable for this market.' if minor is None
-                    else f'Suggested Economy fare: {self._money(minor)}. '
-                         'Reference only; not a profit or booking guarantee.'
-                )
-
-            def use_suggestion():
-                if value['minor'] is not None:
-                    widgets['fare'].text = f"{value['minor'] // 100}.00"
-
-            widgets['origin'].bind(text=update)
-            widgets['destination'].bind(text=update)
-            column.add_widget(_button('Use Suggested Fare', use_suggestion))
-            update()
-
-        def selected(values):
-            origin, dest = by_label[values['origin']], by_label[values['destination']]
-            floor = format_utc(local_departure(self.session.world['world_state'],
-                                               origin, values['date'], values['time']))
-            working = deepcopy(self._draft)
-            if origin != working.last_stop and values['position'] == 'Add explicit positioning flight':
-                positioning = working.earliest(working.last_stop, origin, not_before=floor)
-                working.add(working.last_stop, origin, departure_utc=positioning,
-                            deadhead=True)
-            departure = (working.earliest(origin, dest, not_before=floor)
-                         if values['timing'] == 'Earliest available' else floor)
-            fare = parse_usd_fare(values['fare']) if values['service'] == 'Passenger' else 0
-            working.add(origin, dest, departure_utc=departure, fare_minor=fare,
-                        deadhead=values['service'] == 'Positioning')
-            self._draft = working
-            self._dismiss()
-            self.refresh(force=True)
-
-        self._choice_form('Add weekly leg', fields, selected, decorate=decorate)
-
-    def add_return(self):
-        if self._draft is None or not self._management_ready():
-            return
-        try:
-            working = deepcopy(self._draft)
-            working.add_return()
-            self._draft = working
-            self.refresh(force=True)
-        except Exception as exc:
-            self._error('Add return', exc)
-
-    def show_copy_day(self):
-        if self._draft is None or not self._management_ready():
-            return
-        self._choice_form('Copy draft day', [
-            ('source', 'Source local date YYYY-MM-DD', None,
-             self.session.default_operating_date()),
-            ('target', 'Target local date YYYY-MM-DD', None, ''),
-        ], self._copy_day)
-
-    def _copy_day(self, values):
-        working = deepcopy(self._draft)
-        working.copy_day(values['source'], values['target'])
-        self._draft = working
-        self._dismiss()
-        self.refresh(force=True)
-
-    def undo_leg(self):
-        if self._draft is not None:
-            self._draft.undo()
-            self.refresh(force=True)
-
-    def discard_schedule(self):
-        self._draft = None
-        self.refresh(force=True)
-
-    def show_save_schedule(self):
-        if self._draft is None or not self._management_ready():
-            return
-        self._choice_form('Save weekly schedule', [
-            ('repeat', 'Optional inclusive repeat-through local date YYYY-MM-DD '
-             '(blank = chosen dates only)', None, ''),
-        ], self._review_schedule)
-
-    def _review_schedule(self, values):
-        repeat = values['repeat'] or None
-        if repeat is not None and date.fromisoformat(repeat).isoformat() != repeat:
-            raise ValueError('use canonical YYYY-MM-DD')
-        self._dismiss()
-        self._dialog('Publish schedule',
-                     f"Save {len(self._draft.legs)} draft leg(s)"
-                     + (f" weekly through {repeat}?" if repeat
-                        else ' on their selected dates?'), [
-                         ('Save and publish', lambda: self._save_schedule(repeat)),
-                         ('Cancel', lambda: None)])
-
-    def _save_schedule(self, repeat):
-        try:
-            result = self.session.save_scheduling(self._draft, repeat_until=repeat)
-            self._draft = None
-            self.refresh(force=True)
-            self._dialog('Schedule published',
-                         f"Published {len(result.created_dated_flight_ids)} dated flight(s).",
-                         [('OK', lambda: None)])
-        except Exception as exc:
-            self._error('Schedule rejected', exc)
-
-    def publish_next_schedule(self):
-        if not self._management_ready():
-            return
-        try:
-            result = self.session.publish_next_rotation()
-            if not result.succeeded:
-                issue = result.issues[0]
-                raise ValueError(f'{issue.code}: {issue.message}')
-            self.refresh(force=True)
-            self._dialog('Next rotation',
-                         f"Published {len(result.dated_flight_ids)} flights.",
-                         [('OK', lambda: None)])
-        except Exception as exc:
-            self._error('Next rotation rejected', exc)

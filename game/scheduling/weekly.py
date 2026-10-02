@@ -72,6 +72,7 @@ class WeeklyDraft:
         self.airline_id = airline_id
         self.aircraft_id = aircraft_id
         self._legs = []
+        self._undo_stack = []
 
     @property
     def legs(self):
@@ -220,6 +221,7 @@ class WeeklyDraft:
             raise ValueError('REPOSITIONING_REQUIRED: add an explicit positioning flight')
         # A later movement may temporarily need a bridging leg while drafting.
         # Publication validates the entire chain atomically at Save.
+        self._undo_stack.append(deepcopy(self._legs))
         self._legs = self._legs + [leg]
         return deepcopy(leg)
 
@@ -247,10 +249,79 @@ class WeeklyDraft:
             candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
                           departure_utc=format_utc(parse_canonical_utc(leg['departure_utc']) + (target-source)),
                           fare_minor=leg['fare_minor'], deadhead=leg['service_type'] == 'DEADHEAD')
+        self._undo_stack.append(original)
         self._legs = candidate._legs
 
+    def copy_selection(self, indices):
+        """Return detached relative offsets; this clipboard is never world state."""
+        if not indices or any(type(index) is not int or index < 0 or index >= len(self._legs)
+                              for index in indices) or len(set(indices)) != len(indices):
+            raise ValueError("select one or more draft flights")
+        selected = sorted((self._legs[index] for index in indices),
+                          key=lambda leg: leg["departure_utc"])
+        anchor = parse_canonical_utc(selected[0]["departure_utc"])
+        return {"contract": "WEEKLY_DRAFT_CLIPBOARD_V1",
+                "aircraft_id": self.aircraft_id,
+                "legs": tuple({
+                    "origin_airport_id": leg["origin_airport_id"],
+                    "destination_airport_id": leg["destination_airport_id"],
+                    "offset_seconds": int((parse_canonical_utc(leg["departure_utc"]) - anchor).total_seconds()),
+                    "fare_minor": leg["fare_minor"],
+                    "service_type": leg["service_type"],
+                } for leg in selected)}
+
+    def paste_sequence(self, clipboard, target_date, target_time):
+        """Revalidate a translated sequence atomically against draft authority."""
+        if (type(clipboard) is not dict
+                or clipboard.get("contract") != "WEEKLY_DRAFT_CLIPBOARD_V1"
+                or clipboard.get("aircraft_id") != self.aircraft_id
+                or type(clipboard.get("legs")) not in (tuple, list)
+                or not clipboard["legs"]):
+            raise ValueError("clipboard does not belong to this aircraft draft")
+        legs = clipboard["legs"]
+        if (any(type(leg) is not dict or set(leg) != {
+                "origin_airport_id", "destination_airport_id", "offset_seconds",
+                "fare_minor", "service_type"} for leg in legs)
+                or any(type(leg["offset_seconds"]) is not int or leg["offset_seconds"] < 0
+                       or type(leg["fare_minor"]) is not int or leg["fare_minor"] < 0
+                       or leg["service_type"] not in {"PASSENGER", "DEADHEAD"}
+                       or type(leg["origin_airport_id"]) is not str
+                       or type(leg["destination_airport_id"]) is not str
+                       for leg in legs)
+                or legs[0]["offset_seconds"] != 0
+                or any(left["offset_seconds"] > right["offset_seconds"]
+                       for left, right in zip(legs, legs[1:]))):
+            raise ValueError("invalid weekly draft clipboard")
+        start = local_departure(self._base["world_state"],
+                                legs[0]["origin_airport_id"], target_date, target_time)
+        candidate = deepcopy(self)
+        for index, leg in enumerate(legs):
+            departure = format_utc(start + timedelta(seconds=leg["offset_seconds"]))
+            try:
+                candidate.add(leg["origin_airport_id"], leg["destination_airport_id"],
+                              departure_utc=departure, fare_minor=leg["fare_minor"],
+                              deadhead=leg["service_type"] == "DEADHEAD")
+            except (ValueError, KeyError) as exc:
+                detail = str(exc)
+                if index == 0:
+                    try:
+                        alternative = self.earliest(leg["origin_airport_id"],
+                            leg["destination_airport_id"], not_before=departure)
+                        if alternative != departure:
+                            zone = load_named_timezone("Asia/Manila")
+                            local = parse_canonical_utc(alternative).astimezone(zone)
+                            detail += f"; earliest available start: {local:%Y-%m-%d %H:%M}"
+                    except (ValueError, KeyError):
+                        pass
+                raise ValueError(f"Pasted flight {index + 1} rejected: {detail}") from exc
+        self._undo_stack.append(deepcopy(self._legs))
+        self._legs = candidate._legs
+        return len(legs)
+
     def undo(self):
-        if self._legs:
+        if self._undo_stack:
+            self._legs = self._undo_stack.pop()
+        elif self._legs:
             self._legs.pop()
 
     def save(self, envelope, *, repeat_until=None):
@@ -264,14 +335,11 @@ class WeeklyDraft:
         self._base = deepcopy(candidate)
         self._fingerprint = _bytes(candidate)
         self._legs = []
+        self._undo_stack = []
         return published
 
-    def save_current(self, envelope, *, repeat_until=None):
-        """Revalidate explicit draft legs against current authority, atomically.
-
-        Runtime navigation may advance the world. Never overwrite it with the
-        old draft snapshot, shift departures, or silently add positioning.
-        """
+    def validate_current(self, envelope):
+        """Check draft legs against current authority without publishing."""
         current = WeeklyDraft(envelope, airline_id=self.airline_id,
                               aircraft_id=self.aircraft_id)
         for leg in self._legs:
@@ -280,21 +348,35 @@ class WeeklyDraft:
                         deadhead=leg['service_type'] == 'DEADHEAD')
             if current._legs[-1]['planning_timing'] != leg['planning_timing']:
                 raise ValueError('STALE_DRAFT: aircraft timing changed; reopen the planner')
+        return current
+
+    def save_current(self, envelope, *, repeat_until=None):
+        """Revalidate explicit draft legs against current authority, atomically.
+
+        Runtime navigation may advance the world. Never overwrite it with the
+        old draft snapshot, shift departures, or silently add positioning.
+        """
+        current = self.validate_current(envelope)
         result = current.save(envelope, repeat_until=repeat_until)
         self._base = current._base
         self._fingerprint = current._fingerprint
         self._legs = []
+        self._undo_stack = []
         return result
 
     def week_rows(self, week_date):
         start = monday(date.fromisoformat(week_date))
         zone = load_named_timezone('Asia/Manila')
         rows = []
+        draft_indices = {(leg["departure_utc"], leg["origin_airport_id"],
+                          leg["destination_airport_id"]): index
+                         for index, leg in enumerate(self._legs)}
         for block_start, block_end, departure, arrival, origin, destination in self._movements():
             local_start, local_end = block_start.astimezone(zone), block_end.astimezone(zone)
             if local_start.date() <= start + timedelta(days=6) and local_end.date() >= start:
                 rows.append({'origin_airport_id': origin, 'destination_airport_id': destination,
                              'reserved_from': local_start.isoformat(), 'reserved_until': local_end.isoformat(),
                              'departure_local': departure.astimezone(zone).isoformat(),
-                             'arrival_local': arrival.astimezone(zone).isoformat()})
+                             'arrival_local': arrival.astimezone(zone).isoformat(),
+                             'draft_index': draft_indices.get((format_utc(departure), origin, destination))})
         return rows

@@ -2,6 +2,31 @@
 
 Last updated: **2026-10-02**. Current snapshot, not operational authorization.
 
+## Weekly Kivy scheduling workspace (2026-10-02 working tree)
+
+On the working tree based on `9d81352f0d87e126e0571a4e667805acb1552cb1`,
+the Schedule screen presents a selected aircraft's Monday-Sunday PH-local time
+grid, distinguishes unpublished draft blocks from published reservations, and
+provides day selection, Add Flight, Copy Selected, Copy Day, relative-time Paste,
+Undo, and Review & Publish. Copy/paste uses detached `WeeklyDraft` intent and
+replays through the domain's existing validation atomically; it is not saved in
+the canonical world. A GUI-local searchable airport selector uses current
+projected code, city and display name and is available for New Game base,
+Research origin/destination, scheduling endpoints and delivery location.
+Acquire's manufacturer/model/product workflow and all scheduling, Booking and
+simulation formulas remain unchanged. Weekly repeat retains an explicit finite
+end date; indefinite-until-stopped recurrence requires a separate approved
+player contract. Python 3.12.14 / Kivy 2.3.1 verification on this working tree:
+the affected GUI/scheduling suite passed 56 tests in 68.527 s;
+`python -m unittest discover -s tests -q` passed 636 tests in 553.337 s;
+`python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+exited 0. A temporary-career Kivy smoke searched DVO by code, city and name;
+planned Monday 08:00 MNL-DVO and 10:10 return; copied/pasted the pair to
+Wednesday 14:00 and 16:10; rejected a conflicting duplicate; published and
+completed four flights; inspected Fleet, Flights and Finance; then saved and
+reloaded the career paused. The GUI operations used current session/domain
+boundaries and no production save data.
+
 ## Fresh PH starter grant (2026-10-02 working tree)
 
 On the working tree based on `ba77534091d9e9e746d13ea850938818d38100d6`, the approved schema-7 `STARTER_GRANT` provenance now supplies one player-owned,

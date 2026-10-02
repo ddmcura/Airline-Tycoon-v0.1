@@ -17,6 +17,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 
 from app.gui.app import AirlineTycoonApp
+from app.gui.airport_selector import AirportSelector
 from app.session import Stage1Session
 from app.terminal.session import Stage1Session as TerminalSession
 from game.economy.fare_reference import suggested_economy_fare_minor
@@ -129,22 +130,22 @@ class GameplayGuiTests(unittest.TestCase):
         self.app.show_view('Schedule')
         self.app.start_schedule(aircraft_id)
         self.app.show_add_leg()
-        airport_spinners = [w for w in self.form_fields() if isinstance(w, Spinner)
-                            and any(value.startswith('MNL - ') for value in w.values)]
-        origin = next(w for w in airport_spinners if w.text.startswith('MNL - '))
-        destination = next(w for w in airport_spinners if w is not origin)
-        destination.text = next(value for value in destination.values if value.startswith('DVO - '))
+        selectors = [w for w in self.app._popup.content.walk()
+                     if isinstance(w, AirportSelector)]
+        origin = next(w for w in selectors if w.selected_id == airports['MNL'])
+        destination = next(w for w in selectors if w is not origin)
+        destination.select(airports['DVO'])
         labels = [w.text for w in self.app._popup.content.walk() if isinstance(w, Label)]
         self.assertTrue(any('Suggested Economy fare: USD 116.00' in text for text in labels))
         self.click('Use Suggested Fare')
         fare = next(w for w in self.form_fields() if isinstance(w, TextInput) and w.text == '116.00')
         fare.text = '130.25'
         self.assertEqual(fare.text, '130.25')
-        destination.text = next(value for value in destination.values if value.startswith('CEB - '))
+        destination.select(airports['CEB'])
         labels = [w.text for w in self.app._popup.content.walk() if isinstance(w, Label)]
         self.assertFalse(any('Suggested Economy fare: USD 116.00' in text for text in labels))
         self.assertEqual(fare.text, '130.25')
-        destination.text = next(value for value in destination.values if value.startswith('DVO - '))
+        destination.select(airports['DVO'])
         self.click('Use Suggested Fare')
         self.assertEqual(fare.text, '116.00')
         self.assertEqual(session.authoritative_bytes(), before)
@@ -272,8 +273,9 @@ class GameplayGuiTests(unittest.TestCase):
         self.app.start_schedule(aircraft['aircraft_id'])
         before = session.authoritative_bytes()
         self.app.show_add_leg()
-        spinners = [w for w in self.form_fields() if isinstance(w, Spinner)]
-        spinners[1].text = spinners[0].text
+        selectors = [w for w in self.app._popup.content.walk()
+                     if isinstance(w, AirportSelector)]
+        selectors[1].select(selectors[0].selected_id)
         self.click('Continue')
         self.assertEqual(session.authoritative_bytes(), before)
         self.assertEqual(len(self.app._draft.legs), 0)
@@ -286,7 +288,7 @@ class GameplayGuiTests(unittest.TestCase):
         self.assertEqual(len(self.app._draft.legs), 2)
         self.app.show_save_schedule()
         self.click('Continue')
-        self.click('Save and publish')
+        self.click('Publish Schedule')
         self.assertIsNone(self.app._draft)
         self.assertTrue(session.flights(limit=100))
         self.assertTrue(session.validate())
