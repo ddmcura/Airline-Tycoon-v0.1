@@ -6,7 +6,9 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from game.simulation.kernel import DEFAULT_EVENT_HANDLERS, schedule_event
+from game.simulation.kernel import (
+    DEFAULT_EVENT_HANDLERS, _EVENT_TRANSACTION_TOKEN, schedule_event,
+)
 from game.world_state.ids import allocate_id
 from game.world_state.schema import (
     AGGREGATE_BOOKING_CONTRACT,
@@ -270,6 +272,7 @@ def _canonical_batches(plan, world):
 def prepare_daily_booking_checkpoint(
     envelope, *, multipliers_by_market=None, demand_indexes=None,
     activation_providers=None, dated_flight_indexes=None,
+    _event_transaction=False,
 ):
     """Return detached exact witnesses for ``process_daily_booking_checkpoint``.
 
@@ -279,8 +282,8 @@ def prepare_daily_booking_checkpoint(
     """
     checkpoint_date, _revision = _observed(envelope)
     try:
-        validation = validate_world(envelope)
-        if not validation.is_valid:
+        validation = None if _event_transaction is _EVENT_TRANSACTION_TOKEN else validate_world(envelope)
+        if validation is not None and not validation.is_valid:
             issue = validation.errors[0]
             return BookingCheckpointPreparation(
                 "REJECTED", checkpoint_date, {},
@@ -311,6 +314,7 @@ def prepare_daily_booking_checkpoint(
             dated_flight_indexes=dated_flight_indexes,
             _derive_expected_inventory=True,
             _validated=True,
+            _event_transaction=_event_transaction,
         )
         if not plan.succeeded:
             issue = plan.issues[0]
@@ -364,15 +368,17 @@ def process_daily_booking_checkpoint(
     expected_finance_revisions, expected_event_order_cursor,
     multipliers_by_market=None, demand_indexes=None, activation_providers=None,
     dated_flight_indexes=None,
+    _event_transaction=False,
 ):
     """Atomically persist the current UTC date's complete Booking outcome."""
-    try:
-        validation = validate_world(envelope)
-    except Exception as exc:
-        return _reject(envelope, "INVALID_WORLD_STATE", _message(exc))
-    if not validation.is_valid:
-        issue = validation.errors[0]
-        return _reject(envelope, "INVALID_WORLD_STATE", issue.message, issue.path)
+    if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+        try:
+            validation = validate_world(envelope)
+        except Exception as exc:
+            return _reject(envelope, "INVALID_WORLD_STATE", _message(exc))
+        if not validation.is_valid:
+            issue = validation.errors[0]
+            return _reject(envelope, "INVALID_WORLD_STATE", issue.message, issue.path)
     if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6, 7):
         return _reject(envelope, "INVALID_WORLD_STATE", "Booking checkpoints require schema 3")
     checkpoint_date = envelope["simulation"]["time_utc"][:10]
@@ -428,6 +434,8 @@ def process_daily_booking_checkpoint(
             multipliers_by_market=multipliers_by_market, demand_indexes=demand_indexes,
             activation_providers=activation_providers,
             dated_flight_indexes=dated_flight_indexes,
+            _validated=_event_transaction is _EVENT_TRANSACTION_TOKEN,
+            _event_transaction=_event_transaction,
         )
         if not plan.succeeded:
             issue = plan.issues[0]
@@ -599,10 +607,11 @@ def process_daily_booking_checkpoint(
             priority=BOOKING_CHECKPOINT_EVENT_PRIORITY,
             payload={"checkpoint_date": due[:10]},
         )
-        final = validate_world(candidate)
-        if not final.is_valid:
-            issue = final.errors[0]
-            raise ValueError(f"{issue.code}: {issue.path}: {issue.message}")
+        if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+            final = validate_world(candidate)
+            if not final.is_valid:
+                issue = final.errors[0]
+                raise ValueError(f"{issue.code}: {issue.path}: {issue.message}")
         result = BookingCheckpointResult(
             "COMPLETED", checkpoint_id, checkpoint_date, expected_booking_revision,
             resulting_revision, False, plan.requested_passengers, plan.selected_passengers,
@@ -648,16 +657,17 @@ def _event_handler(context):
             expected_inventory_revisions={},
             expected_finance_revisions={},
             expected_event_order_cursor=0,
+            _event_transaction=context._transaction_token,
         )
         if not reused.succeeded or not reused.reused:
             raise ValueError(
                 reused.issues[0].message if reused.issues else "completed checkpoint was not reusable"
             )
         return
-    prepared = prepare_daily_booking_checkpoint(envelope)
+    prepared = prepare_daily_booking_checkpoint(envelope, _event_transaction=context._transaction_token)
     if not prepared.succeeded:
         raise ValueError(prepared.issues[0].message)
-    result = process_daily_booking_checkpoint(envelope, **prepared.as_kwargs())
+    result = process_daily_booking_checkpoint(envelope, **prepared.as_kwargs(), _event_transaction=context._transaction_token)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 

@@ -2,6 +2,66 @@
 
 Last updated: **2026-10-02**. Current snapshot, not operational authorization.
 
+## GUI/runtime scaling correction (2026-10-02 working tree)
+
+On the working tree based on `666300b3af2e7c0b5b10a8c6a0ef9209f89ef877`,
+a temporary-career benchmark reproduced history-dependent GUI latency with
+one A320neo and 14 published flights. The GUI recomputed the airline overview
+and finance projections even for unrelated views; Research requested another
+overview. One Research navigation performed four full-world validations.
+Booking's isolated daily checkpoint event repeatedly validated nested detached
+candidates (16 calls in the Day 1 profile), and the session validated the
+kernel's completed event report once more. Validator traversal itself was
+linear with accumulated state; the alias check was one contributor, not a
+pathological loop. Windows working set grew from about 99 MB at Day 0 to
+138 MB at Day 90 as bookings/history accumulated, then the booking count
+stabilized at 378. The measured bottleneck was CPU work, not runaway RAM.
+
+The GUI now reads a fresh, bounded airline header and next pending event from
+the session-owned world instead of invoking unrelated public projections.
+Public arbitrary-envelope projections retain full validation. Successful
+kernel reports read bounded event rows from the just-validated transaction.
+The built-in Booking event alone carries a private kernel context token through
+its nested preparation/allocation/shopping/Model 4 derivations; those intermediate
+full-world scans are omitted only for the isolated candidate. The kernel still
+validates input, the completed event candidate, and the final clock state.
+Public Booking/Model 4 commands and indexes still validate callers. The
+event transaction, save schema, deterministic booking/economy rules, history,
+and authoritative data were unchanged; no persistent cache or worker thread
+was introduced.
+
+The repeatable harness is `python -m tests.profile_gui_growth --max-day 90`.
+Baseline and optimized checkpoints contained identical serialized sizes and
+counts: 372,156 bytes/0 bookings at Day 0; 699,357/98 at Day 1;
+2,292,486/378 at Day 7; 3,567,269/378 at Day 30; 3,629,816/378
+at Day 90. With the same one-aircraft schedule, Day 0 to 1 advanced in
+1.049 to 0.487 s, Day 1 to 7 in 17.333 to 8.513 s, Day 7 to 30 in
+151.819 to 58.918 s, and Day 30 to 90 in 320.438 to 106.378 s. Research
+navigation changed from 0.211 to 0.092 s at Day 0, 0.274 to 0.115 s at
+Day 1, 0.802 to 0.241 s at Day 7, 0.839 to 0.318 s at Day 30, and
+1.053 to 0.325 s at Day 90. Day 90 Overview navigation changed from
+0.881 to 0.001 s. Full standalone `validate_world` at Day 90 remained
+about 0.26-0.27 s; public projection costs were unchanged.
+These are local elapsed measurements, not CI thresholds.
+
+A seven-day aged temporary-career Kivy 7x smoke switched Overview/Fleet/
+Research/Schedule in 0.001/0.180/0.259/0.186 s respectively, then paused
+successfully with 378 bookings and two completed flight results. Larger jumps
+remain CPU-bound: each committed event still requires whole-world transaction
+copying and final validation, and public view projections still validate the
+growing envelope. Fleet-size and years-long history scaling need a later
+bounded-projection/transaction-cost milestone with its own correctness design.
+
+Python 3.12.14 / Kivy 2.3.1 verification on this working tree:
+`python -m unittest discover -s tests -q` passed 656 tests in 453.941 s;
+the focused booking/Model 4 suite passed 99 tests; the four structural
+performance tests passed in 7.584 s. They cover the three remaining
+kernel validation calls, public invalid-world rejection, fresh GUI reads,
+and byte-equivalent booked event outcomes versus the fully validated
+nested path. `python -m compileall -q app game tests main.py
+make_snapshot.py settings.py test.py` and `git diff --check` exited 0.
+The final Day 90 benchmark used the same harness and schedule as baseline.
+
 ## Scheduling workspace playtest polish (2026-10-02)
 
 On the working tree based on `116830faa74ff99b90131c4c6545a98010670155`,

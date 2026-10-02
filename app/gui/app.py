@@ -335,11 +335,11 @@ class AirlineTycoonApp(GameplayViews, App):
                       and time.monotonic() - self._last_render_time >= .75)
         if (force or render_due or diagnostic != self._last_diagnostic
                 or autosave_error != self._last_autosave_error):
-            overview = self.session.overview()
-            finance = self.session.finances()
+            overview = self.session.header()
+            self._header = overview
             self.identity.text = (f"{overview['airline_display_name']}  |  CEO {overview['ceo_display_name']}"
                                   f"  |  Base {', '.join(row['reference_code'] for row in overview['base_airports'])}")
-            self._cash = finance['cash_minor']
+            self._cash = overview['cash_minor']
             self._last_revision = self.session.progression_revision
             self._last_render_time = time.monotonic()
             self._last_diagnostic = diagnostic
@@ -363,7 +363,7 @@ class AirlineTycoonApp(GameplayViews, App):
         self.content.add_widget(_label(view, height=40))
         if view == 'Overview':
             self.content.add_widget(_label('PH 1.0 Normal career. Manage time here; fleet, flights and finances remain visible while running.', height=72))
-            next_event = self.session.next_event()
+            next_event = self.session.next_event_for_display()
             if next_event:
                 self.content.add_widget(_label(f"Next: {next_event['event_type']} at {next_event['due_at_utc']}", height=65))
             if self.session.runtime and self.session.runtime.diagnostic:

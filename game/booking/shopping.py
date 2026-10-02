@@ -18,6 +18,7 @@ from game.demand import (
     resolve_active_daily_cohorts,
 )
 from game.scheduling import DatedFlightIndexes, rebuild_dated_flight_indexes
+from game.simulation.kernel import _EVENT_TRANSACTION_TOKEN
 from game.world_state.booking_fingerprint import (
     calculate_booking_configuration_fingerprint,
 )
@@ -422,11 +423,13 @@ def rebuild_direct_flight_shopping_indexes(
     envelope,
     *,
     dated_flight_indexes: DatedFlightIndexes | None = None,
+    _event_transaction=False,
 ):
     """Build authoritative 5B indexes; untrusted supplied indexes cannot select work."""
-    validation = validate_world(envelope)
-    if not validation.is_valid:
-        raise ValueError(validation.errors[0].message)
+    if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            raise ValueError(validation.errors[0].message)
     if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6, 7):
         raise ValueError("Booking shopping requires save schema version 3")
     configuration = envelope["simulation"]["configuration"]["booking"]
@@ -705,6 +708,7 @@ def prepare_daily_booking_shopping(
     activation_providers: Sequence[_ActivationProvider] | None = None,
     dated_flight_indexes: DatedFlightIndexes | None = None,
     _validated=False,
+    _event_transaction=False,
 ):
     """Atomically apply today's cohort markers and return detached 5B plans."""
     if not _validated:
@@ -820,6 +824,7 @@ def prepare_daily_booking_shopping(
             activation_providers=isolated_providers,
             dated_flight_indexes=None,
             _validated=True,
+            _event_transaction=_event_transaction,
         )
         if not demand_result.succeeded:
             issue = demand_result.issues[0]
@@ -830,7 +835,8 @@ def prepare_daily_booking_shopping(
             )
             return _reject(candidate, code, issue.message, issue.path)
         shopping_indexes = rebuild_direct_flight_shopping_indexes(
-            candidate, dated_flight_indexes=None
+            candidate, dated_flight_indexes=None,
+            _event_transaction=_event_transaction,
         )
         resolutions = _current_date_resolutions(
             candidate, demand_result, cohort_date

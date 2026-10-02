@@ -8,6 +8,7 @@ from fractions import Fraction
 import hashlib
 import json
 
+from game.simulation.kernel import _EVENT_TRANSACTION_TOKEN
 from game.world_state.schema import BOOKING_CHOICE_POLICY_CONTRACT
 from game.world_state.validation import validate_world
 
@@ -570,6 +571,7 @@ def prepare_daily_booking_allocation(
     dated_flight_indexes=None,
     _derive_expected_inventory=False,
     _validated=False,
+    _event_transaction=False,
 ):
     """Return a detached 5C plan; commit at most the already-approved 5B marker."""
     try:
@@ -591,6 +593,7 @@ def prepare_daily_booking_allocation(
         activation_providers=activation_providers,
         dated_flight_indexes=dated_flight_indexes,
         _validated=_validated,
+        _event_transaction=_event_transaction,
     )
     if not shopping.succeeded:
         issue = shopping.issues[0]
@@ -805,13 +808,14 @@ def prepare_daily_booking_allocation(
             expected_inventory_revisions=relevant,
         ):
             return _reject(envelope, "RESULT_VALIDATION_FAILED", "Booking allocation result failed conservation or topology validation")
-        # Keep the command boundary independently validated even though shopping
-        # already validated its cohort-marker mutation. This preserves the
-        # allocation API's rollback contract under injected/future changes.
-        final_validation = validate_world(candidate)
-        if not final_validation.is_valid:
-            issue = final_validation.errors[0]
-            return _reject(envelope, issue.code, issue.message, issue.path)
+        # Public commands validate their own candidate for rollback. The
+        # kernel's isolated event candidate receives its final validation at
+        # the enclosing event transaction boundary.
+        if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+            final_validation = validate_world(candidate)
+            if not final_validation.is_valid:
+                issue = final_validation.errors[0]
+                return _reject(envelope, issue.code, issue.message, issue.path)
     except Exception as exc:
         message = _exception_message(exc)
         if "choice" in message.lower() or "score" in message.lower():

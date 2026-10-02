@@ -7,6 +7,7 @@ import ast
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from app.gui.app import AirlineTycoonApp
 from app.session import Stage1Session
@@ -92,6 +93,38 @@ class GuiFoundationTests(unittest.TestCase):
             self.app.tick(0)
         self.assertEqual(session.authoritative_bytes(), before)
         self.assertEqual(session.world['simulation']['clock_state'], 'PAUSED')
+
+    def test_owned_gui_header_and_overview_avoid_full_history_validation(self):
+        self.start()
+        session = self.app.session
+        before = session.authoritative_bytes()
+        with patch('game.aircraft_operations.projections.validate_world',
+                   side_effect=AssertionError('redundant aircraft projection validation')), \
+             patch('game.simulation.projections.validate_world',
+                   side_effect=AssertionError('redundant event projection validation')):
+            self.app.show_view('Overview')
+            self.app.refresh(force=True)
+            self.assertEqual(session.header()['cash_minor'], 30_000_000_000)
+        self.assertEqual(session.authoritative_bytes(), before)
+        # Public arbitrary-envelope projections retain their validation boundary.
+        with patch('game.aircraft_operations.projections.validate_world') as validation:
+            validation.return_value.is_valid = False
+            self.assertIsNone(session.overview())
+            validation.assert_called_once()
+        with patch('game.simulation.projections.validate_world') as validation:
+            validation.return_value.is_valid = False
+            self.assertIsNone(session.next_event())
+            validation.assert_called_once()
+
+    def test_successful_advance_report_reads_kernel_validated_event_history(self):
+        self.start()
+        session = self.app.session
+        with patch('game.simulation.projections.validate_world',
+                   side_effect=AssertionError('redundant report validation')):
+            report = session.advance_seconds(86_400)
+        self.assertTrue(report.result.succeeded)
+        self.assertTrue(session.validate())
+        self.assertTrue(report.event_rows)
 
     def test_runtime_pump_pause_resume_and_cooperative_jump(self):
         self.start()

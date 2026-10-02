@@ -28,6 +28,7 @@ from game.world_state.schema import (
     MODEL4_TRAVEL_SCOPE_COHORT_V1,
     TRAVEL_SCOPES,
 )
+from game.simulation.kernel import _EVENT_TRANSACTION_TOKEN
 from game.world_state.validation import validate_world
 
 from .air_suitability import interpolate_air_suitability
@@ -497,10 +498,11 @@ def _derive_origin(envelope, origin_id, effective_country_ids, airports_by_count
     )
 
 
-def rebuild_model4_indexes(envelope, *, indexes=None):
-    validation = validate_world(envelope)
-    if not validation.is_valid:
-        raise ValueError("cannot derive Model 4 indexes for an invalid world")
+def rebuild_model4_indexes(envelope, *, indexes=None, _event_transaction=False):
+    if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+        validation = validate_world(envelope)
+        if not validation.is_valid:
+            raise ValueError("cannot derive Model 4 indexes for an invalid world")
     configuration = envelope["simulation"]["configuration"]["demand"]
     if configuration["model_version"] != MODEL4_DEMAND_MODEL_VERSION:
         raise ValueError("Model 4 is not active")
@@ -864,7 +866,7 @@ def resolve_model4_daily_cohort(envelope, market_id, cohort_date, *, multipliers
     )
 
 
-def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by_market=None, indexes=None, activation_start_utc=None, activation_end_utc=None, activation_providers=None, dated_flight_indexes=None, _validated=False):
+def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by_market=None, indexes=None, activation_start_utc=None, activation_end_utc=None, activation_providers=None, dated_flight_indexes=None, _validated=False, _event_transaction=False):
     from .activation import discover_active_market_ids
 
     multipliers_by_market = {} if multipliers_by_market is None else multipliers_by_market
@@ -880,7 +882,7 @@ def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by
         parsed = date.fromisoformat(cohort_date)
         if parsed.isoformat() != cohort_date or cohort_date != envelope["simulation"]["time_utc"][:10]:
             raise ValueError("Model 4 active processing is limited to the current simulation UTC date")
-        derived = rebuild_model4_indexes(envelope, indexes=indexes)
+        derived = rebuild_model4_indexes(envelope, indexes=indexes, _event_transaction=_event_transaction)
         active_ids = tuple(market_id for market_id in discover_active_market_ids(envelope, start_utc=activation_start_utc, end_utc=activation_end_utc, providers=activation_providers, dated_flight_indexes=dated_flight_indexes, require_model4_pack_authority=True) if market_id in envelope["world_state"]["directional_markets"])
         unknown = [key for key in multipliers_by_market if key not in active_ids]
         if unknown:
@@ -908,9 +910,10 @@ def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by
                 raise TypeError("Model 4 pair baseline must be Decimal")
             cohorts.append(CohortResolution(market_id, cohort_date, payload["actual_daily_bookers"], reused, payload["demand_model_revision"]))
             intents.append(Model4ActiveMarketIntent(market_id, baseline, MappingProxyType(dict(canonical)), payload["actual_daily_bookers"], reused))
-        final = validate_world(candidate)
-        if not final.is_valid:
-            return Model4ActiveDayResult("REJECTED", cohort_date, revision, pack_revision, issues=_validation_issues(final))
+        if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+            final = validate_world(candidate)
+            if not final.is_valid:
+                return Model4ActiveDayResult("REJECTED", cohort_date, revision, pack_revision, issues=_validation_issues(final))
     except (KeyError, TypeError, ValueError, ArithmeticError) as exc:
         message = str(exc)
         code = "UNAVAILABLE_DEMAND_MARKET" if message.startswith("UNAVAILABLE_DEMAND_MARKET:") else "DEMAND_ALLOCATION_FAILED"

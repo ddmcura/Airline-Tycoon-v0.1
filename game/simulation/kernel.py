@@ -27,6 +27,9 @@ EventHandler = Callable[["EventContext"], None]
 StopCondition = Callable[[dict], bool]
 DEFAULT_MAX_EVENTS_PER_ADVANCE = 10_000
 DEFAULT_MAX_GENERATED_EVENTS_PER_ADVANCE = 100
+# Runtime-only capability for built-in nested work on the isolated event candidate.
+# The kernel validates that complete candidate before committing it.
+_EVENT_TRANSACTION_TOKEN = object()
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ class EventHandlerRegistry:
 class EventContext:
     envelope: dict
     event: dict
+    _transaction_token: object | None = None
 
     @property
     def payload(self):
@@ -390,7 +394,7 @@ def _execute_event(envelope, event_id, registry):
     candidate_event = candidate["world_state"]["pending_events"][event_id]
     candidate["simulation"]["time_utc"] = due
     try:
-        handler_result = handler(EventContext(candidate, deepcopy(candidate_event)))
+        handler_result = handler(EventContext(candidate, deepcopy(candidate_event), _EVENT_TRANSACTION_TOKEN))
     except Exception as exc:  # handler boundary deliberately converts to data
         return None, EventFailure("HANDLER_FAILED", str(exc), event_id), ()
     if handler_result is not None:

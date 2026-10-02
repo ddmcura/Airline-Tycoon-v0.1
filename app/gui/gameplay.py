@@ -69,7 +69,7 @@ class GameplayViews(WeeklyWorkspace):
         from app.gui.app import _button, _label
         airports = self.session.airports()
         if self._research_origin not in {a['airport_id'] for a in airports}:
-            self._research_origin = self.session.overview()['base_airports'][0]['airport_id']
+            self._research_origin = self._header['base_airports'][0]['airport_id']
         self._research_origin_selector = AirportSelector(airports, selected_id=self._research_origin)
         self._research_origin_selector.bind(selected_id=lambda _widget, identity:
                                             self._set_research_origin(identity))

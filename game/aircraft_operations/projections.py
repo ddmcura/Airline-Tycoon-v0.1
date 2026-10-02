@@ -229,10 +229,7 @@ def project_airline_fleet(envelope, airline_id, *, limit=20, offset=0):
     return deepcopy(rows[:limit])
 
 
-def project_airline_overview(envelope, airline_id):
-    world = _validated_world(envelope)
-    if world is None or airline_id not in world["airlines"]:
-        return None
+def _overview_row(envelope, world, airline_id):
     airline = world["airlines"][airline_id]
     player = world["player"]
     return deepcopy({
@@ -247,6 +244,25 @@ def project_airline_overview(envelope, airline_id):
         "simulation_time_utc": envelope["simulation"]["time_utc"],
         "clock_state": envelope["simulation"]["clock_state"],
     })
+
+
+def _project_owned_airline_header(envelope, airline_id):
+    """Current read from a session-owned world validated at command boundaries.
+
+    No result cache or authority is retained. Public envelope projections below
+    still validate arbitrary caller-supplied worlds independently.
+    """
+    world = envelope["world_state"]
+    row = _overview_row(envelope, world, airline_id)
+    row["cash_minor"] = _account_balances(world, airline_id)["cash"]
+    return row
+
+
+def project_airline_overview(envelope, airline_id):
+    world = _validated_world(envelope)
+    if world is None or airline_id not in world["airlines"]:
+        return None
+    return _overview_row(envelope, world, airline_id)
 
 
 def project_recent_flight_results(envelope, airline_id, *, limit=10):

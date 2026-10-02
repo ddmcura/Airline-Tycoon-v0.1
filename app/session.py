@@ -13,6 +13,8 @@ from game.aircraft_operations import (
     project_airline_overview,
     project_recent_flight_results,
 )
+from game.aircraft_operations.projections import _project_owned_airline_header
+from game.simulation.projections import _project_event_records_owned, _project_next_pending_event_owned
 from game.aircraft_market.reference_catalog import (
     PH_AIRCRAFT_CATALOG_VERSION,
     load_aircraft_catalog,
@@ -325,6 +327,10 @@ class Stage1Session:
     def overview(self):
         return project_airline_overview(self.world, self.airline_id)
 
+    def header(self):
+        """Fresh bounded identity/cash read for the application-owned world."""
+        return _project_owned_airline_header(self.world, self.airline_id)
+
     def fleet(self, *, offset=0, limit=20):
         return project_airline_fleet(self.world, self.airline_id, offset=offset, limit=limit)
 
@@ -433,6 +439,10 @@ class Stage1Session:
     def next_event(self):
         return project_next_pending_event(self.world)
 
+    def next_event_for_display(self):
+        """Fresh bounded read of session-owned pending events for GUI refresh."""
+        return _project_next_pending_event_owned(self.world)
+
     def default_operating_date(self):
         current = date.fromisoformat(self.world["simulation"]["time_utc"][:10])
         return (current + timedelta(days=6)).isoformat()
@@ -476,7 +486,7 @@ class Stage1Session:
 
     def _report(self, result):
         ids = tuple(result.completed_event_ids) + tuple(result.skipped_event_ids)
-        rows = project_event_records(self.world, ids) or []
+        rows = _project_event_records_owned(self.world, ids) if result.succeeded else (project_event_records(self.world, ids) or [])
         if result.completed_event_ids or result.skipped_event_ids or (
             result.ended_at_utc != result.started_at_utc
         ):

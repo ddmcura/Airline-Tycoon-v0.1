@@ -1069,6 +1069,7 @@ def resolve_active_daily_cohorts(
     activation_providers=None,
     dated_flight_indexes=None,
     _validated=False,
+    _event_transaction=False,
 ):
     """Resolve only today's markets activated by published usable service.
 
@@ -1111,6 +1112,7 @@ def resolve_active_daily_cohorts(
             activation_providers=activation_providers,
             dated_flight_indexes=dated_flight_indexes,
             _validated=True,
+            _event_transaction=_event_transaction,
         )
     simulation_date = envelope["simulation"]["time_utc"][:10]
     if cohort_date != simulation_date:

@@ -23,6 +23,11 @@ def project_next_pending_event(envelope):
     validation = validate_world(envelope)
     if not validation.is_valid:
         return None
+    return _project_next_pending_event_owned(envelope)
+
+
+def _project_next_pending_event_owned(envelope):
+    """Read the next event from a kernel-validated, session-owned envelope."""
     pending = envelope["world_state"]["pending_events"]
     if not pending:
         return None
@@ -47,6 +52,11 @@ def project_event_records(envelope, event_ids, *, limit=100):
     validation = validate_world(envelope)
     if not validation.is_valid:
         return None
+    return _project_event_records_owned(envelope, event_ids, limit=limit)
+
+
+def _project_event_records_owned(envelope, event_ids, *, limit=100):
+    """Read bounded rows from a kernel-validated, session-owned envelope."""
     world = envelope["world_state"]
     rows = []
     for event_id in event_ids[:limit]:
