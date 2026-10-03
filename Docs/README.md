@@ -37,6 +37,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
   7x pacing, management while running, exclusive world ownership and performance gates.
+- [Runtime trusted reads](03%20Technical/Runtime%20Trusted%20Reads.md):
+  Stage 2 session ownership, disposable lookup epochs and measured read performance.
 - [Runtime resolution foundation](03%20Technical/Runtime%20Resolution%20Foundation.md):
   shared strict resolver facade, complete boundaries and exact equivalence oracle.
 - [PH GUI foundation specification](03%20Technical/PH%20GUI%20Foundation%20Technical%20Specification.md):

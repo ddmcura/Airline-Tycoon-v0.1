@@ -1,12 +1,17 @@
 """Detached, bounded Milestone 7 views over aircraft and finance authority."""
 
 from copy import deepcopy
+from dataclasses import dataclass
+from types import MappingProxyType
+from typing import Mapping
+
 
 from game.maintenance.routine import departure_witness, maintenance_expense_minor
 
 from .fulfilment import (
     _PROJECTION_VALIDATION_TOKEN,
     build_confirmed_carriage_manifest,
+    _build_confirmed_carriage_manifest,
     calculate_operating_cost,
 )
 from game.world_state.validation import validate_world
@@ -60,15 +65,18 @@ def _next_flight_event(world, dated_flight_id):
     }
 
 
-def _project_flight(envelope, world, dated_flight_id):
+def _project_flight(envelope, world, dated_flight_id, *, lookup=None):
     flight = world["dated_flights"].get(dated_flight_id)
     if type(flight) is not dict:
         return None
     result = world.get("flight_results", {}).get(dated_flight_id)
-    manifest = build_confirmed_carriage_manifest(
+    manifest = (build_confirmed_carriage_manifest(
         envelope, dated_flight_id,
         _validation_token=_PROJECTION_VALIDATION_TOKEN,
-    )
+    ) if lookup is None else _build_confirmed_carriage_manifest(
+        envelope, dated_flight_id,
+        booking_ids=lookup.booking_ids_by_flight.get(dated_flight_id, ()),
+    ))
     booked = manifest.carried_passenger_count if manifest.succeeded else 0
     booked_paid = manifest.paid_passenger_count if manifest.succeeded else 0
     booked_zero = manifest.zero_fare_passenger_count if manifest.succeeded else 0
@@ -159,7 +167,8 @@ def _project_flight(envelope, world, dated_flight_id):
         "completion_timestamp_utc": completion,
         "completion_transaction_id": transaction_id,
         "result_identity": identity,
-        "next_lifecycle_event": _next_flight_event(world, dated_flight_id),
+        "next_lifecycle_event": (_next_flight_event(world, dated_flight_id)
+            if lookup is None else lookup.next_event(world, dated_flight_id)),
     })
 
 
@@ -184,6 +193,14 @@ def project_airline_flights(envelope, airline_id, *, limit=20, offset=0, statuse
     world = _validated_world(envelope)
     if world is None or type(airline_id) is not str or airline_id not in world["airlines"]:
         return None
+    return _project_airline_flights_owned(envelope, airline_id, limit=limit,
+                                         offset=offset, statuses=statuses)
+
+
+def _project_airline_flights_owned(envelope, airline_id, *, limit=20, offset=0,
+                                  statuses=None, lookup=None):
+    _page_options(limit, offset)
+    world = envelope["world_state"]
     flights = sorted(
         (
             flight for flight in world["dated_flights"].values()
@@ -193,7 +210,7 @@ def project_airline_flights(envelope, airline_id, *, limit=20, offset=0, statuse
         key=lambda flight: (flight["scheduled_off_block_utc"], flight["dated_flight_id"]),
     )
     return deepcopy([
-        _project_flight(envelope, world, flight["dated_flight_id"])
+        _project_flight(envelope, world, flight["dated_flight_id"], lookup=lookup)
         for flight in flights[offset:offset + limit]
     ])
 
@@ -235,6 +252,19 @@ def project_airline_fleet(envelope, airline_id, *, limit=20, offset=0):
     world = _validated_world(envelope)
     if world is None or airline_id not in world["airlines"]:
         return None
+    return _project_airline_fleet_owned(envelope, airline_id, limit=limit, offset=offset)
+
+
+def _page_options(limit, offset):
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 0 <= limit <= 100:
+        raise ValueError("limit must be an integer from 0 through 100")
+    if type(offset) is not int or offset < 0:
+        raise ValueError("offset must be a non-negative integer")
+
+
+def _project_airline_fleet_owned(envelope, airline_id, *, limit=20, offset=0):
+    _page_options(limit, offset)
+    world = envelope["world_state"]
     rows = []
     selected = sorted(key for key, aircraft in world['aircraft'].items()
                       if aircraft['airline_id'] == airline_id
@@ -293,6 +323,12 @@ def project_recent_flight_results(envelope, airline_id, *, limit=10):
     airline = world["airlines"].get(airline_id)
     if type(airline) is not dict:
         return None
+    return _project_recent_flight_results_owned(envelope, airline_id, limit=limit)
+
+
+def _project_recent_flight_results_owned(envelope, airline_id, *, limit=10, lookup=None):
+    world = envelope["world_state"]
+    airline = world["airlines"][airline_id]
     results = sorted(
         (result for result in world.get("flight_results", {}).values()
          if result.get("airline_id") == airline_id),
@@ -319,7 +355,7 @@ def project_recent_flight_results(envelope, airline_id, *, limit=10):
         "passenger_revenue_minor": balances["passenger_revenue"],
         "operating_expenses_minor": balances["operating_expenses"],
         "recent_results": [
-            _project_flight(envelope, world, item["dated_flight_id"])
+            _project_flight(envelope, world, item["dated_flight_id"], lookup=lookup)
             for item in results[:limit]
         ],
         "recent_transactions": [
@@ -344,3 +380,43 @@ __all__ = (
     "project_airline_fleet", "project_airline_flights", "project_airline_overview",
     "project_flight_fulfilment", "project_recent_flight_results",
 )
+
+
+@dataclass(frozen=True)
+class _OperationsLookup:
+    """Immutable IDs only, private to one validated session read epoch."""
+
+    booking_ids_by_flight: Mapping[str, tuple[str, ...]]
+    next_event_id_by_flight: Mapping[str, str]
+
+    def next_event(self, world, flight_id):
+        event_id = self.next_event_id_by_flight.get(flight_id)
+        if event_id is None:
+            return None
+        event = world["pending_events"][event_id]
+        return {key: event[key] for key in ("event_id", "event_type", "due_at_utc")}
+
+
+def _build_operations_lookup(envelope):
+    """Build once per owned read epoch, never for a handler candidate."""
+    # Booking's package also exposes handlers; defer this import until an owned
+    # session read so importing projections cannot incidentally register them.
+    from game.booking.indexes import rebuild_booking_indexes
+
+    world = envelope["world_state"]
+    bookings = (rebuild_booking_indexes(envelope).booking_ids_by_dated_flight_id
+                if envelope["metadata"]["save_schema_version"] >= 3 else None)
+    if bookings is None:
+        return None  # Old public compatibility remains the original full scan.
+    def order(row):
+        return (row["due_at_utc"], *row["order_key"], row["event_id"])
+
+    events = {}
+    for event in world["pending_events"].values():
+        if event.get("owner_type") != "dated_flight":
+            continue
+        key = event["owner_id"]
+        if key not in events or order(event) < order(events[key]):
+            events[key] = event
+    return _OperationsLookup(bookings, MappingProxyType({
+        key: row["event_id"] for key, row in events.items()}))

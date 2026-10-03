@@ -180,6 +180,19 @@ def build_confirmed_carriage_manifest(
             return empty(FlightFulfilmentIssue(
                 "INVALID_WORLD_STATE", issue.message, issue.path
             ))
+    return _build_confirmed_carriage_manifest(envelope, dated_flight_id)
+
+
+def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids=None):
+    """Same manifest rules; private read lookup requires validated owner context.
+
+    Event handlers/public callers keep the full scan. A session read snapshot can
+    supply its immutable source-bound IDs; no index authorizes any mutation.
+    """
+    empty = lambda issue: FlightManifest(
+        dated_flight_id if type(dated_flight_id) is str else "",
+        (), (), (), (), 0, 0, 0, 0, "", (), (), (issue,),
+    )
     if type(dated_flight_id) is not str:
         return empty(FlightFulfilmentIssue(
             "INVALID_FLIGHT_ID", "dated flight ID must be a string",
@@ -207,7 +220,7 @@ def build_confirmed_carriage_manifest(
         ))
 
     rows = []
-    for booking_id in sorted(world["bookings"]):
+    for booking_id in (sorted(world["bookings"]) if booking_ids is None else booking_ids):
         booking = world["bookings"][booking_id]
         if (
             type(booking) is not dict

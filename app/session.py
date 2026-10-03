@@ -8,11 +8,9 @@ from datetime import date, timedelta
 import json
 
 from game.aircraft_operations import (
-    project_airline_fleet,
-    project_airline_flights,
     project_airline_overview,
-    project_recent_flight_results,
 )
+from .owned_reads import _OwnedReadViews
 from game.aircraft_operations.projections import (
     _project_owned_airline_header, _project_owned_scheduling_aircraft)
 from game.simulation.projections import _project_event_records_owned, _project_next_pending_event_owned
@@ -76,6 +74,40 @@ class Stage1Session:
         self._bulk_work = None
 
     @property
+    def world(self):
+        """Borrowed authority for existing commands; callers must not write rows.
+
+        Rebinding arbitrary input revokes read trust. Production mutations are
+        serialized session/domain commands, never frontend writes.
+        """
+        return self._world
+
+    @world.setter
+    def world(self, value):
+        self._world = value
+        self._read_views = None
+
+    def _bind_owned_reads(self):
+        self._read_views = _OwnedReadViews(self.world, self.progression_revision)
+
+    def _owned_reads(self):
+        if not self.active:
+            return None
+        if self._read_views is None or not self._read_views.matches(
+                self.world, self.progression_revision):
+            # A foreign replacement has no session commit proof. Public/external
+            # bindings keep the complete gate, once before acquiring ownership.
+            self._read_views = None
+            try:
+                valid = validate_world(self.world).is_valid
+            except Exception:
+                valid = False
+            if not valid:
+                return None
+            self._bind_owned_reads()
+        return self._read_views
+
+    @property
     def runtime_speed(self):
         return self.runtime.selected_speed if self.runtime else PLAYER_SPEEDS[0]
 
@@ -108,6 +140,7 @@ class Stage1Session:
         self._reset_autosave_clocks()
         self.changed = True
         self._ensure_runtime()
+        self._bind_owned_reads()
 
     def _clock_ns(self):
         from game.simulation.pacing import active_monotonic_ns
@@ -122,6 +155,14 @@ class Stage1Session:
         self.changed = True
         self.unsaved_progress = True
         self.progression_revision += 1
+        # Known successful session commands/events already passed their owning
+        # gate. Discard the complete old epoch, including all pages and IDs.
+        # A foreign binding never acquires trust through this notification alone.
+        self._refresh_owned_reads()
+
+    def _refresh_owned_reads(self):
+        if self._read_views is not None:
+            self._bind_owned_reads()
 
     def save_manual(self):
         if self._bulk_work is not None:
@@ -181,6 +222,7 @@ class Stage1Session:
         self._last_auto_active_ns = now
         self._last_auto_sim_time = candidate['simulation']['time_utc']
         self.changed = True
+        self._bind_owned_reads()
         return data
 
     def list_careers(self):
@@ -341,7 +383,10 @@ class Stage1Session:
         return _project_owned_airline_header(self.world, self.airline_id)
 
     def fleet(self, *, offset=0, limit=20):
-        return project_airline_fleet(self.world, self.airline_id, offset=offset, limit=limit)
+        from game.aircraft_operations.projections import _page_options
+        _page_options(limit, offset)
+        views = self._owned_reads()
+        return views.fleet(self.airline_id, offset=offset, limit=limit) if views else None
 
     def scheduling_aircraft(self, aircraft_id):
         """Fresh detached row for the planner; command boundaries own validation."""
@@ -442,12 +487,14 @@ class Stage1Session:
         return result
 
     def flights(self, *, offset=0, limit=20):
-        return project_airline_flights(
-            self.world, self.airline_id, offset=offset, limit=limit
-        )
+        from game.aircraft_operations.projections import _page_options
+        _page_options(limit, offset)
+        views = self._owned_reads()
+        return views.flights(self.airline_id, offset=offset, limit=limit) if views else None
 
     def finances(self):
-        return project_recent_flight_results(self.world, self.airline_id, limit=10)
+        views = self._owned_reads()
+        return views.finances(self.airline_id) if views else None
 
     def next_event(self):
         return project_next_pending_event(self.world)
@@ -527,6 +574,7 @@ class Stage1Session:
             return self._report(resolve_next_event(self.world))
         finally:
             stop_fast_forward(self.world)
+            self._refresh_owned_reads()
             self._last_auto_sim_time = self.world['simulation']['time_utc']
 
     def _manual_start(self):
@@ -569,6 +617,7 @@ class Stage1Session:
             raise ValueError('simulation time cannot move backward')
         self._manual_start()
         begin_fast_forward(self.world, target_time_utc)
+        self._refresh_owned_reads()
         # Explicit catch-up retains a whole-request cap, but routine horizon
         # extension must not exhaust the normal pacing generation budget of 100.
         self._bulk_work = begin_resolution(self.world, target_time_utc,
@@ -588,6 +637,7 @@ class Stage1Session:
             if self._bulk_work is not None and self._bulk_work.finished:
                 self._bulk_work = None
                 stop_fast_forward(self.world)
+                self._refresh_owned_reads()
                 self._last_auto_sim_time = self.world['simulation']['time_utc']
 
     def cancel_advance(self):
@@ -596,6 +646,7 @@ class Stage1Session:
             self._bulk_work.close()
             self._bulk_work = None
             stop_fast_forward(self.world)
+            self._refresh_owned_reads()
             self._last_auto_sim_time = self.world['simulation']['time_utc']
 
     def validate(self):

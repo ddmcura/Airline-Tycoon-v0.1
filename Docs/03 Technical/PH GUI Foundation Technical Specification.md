@@ -27,6 +27,16 @@ not a simulation input. Paused load, autosave, safe snapshots, exact UTC and
 event order follow the existing [save](Game%20State%20%26%20Save%20Technical%20Specification.md)
 and [runtime](Continuous%20Runtime%20Technical%20Specification.md) contracts.
 
+## Session-owned management reads (Stage 2)
+
+Fleet/Flights/Finance use the session's private validated read epoch, immutable
+booking/event IDs and bounded detached page values. A commit, revision, clock
+change or world replacement discards the epoch. GUI code must not mutate borrowed
+`session.world` rows; independent arbitrary-world projections keep full validation.
+No view index enters saves or authoritative handlers, and no GUI screen/pacing
+redesign accompanies this optimization. See
+[Runtime Trusted Reads](Runtime%20Trusted%20Reads.md) for the ownership contract.
+
 ## Foundation surfaces
 
 - Title: New PH Normal career, existing airline career selection with manual,

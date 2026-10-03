@@ -216,3 +216,16 @@ See [Runtime Resolution Foundation](Runtime%20Resolution%20Foundation.md) for
 the runtime-only progress model, complete-event versus fully-resolved timestamp
 distinction, exact-world oracle, protected future fences and staged rollback.
 No shared multi-event transaction or performance optimization is introduced.
+
+
+## Trusted reads — Stage 2
+
+Session-owned Fleet/Flights/Finance reuse the validated ownership epoch rather
+than revalidating unchanged authority for each screen. Runtime-only immutable
+booking/event ID lookups and at most eight bounded detached page values are
+discarded on commits, revisions, clock changes and world replacement. Public
+arbitrary-world projections retain full gates. Every authoritative event still
+uses the unchanged isolated candidate, full result validation and detached commit.
+See [Runtime Trusted Reads](Runtime%20Trusted%20Reads.md) for exact ownership,
+source/invalidation/persistence contracts, measurements and deferred handler work.
+No Stage 3 or overload recovery is implemented.

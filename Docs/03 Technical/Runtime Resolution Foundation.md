@@ -115,3 +115,10 @@ unimplemented; current overload still pauses with retained credit.
 See [runtime specification](Continuous%20Runtime%20Technical%20Specification.md),
 [performance investigation](Runtime%20Advancement%20Performance%20Investigation.md)
 and [current status](Current%20Development%20Status.md) for verification and limits.
+
+
+## Stage 2 successor
+
+[Runtime Trusted Reads](Runtime%20Trusted%20Reads.md) implements only session-owned
+read contexts and disposable presentation lookups/pages. Resolver and kernel
+transaction boundaries remain exactly as described above. Stage 3 is not implemented.

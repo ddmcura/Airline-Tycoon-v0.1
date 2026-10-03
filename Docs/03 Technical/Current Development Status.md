@@ -2,6 +2,100 @@
 
 Last updated: **2026-10-03**. Current snapshot, not operational authorization.
 
+## Runtime trusted reads — Stage 2 (2026-10-03 working tree)
+
+Successor of verified live `6c729ff0d1265f6eef2abac8420f8ed69afca5b5`.
+Implemented only session-owned reads and disposable, revision/source-bound
+operations lookups. See [Runtime Trusted Reads](Runtime%20Trusted%20Reads.md)
+for full before/after tables, profiling, memory and remaining costs.
+
+- New Game/validated Load establish private `app.owned_reads` ownership. Foreign
+  world assignment revokes it and requires one complete validation. Successful
+  session commands/events and controlled clock changes discard all derived state;
+  root/subtree/revision/clock mismatch revalidates before reuse. Borrowed world
+  rows must not be mutated by frontends; public arbitrary-world APIs retain gates.
+- Fleet/Flights/Finance share original projection/manifest rules. Operations
+  views lazily derive immutable booking IDs by flight and next pending event ID
+  by flight, then retain at most eight bounded immutable encoded pages. Every
+  returned value is detached. Terminal and Kivy use the same session, with no
+  screen redesign. Booking package import is deferred until an owned read so
+  fresh projection imports cannot conceal missing runtime startup registration.
+- No view index enters an event candidate/handler or save. New/loaded worlds
+  reconstruct lazily. Schema **7**, templates, histories and save meaning unchanged.
+  Resolver/kernel per-event candidate, full result validation and detached commit
+  remain unchanged; Stage 3 and overload recovery are **not implemented**.
+
+Frozen latest Divine Air autosave: one aircraft, 718 flights, 21,901 bookings,
+117 results. Already-owned cold Flights **4.668 → .08193 s**, Finance/recent
+results **3.558 → .02677 s**, Fleet **3.104 → .00019 s**; repeated views below
+1 ms. The independent foreign-binding first Fleet read still pays its full gate
+(2.314 s). Three-view validations **3 → 0**; cold owned index builds once, visiting
+398 relevant manifest bookings rather than 657,030 unrelated-inclusive visits.
+Four paired fixtures (Divine Air, starter, aged recurring, ten-aircraft) matched
+all view outputs, input hashes and exact next-event/one-hour Advance output hashes.
+These are local single samples, not controlled timing medians.
+
+Strict next-departure validation/copy counts stay **2/2**; checkpoints stay **2/5**.
+Divine Air next-event time **7.207 → 6.946 s**, one-hour Advance **10.039 → 11.324 s**:
+no engine throughput improvement is claimed. Full event validation/copying still
+dominate. Reference catalogs were under 1% of its next-event profile and retain
+all original integrity checks. Handler-side manifest index reuse is deferred
+because the isolated candidate has no proven runtime source-binding contract.
+Cold derived storage retained about .307 MB/peaked .936 MB for Divine Air; this
+adds bounded presentation storage, not a whole-process memory reduction claim.
+
+Verification uses Python 3.12.10 in the existing `.venv`, with no installation:
+
+- `python -B -m unittest tests.test_stage1_terminal_harness tests.test_stage1_flight_fulfilment -q`:
+  **40 passed, 39.810 s** during development.
+- `python -B -m unittest tests.test_owned_reads -q` initial ownership subset:
+  **15 passed, 38.579 s**; three additional boundary cases were then added.
+- `python -B -m unittest tests.test_owned_reads tests.test_simulation_resolver
+  tests.test_stage1_terminal_harness tests.test_stage1_flight_fulfilment -q`:
+  **81 passed, 328.252 s**, including all 23 Stage 1 oracle cases and all 18 new
+  ownership/lookup tests at that revision. Exact worlds agree across checkpoints, rolling publication,
+  departure/completion, contract payment/real one-year expiry and save/load.
+- `python -B -m unittest tests.test_runtime_startup tests.test_step7_save_load
+  tests.test_owned_reads.OwnedReadTests.test_foreign_binding_validates_once_then_owned_reads_need_no_gate
+  tests.test_owned_reads.OwnedReadTests.test_new_game_uses_construction_proof -q`:
+  **19 passed, 42.099 s** after the lazy-import correction.
+- Initial complete discovery/runner: **754 passed, no failures/errors/skips**,
+  900.722 s runner time (903.720 s including discovery). The final malformed-root
+  guard added one test after this discovery; its focused three-case run passed
+  in 3.881 s. Final required command
+  `python -B -m unittest discover -s tests -q`: **755 passed, 846.049 s**,
+  no failures/errors/skips, final Stage 2 source/test working-tree scope.
+- `python -B -m tests.smoke_runtime_startup`: native fresh-process direct Load,
+  checkpoint processing and exact paused save/reload **PASS**; 14 bookings/two
+  completed checkpoints, final UTC 2026-09-02T00:00:30Z, 2560×1377 SDL2 window.
+  This smoke first caught early Booking registration from an eager lookup import;
+  the lookup import was deferred and the fresh-process smoke passed unchanged.
+- `python -B -m tests.smoke_advancement --fixtures <temporary-fixtures>
+  --case observed-save --mode load --view Flights --days 1`: valid **TIME_BUDGET**
+  prefix at 120.008 s, 22 events (11 departures/10 completions/one checkpoint).
+  Complete world validation, Fleet/Flights/Finance/Schedule rendering and exact
+  paused save/reload passed. Longest tick 10.133 s; this was concurrent with full
+  verification, not an isolated responsiveness measurement or completed-day claim.
+- `python -B -m tests.smoke_player_speeds --seconds 2 --fixture <temporary starter-1.json>`:
+  **PASS** for all four named speeds, Pause/Resume, explicit Advance and exact
+  paused save/reload. Accounted credit ratios 30/210/900/1800; phases retained
+  debt, with 1.301–1.341 s longest ticks. No sustained-speed/human responsiveness
+  certification; authoritative heavy transactions still block the event loop.
+- Scoped `python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`,
+  changed-document links and `git diff --check`: PASS.
+
+Source changes are confined to `app/session.py`, new `app/owned_reads.py`, and
+`game/aircraft_operations/projections.py`/`fulfilment.py`; tests add
+`test_owned_reads.py`/`profile_owned_reads.py`. Directly affected documentation
+records ownership, invalidation, persistence, verification and measured limits.
+Production saves/reference data, simulation/kernel, RNG/economy/scheduling rules,
+canonical schema/template and pre-existing untracked `.venv/` remain untouched.
+
+Next recommendation: Stage 3 needs a separately approved bounded transaction
+contract design and exact-prefix/equivalence tests. Read latency is now small;
+retained strict validation/copying is the meaningful remaining bottleneck. Stop
+at Stage 2, without initiating that implementation.
+
 ## Runtime resolver foundation — Stage 1 (2026-10-03 working tree)
 
 Successor of baseline `29761181d9883da8a97eb1fffe80522c6a0f2f8e`, verified
@@ -80,9 +174,9 @@ No shared multi-event candidates, reduced validation frequency, prefix replay,
 incremental validation/indexes, booking/recurrence optimization, new overload
 recovery, threads, map/replay or offline progression were implemented. Existing
 overload still pauses with retained credit. Protected future fences are booking
-checkpoint, weekly publication and contract expiry. Next step is review/authorization
-of Stage 2; amend the canonical transaction behavior before any shared-candidate
-implementation. Stage 2 has not begun.
+checkpoint, weekly publication and contract expiry. Stage 2 implementation is
+recorded above; amend the canonical transaction behavior before any shared-candidate
+implementation.
 
 ## PH named continuous-runtime speeds (2026-10-03 working tree)
 
