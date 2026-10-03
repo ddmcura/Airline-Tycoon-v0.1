@@ -26,8 +26,6 @@ from game.scheduling import (
     publish_next_rotation,
 )
 from game.simulation import (
-    process_events_through,
-    process_next_event,
     project_event_records,
     project_next_pending_event,
 )
@@ -44,7 +42,8 @@ from game.simulation.speeds import PLAYER_SPEEDS
 from game.simulation.pacing import RuntimeController
 from game.simulation.handlers import initialize_runtime_handlers
 from game.simulation.kernel import (
-    iter_events_through, begin_fast_forward, stop_fast_forward, DEFAULT_MAX_EVENTS_PER_ADVANCE)
+    begin_fast_forward, stop_fast_forward, DEFAULT_MAX_EVENTS_PER_ADVANCE)
+from game.simulation.resolver import begin_resolution, resolve_next_event
 
 
 @dataclass(frozen=True)
@@ -525,7 +524,7 @@ class Stage1Session:
     def advance_next_event(self):
         self._manual_start()
         try:
-            return self._report(process_next_event(self.world))
+            return self._report(resolve_next_event(self.world))
         finally:
             stop_fast_forward(self.world)
             self._last_auto_sim_time = self.world['simulation']['time_utc']
@@ -572,7 +571,7 @@ class Stage1Session:
         begin_fast_forward(self.world, target_time_utc)
         # Explicit catch-up retains a whole-request cap, but routine horizon
         # extension must not exhaust the normal pacing generation budget of 100.
-        self._bulk_work = iter_events_through(self.world, target_time_utc,
+        self._bulk_work = begin_resolution(self.world, target_time_utc,
             max_generated_events=DEFAULT_MAX_EVENTS_PER_ADVANCE)
 
     def advance_tick(self):
@@ -580,13 +579,13 @@ class Stage1Session:
         if self._bulk_work is None:
             raise ValueError('no advancement is active')
         try:
-            next(self._bulk_work)
+            progress = self._bulk_work.step()
+            if progress.finished:
+                return self._report(progress.processing_result)
             self._mark_progress()
             return None
-        except StopIteration as done:
-            return self._report(done.value)
         finally:
-            if self._bulk_work is not None and self._bulk_work.gi_frame is None:
+            if self._bulk_work is not None and self._bulk_work.finished:
                 self._bulk_work = None
                 stop_fast_forward(self.world)
                 self._last_auto_sim_time = self.world['simulation']['time_utc']

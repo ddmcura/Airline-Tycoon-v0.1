@@ -6,9 +6,10 @@ import time
 
 from .handlers import initialize_runtime_handlers
 from .kernel import (
-    DEFAULT_EVENT_HANDLERS, configure_clock_ratios, iter_events_through,
+    DEFAULT_EVENT_HANDLERS, configure_clock_ratios,
     set_clock_mode,
 )
+from .resolver import begin_resolution
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
 from .speeds import player_speed
@@ -143,18 +144,19 @@ class RuntimeController:
                 return None
             target = format_utc(parse_canonical_utc(self.world['simulation']['time_utc'])
                                 + timedelta(seconds=seconds))
-            self.work = iter_events_through(self.world, target, registry=self.registry)
+            self.work = begin_resolution(self.world, target, registry=self.registry)
             self.refresh = False
         before = parse_canonical_utc(self.world['simulation']['time_utc'])
         result = None
         try:
-            event_id = next(self.work) if fresh else self.work.send(self.refresh)
+            progress = self.work.step(management_changed=self.refresh)
             self.refresh = False
-            result = event_id
-        except StopIteration as done:
-            self.last_result = done.value
-            self.work = None
-            result = done.value
+            if progress.finished:
+                self.last_result = progress.processing_result
+                self.work = None
+                result = progress.processing_result
+            else:
+                result = progress.event_id
         finally:
             finished_ns = self.clock()
             self.credit_ns += (finished_ns - self.last_ns) * self.ratio

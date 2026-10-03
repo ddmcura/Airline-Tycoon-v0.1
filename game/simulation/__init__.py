@@ -26,6 +26,10 @@ from .kernel import (
     supersede_event,
 )
 from .projections import project_event_records, project_next_pending_event
+from .resolver import (
+    ResolutionBoundary, ResolutionProgress, ResolutionRequest,
+    begin_resolution, resolve_until, resolve_next_event,
+)
 
 __all__ = (
     "DEFAULT_EVENT_HANDLERS",
@@ -33,6 +37,12 @@ __all__ = (
     "EventFailure",
     "EventHandlerRegistry",
     "ProcessingResult",
+    "ResolutionBoundary",
+    "ResolutionProgress",
+    "ResolutionRequest",
+    "begin_resolution",
+    "resolve_until",
+    "resolve_next_event",
     "advance_by_real_seconds",
     "advance_to",
     "begin_fast_forward",

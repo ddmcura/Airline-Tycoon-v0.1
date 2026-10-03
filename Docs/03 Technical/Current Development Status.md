@@ -2,6 +2,88 @@
 
 Last updated: **2026-10-03**. Current snapshot, not operational authorization.
 
+## Runtime resolver foundation — Stage 1 (2026-10-03 working tree)
+
+Successor of baseline `29761181d9883da8a97eb1fffe80522c6a0f2f8e`, verified
+against live origin/master before editing. Scope is only the approved resolver
+facade and deterministic equivalence oracle; see
+[Runtime Resolution Foundation](Runtime%20Resolution%20Foundation.md).
+
+`game.simulation.resolver` wraps the unchanged strict kernel. Cooperative
+`begin_resolution(...).step()`, synchronous `resolve_until(...)` and single
+`resolve_next_event(...)` expose real yields/terminal diagnostics without a second
+dispatcher. Pacing and shared-session duration/day/UTC/Next Event use this facade;
+Kivy and terminal keep their existing application session and visible behavior.
+Progress distinguishes current authoritative UTC, the last committed event and
+whether equal-time work remains. Boundary inspection is derived/on demand.
+Facade requests, progress/target metadata and fences are runtime-only; existing
+fast-forward fields stay unchanged. Schema stays **7**.
+
+The oracle compares complete canonical envelopes against strict Next Event,
+single target, irregular partitions, cooperative steps and exact paused save/load
+continuation. No envelope fields are excluded. Only JSON dictionary ordering is
+normalized; file wrapper save time/serial/IDs/integrity are outside the envelope.
+Real PH fixtures cover booking/carriage/finance, multiple seeds, finite/continuous
+recurrence and weekly extension, same-time ordering, month rotation/payment,
+actual one-year contract expiry, booked-flight protection and matching revision
+actions. Negative cases retain validation, failed prefixes, unknown/stale handling,
+alias isolation and cumulative limits. Existing domain outputs/hashes remain gates.
+
+Affected files: `game/simulation/resolver.py`, `pacing.py`, `__init__.py`;
+`app/session.py`; `tests/resolution_oracle.py`, `test_simulation_resolver.py`,
+`profile_resolution.py`; this status, runtime specification, foundation document
+and Docs index. No kernel, domain formulas, RNG, schema/template, GUI implementation,
+production saves or reference data changed. Pre-existing untracked `.venv/` untouched.
+
+Timing sanity, existing busy fixture, setup/copy/hash/post-validation excluded:
+pre-edit strict one-day median **3.565 s** (three samples, five events).
+After implementation, alternating strict/facade three-sample medians:
+
+| Case | Strict reference | Facade | Events |
+| --- | ---: | ---: | ---: |
+| Quiet PH career, seven days | 1.527 s | 1.394 s | 7 |
+| Busy starter, one day | 3.417 s | 3.399 s | 5 |
+
+All paired complete envelopes/hashes matched. Differences are measurement variation,
+not optimization gains. Tool: `python -B -m tests.profile_resolution --repeats 3`.
+No large-fleet benchmark or sustainable Ultra certification is claimed.
+
+Verification, 2026-10-03, implementation working-tree scope:
+
+- Existing-interpreter commands used `.venv/Scripts/python.exe` (Python 3.12.10);
+  no installation or environment changes. Kivy runs disabled file logging/argument
+  parsing through runtime environment variables.
+- `python -B -m unittest tests.test_stage1_runtime.RuntimeTests tests.test_player_speeds -q`:
+  **17 passed, 4.301 s**.
+- `python -B -m unittest tests.test_simulation_resolver.ResolverGameplayEquivalenceTests.test_finite_recurrence_and_different_seed_booking_partitioning tests.test_simulation_resolver.ResolverBoundaryTests -q`:
+  **18 passed, 39.338 s**.
+- `python -B -m unittest discover -s tests -q`: **PASS, exit 0**.
+  Independent discovery confirms **736 tests, no declared/runtime skip sites**.
+  KIVY_NO_CONSOLELOG suppressed the unittest console summary; no elapsed time
+  is claimed for this full run. All 23 new resolver tests are included.
+- Scoped compile command: `python -m compileall -q app game tests main.py
+  make_snapshot.py settings.py test.py`: exit 0.
+- `python -B -m tests.smoke_runtime_startup`: displayed fresh-process direct
+  Load Game, real booking checkpoint, Advance and exact paused save/reload passed.
+  Two checkpoint records/14 bookings; final UTC 2026-09-02T00:00:30Z.
+- `python -B -m tests.smoke_player_speeds --seconds 2`: all four named controls,
+  Pause/Resume, explicit Advance and exact paused save/reload passed in native SDL2
+  Kivy 2.3.1. Credit accounting matched literal rates; short phases retained debt.
+  Longest ticks were 1.425–1.544 s. This is functional programmatic smoke, not
+  sustained throughput or human responsiveness certification.
+
+Changed-document links resolve; scoped compile and `git diff --check` pass.
+Final complete-diff review retained exact strict transaction behavior and found
+no remaining in-scope authority, persistence, concurrency or scope issue.
+
+No shared multi-event candidates, reduced validation frequency, prefix replay,
+incremental validation/indexes, booking/recurrence optimization, new overload
+recovery, threads, map/replay or offline progression were implemented. Existing
+overload still pauses with retained credit. Protected future fences are booking
+checkpoint, weekly publication and contract expiry. Next step is review/authorization
+of Stage 2; amend the canonical transaction behavior before any shared-candidate
+implementation. Stage 2 has not begun.
+
 ## PH named continuous-runtime speeds (2026-10-03 working tree)
 
 Successor of verified live baseline `019daaa4001abfa1eaaedcffb7b7dffbfeef0373`.

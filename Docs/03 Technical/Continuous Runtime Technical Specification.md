@@ -201,3 +201,18 @@ See [Runtime Advancement Performance Investigation](Runtime%20Advancement%20Perf
 for before/after measurements, exact replay witnesses and unresolved history-scaling
 limits. An expensive single transaction still blocks a frame; this is not a promise
 of instantaneous long jumps or large-airline catch-up.
+
+
+## Resolver foundation — Stage 1
+
+Application/runtime resolution now goes through
+`game.simulation.resolver.begin_resolution`, `resolve_until` and
+`resolve_next_event`. These delegate to the existing strict kernel. Ordinary
+handlers retain isolated candidates, complete validation and detached commits;
+existing NO_OP/stale lifecycle paths also remain unchanged. Pacing, overload,
+pause and explicit Advance behavior remain unchanged.
+
+See [Runtime Resolution Foundation](Runtime%20Resolution%20Foundation.md) for
+the runtime-only progress model, complete-event versus fully-resolved timestamp
+distinction, exact-world oracle, protected future fences and staged rollback.
+No shared multi-event transaction or performance optimization is introduced.
