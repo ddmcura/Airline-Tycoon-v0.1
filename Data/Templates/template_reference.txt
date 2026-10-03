@@ -1,3 +1,13 @@
+# Stage 3A runtime transaction amendment (2026-10-04); schema remains 7.
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
+# Strict default. Only exact kernel NO_OP has shared classification in Stage 3A.
+# Opt-in candidates validate EACH transition + final world, then detached commit.
+# Booking checkpoint / weekly publication / contract expiry are strict fences.
+# Failure replays canonical strict successful prefix; divergence disables shared
+# execution and blocks visibly. No candidate across cooperative returns.
+# No candidate/heap/contracts/counters/diagnostics/indexes enter save authority.
+# Payment / Departure / Completion NOT certified; normal pacing/Kivy unchanged.
+
 # Schema 7 optional airport-local recurring planner fields (2026-10-03)
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md.
 schedule_revision.recurrence.publication_policy (optional): ROLLING_FOUR_WEEKS_V1

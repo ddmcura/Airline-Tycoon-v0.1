@@ -229,3 +229,14 @@ uses the unchanged isolated candidate, full result validation and detached commi
 See [Runtime Trusted Reads](Runtime%20Trusted%20Reads.md) for exact ownership,
 source/invalidation/persistence contracts, measurements and deferred handler work.
 No Stage 3 or overload recovery is implemented.
+
+
+## Shared candidate infrastructure — Stage 3A
+
+The [canonical transaction amendment](Stage%201%20State%20Schema.md#clock-and-event-contract)
+and [Stage 3A infrastructure](Runtime%20Shared%20Candidate%20Infrastructure.md)
+permit explicit test/debug opt-in bounded candidates. Complete validation still
+runs after every candidate event. Production session, explicit Advance and normal
+pacing remain strict; no runtime policy, speed, save restriction, overload recovery,
+handler gameplay or player-visible GUI change is introduced. Certification of
+Payment/Departure/Completion and multi-event pumping belong to later slices.

@@ -14,6 +14,7 @@ def initialize_runtime_handlers():
     Custom registries remain explicit, caller-owned test/extension boundaries.
     """
     from .kernel import DEFAULT_EVENT_HANDLERS, _no_op
+    from .execution_contracts import ExecutionMode, HandlerExecutionContract
     from game.aircraft_operations.fulfilment import (
         FLIGHT_DEPARTURE_EVENT_TYPE, FLIGHT_COMPLETION_EVENT_TYPE,
         _departure_handler, _completion_handler,
@@ -43,4 +44,10 @@ def initialize_runtime_handlers():
     for event_type, handler in bindings:
         if registry.handler_for(event_type) is None:
             registry.register(event_type, handler)
+        if handler is not _no_op:
+            mode = (ExecutionMode.FENCE if event_type in {
+                BOOKING_CHECKPOINT_EVENT_TYPE, EVENT_TYPE, EXPIRY_EVENT}
+                else ExecutionMode.STRICT)
+            registry._execution_contracts[event_type] = HandlerExecutionContract(
+                handler, mode, 'built-in-strict-v1')
     return registry

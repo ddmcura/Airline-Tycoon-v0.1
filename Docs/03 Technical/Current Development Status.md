@@ -1,6 +1,92 @@
 # Current Development Status
 
-Last updated: **2026-10-03**. Current snapshot, not operational authorization.
+Last updated: **2026-10-04**. Current snapshot, not operational authorization.
+
+## Runtime shared candidate infrastructure — Stage 3A (2026-10-04 working tree)
+
+Baseline `1682c0b3c47a8a102da2d2ee2ffb172ea237ea29` matched live origin/master
+before editing. Approved [canonical transaction amendment](Stage%201%20State%20Schema.md#clock-and-event-contract)
+and [Stage 3A technical description](Runtime%20Shared%20Candidate%20Infrastructure.md)
+establish identity-bound STRICT/SHARED/FENCE metadata and opt-in bounded private
+candidates. Full validation remains mandatory after EVERY candidate transition
+and at final flush; strict is the production default and recovery/reference path.
+
+- Only exact built-in NO_OP is shared-classified. Custom names/callables do not
+  inherit it. Payment, Departure, Completion and Rotation remain strict; Booking,
+  weekly publication and expiry are fences. No domain certification or local
+  reduced-validation proof is implemented. Synthetic fixtures require full shadow.
+- Candidates never survive a cooperative return or enter saves/read indexes.
+  Generated events are selected through the updated canonical heap. Cumulative
+  request ceilings survive flushes and management refreshes. Kernel contract
+  witnesses are detached simulation/event-history evidence, not whole-world
+  clones per event or candidate-versus-itself comparisons.
+- Strict recovery reselects the attempted segment, preserves its successful prefix
+  and exact failure, or visibly reports optimizer divergence with a disposable
+  disable latch. Optional debug shadow compares complete intermediate envelopes.
+- Session, terminal, explicit Advance and Kivy pacing remain strict. Save/load,
+  autosave, pause, exit, overload and speed behavior are unchanged. Schema stays
+  **7** with no persisted resolver fields. Stage 3B–3F remain unimplemented.
+
+### Infrastructure measurements
+
+`python -B -m tests.profile_shared_candidate --repeats 5 --events 64` on Windows
+10/Python 3.12.10, batch size 8, in-memory schema-1 infrastructure fixtures.
+Five sequential samples per mode; host load/warmup can affect timing. Setup,
+comparison and post-validation are excluded; counters/tracemalloc are separate.
+Complete output worlds matched. This is NOT a PH flight-engine speedup claim.
+
+| 64 events / mode | Median seconds | Full validations | World clones | Commits | Before-event witnesses | Peak traced bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| NO_OP strict | .003825 | 2 | 0 | 0 | 0 | 45,204 |
+| NO_OP shared infrastructure | .277392 | 74 | 16 | 8 | 64 | 329,993 |
+| NO_OP debug shadow | .454211 | 138 | 24 | 8 | 64 | 338,784 |
+| Custom strict | .234830 | 66 | 128 | 64 | 0 | 438,622 |
+| Custom opt-in strict fallback | .213788 | 66 | 128 | 64 | 0 | 453,627 |
+| Custom shadow-option strict fallback | .203577 | 66 | 128 | 64 | 0 | 437,478 |
+
+Stage 3A adds proof overhead to the existing cheap NO_OP path. Custom fallbacks
+retain identical validation/copy boundaries; timing variation is not claimed as
+improvement. Whole-world clones include detached commits; witness copies remain
+a growing-history cost. These small-fixture allocation peaks do not certify PH
+memory use, human responsiveness or 50-aircraft Ultra performance.
+
+### Verification
+
+Verified 2026-10-04 against the Stage 3A source/test working tree:
+
+- Initial affected kernel/startup gate: `python -B -m unittest
+  tests.test_stage1_event_kernel tests.test_runtime_startup -q` — 57 PASS,
+  10.344 seconds.
+- Development affected gate: `python -B -m unittest tests.test_shared_candidate
+  tests.test_simulation_resolver tests.test_owned_reads tests.test_stage1_event_kernel
+  tests.test_step7_save_load tests.test_stage1_runtime tests.test_advancement_performance
+  tests.test_runtime_startup tests.test_player_speeds -q` — 182 PASS,
+  592.194 seconds. Included all 23 Stage 1 resolver/oracle and 19 Stage 2 ownership
+  tests; five subsequent Stage 3A edge regressions are covered by the final gates.
+- Final `python -B -m unittest tests.test_shared_candidate -q` — **36 PASS**,
+  37.669 seconds. These are 36 new tests, including exact complete-world gameplay
+  equivalence with rolling recurrence and in-flight save continuation.
+- Final `python -B -m unittest discover -s tests -q` — **791 PASS**,
+  **991.182 seconds**, no failures/errors/skips reported (755 baseline + 36 new).
+- `python -m compileall -q app game tests main.py make_snapshot.py settings.py
+  test.py` — PASS; only the explicit source scope compiled.
+- 170 local documentation paths/heading anchors checked — PASS;
+  `git diff --check` — PASS. Complete diff/architecture self-review is clean.
+
+Commands used the existing `.venv/Scripts/python.exe` (Python 3.12.10). The final
+full suite used temporary KIVY_HOME plus KIVY_NO_ARGS/KIVY_NO_FILELOG to avoid
+user-log-directory permissions. No production saves or dependency changes.
+
+Native existing `python -B -m tests.smoke_runtime_startup`: PASS in a fresh GUI
+process, direct Load without New Game, two completed Booking checkpoints/14
+bookings, UTC `2026-09-02T00:00:30Z`, exact paused save/reload, SDL2 window
+2560x1377. Used `KIVY_NO_ARGS=1`, `KIVY_NO_FILELOG=1` and temporary KIVY_HOME;
+the first unconfigured invocation rejected the smoke's --load argument and could
+not write the user's Kivy log directory. No smoke source or production data changed.
+This is functional native smoke, not human-level responsiveness certification.
+
+Next bounded implementation is Stage 3B contract-payment certification, requiring
+its own scope approval and intermediate-invariant proof. No later slice began.
 
 ## Runtime trusted reads — Stage 2 (2026-10-03 working tree)
 

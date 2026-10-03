@@ -132,8 +132,18 @@ class ResolutionRequest:
         self.finished = True
 
 
-def begin_resolution(envelope, target_time_utc, **kernel_options):
-    """Create cooperative strict work; validation occurs on its first step."""
+def begin_resolution(envelope, target_time_utc, *, shared=False, shadow=False,
+                     max_batch_events=8, execution_state=None, **kernel_options):
+    """Strict by default. Stage 3A shared/shadow infrastructure is opt-in only.
+
+    Pacing/session/Kivy deliberately keep using the unchanged strict default.
+    Arbitrary stop callbacks require the original per-event strict boundaries.
+    """
+    if shared and kernel_options.get('stop_condition') is None:
+        from .shared_candidate import SharedResolutionRequest
+        return SharedResolutionRequest(envelope, target_time_utc,
+            shadow=shadow, max_batch_events=max_batch_events,
+            execution_state=execution_state, **kernel_options)
     return ResolutionRequest(envelope, target_time_utc, **kernel_options)
 
 

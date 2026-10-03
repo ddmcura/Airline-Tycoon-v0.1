@@ -122,3 +122,14 @@ and [current status](Current%20Development%20Status.md) for verification and lim
 [Runtime Trusted Reads](Runtime%20Trusted%20Reads.md) implements only session-owned
 read contexts and disposable presentation lookups/pages. Resolver and kernel
 transaction boundaries remain exactly as described above. Stage 3 is not implemented.
+
+
+## Stage 3A successor (2026-10-04)
+
+[Runtime Shared Candidate Infrastructure](Runtime%20Shared%20Candidate%20Infrastructure.md)
+adds explicit identity-bound handler contracts and opt-in bounded candidates with
+mandatory intermediate validation, strict recovery and debug shadow comparison.
+The preceding sections describe retained Stage 1 behavior. Strict remains the
+production default; no Payment/Departure/Completion certification or multi-event
+Kivy pacing is introduced. The canonical behavioral amendment permits future
+certification, not general validate-at-end execution. Schema and saves remain 7.

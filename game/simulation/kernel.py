@@ -12,6 +12,8 @@ from datetime import timedelta
 import heapq
 from typing import Callable
 
+from .execution_contracts import ExecutionMode, HandlerExecutionContract
+
 from game.world_state.ids import allocate_id
 from game.world_state.schema import (
     CLOCK_STATES,
@@ -59,6 +61,7 @@ class EventHandlerRegistry:
 
     def __init__(self):
         self._handlers: dict[str, EventHandler] = {}
+        self._execution_contracts = {}
 
     def register(self, event_type, handler):
         event_type = _required_text(event_type, "event_type")
@@ -70,6 +73,19 @@ class EventHandlerRegistry:
 
     def handler_for(self, event_type):
         return self._handlers.get(event_type)
+
+    def execution_contract_for(self, event_type):
+        """Identity-bound metadata; custom registrations default to strict."""
+        handler = self.handler_for(event_type)
+        contract = self._execution_contracts.get(event_type)
+        if contract is not None and contract.handler is handler:
+            return contract
+        if event_type == 'NO_OP' and handler is _no_op:
+            return HandlerExecutionContract(handler, ExecutionMode.SHARED,
+                'kernel-no-op-v1', 'Exact kernel callable has no handler writes; '
+                'Stage 3A also fully validates every completed transition.',
+                True, (1, 2, 3, 4, 5, 6, 7))
+        return HandlerExecutionContract(handler)
 
 
 @dataclass(frozen=True)
@@ -391,7 +407,45 @@ def _execute_event(envelope, event_id, registry):
         return "COMPLETED", None, ()
 
     candidate = _clone_runtime_world(envelope)
+    outcome, failure, new_event_ids = _apply_handler_candidate(
+        envelope, candidate, event_id, handler)
+    if failure:
+        return outcome, failure, new_event_ids
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return None, EventFailure(
+            "RESULT_VALIDATION_FAILED",
+            "handler result did not satisfy authoritative validation",
+            event_id,
+            tuple(issue.as_dict() for issue in validation.errors),
+        ), ()
+    _replace_envelope(envelope, candidate)
+    return outcome, None, new_event_ids
+
+
+def _event_contract_witness(candidate):
+    """Detached before-event evidence, not a clone of the entire world.
+
+    These conservative event/history copies still scale with retained history.
+    Stage 3A does not replace them with unproved write-footprint assertions.
+    """
+    return {
+        'simulation': deepcopy(candidate['simulation']),
+        'world_state': {name: deepcopy(candidate['world_state'][name])
+                        for name in ('pending_events', 'event_history')},
+        'deterministic_state': {'id_allocator': {'next_by_type': {
+            'event': candidate['deterministic_state']['id_allocator']['next_by_type']['event']}}},
+    }
+
+
+def _apply_handler_candidate(original, candidate, event_id, handler):
+    """Same handler/lifecycle machinery for strict and opt-in shared work.
+
+    Caller supplies genuine before-event evidence and owns validation/commit.
+    This private primitive grants no eligibility and never publishes authority.
+    """
     candidate_event = candidate["world_state"]["pending_events"][event_id]
+    due = candidate_event["due_at_utc"]
     candidate["simulation"]["time_utc"] = due
     try:
         handler_result = handler(EventContext(candidate, deepcopy(candidate_event), _EVENT_TRANSACTION_TOKEN))
@@ -405,7 +459,7 @@ def _execute_event(envelope, event_id, registry):
         ), ()
 
     try:
-        contract_error = _handler_contract_error(envelope, candidate, due)
+        contract_error = _handler_contract_error(original, candidate, due)
     except Exception:
         contract_error = "handler damaged kernel-owned authoritative structure"
     if contract_error:
@@ -413,19 +467,10 @@ def _execute_event(envelope, event_id, registry):
             "HANDLER_CONTRACT_VIOLATION", contract_error, event_id
         ), ()
 
-    original_pending = envelope["world_state"]["pending_events"]
+    original_pending = original["world_state"]["pending_events"]
     candidate_pending = candidate["world_state"]["pending_events"]
     new_event_ids = tuple(sorted(set(candidate_pending) - set(original_pending)))
     _resolve_without_handler(candidate, event_id, "COMPLETED", due)
-    validation = validate_world(candidate)
-    if not validation.is_valid:
-        return None, EventFailure(
-            "RESULT_VALIDATION_FAILED",
-            "handler result did not satisfy authoritative validation",
-            event_id,
-            tuple(issue.as_dict() for issue in validation.errors),
-        ), ()
-    _replace_envelope(envelope, candidate)
     return "COMPLETED", None, new_event_ids
 
 
@@ -558,6 +603,11 @@ def iter_events_through(
             return ProcessingResult("STOPPED", started, envelope['simulation']['time_utc'],
                                     tuple(completed), tuple(skipped))
 
+    return _complete_target(envelope, target_time_utc, started, completed, skipped)
+
+
+def _complete_target(envelope, target_time_utc, started, completed=(), skipped=()):
+    """Shared strict final-gap gate; never skips pending due work on its own."""
     last_committed_time = envelope["simulation"]["time_utc"]
     envelope["simulation"]["time_utc"] = target_time_utc
     validation = validate_world(envelope)

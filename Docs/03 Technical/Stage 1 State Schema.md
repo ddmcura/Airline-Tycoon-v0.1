@@ -1334,10 +1334,37 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   with an older revision is archived as `STALE` without invoking its handler.
 - Event payloads are JSON-compatible data only. Handler registrations, Python
   callables, iterators, heap nodes, and other runtime objects are never stored.
-- A handler executes against an isolated candidate world. Its event and time
-  changes commit only after validation. Failure leaves that event transaction
-  unchanged and pending, blocks advancement at the failed event, and is retried
-  only by another explicit processing command.
+- Ordinary and unapproved handlers execute against isolated, fully validated
+  single-event candidates. Explicitly certified deterministic built-ins may share
+  a bounded private detached candidate while preserving canonical event order.
+  Every transition must remain individually valid; final batch validation cannot
+  excuse invalid intermediate state, even when later work would repair it.
+- Shared work becomes authoritative only after complete world validation and a
+  detached commit. No uncommitted candidate survives a cooperative return or
+  reaches presentation, session-owned indexes, saves, or player commands.
+  Certified handlers retain no candidate references and perform no deferred or
+  external side effects. Handler identity, supported input, versioned proof and
+  deterministic replay eligibility are runtime contracts, never save authority.
+- DAILY_BOOKING_CHECKPOINT, STAGE1_WEEKLY_PUBLICATION and
+  AIRCRAFT_CONTRACT_EXPIRY flush preceding shared work and execute strictly.
+  Unknown, custom and uncertified handlers also retain strict boundaries.
+- Failure preserves the strict successful chronological prefix. Discard failed
+  speculative work and reselect events canonically through the strict executor;
+  the first strict failure remains unchanged and pending. If strict replay
+  succeeds where shared execution fails or differs, retain the valid strict
+  result, disable the optimization and stop with an explicit optimizer diagnostic.
+  Retry requires another explicit processing command; no automatic continuation.
+- Saves and commands observe only validated complete-event boundaries. A boundary
+  may retain pending events at the same UTC and must not be described as fully
+  resolved through that timestamp. Batch size and cooperative timing cannot alter
+  authoritative outcomes, IDs, ordering, revisions, journals or witnesses.
+- Stage 3A (2026-10-04) provides opt-in infrastructure and shadow verification,
+  with complete validation after EVERY candidate event and at final commit.
+  Only the exact kernel NO_OP is shared-classified; Payment, Departure and
+  Completion remain strict. Production session/pacing/Kivy stay strict. Future
+  reduced validation requires precise write-footprint/dependency proofs and
+  intermediate equivalence; final-world equality alone is insufficient.
+  See [Runtime Shared Candidate Infrastructure](Runtime%20Shared%20Candidate%20Infrastructure.md).
 - Handler return value is `None`; the validated candidate is the result. Handler
   context cannot mutate the runtime registry, kernel-owned clock facts, event
   identity/order, or pre-existing pending and terminal event records. It may
