@@ -1,3 +1,11 @@
+# Stage 3B payment certification (2026-10-04); schema remains 7.
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
+# Exact built-in PAYMENT only: version ph-aircraft-contract-payment-shared-v1.
+# Active schema-6/7 USD anniversary inputs use exact per-transition domain proof;
+# final full validation + detached commit remain mandatory. Unsupported stays strict.
+# Expiry/Booking/weekly publication stay fences; flight handlers/Rotation strict.
+# Session/Kivy remain strict; no persistent certification/candidate/proof fields.
+
 # Stage 3A runtime transaction amendment (2026-10-04); schema remains 7.
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
 # Strict default. Only exact kernel NO_OP has shared classification in Stage 3A.

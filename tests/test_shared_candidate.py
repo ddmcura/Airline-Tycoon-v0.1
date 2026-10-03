@@ -60,7 +60,7 @@ class SharedCandidateTests(unittest.TestCase):
             'STAGE1_WEEKLY_PUBLICATION': ExecutionMode.FENCE,
             'AIRCRAFT_CONTRACT_EXPIRY': ExecutionMode.FENCE,
             'AIRCRAFT_MARKET_ROTATION': ExecutionMode.STRICT,
-            'AIRCRAFT_CONTRACT_PAYMENT': ExecutionMode.STRICT,
+            'AIRCRAFT_CONTRACT_PAYMENT': ExecutionMode.SHARED,
             'STAGE1_FLIGHT_DEPARTURE': ExecutionMode.STRICT,
             'STAGE1_FLIGHT_COMPLETION': ExecutionMode.STRICT,
         }

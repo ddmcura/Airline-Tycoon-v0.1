@@ -1,7 +1,7 @@
 """Runtime-only handler contracts; registration alone grants no certification.
 
-Stage 3A keeps complete per-event validation even inside shared candidates.
-Only the exact kernel NO_OP has a built-in shared contract. Shadow-only probes
+NO_OP/probes retain full per-event validation. Stage 3B payment alone has a
+versioned local transition proof and conservative input predicate. Shadow-only probes
 are private test fixtures, never a production certification escape hatch.
 """
 
@@ -24,6 +24,9 @@ class HandlerExecutionContract:
     replay_eligible: bool = False
     supported_schemas: tuple[int, ...] = ()
     shadow_only: bool = False
+    capture_transition: object = None
+    validate_transition: object = None
+    supports_input: object = None
 
     def permits_shared(self, handler, schema, *, shadow):
         return (self.handler is handler and self.mode is ExecutionMode.SHARED

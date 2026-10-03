@@ -1,4 +1,4 @@
-"""Opt-in Stage 3A infrastructure. Full per-event validation is mandatory.
+"""Opt-in shared infrastructure. Only the certified payment has a local proof.
 
 No application/runtime caller enables this path yet. Unapproved handlers execute
 the strict kernel transaction. Private candidates exist only within step(), not
@@ -17,13 +17,22 @@ def _validate_batch(candidate):
     return kernel.validate_world(candidate)
 
 
-def _shared_transition(candidate, event_id, handler):
+def _shared_transition(candidate, event_id, handler, contract=None):
     before = kernel._event_contract_witness(candidate)
+    witness = (contract.capture_transition(candidate, event_id, before)
+               if contract is not None else None)
     outcome, failure, generated = kernel._apply_handler_candidate(
         before, candidate, event_id, handler)
     if failure:
         return outcome, failure, generated
-    # Stage 3A deliberately has NO reduced-validation switch, even for probes.
+    if contract is not None:
+        try:
+            contract.validate_transition(witness, candidate, event_id, generated)
+        except Exception as exc:
+            return None, kernel.EventFailure('TRANSITION_PROOF_FAILED',
+                f'certified transition proof failed: {exc}', event_id), ()
+        return outcome, None, generated
+    # NO_OP and synthetic shadow probes retain full per-event validation.
     validation = kernel.validate_world(candidate)
     if not validation.is_valid:
         return None, kernel.EventFailure('RESULT_VALIDATION_FAILED',
@@ -37,8 +46,9 @@ class SharedResolutionRequest(ResolutionRequest):
 
     Certification remains identity-bound. Shadow-only synthetic contracts are
     private fixtures used to prove generated-event/failure machinery, not a
-    supported way to certify arbitrary gameplay handlers. All transitions still
-    receive complete validation. Strict fallbacks execute once, never shadowed.
+    supported way to certify arbitrary gameplay handlers. Payment alone uses its
+    identity/version-bound transition proof; other probes receive full validation.
+    Strict fallbacks execute once, never shadowed.
     """
 
     def __init__(self, envelope, target_time_utc, *, shadow=False,
@@ -113,12 +123,17 @@ class SharedResolutionRequest(ResolutionRequest):
             return False  # Lifecycle-only stale handling stays strict initially.
         handler = self.registry.handler_for(event['event_type'])
         contract = self.registry.execution_contract_for(event['event_type'])
-        # Stage 3A has no production domain certificates, even if private
-        # metadata is forged. Synthetic probes can run ONLY with full shadow.
-        if handler is not kernel._no_op and not (self.shadow and contract.shadow_only):
+        certified = False
+        if contract.validate_transition is not None:
+            # Fixed approved certificate, not a caller-provided proof escape hatch.
+            from game.world_state.payment_validation import is_payment_certificate
+            certified = is_payment_certificate(contract)
+            if not certified:
+                return False
+        if handler is not kernel._no_op and not certified and not (self.shadow and contract.shadow_only):
             return False
-        return contract.permits_shared(
-            handler, world['metadata']['save_schema_version'], shadow=self.shadow)
+        return (contract.permits_shared(handler, world['metadata']['save_schema_version'], shadow=self.shadow)
+                and (contract.supports_input is None or contract.supports_input(world, event)))
 
     def _strict_one(self):
         event_id = self._heap[0][3]
@@ -179,8 +194,12 @@ class SharedResolutionRequest(ResolutionRequest):
             event = candidate['world_state']['pending_events'][event_id]
             attempts += 1
             try:
-                outcome, failure, generated = _shared_transition(
-                    candidate, event_id, self.registry.handler_for(event['event_type']))
+                contract = self.registry.execution_contract_for(event['event_type'])
+                handler = self.registry.handler_for(event['event_type'])
+                if contract.validate_transition is not None:
+                    outcome, failure, generated = _shared_transition(candidate, event_id, handler, contract)
+                else:
+                    outcome, failure, generated = _shared_transition(candidate, event_id, handler)
             except Exception:
                 candidate = reference = None
                 return self._recover(attempts)

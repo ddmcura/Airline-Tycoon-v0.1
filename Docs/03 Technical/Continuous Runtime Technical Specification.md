@@ -240,3 +240,13 @@ runs after every candidate event. Production session, explicit Advance and norma
 pacing remain strict; no runtime policy, speed, save restriction, overload recovery,
 handler gameplay or player-visible GUI change is introduced. Certification of
 Payment/Departure/Completion and multi-event pumping belong to later slices.
+
+
+## Contract Payment certification — Stage 3B
+
+[Payment certification](Contract%20Payment%20Shared%20Certification.md) adds the
+exact built-in payment's versioned intermediate transition proof to opt-in shared
+resolution. Complete final validation, strict recovery and expiry/Booking/weekly
+fences remain. Production session, explicit Advance and Kivy pacing still use
+strict resolution. No speed, overload, schema/save, formula or flight behavior
+changes; Departure/Completion/Rotation remain strict and Stage 3C–3F are deferred.

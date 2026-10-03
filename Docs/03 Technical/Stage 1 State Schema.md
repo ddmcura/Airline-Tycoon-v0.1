@@ -1365,6 +1365,15 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   reduced validation requires precise write-footprint/dependency proofs and
   intermediate equivalence; final-world equality alone is insufficient.
   See [Runtime Shared Candidate Infrastructure](Runtime%20Shared%20Candidate%20Infrastructure.md).
+- Stage 3B (2026-10-04) certifies only the exact built-in
+  AIRCRAFT_CONTRACT_PAYMENT under `ph-aircraft-contract-payment-shared-v1`.
+  Supported schema-6/7 active USD anniversary inputs use genuine before-event
+  witnesses and exact domain transition proof instead of per-payment full-world
+  validation. Protected dependencies remain unchanged and final full validation/
+  detached commit remain mandatory. Unsupported/custom payment inputs stay strict;
+  expiry stays a fence. Session/Kivy pacing remains strict. No persistent field,
+  formula, flight certification or Stage 3C–3F behavior changes.
+  See [Contract Payment Shared Certification](Contract%20Payment%20Shared%20Certification.md).
 - Handler return value is `None`; the validated candidate is the result. Handler
   context cannot mutate the runtime registry, kernel-owned clock facts, event
   identity/order, or pre-existing pending and terminal event records. It may

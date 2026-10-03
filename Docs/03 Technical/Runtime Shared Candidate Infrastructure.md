@@ -5,6 +5,17 @@ Approved implementation slice, 2026-10-04. Baseline:
 The [canonical event contract](Stage%201%20State%20Schema.md#clock-and-event-contract)
 prevails over this implementation description. Schema remains **7**.
 
+## Stage 3B successor
+
+[Contract Payment Shared Certification](Contract%20Payment%20Shared%20Certification.md)
+implements the first exact domain certificate. Its schema-6/7 input predicate,
+before-event capture and transition validator are bound to the original Payment
+callable and approved version. Supported payments alone replace the intermediate
+full gate with their domain proof; NO_OP/probes retain full gates, final validation
+remains mandatory, and production session/pacing still does not opt in. The
+remaining sections record the Stage 3A baseline; its Payment STRICT classification
+is superseded only by this bounded certificate. Stage 3C–3F remain unimplemented.
+
 ## Scope and defaults
 
 Strict execution remains the production default and independent reference.

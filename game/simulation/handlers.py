@@ -48,6 +48,10 @@ def initialize_runtime_handlers():
             mode = (ExecutionMode.FENCE if event_type in {
                 BOOKING_CHECKPOINT_EVENT_TYPE, EVENT_TYPE, EXPIRY_EVENT}
                 else ExecutionMode.STRICT)
-            registry._execution_contracts[event_type] = HandlerExecutionContract(
-                handler, mode, 'built-in-strict-v1')
+            if event_type == PAYMENT_EVENT:
+                from game.world_state.payment_validation import payment_execution_contract
+                registry._execution_contracts[event_type] = payment_execution_contract(handler)
+            else:
+                registry._execution_contracts[event_type] = HandlerExecutionContract(
+                    handler, mode, 'built-in-strict-v1')
     return registry

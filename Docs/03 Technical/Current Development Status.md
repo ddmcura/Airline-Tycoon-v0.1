@@ -2,6 +2,124 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Contract Payment certification — Stage 3B (2026-10-04 working tree)
+
+Baseline `f44b2790bf02bec2d5ddd4c2bd674ffc902c6b07` matched live origin/master.
+Only the exact built-in Payment is certified for supported active schema-6/7 USD
+anniversary inputs, under `ph-aircraft-contract-payment-shared-v1`. See the
+[write footprint, validator dependency map and proof](Contract%20Payment%20Shared%20Certification.md).
+
+- Pure existing installment arithmetic stays in aircraft_market; exact posting
+  normalization/construction stays in economy. The world-state transition proof
+  checks genuine before/after records, exact cash/assets/expense/principal/financing,
+  journal lineage, finance revision, all allocator cursors, kernel lifecycle and
+  successor topology. Protected fingerprints include untouched records/history.
+- Every payment proves intermediate validity; final full validation/detached commit
+  remains. Custom/replacement/unsupported inputs retain strict execution. Strict
+  replay preserves the successful prefix or visibly disables on optimizer divergence.
+- Expiry, Booking and weekly publication stay fences. Departure/Completion/Rotation
+  stay strict. Session/Kivy/Advance remain strict; no multi-event pumping, overload
+  recovery, formula/RNG/flight/schedule change or Stage 3C–3F work.
+- Stage 2 reads never see candidate finance; detached commit invalidates the old
+  epoch. Save/load remains paused and exact, schema remains **7**, no proof metadata
+  or candidate state is persisted. Existing .venv remains untouched.
+
+### Payment measurements
+
+Before: original Stage 3A strict source, before payment refactoring/certification.
+After: identical in-memory fixtures, final proof source; strict control included
+for host variation. Python 3.12.10/Windows, three latency samples per path, batch
+cap 64. Setup, real-event maturation, cloning and output hashing are excluded from
+latency; operation counts/timers use separate instrumented runs. All five hashes
+match the original baseline exactly. Sequential-eight uses eight contracts with
+successive one-second anniversaries; dense-64 uses equal-time payments. Aged-eight
+adds 1,000 resolved NO_OP history records, not fabricated journals/flights.
+
+| Fixture | Before strict seconds | After strict control | After certified shared | Full validations before → shared | World clones before → shared | Commits before → shared |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| One payment | .110350 | .100590 | .107457 | 3 → 3 | 2 → 2 | 1 → 1 |
+| Sequential eight | .444271 | .407174 | .197038 | 10 → 3 | 16 → 2 | 8 → 1 |
+| Dense 64 | 4.480499 | 4.382520 | 1.250030 | 66 → 3 | 128 → 2 | 64 → 1 |
+| Two final payments + expiry fences | .688422 | .620431 | .557959 | 6 → 5 | 8 → 6 | 4 → 3 |
+| Aged eight | .810209 | .725704 | .422988 | 10 → 3 | 16 → 2 | 8 → 1 |
+
+The three shared-only full gates are request entry, candidate flush and final clock
+gap. Clone counts include detached commits, not small witnesses. Shared payment
+batch sizes here are 1/8/64/2/8; each expiry still executes its own strict transaction.
+One payment has no structural gain and adds proof overhead versus the after strict
+control. Dense payments improve; this does NOT solve flight/normal runtime speed.
+
+| Shared fixture | Capture seconds | Transition proof seconds | Full market-validator seconds (before → shared) | Complete world SHA-256 |
+| --- | ---: | ---: | ---: | --- |
+| One | .004046 | .004850 | .001236 → .000862 | `6fb6110daa0d024ea81eeaa52d68412369febc37d26b005459ea58aa2797c1af` |
+| Sequential eight | .035940 | .038508 | .006860 → .001394 | `c66a567a6a73168a3ff26c0dfb87a9aedfe96633f034d75b7a7cca1f9ddfcbeb` |
+| Dense 64 | .439217 | .483599 | .184010 → .007795 | `654f00ac0d985026d14fd4ecef1d065afbd283dcd5ae0adce14379d4599c6584` |
+| Final/expiry | .018170 | .020007 | .006967 → .006658 | `82dddb0771b43ba1c7d300b4723ed518dec8c5d2978abe54baf8ca32259331d2` |
+| Aged eight | .069187 | .072177 | .004958 → .001435 | `9b11ade3af6157dd83ce6e9f469b2acbd8d842a362fca6e99524c61fc1ad047d` |
+
+Proof capture/validation account for significant measured work. Protected-state
+serialization and transaction chronology scans grow with history; kernel witnesses
+also copy/scan pending/history. Market-validator timing includes journal/contract
+checks, not finance-only isolation. No speculative cache or history optimization.
+
+Additional same-contract three-anniversary control (measured after extraction,
+using the retained strict reference): strict **10.265891 s**, shared **10.619857 s**;
+68 full validations/132 clones/66 commits on BOTH paths, three payments among 66
+real events over two more months. Proof capture .013676 s, proof validation .014566 s;
+market validation .026571 → .024038 s. Exact matching full-world hash:
+`612b76349fdd0d73b503f8ba041e7a6eed1ffd197765eddfaa0db4fadf4276f5`.
+Intervening strict Booking/rotation fences prevent those distant installments from
+sharing one candidate. This mixed runtime control shows no batching benefit; it is
+not an original-source BEFORE measurement and is not a runtime speedup claim.
+
+### Verification
+
+Verified 2026-10-04 using existing `.venv/Scripts/python.exe`, Python 3.12.10:
+
+- Initial proof + marketplace gate: `python -B -m unittest
+  tests.test_payment_certification tests.test_stage1_aircraft_marketplace -q` —
+  14 PASS, 36.064 s, before enabling the payment certificate.
+- Development payment/Stage 3A gate: `python -B -m unittest
+  tests.test_payment_certification tests.test_shared_candidate -q` — 59 PASS,
+  175.962 s. Early fixture errors used nonexistent session setters/methods; fixed
+  to the actual read-only airline property and `finances()` API.
+- Affected gate: `python -B -m unittest tests.test_payment_certification
+  tests.test_shared_candidate tests.test_simulation_resolver tests.test_owned_reads
+  tests.test_stage1_aircraft_marketplace tests.test_stage1_aircraft_acquisition
+  tests.test_stage1_event_kernel tests.test_step7_save_load tests.test_stage1_runtime
+  tests.test_advancement_performance tests.test_runtime_startup
+  tests.test_player_speeds -q` — **242 PASS**, **593.383 s**. All 36 Stage 3A,
+  23 Stage 1 resolver/oracle and 19 Stage 2 ownership tests passed; 26 payment tests
+  at that gate. Final additions/changes are covered by the next three-test gate.
+- Final review regressions: `python -B -m unittest
+  tests.test_payment_certification.PaymentSharedTests.test_first_invalid_transition_cannot_wait_for_a_later_repair
+  tests.test_payment_certification.PaymentBoundaryTests.test_near_time_partitions_and_saved_payment_prefix_exact_oracle
+  tests.test_payment_certification.PaymentProofTests.test_approved_financing_cent_remainder_witnesses
+  -q` — **3 PASS**, **23.600 s**. Current Stage 3B total: **28 new tests**.
+- Full repository suite: `python -B -m unittest discover -s tests -q` —
+  **819 PASS**, **1,026.613 s**, no failures; baseline 791 + 28 new Stage 3B tests.
+  Verified final implementation/test working tree before commit.
+- Scoped `python -m compileall -q app game tests main.py make_snapshot.py settings.py
+  test.py` — PASS. 176 documentation paths/heading anchors — PASS;
+  `git diff --check` — PASS. Final source/diff review found no remaining issue.
+- Native `python -B -m tests.smoke_runtime_startup` — PASS in a fresh process:
+  direct Load without New Game, two completed Booking checkpoints/14 bookings,
+  UTC `2026-09-02T00:00:30Z`, exact paused save/reload, SDL2 window 2560x1377.
+  Temporary KIVY_HOME and KIVY_NO_ARGS/KIVY_NO_FILELOG avoid user log permissions.
+  This smoke covers the retained strict GUI startup path, not shared payment GUI
+  integration or human responsiveness. Payment runtime is exercised by real-domain
+  strict/shared/shadow/oracle tests and the 66-event anniversary control.
+
+No dependencies, production saves or .venv contents changed. Benchmark tooling's
+first instrumented draft incorrectly left original proof metadata bound while
+wrapping module functions, so that instrumented path conservatively fell back to
+strict. Tooling now rebinds the instrumented certificate; only corrected counts/
+measurements above are evidence. No production bypass was added.
+
+Next proposed bounded slice: Stage 3C Departure/Completion certification, requiring
+separate approval and substantially broader manifest/settlement/maintenance proofs.
+No Stage 3C implementation began.
+
 ## Runtime shared candidate infrastructure — Stage 3A (2026-10-04 working tree)
 
 Baseline `1682c0b3c47a8a102da2d2ee2ffb172ea237ea29` matched live origin/master

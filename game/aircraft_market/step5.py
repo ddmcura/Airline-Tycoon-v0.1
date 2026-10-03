@@ -583,6 +583,29 @@ def confirmed_contract_horizon(world, aircraft_id):
     return horizon
 
 
+def payment_terms(contract):
+    """Pure existing installment arithmetic; no rounding or economics change."""
+    installment = contract["paid_installments"] + 1
+    if contract["contract_type"] == "OPERATING_LEASE":
+        principal = financing = 0
+        amount = contract["monthly_rent_minor"]
+        entries = (("operating_expenses", amount), ("cash", -amount))
+        description = f"Operating lease installment {installment}"
+        source_type = "AIRCRAFT_LEASE_PAYMENT"
+    else:
+        principal = contract["principal_base_minor"] + (
+            1 if installment <= contract["principal_remainder_installments"] else 0)
+        financing = contract["monthly_financing_minor"]
+        entries = (("aircraft_assets", principal), ("operating_expenses", financing),
+                   ("cash", -(principal + financing)))
+        description = f"Lease-to-own installment {installment}"
+        source_type = "AIRCRAFT_LTO_PAYMENT"
+    next_due = None if installment == contract["total_installments"] else format_utc(
+        _add_months(parse_canonical_utc(contract["started_at_utc"]), installment + 1))
+    return dict(installment=installment, principal=principal, financing=financing,
+        entries=entries, description=description, source_type=source_type, next_due=next_due)
+
+
 def _payment_handler(context):
     world = context.envelope["world_state"]
     contract = world["aircraft_contracts"][context.event["owner_id"]]
@@ -591,30 +614,16 @@ def _payment_handler(context):
     installment = contract["paid_installments"] + 1
     if installment > contract["total_installments"]:
         return
-    if contract["contract_type"] == "OPERATING_LEASE":
-        amount = contract["monthly_rent_minor"]
-        post_aircraft_market_transaction(context.envelope, airline_id=contract["airline_id"],
-              description=f"Operating lease installment {installment}",
-              source_type="AIRCRAFT_LEASE_PAYMENT", source_id=contract["aircraft_contract_id"],
-              entries=(("operating_expenses", amount), ("cash", -amount)))
-    else:
-        principal = contract["principal_base_minor"] + (
-            1 if installment <= contract["principal_remainder_installments"] else 0)
-        financing = contract["monthly_financing_minor"]
-        post_aircraft_market_transaction(context.envelope, airline_id=contract["airline_id"],
-              description=f"Lease-to-own installment {installment}",
-              source_type="AIRCRAFT_LTO_PAYMENT", source_id=contract["aircraft_contract_id"],
-              entries=(("aircraft_assets", principal), ("operating_expenses", financing),
-                       ("cash", -(principal + financing))))
-        contract["principal_paid_minor"] += principal
-        contract["financing_paid_minor"] += financing
+    terms = payment_terms(contract)
+    post_aircraft_market_transaction(context.envelope, airline_id=contract["airline_id"],
+        description=terms["description"], source_type=terms["source_type"],
+        source_id=contract["aircraft_contract_id"], entries=terms["entries"])
+    contract["principal_paid_minor"] += terms["principal"]
+    contract["financing_paid_minor"] += terms["financing"]
     contract["paid_installments"] = installment
-    if installment == contract["total_installments"]:
-        contract["next_payment_at_utc"] = None
-    else:
-        due = _add_months(parse_canonical_utc(contract["started_at_utc"]), installment + 1)
-        contract["next_payment_at_utc"] = format_utc(due)
-        context.schedule_event(event_type=PAYMENT_EVENT, due_at_utc=format_utc(due),
+    contract["next_payment_at_utc"] = terms["next_due"]
+    if terms["next_due"] is not None:
+        context.schedule_event(event_type=PAYMENT_EVENT, due_at_utc=terms["next_due"],
             owner_type="aircraft_contract", owner_id=contract["aircraft_contract_id"],
             operation_revision=0, priority=PAYMENT_PRIORITY,
             payload={"contract": "PH_AIRCRAFT_CONTRACT_PAYMENT_V1",
