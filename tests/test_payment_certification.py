@@ -157,7 +157,7 @@ class PaymentSharedTests(unittest.TestCase):
 
     def test_other_handlers_keep_classification(self):
         registry = initialize_runtime_handlers()
-        for name in ('STAGE1_FLIGHT_DEPARTURE', 'STAGE1_FLIGHT_COMPLETION', 'AIRCRAFT_MARKET_ROTATION'):
+        for name in ('AIRCRAFT_MARKET_ROTATION',):
             self.assertIs(registry.execution_contract_for(name).mode, ExecutionMode.STRICT)
         for name in ('DAILY_BOOKING_CHECKPOINT', 'STAGE1_WEEKLY_PUBLICATION', 'AIRCRAFT_CONTRACT_EXPIRY'):
             self.assertIs(registry.execution_contract_for(name).mode, ExecutionMode.FENCE)

@@ -450,6 +450,52 @@ def _common_checks(envelope, flight_id, *, _event_transaction=None):
     return flight, None
 
 
+def departure_operation(envelope, flight, aircraft_id, manifest, event_id):
+    """Pure existing frozen-operation construction; authority remains in departure."""
+    flight_id = flight["dated_flight_id"]
+    world = envelope["world_state"]
+    configuration, _revision = _configuration(envelope)
+    operation = {
+        "contract": FLIGHT_FULFILMENT_OPERATION_CONTRACT,
+        "dated_flight_id": flight_id,
+        "aircraft_id": aircraft_id,
+        "state": "OPERATIONALLY_LOCKED",
+        "revision": flight["operation_revision"],
+        "airline_id": flight["airline_id"],
+        "market_id": world["connections"].get(flight["connection_id"], {}).get("market_id"),
+        "schedule_id": flight["schedule_id"],
+        "schedule_revision": flight["schedule_revision"],
+        "occurrence_key": flight["occurrence_key"],
+        "planned_aircraft_id": flight["planned_aircraft_id"],
+        "actual_aircraft_id": aircraft_id,
+        "origin_airport_id": flight["origin_airport_id"],
+        "destination_airport_id": flight["destination_airport_id"],
+        "scheduled_off_block_utc": flight["scheduled_off_block_utc"],
+        "scheduled_in_block_utc": flight["scheduled_in_block_utc"],
+        "actual_departure_utc": flight["scheduled_off_block_utc"],
+        "published_capacity": flight["capacity"],
+        "source_booking_ids": list(manifest.source_booking_ids),
+        "paid_booking_ids": list(manifest.paid_booking_ids),
+        "zero_fare_booking_ids": list(manifest.zero_fare_booking_ids),
+        "source_ticket_sale_transaction_ids": list(manifest.source_ticket_sale_transaction_ids),
+        "booking_witnesses": deepcopy(list(manifest.booking_witnesses)),
+        "inventory_witnesses": deepcopy(list(manifest.inventory_witnesses)),
+        "booking_revision": world["booking_state"]["booking_revision"],
+        "inventory_revision": flight["inventory_revision"],
+        "operation_revision_before": flight["operation_revision"] - 1,
+        "fulfilment_configuration_revision": configuration["current_revision"],
+        "fulfilment_configuration_fingerprint": configuration["configuration_fingerprint"],
+        "departure_event_id": event_id,
+        "completion_event_id": None,
+    }
+    if envelope["metadata"]["save_schema_version"] == 7:
+        operation.update(departure_witness(
+            world, flight, world["aircraft"][aircraft_id],
+            envelope["simulation"]["configuration"]["maintenance"],
+        ))
+    return operation
+
+
 def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, expected_operation_revision=None,
                expected_booking_revision=None, expected_inventory_revision=None,
                expected_event_order_cursor=None, expected_configuration_revision=None,
@@ -512,51 +558,13 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
         candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
         cworld = candidate["world_state"]
         cflight = cworld["dated_flights"][flight_id]
-        previous_revision = cflight["operation_revision"]
         cflight["operation_revision"] += 1
         candidate["simulation"]["operation_revisions"][flight_id] = cflight["operation_revision"]
         cflight["status"] = "OPERATIONALLY_LOCKED"
         caircraft = cworld["aircraft"][chosen_aircraft_id]
         caircraft["current_airport_id"] = None
         caircraft["status"] = "IN_FLIGHT"
-        operation = {
-            "contract": FLIGHT_FULFILMENT_OPERATION_CONTRACT,
-            "dated_flight_id": flight_id,
-            "aircraft_id": chosen_aircraft_id,
-            "state": "OPERATIONALLY_LOCKED",
-            "revision": cflight["operation_revision"],
-            "airline_id": cflight["airline_id"],
-            "market_id": cworld["connections"].get(cflight["connection_id"], {}).get("market_id"),
-            "schedule_id": cflight["schedule_id"],
-            "schedule_revision": cflight["schedule_revision"],
-            "occurrence_key": cflight["occurrence_key"],
-            "planned_aircraft_id": cflight["planned_aircraft_id"],
-            "actual_aircraft_id": chosen_aircraft_id,
-            "origin_airport_id": cflight["origin_airport_id"],
-            "destination_airport_id": cflight["destination_airport_id"],
-            "scheduled_off_block_utc": cflight["scheduled_off_block_utc"],
-            "scheduled_in_block_utc": cflight["scheduled_in_block_utc"],
-            "actual_departure_utc": cflight["scheduled_off_block_utc"],
-            "published_capacity": cflight["capacity"],
-            "source_booking_ids": list(manifest.source_booking_ids),
-            "paid_booking_ids": list(manifest.paid_booking_ids),
-            "zero_fare_booking_ids": list(manifest.zero_fare_booking_ids),
-            "source_ticket_sale_transaction_ids": list(manifest.source_ticket_sale_transaction_ids),
-            "booking_witnesses": deepcopy(list(manifest.booking_witnesses)),
-            "inventory_witnesses": deepcopy(list(manifest.inventory_witnesses)),
-            "booking_revision": cworld["booking_state"]["booking_revision"],
-            "inventory_revision": cflight["inventory_revision"],
-            "operation_revision_before": previous_revision,
-            "fulfilment_configuration_revision": configuration["current_revision"],
-            "fulfilment_configuration_fingerprint": configuration["configuration_fingerprint"],
-            "departure_event_id": event["event_id"],
-            "completion_event_id": None,
-        }
-        if candidate["metadata"]["save_schema_version"] == 7:
-            operation.update(departure_witness(
-                cworld, cflight, caircraft,
-                candidate["simulation"]["configuration"]["maintenance"],
-            ))
+        operation = departure_operation(candidate, cflight, chosen_aircraft_id, manifest, event["event_id"])
         cworld["active_aircraft_operations"][flight_id] = operation
         completion_id = schedule_event(
             candidate, event_type=FLIGHT_COMPLETION_EVENT_TYPE,
@@ -630,6 +638,105 @@ def _account_ids(world, airline_id):
         if account["currency"] != airline["base_currency"]:
             raise ValueError("CURRENCY_MISMATCH")
     return accounts
+
+
+def completion_cost(envelope, flight, operation):
+    """Pure existing base and frozen routine-maintenance calculation."""
+    cost = calculate_operating_cost(envelope, flight)
+    if "maintenance_distance_m" in operation:
+        maintenance = maintenance_expense_minor(
+            operation["maintenance_distance_m"],
+            operation["maintenance_factor_minor_per_km"],
+        )
+        base = cost["operating_cost_minor"]
+        cost["operating_cost_minor"] = base + maintenance
+        cost["base_operating_cost_minor"] = base
+        cost["maintenance_expense_minor"] = maintenance
+    return cost
+
+
+def settlement_records(envelope, flight, operation, manifest, transaction_id, cost):
+    """Pure existing journal/result construction; no allocation or mutation."""
+    world = envelope["world_state"]
+    flight_id = flight["dated_flight_id"]
+    accounts = _account_ids(world, flight["airline_id"])
+    revenue = manifest.recognized_revenue_minor
+    finance_before = world["airlines"][flight["airline_id"]]["finance_revision"]
+    operation_before = flight["operation_revision"]
+    configuration, _revision = _configuration(envelope)
+    entries = []
+    if revenue:
+        entries.extend([
+            {"account_id": accounts["unflown_tickets"], "amount_minor": revenue},
+            {"account_id": accounts["passenger_revenue"], "amount_minor": -revenue},
+        ])
+    entries.extend([
+        {"account_id": accounts["operating_expenses"], "amount_minor": cost["operating_cost_minor"]},
+        {"account_id": accounts["cash"], "amount_minor": -cost["operating_cost_minor"]},
+    ])
+    transaction = {
+        "transaction_id": transaction_id,
+        "airline_id": flight["airline_id"],
+        "occurred_at_utc": flight["scheduled_in_block_utc"],
+        "description": "Stage 1 flight fulfilment settlement",
+        "source_type": "FLIGHT_FULFILMENT",
+        "source_id": flight_id,
+        "source_booking_ids": list(manifest.paid_booking_ids),
+        "source_ticket_sale_transaction_ids": list(manifest.source_ticket_sale_transaction_ids),
+        "currency": manifest.currency,
+        "entries": entries,
+    }
+    result = {
+        "contract": FLIGHT_RESULT_CONTRACT,
+        "result_version": FLIGHT_RESULT_VERSION,
+        "dated_flight_id": flight_id,
+        "airline_id": flight["airline_id"],
+        "market_id": operation["market_id"],
+        "schedule_id": flight["schedule_id"],
+        "schedule_revision": flight["schedule_revision"],
+        "occurrence_key": flight["occurrence_key"],
+        "planned_aircraft_id": flight["planned_aircraft_id"],
+        "actual_aircraft_id": operation["actual_aircraft_id"],
+        "origin_airport_id": flight["origin_airport_id"],
+        "destination_airport_id": flight["destination_airport_id"],
+        "scheduled_off_block_utc": flight["scheduled_off_block_utc"],
+        "scheduled_in_block_utc": flight["scheduled_in_block_utc"],
+        "actual_departure_utc": flight["scheduled_off_block_utc"],
+        "actual_arrival_utc": flight["scheduled_in_block_utc"],
+        "completed_at_utc": flight["scheduled_in_block_utc"],
+        "published_capacity": flight["capacity"],
+        "carried_passenger_count": manifest.carried_passenger_count,
+        "paid_passenger_count": manifest.paid_passenger_count,
+        "zero_fare_passenger_count": manifest.zero_fare_passenger_count,
+        "source_booking_ids": list(manifest.source_booking_ids),
+        "paid_booking_ids": list(manifest.paid_booking_ids),
+        "zero_fare_booking_ids": list(manifest.zero_fare_booking_ids),
+        "source_ticket_sale_transaction_ids": list(manifest.source_ticket_sale_transaction_ids),
+        "settlement_transaction_id": transaction_id,
+        "departure_event_id": operation["departure_event_id"],
+        "completion_event_id": operation["completion_event_id"],
+        "recognized_revenue_minor": revenue,
+        "operating_cost_minor": cost["operating_cost_minor"],
+        "currency": manifest.currency,
+        "booking_witnesses": deepcopy(list(manifest.booking_witnesses)),
+        "inventory_witnesses": deepcopy(list(manifest.inventory_witnesses)),
+        "finance_revision_before": finance_before,
+        "finance_revision_after": finance_before + 1,
+        "operation_revision_before": operation_before,
+        "operation_revision_after": operation_before + 1,
+        "fulfilment_configuration_revision": configuration["current_revision"],
+        "fulfilment_configuration_fingerprint": configuration["configuration_fingerprint"],
+    }
+    if "maintenance_distance_m" in operation:
+        result["result_version"] = 2
+        result["base_operating_cost_minor"] = cost["base_operating_cost_minor"]
+        result["maintenance_expense_minor"] = cost["maintenance_expense_minor"]
+        result.update({key: operation[key] for key in (
+            "maintenance_distance_m", "maintenance_distance_source",
+            "maintenance_classification_version", "maintenance_class",
+            "maintenance_factor_minor_per_km", "maintenance_configuration_fingerprint",
+        )})
+    return transaction, result
 
 
 def _completion(envelope, flight_id, *, resolve_event, expected_operation_revision=None,
@@ -707,44 +814,15 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
         liability = cworld["financial_accounts"][accounts["unflown_tickets"]]
         if liability["balance_minor"] < revenue:
             raise ValueError("INSUFFICIENT_UNFLOWN_TICKET_LIABILITY")
-        cost = calculate_operating_cost(candidate, cflight)
-        if "maintenance_distance_m" in coperation:
-            maintenance = maintenance_expense_minor(
-                coperation["maintenance_distance_m"],
-                coperation["maintenance_factor_minor_per_km"],
-            )
-            base = cost["operating_cost_minor"]
-            cost["operating_cost_minor"] = base + maintenance
+        cost = completion_cost(candidate, cflight, coperation)
         transaction_id = allocate_id(candidate, "transaction")
-        entries = []
-        if revenue:
-            entries.extend([
-                {"account_id": accounts["unflown_tickets"], "amount_minor": revenue},
-                {"account_id": accounts["passenger_revenue"], "amount_minor": -revenue},
-            ])
-        entries.extend([
-            {"account_id": accounts["operating_expenses"], "amount_minor": cost["operating_cost_minor"]},
-            {"account_id": accounts["cash"], "amount_minor": -cost["operating_cost_minor"]},
-        ])
-        cworld["transactions"][transaction_id] = {
-            "transaction_id": transaction_id,
-            "airline_id": cflight["airline_id"],
-            "occurred_at_utc": cflight["scheduled_in_block_utc"],
-            "description": "Stage 1 flight fulfilment settlement",
-            "source_type": "FLIGHT_FULFILMENT",
-            "source_id": flight_id,
-            "source_booking_ids": list(manifest.paid_booking_ids),
-            "source_ticket_sale_transaction_ids": list(manifest.source_ticket_sale_transaction_ids),
-            "currency": manifest.currency,
-            "entries": entries,
-        }
+        transaction, result = settlement_records(candidate, cflight, coperation, manifest, transaction_id, cost)
+        cworld["transactions"][transaction_id] = transaction
         liability["balance_minor"] -= revenue
         cworld["financial_accounts"][accounts["passenger_revenue"]]["balance_minor"] += revenue
         cworld["financial_accounts"][accounts["operating_expenses"]]["balance_minor"] += cost["operating_cost_minor"]
         cworld["financial_accounts"][accounts["cash"]]["balance_minor"] -= cost["operating_cost_minor"]
-        finance_before = cairline["finance_revision"]
         cairline["finance_revision"] += 1
-        operation_before = cflight["operation_revision"]
         cflight["operation_revision"] += 1
         candidate["simulation"]["operation_revisions"][flight_id] = cflight["operation_revision"]
         cflight["status"] = "COMPLETED"
@@ -759,56 +837,6 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
             ).total_seconds())
             lifecycle["lifetime_flight_seconds"] += block_seconds
             lifecycle["lifetime_cycles"] += 1
-        result = {
-            "contract": FLIGHT_RESULT_CONTRACT,
-            "result_version": FLIGHT_RESULT_VERSION,
-            "dated_flight_id": flight_id,
-            "airline_id": cflight["airline_id"],
-            "market_id": coperation["market_id"],
-            "schedule_id": cflight["schedule_id"],
-            "schedule_revision": cflight["schedule_revision"],
-            "occurrence_key": cflight["occurrence_key"],
-            "planned_aircraft_id": cflight["planned_aircraft_id"],
-            "actual_aircraft_id": coperation["actual_aircraft_id"],
-            "origin_airport_id": cflight["origin_airport_id"],
-            "destination_airport_id": cflight["destination_airport_id"],
-            "scheduled_off_block_utc": cflight["scheduled_off_block_utc"],
-            "scheduled_in_block_utc": cflight["scheduled_in_block_utc"],
-            "actual_departure_utc": cflight["scheduled_off_block_utc"],
-            "actual_arrival_utc": cflight["scheduled_in_block_utc"],
-            "completed_at_utc": cflight["scheduled_in_block_utc"],
-            "published_capacity": cflight["capacity"],
-            "carried_passenger_count": manifest.carried_passenger_count,
-            "paid_passenger_count": manifest.paid_passenger_count,
-            "zero_fare_passenger_count": manifest.zero_fare_passenger_count,
-            "source_booking_ids": list(manifest.source_booking_ids),
-            "paid_booking_ids": list(manifest.paid_booking_ids),
-            "zero_fare_booking_ids": list(manifest.zero_fare_booking_ids),
-            "source_ticket_sale_transaction_ids": list(manifest.source_ticket_sale_transaction_ids),
-            "settlement_transaction_id": transaction_id,
-            "departure_event_id": coperation["departure_event_id"],
-            "completion_event_id": event["event_id"],
-            "recognized_revenue_minor": revenue,
-            "operating_cost_minor": cost["operating_cost_minor"],
-            "currency": manifest.currency,
-            "booking_witnesses": deepcopy(list(manifest.booking_witnesses)),
-            "inventory_witnesses": deepcopy(list(manifest.inventory_witnesses)),
-            "finance_revision_before": finance_before,
-            "finance_revision_after": cairline["finance_revision"],
-            "operation_revision_before": operation_before,
-            "operation_revision_after": cflight["operation_revision"],
-            "fulfilment_configuration_revision": configuration["current_revision"],
-            "fulfilment_configuration_fingerprint": configuration["configuration_fingerprint"],
-        }
-        if "maintenance_distance_m" in coperation:
-            result["result_version"] = 2
-            result["base_operating_cost_minor"] = base
-            result["maintenance_expense_minor"] = maintenance
-            result.update({key: coperation[key] for key in (
-                "maintenance_distance_m", "maintenance_distance_source",
-                "maintenance_classification_version", "maintenance_class",
-                "maintenance_factor_minor_per_km", "maintenance_configuration_fingerprint",
-            )})
         cworld["flight_results"][flight_id] = result
         del cworld["active_aircraft_operations"][flight_id]
         if resolve_event:

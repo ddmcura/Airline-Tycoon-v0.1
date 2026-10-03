@@ -8,7 +8,7 @@ from game.world_state import create_stage1_new_game, validate_world
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
 
-def payment_world(count=1, *, near=False, history=0, final=False):
+def payment_world(count=1, *, near=False, history=0, final=False, lead_seconds=1):
     initialize_runtime_handlers()
     world = create_stage1_new_game(scenario_id='stage1-philippines-v1',
         ceo_display_name='Payment CEO', airline_display_name='Payment Proof Air',
@@ -33,7 +33,7 @@ def payment_world(count=1, *, near=False, history=0, final=False):
                  for row in contracts.values())
     first = min(row['expires_at_utc'] if final else row['next_payment_at_utc']
                 for row in contracts.values())
-    before = format_utc(parse_canonical_utc(first) - timedelta(seconds=1))
+    before = format_utc(parse_canonical_utc(first) - timedelta(seconds=lead_seconds))
     result = kernel.process_events_through(world, before, max_generated_events=10000)
     assert result.succeeded, result.failure
     now = world['simulation']['time_utc']

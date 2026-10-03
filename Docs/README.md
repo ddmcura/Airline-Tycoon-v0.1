@@ -43,6 +43,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   Stage 3A opt-in candidates, per-event shadow proof, strict recovery and rollback.
 - [Contract Payment certification](03%20Technical/Contract%20Payment%20Shared%20Certification.md):
   Stage 3B exact transition proof, protected dependencies and payment measurements.
+- [Flight shared certification](03%20Technical/Flight%20Shared%20Certification.md):
+  Stage 3C separate Departure/Completion proofs, exact flight/finance witnesses and throughput evidence.
 - [Runtime resolution foundation](03%20Technical/Runtime%20Resolution%20Foundation.md):
   shared strict resolver facade, complete boundaries and exact equivalence oracle.
 - [PH GUI foundation specification](03%20Technical/PH%20GUI%20Foundation%20Technical%20Specification.md):

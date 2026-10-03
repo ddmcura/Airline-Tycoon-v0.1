@@ -5,6 +5,18 @@ Approved implementation slice, 2026-10-04. Baseline:
 The [canonical event contract](Stage%201%20State%20Schema.md#clock-and-event-contract)
 prevails over this implementation description. Schema remains **7**.
 
+## Stage 3C successor
+
+[Flight Shared Certification](Flight%20Shared%20Certification.md) independently
+certifies exact built-in Departure and Completion on supported schema-7 inputs.
+Their domain-specific before/after proofs replace per-flight full validation only
+in explicitly opted-in shared requests. Protected state and canonical JSON/alias checks
+run every logical event; final validation/detached commit and strict recovery remain.
+Payment retains its certificate. Rotation stays strict; Booking/publication/expiry
+remain fences. Production session/Kivy/Advance remain strict. Stage 3D–3F remain
+unimplemented. The dated Stage 3A/3B sections below describe those earlier scopes;
+flight STRICT classifications there are superseded only by this bounded certificate.
+
 ## Stage 3B successor
 
 [Contract Payment Shared Certification](Contract%20Payment%20Shared%20Certification.md)
@@ -14,7 +26,7 @@ callable and approved version. Supported payments alone replace the intermediate
 full gate with their domain proof; NO_OP/probes retain full gates, final validation
 remains mandatory, and production session/pacing still does not opt in. The
 remaining sections record the Stage 3A baseline; its Payment STRICT classification
-is superseded only by this bounded certificate. Stage 3C–3F remain unimplemented.
+is superseded only by this bounded certificate. Stage 3C is documented above; Stage 3D–3F remain unimplemented.
 
 ## Scope and defaults
 

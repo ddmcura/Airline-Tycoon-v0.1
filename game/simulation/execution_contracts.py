@@ -1,6 +1,6 @@
 """Runtime-only handler contracts; registration alone grants no certification.
 
-NO_OP/probes retain full per-event validation. Stage 3B payment alone has a
+NO_OP/probes retain full per-event validation. Certified payment/flights have a
 versioned local transition proof and conservative input predicate. Shadow-only probes
 are private test fixtures, never a production certification escape hatch.
 """

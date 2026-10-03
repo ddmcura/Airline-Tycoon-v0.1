@@ -2,6 +2,181 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Flight lifecycle certification — Stage 3C (2026-10-04 working tree)
+
+Baseline **3f6f6ab76194b36825d3850651b6f96d1fd7267e** matched local/upstream/live
+origin/master before edits. Only this separately approved Stage 3C is implemented.
+[Separate footprints, dependency maps and proof](Flight%20Shared%20Certification.md).
+
+- Exact built-in Departure and Completion independently bind schema-7 input
+  predicates, genuine before-event capture and exact transition validators under
+  `ph-flight-departure-shared-v1` / `ph-flight-completion-shared-v1`. Custom/stale/
+  unsupported inputs remain strict. Older schemas remain strict; migrated V1
+  operations in schema 7 still produce V1 results without maintenance backfill.
+- Pure existing operation/cost/journal/result construction stays localized in
+  aircraft_operations; world-state proofs reuse it without changing formulas.
+  All flight/aircraft/manifest/result/account/journal/revision/event/allocator
+  changes are exact. Unchanged authority is fingerprinted; canonical JSON
+  compatibility and mutable alias validation run at EVERY flight transition,
+  before another event executes.
+- Final full validation and detached commit remain mandatory. Mixed shared batches
+  follow canonical event order, immediately enqueue generated completions, and
+  use unchanged strict successful-prefix recovery/divergence handling. Booking,
+  weekly publication and expiry stay fences; Rotation stays strict; Payment remains
+  certified. No private candidate reaches Stage 2 views or persistence.
+- Schema remains **7**, with no new persistent fields, booking index, cache,
+  historical reinterpretation or gameplay/formula/RNG/scheduling change. Production
+  session, Kivy, explicit Advance, pacing and overload behavior remain strict and
+  unchanged. Stage 3D–3F are NOT implemented. Pre-existing `.venv/` remains untouched.
+
+### Flight measurements
+
+Original-source BEFORE: Stage 3B baseline, first eight fixtures measured before
+flight certification; dense-25/Divine fixtures measured against a read-only TEMP
+archive of that same baseline with tooling copied into it. AFTER strict controls
+use the unchanged strict path; final shared samples include canonical JSON and
+alias checks. An initial cold shared-only profiler run lacked explicit registry
+initialization for its first case; discarded and remeasured that case after fixing
+startup. The tool now asserts timed/instrumented commit boundaries agree.
+
+Python 3.12.10/Windows desktop, three latency samples per path, medians below.
+Workstation was not CPU-isolated; other verification ran concurrently, so compare
+strict controls and structural counts rather than treating timings as a formal
+speed certification. Setup/input copying/output hashing are excluded; counters
+and nested timers run separately. Same persisted input fixtures and complete-world
+hashes are used throughout, batch cap 64, no normal-runtime activation.
+
+| Fixture | Events | Before strict s | After strict control s | Final shared s | Full gates before → shared | World clones before → shared | Events/commit shared | Max shared step s |
+| --- | ---: | ---: | ---: | ---: | --- | --- | --- | ---: |
+| one-departure | 1 | 0.330521 | 0.414115 | 0.518057 | 3 → 3 | 2 → 2 | 1 | 0.427281 |
+| one-completion | 1 | 0.349669 | 0.398141 | 0.542275 | 3 → 3 | 2 → 2 | 1 | 0.422155 |
+| round-trip | 4 | 0.781458 | 0.825645 | 0.796733 | 6 → 3 | 8 → 2 | 4 | 0.775766 |
+| dense-departure | 10 | 2.466152 | 2.965744 | 2.284076 | 12 → 3 | 20 → 2 | 10 | 2.188171 |
+| dense-completion | 10 | 2.580800 | 3.124040 | 2.344798 | 12 → 3 | 20 → 2 | 10 | 2.219581 |
+| mixed-ten | 40 | 9.577224 | 11.878121 | 7.763072 | 42 → 3 | 80 → 2 | 40 | 7.778779 |
+| representative-ten | 81 | 29.551979 | 39.215595 | 24.447573 | 83 → 5 | 162 → 6 | 40/1/40 | 12.790564 |
+| aged-ten | 40 | 11.040979 | 15.130512 | 8.645272 | 42 → 3 | 80 → 2 | 40 | 8.798113 |
+| dense-25 | 100 | 47.202209 | 61.212800 | 30.661683 | 102 → 4 | 200 → 4 | 64/36 | 19.797565 |
+| divine-next-departure | 1 | 9.045439 | 11.302757 | 12.566691 | 3 → 3 | 2 → 2 | 1 | 9.698388 |
+| divine-short | 3 | 17.137414 | 19.756459 | 16.910362 | 5 → 3 | 6 → 2 | 3 | 14.098230 |
+
+Three shared full gates are request entry, flush and final clock gap. Two clones
+are private candidate and detached commit, not small before-event witnesses. The
+two-day ten-aircraft workload contains one strict Booking fence (40/1/40 commits);
+dense-25 uses 64/36 commits. Aged-ten adds 1,000 genuinely resolved NO_OP records.
+Divine Air is a read-only detached schema-7 fixture at 2026-09-12T12:20:00Z with
+one aircraft and 21,901 Booking rows; short target is four hours after next departure.
+Production Saves were not modified.
+
+| Fixture | Capture s | Validation s | Protected serialization s | JSON s | Alias s | Manifest s | Cost + records s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| one-departure | 0.022229 | 0.061488 | 0.043203 | 0.017535 | 0.021059 | 0.001257 | 0.000000 |
+| one-completion | 0.032351 | 0.072967 | 0.057255 | 0.018496 | 0.024963 | 0.001575 | 0.000545 |
+| round-trip | 0.093942 | 0.274888 | 0.185113 | 0.078112 | 0.093950 | 0.005667 | 0.000789 |
+| dense-departure | 0.478257 | 1.115888 | 0.755659 | 0.342924 | 0.383117 | 0.120219 | 0.000000 |
+| dense-completion | 0.456914 | 1.104926 | 0.786533 | 0.342526 | 0.354468 | 0.066445 | 0.008939 |
+| mixed-ten | 1.876093 | 4.845697 | 3.334697 | 1.458831 | 1.623376 | 0.290014 | 0.022498 |
+| representative-ten | 5.606922 | 14.355765 | 10.099238 | 4.335878 | 4.811186 | 0.883039 | 0.044877 |
+| aged-ten | 1.908589 | 5.030544 | 3.399827 | 1.613002 | 1.657281 | 0.276568 | 0.018954 |
+| dense-25 | 7.574336 | 19.497465 | 13.708251 | 5.935706 | 6.546654 | 1.107496 | 0.048383 |
+| divine-next-departure | 0.559192 | 1.400822 | 1.009732 | 0.405121 | 0.506275 | 0.074641 | 0.000000 |
+| divine-short | 1.668031 | 4.807162 | 3.084928 | 1.227269 | 2.036520 | 0.220626 | 0.000769 |
+
+Capture/validation include nested serialization/manifest/JSON/alias/helper time;
+columns must NOT be summed. Cost+records includes handler AND proof calls, not an
+isolated finance-only timer. Manifest calls double (e.g. 40 → 80 in mixed-ten); no
+second Booking index was introduced. Kernel before-event pending/history witnesses
+cost .549165 s in aged-ten versus .044853 s in mixed-ten; Completion input checks
+also scan prior aircraft results. These scans still grow with retained history.
+
+| Fixture | Complete authoritative SHA-256 (before = after strict = final shared) |
+| --- | --- |
+| one-departure | `5e42898747dea9a5c07d2e34270224dadc854d9579ba8b0bf36b308988364c87` |
+| one-completion | `b2346d27f4cb0c75b68c544fe9e553de140e747f32b9ac3abb4ea80640a1d1b8` |
+| round-trip | `a74008b1f14e316f320c269a8d0303518780b527c988c4e5fccc56aa657c8a49` |
+| dense-departure | `eda36ae619c8f7b004f6cf4ed788da7c4bb560be60000dc2d37a56d04dfcc233` |
+| dense-completion | `0b0717295a901727e6c2020f88e1626de4d0a025e9acbb5656bb90258d5f03c1` |
+| mixed-ten | `393ddb47218f2427162c0b1a464f463ed75f744c22451823093de5f979d2f726` |
+| representative-ten | `8eb47f6302cf6bb497c54372e3d504598481693eb5aabd5e70bb4f2687912c43` |
+| aged-ten | `9fa843144124d850242b4b58306fe61623ef2666eeb654893531500169a9cded` |
+| dense-25 | `81b58ab5340fb59790468e855031e1752d79909a35ce8bb3edd648b9fd23de0c` |
+| divine-next-departure | `85aff62c20cf92053921eef2e940228e845f2eaa6631d36a4259e5c2073f5d51` |
+| divine-short | `c9578420b04edb4b63e98274eb92d26fd53e1899905ec4a9e0896b1e0ad0da37` |
+
+Dense throughput improves; isolated events have no clone/full-gate reduction and
+pay extra proof costs. The 10-aircraft two-day case is 29.55 → 24.45 s; the controlled
+25-aircraft case is 47.20 → 30.66 s. Shared steps reach 12.79 and 19.80 s respectively.
+Divine next departure regresses 9.05 → 12.57 s; short advancement is 17.14 → 16.91 s.
+These results do not prove Normal/Ultra/500-aircraft GUI responsiveness or Stage 3F
+acceptance. Full-world gates, serialization, JSON/alias walks and Booking/history
+scans remain dominant. Stage 3D needs separately approved scope; Stage 3E must retain
+a separate production correctness, bounded-latency and runtime performance gate.
+
+### Memory findings
+
+Fresh-process dense-25 controls, one latency sample per process, identical input and
+output hash: original strict source measured **89,305,088 bytes (85.17 MiB)** before
+instrumentation; final shared measured **79,921,152 bytes (76.22 MiB)**. These are
+process-lifetime high-water marks including imports/setup, not per-event allocations
+or a steady-state memory guarantee. The extra one-sample latency observations
+(58.41 / 28.70 s) are not substituted for the three-sample timing table.
+
+Mock-instrumented peaks were **1,160,318,976 / 121,266,176 bytes**. Mock call histories
+retain arguments, including distinct strict candidates, so those larger values
+cannot establish production memory savings. The profiler records the pre-mock
+`latency_lifetime_peak_bytes` separately from its post-instrumentation high-water
+mark. To compare cases without contamination from earlier instrumentation, run each
+case/mode in a fresh process. Full combined-process peaks are not working memory.
+
+### Flight verification
+
+- Independent Departure proof + original fulfilment gate: 25 PASS, 16.414 s,
+  before enabling Departure; subsequent Departure shared gate: 12 PASS, 34.530 s.
+- Independent Completion proof + fulfilment + maintenance gate: 35 PASS, 58.691 s,
+  before enabling Completion. Development flight/Stage 3A gate: 60 PASS, 93.980 s.
+- Final JSON/alias/type-proof gate: `python -B -m unittest
+  tests.test_flight_certification.DepartureProofTests
+  tests.test_flight_certification.CompletionProofTests -q` — 13 PASS, 21.003 s.
+- Final affected gate: `python -B -m unittest
+  tests.test_flight_certification.DepartureProofTests
+  tests.test_flight_certification.DepartureSharedTests
+  tests.test_flight_certification.CompletionProofTests
+  tests.test_flight_certification.CompletionSharedTests tests.test_shared_candidate
+  tests.test_payment_certification tests.test_stage1_flight_fulfilment
+  tests.test_step6_maintenance -q` — **124 PASS, 389.223 s**; all 36 Stage 3A and
+  28 Stage 3B regressions passed.
+- `python -B -m unittest tests.test_flight_certification.FlightFenceTests -v` —
+  **2 PASS, 127.158 s**. Both seeds preserve real matured history; weekly/Booking
+  fences, saved prefixes and Payment/Departure/Expiry/Completion ordering match.
+  Early fixture errors retained schema-7 recurrence fields in a schema-6 world
+  and published after the pre-flight reservation began; fixtures corrected using
+  valid older options and earlier publication, without changing gameplay rules.
+- Full repository suite: `python -B -m unittest discover -s tests -q` —
+  **862 PASS, 1,367.288 s**, baseline 819 + **43 new Stage 3C tests**. Verified
+  final production source and all tests before the stronger month-boundary fixture
+  below; no production source changes followed this run.
+- Post-review month-boundary gate: `python -B -m unittest
+  tests.test_flight_certification.FlightFenceTests.test_real_final_payments_departure_expiry_and_completion_exact_order
+  -q` — **1 PASS, 81.779 s**. The stronger existing fixture retains actual strict
+  Rotation and Booking inside the compared request before the shared Payment/
+  Departure prefix, expiry fences and Completion, including saved continuation.
+  Only this test fixture and documentation changed after the full run.
+- Native fresh-process `python -B -m tests.smoke_runtime_startup` — PASS: direct
+  Load Game, Resume/Advance, two completed Booking checkpoints, 14 Booking rows,
+  no advancement error, exact paused save/reload; SDL2/GLEW/Intel UHD Graphics 630,
+  window 2560×1377. No New Game/screen navigation in the child. This strict GUI
+  smoke does not prove shared multi-event production responsiveness.
+- Scoped `python -m compileall -q app game tests main.py make_snapshot.py settings.py
+  test.py` — PASS after review. 184 documentation paths/anchors — PASS;
+  `git diff --check` — PASS. Final diff/source review found no unresolved issue.
+  No later stage or production pacing change is included.
+
+Benchmark commands: `python -B -m tests.profile_flight_certification --fixtures
+<TEMP fixtures> --mode both --observed-fixture <detached TEMP envelope> --repeats 3`
+for controls; `--mode shared` after final JSON proof checks; corrected first case
+uses `--case one-departure --mode both`. Fresh-process memory controls use
+`--case dense-25 --mode strict/shared --repeats 1`.
+
 ## Contract Payment certification — Stage 3B (2026-10-04 working tree)
 
 Baseline `f44b2790bf02bec2d5ddd4c2bd674ffc902c6b07` matched live origin/master.

@@ -61,8 +61,8 @@ class SharedCandidateTests(unittest.TestCase):
             'AIRCRAFT_CONTRACT_EXPIRY': ExecutionMode.FENCE,
             'AIRCRAFT_MARKET_ROTATION': ExecutionMode.STRICT,
             'AIRCRAFT_CONTRACT_PAYMENT': ExecutionMode.SHARED,
-            'STAGE1_FLIGHT_DEPARTURE': ExecutionMode.STRICT,
-            'STAGE1_FLIGHT_COMPLETION': ExecutionMode.STRICT,
+            'STAGE1_FLIGHT_DEPARTURE': ExecutionMode.SHARED,
+            'STAGE1_FLIGHT_COMPLETION': ExecutionMode.SHARED,
         }
         for event_type, mode in expected.items():
             with self.subTest(event_type=event_type):

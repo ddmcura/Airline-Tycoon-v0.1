@@ -51,6 +51,12 @@ def initialize_runtime_handlers():
             if event_type == PAYMENT_EVENT:
                 from game.world_state.payment_validation import payment_execution_contract
                 registry._execution_contracts[event_type] = payment_execution_contract(handler)
+            elif event_type == FLIGHT_DEPARTURE_EVENT_TYPE:
+                from game.world_state.flight_transition_validation import departure_execution_contract
+                registry._execution_contracts[event_type] = departure_execution_contract(handler)
+            elif event_type == FLIGHT_COMPLETION_EVENT_TYPE:
+                from game.world_state.flight_transition_validation import completion_execution_contract
+                registry._execution_contracts[event_type] = completion_execution_contract(handler)
             else:
                 registry._execution_contracts[event_type] = HandlerExecutionContract(
                     handler, mode, 'built-in-strict-v1')

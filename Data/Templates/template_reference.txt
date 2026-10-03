@@ -1,3 +1,13 @@
+# Stage 3C flight certification (2026-10-04); schema remains 7.
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
+# Exact built-in Departure and Completion have separate schema-7 transition proofs.
+# Versions: ph-flight-departure-shared-v1 / ph-flight-completion-shared-v1.
+# Protected state + canonical JSON/aliases checked each event; final full gate retained.
+# Unsupported/custom/older schema inputs stay strict; migrated V1 results preserved.
+# Payment keeps Stage 3B certificate; Rotation strict; Booking/weekly/expiry fences.
+# Session/Kivy/Advance remain strict; no candidate/proof metadata in save authority.
+# Stage 3D-3F not implemented. Following Stage 3A/3B notes record their older scopes.
+
 # Stage 3B payment certification (2026-10-04); schema remains 7.
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
 # Exact built-in PAYMENT only: version ph-aircraft-contract-payment-shared-v1.

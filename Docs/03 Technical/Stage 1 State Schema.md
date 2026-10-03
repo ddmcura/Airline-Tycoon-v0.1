@@ -1374,6 +1374,22 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   expiry stays a fence. Session/Kivy pacing remains strict. No persistent field,
   formula, flight certification or Stage 3C–3F behavior changes.
   See [Contract Payment Shared Certification](Contract%20Payment%20Shared%20Certification.md).
+- Stage 3C (2026-10-04) separately certifies the exact built-in
+  STAGE1_FLIGHT_DEPARTURE (`ph-flight-departure-shared-v1`) and
+  STAGE1_FLIGHT_COMPLETION (`ph-flight-completion-shared-v1`) for supported
+  schema-7 inputs. Genuine before-event witnesses, existing domain constructors/
+  predicates, exact changed records, protected unchanged structures and canonical
+  JSON compatibility and mutable-container alias checks prove each intermediate
+  successor. Departure
+  freezes the existing manifest/maintenance witnesses and generates one exact
+  completion; Completion preserves existing result/settlement/counter behavior.
+  Unsupported/custom/stale inputs remain strict, including older schemas. Migrated
+  V1 in-flight operations in schema 7 retain V1 result behavior. Final full
+  validation/detached commit, strict recovery, causal fences, event ordering and
+  save authority remain unchanged. Payment keeps its Stage 3B certificate; Rotation
+  stays strict. Session/Kivy/Advance pacing stays strict; Stage 3D–3F are not
+  implemented. Schema remains 7 and no persistent fields or formulas change.
+  See [Flight Shared Certification](Flight%20Shared%20Certification.md).
 - Handler return value is `None`; the validated candidate is the result. Handler
   context cannot mutate the runtime registry, kernel-owned clock facts, event
   identity/order, or pre-existing pending and terminal event records. It may

@@ -1,4 +1,4 @@
-"""Opt-in shared infrastructure. Only the certified payment has a local proof.
+"""Opt-in shared infrastructure. Certified payments/flights have local proofs.
 
 No application/runtime caller enables this path yet. Unapproved handlers execute
 the strict kernel transaction. Private candidates exist only within step(), not
@@ -46,7 +46,7 @@ class SharedResolutionRequest(ResolutionRequest):
 
     Certification remains identity-bound. Shadow-only synthetic contracts are
     private fixtures used to prove generated-event/failure machinery, not a
-    supported way to certify arbitrary gameplay handlers. Payment alone uses its
+    supported way to certify arbitrary gameplay handlers. Certified domains use their
     identity/version-bound transition proof; other probes receive full validation.
     Strict fallbacks execute once, never shadowed.
     """
@@ -127,7 +127,8 @@ class SharedResolutionRequest(ResolutionRequest):
         if contract.validate_transition is not None:
             # Fixed approved certificate, not a caller-provided proof escape hatch.
             from game.world_state.payment_validation import is_payment_certificate
-            certified = is_payment_certificate(contract)
+            from game.world_state.flight_transition_validation import is_flight_certificate
+            certified = is_payment_certificate(contract) or is_flight_certificate(contract)
             if not certified:
                 return False
         if handler is not kernel._no_op and not certified and not (self.shadow and contract.shadow_only):

@@ -250,3 +250,15 @@ resolution. Complete final validation, strict recovery and expiry/Booking/weekly
 fences remain. Production session, explicit Advance and Kivy pacing still use
 strict resolution. No speed, overload, schema/save, formula or flight behavior
 changes; Departure/Completion/Rotation remain strict and Stage 3C–3F are deferred.
+
+
+## Flight lifecycle certification — Stage 3C
+
+[Flight certification](Flight%20Shared%20Certification.md) adds separate exact
+Departure/Completion proofs to explicitly opted-in shared resolution. Intermediate
+validity, immutable manifests/results, integer settlement, counters, generated
+completion ordering and strict successful-prefix recovery remain required. No
+formula, scheduling, RNG or schema change. Payment stays certified, Rotation stays
+strict, and Booking/weekly/expiry stay fences. Production session, explicit Advance
+and Kivy pacing still use strict resolution. Stage 3D–3F are not implemented; future
+production multi-event pumping requires its separate correctness/latency gate.
