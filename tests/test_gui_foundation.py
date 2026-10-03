@@ -134,7 +134,7 @@ class GuiFoundationTests(unittest.TestCase):
         self.clock.advance(1)
         self.app.tick(0)
         self.assertNotEqual(session.world['simulation']['time_utc'], initial)
-        self.assertIn('RUNNING 7x', self.app.status.text)
+        self.assertIn('Running — Normal Speed', self.app.status.text)
         self.app.pause()
         paused = session.world['simulation']['time_utc']
         self.clock.advance(30)
@@ -146,6 +146,20 @@ class GuiFoundationTests(unittest.TestCase):
         self.assertFalse(session.advancing)
         self.assertTrue(session.validate())
         self.assertEqual(session.world['simulation']['clock_state'], 'PAUSED')
+
+    def test_named_speed_buttons_and_paused_selection_display(self):
+        from game.simulation.speeds import PLAYER_SPEEDS
+        self.start()
+        buttons={w.text:w for w in self.app.screens.get_screen('game').walk()
+                 if isinstance(w,Button)}
+        for speed in PLAYER_SPEEDS:
+            buttons[speed.name].dispatch('on_release')
+            self.assertEqual(self.app.session.runtime.ratio,speed.ratio)
+            self.assertIn('Running — '+speed.name,self.app.status.text)
+        self.app.pause()
+        self.assertIn('Paused — Ultra',self.app.status.text)
+        self.app.resume()
+        self.assertEqual(self.app.session.runtime.ratio,1800)
 
     def test_save_load_bookmarks_and_unsaved_departure(self):
         self.start()

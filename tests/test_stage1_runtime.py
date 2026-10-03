@@ -51,10 +51,10 @@ class RuntimeTests(unittest.TestCase):
             self.clock.advance(ns)
             drain(self.runtime)
         expected = deepcopy(make_world())
-        configure_clock_ratios(expected, normal=7)
+        configure_clock_ratios(expected, normal=30)
         from game.world_state.timestamps import parse_canonical_utc, format_utc
         from datetime import timedelta
-        target = format_utc(parse_canonical_utc(start) + timedelta(seconds=7))
+        target = format_utc(parse_canonical_utc(start) + timedelta(seconds=30))
         process_events_through(expected, target)
         for _ in range(3):
             self.runtime.pause()
@@ -86,7 +86,7 @@ class RuntimeTests(unittest.TestCase):
             schedule(self.world, due, priority=priority)
         expected = deepcopy(self.world)
         self.runtime.resume()
-        configure_clock_ratios(expected, normal=7)
+        configure_clock_ratios(expected, normal=30)
         self.clock.advance(NANOSECOND)
         drain(self.runtime)
         self.runtime.pause()
@@ -176,7 +176,7 @@ class RuntimeTests(unittest.TestCase):
         self.runtime.resume()
         self.clock.advance(NANOSECOND)
         self.runtime.pump()
-        self.assertEqual(self.runtime.credit_ns, 21 * NANOSECOND)
+        self.assertEqual(self.runtime.credit_ns, 90 * NANOSECOND)
         drain(self.runtime)
         self.assertEqual(self.runtime.credit_ns, 0)
 
@@ -202,7 +202,7 @@ class RuntimeTests(unittest.TestCase):
         self.runtime.pump()
         self.assertFalse(self.runtime.running)
         self.assertIn('OVERLOAD', self.runtime.diagnostic)
-        self.assertEqual(self.runtime.credit_ns, 34 * NANOSECOND)
+        self.assertEqual(self.runtime.credit_ns, 80 * NANOSECOND)
 
     def test_serialization_contains_no_controller_fields(self):
         self.runtime.resume()
@@ -232,7 +232,7 @@ class RuntimeGameplayTests(unittest.TestCase):
         stepped = deepcopy(self.base)
         bulk, _ = self.session()
         for world in (stepped, bulk.world):
-            configure_clock_ratios(world, normal=7)
+            configure_clock_ratios(world, normal=30)
         continuous.resume()
         from game.world_state.timestamps import parse_canonical_utc
         target = '2026-09-08T00:00:00Z'

@@ -32,7 +32,7 @@ and [runtime](Continuous%20Runtime%20Technical%20Specification.md) contracts.
 - Title: New PH Normal career, existing airline career selection with manual,
   autosave recovery and bookmark choices, and Exit.
 - Game shell: airline and CEO, base, authoritative USD cash, exact UTC,
-  pause/running state, and the approved 7x running mode. Pause, Resume and
+  pause/running state, and the approved named Normal Speed / Fast / Very Fast / Ultra controls. Pause, Resume and
   explicit Next Event, Day, Duration and UTC Target controls are available.
 - Read-only fleet, dated flights/Bookings/operations, and finance pages use
   modern projections and stable IDs. Flight and fleet views page their data.
@@ -239,3 +239,16 @@ at completion or failure. A single expensive event can exceed the yield budget;
 no simulation worker, frame-rate authority or intermediate-event replay is added.
 See [Runtime Advancement Performance Investigation](Runtime%20Advancement%20Performance%20Investigation.md)
 for measured limits and smoke evidence.
+
+## Named PH continuous speeds (2026-10-03)
+
+Normal Speed is 30 game days per real day; Fast/Very Fast/Ultra are relative
+7/30/60 multipliers, giving literal 210/900/1800 ratios. Names and derived rates
+come from `game.simulation.speeds`, not Kivy arithmetic. The persistent runtime
+bar selects/runs each named speed, Pause retains selection, and status shows
+Running/Paused with the selected name. Horizontal scrolling retains touch-sized
+controls at narrow widths. Existing explicit Advance controls remain available.
+Loaded saves stay paused, reset the runtime-only selection to Normal Speed, and
+retain their literal saved ratio until explicit Resume replaces it. See the
+[continuous runtime contract](Continuous%20Runtime%20Technical%20Specification.md).
+No worker, offline progression, new persistent UI fields or gameplay changes.

@@ -98,10 +98,10 @@ class SaveLoadTests(unittest.TestCase):
             if controller.work is None and paced['simulation']['time_utc'] == target:
                 break
         else:
-            self.fail('7× continuation did not reach its target')
+            self.fail('Normal Speed continuation did not reach its target')
         controller.pause()
-        configure_clock_ratios(self.world, normal=7)
-        configure_clock_ratios(reloaded, normal=7)
+        configure_clock_ratios(self.world, normal=30)
+        configure_clock_ratios(reloaded, normal=30)
         self.assertTrue(process_events_through(self.world, target).succeeded)
         self.assertTrue(process_events_through(reloaded, target).succeeded)
         self.assertEqual(reloaded, self.world)

@@ -15,7 +15,7 @@ state never determine contract or aircraft ownership.
 ## Continuous runtime successor (2026-09-17)
 
 The [runtime contract](Continuous%20Runtime%20Technical%20Specification.md) adds
-7x progression, manual `/pause` and `/resume`, and visible `/status` at management
+Normal Speed progression (30 literal game seconds per real second), manual `/pause` and `/resume`, and visible `/status` at management
 prompts. Navigation does not pause. The terminal owner alone mutates authority;
 the input-only worker cannot access the world. Existing injected stream scripts
 remain deterministic. Weekly edits revalidate against current authority; purchase

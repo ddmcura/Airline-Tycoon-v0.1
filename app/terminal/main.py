@@ -42,7 +42,7 @@ class _Terminal:
     def clock_status(self):
         if self.session.active:
             clock = self.session.world['simulation']
-            self.line(f"Clock: {clock['time_utc']} | {clock['clock_state']} | 7x | /pause /resume /status")
+            self.line(f"Clock: {clock['time_utc']} | {clock['clock_state']} | {self.session.runtime_speed.name} | /pause /resume /status")
             runtime = self.session.runtime
             if runtime and runtime.diagnostic != self.last_diagnostic:
                 if runtime.diagnostic:

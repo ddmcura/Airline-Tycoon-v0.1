@@ -28,22 +28,22 @@ class AdvancementPerformanceTests(unittest.TestCase):
         self.session.world = deepcopy(self.base)
         self.session.career_id = self.session.save_store.new_career_id()
 
-    def test_fast_forward_matches_baseline_hash_and_normal_seven_x_replay(self):
+    def test_fast_forward_matches_baseline_hash_and_normal_speed_replay(self):
         self.assertEqual(digest(self.base), self.asserted_input)
         report = self.session.advance_seconds(2*86400)
         self.assertTrue(report.result.succeeded)
         self.assertEqual(digest(self.session.world),
             '2aa62106a7fedd3425addc98841cc84273ab6fa0639a93bca5f4c764174df8b6')
         normal = deepcopy(self.base)
-        kernel.configure_clock_ratios(normal,normal=7)
-        # Equivalent initial clock configuration for the 7x/explicit comparison;
+        kernel.configure_clock_ratios(normal,normal=30)
+        # Equivalent initial clock configuration for the Normal Speed/explicit comparison;
         # the separate baseline witness above retains the original Normal ratio.
         self.session.world = deepcopy(normal)
         self.session.advance_seconds(2*86400)
         now = [0]
         runtime = RuntimeController(normal, clock=lambda:now[0])
         runtime.resume()
-        now[0] = (2*86400*NANOSECOND+6)//7
+        now[0] = (2*86400*NANOSECOND+29)//30
         for _ in range(100):
             runtime.pump()
             if runtime.work is None and runtime.credit_ns < NANOSECOND:

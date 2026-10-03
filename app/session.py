@@ -40,6 +40,7 @@ from game.world_state import (
 )
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 from game.world_state.persistence import SaveStore, SaveError
+from game.simulation.speeds import PLAYER_SPEEDS
 from game.simulation.pacing import RuntimeController
 from game.simulation.handlers import initialize_runtime_handlers
 from game.simulation.kernel import (
@@ -74,6 +75,10 @@ class Stage1Session:
         self._last_auto_sim_time = None
         self.autosave_error = None
         self._bulk_work = None
+
+    @property
+    def runtime_speed(self):
+        return self.runtime.selected_speed if self.runtime else PLAYER_SPEEDS[0]
 
     @property
     def active(self):
@@ -224,11 +229,11 @@ class Stage1Session:
         options = {} if self.runtime_clock is None else {'clock': self.runtime_clock}
         self.runtime = RuntimeController(self.world, **options)
 
-    def resume(self):
+    def resume(self, speed=None):
         self._ensure_runtime()
         before = (self.world['simulation']['clock_state'],
                   self.world['simulation']['configuration']['clock_ratios']['NORMAL'])
-        self.runtime.resume()
+        self.runtime.resume(speed)
         after = (self.world['simulation']['clock_state'],
                  self.world['simulation']['configuration']['clock_ratios']['NORMAL'])
         if after != before:

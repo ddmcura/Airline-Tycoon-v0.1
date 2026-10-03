@@ -1303,10 +1303,17 @@ minimal account foundation contains exactly one each of `cash`,
 
 ## Clock and event contract
 
-PH step 4 uses these existing fields without changing schema 5. Explicit Resume
-sets `simulation.configuration.clock_ratios.NORMAL` to 7 and `clock_state` to
-`NORMAL`; new sessions remain paused. The pacing controller submits explicit
-whole-second kernel targets. Active-uptime samples, fractional credit, input
+PH continuous runtime uses these existing fields without changing their shape.
+Normal Speed means 30 game days per real day. Named player speeds Normal Speed,
+Fast, Very Fast and Ultra have relative multipliers 1, 7, 30 and 60 and literal
+ratios 30, 210, 900 and 1800. Explicit Resume/speed selection writes the chosen
+literal ratio to `simulation.configuration.clock_ratios.NORMAL` and uses
+`clock_state = NORMAL`. Generic kernel `FAST` is not the player label Fast.
+New and loaded sessions remain paused. Each controller initially selects Normal
+Speed without rewriting loaded ratios; explicit Resume replaces the old literal
+ratio rather than multiplying it. Player selection is runtime-only and resets on
+load; current and legacy snapshots keep their saved literal configuration.
+The pacing controller submits explicit whole-second kernel targets. Active-uptime samples, fractional credit, input
 queues, suspended iterators and overload diagnostics are runtime-only and must
 not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%20Specification.md).
 

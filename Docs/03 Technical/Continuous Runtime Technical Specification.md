@@ -1,6 +1,7 @@
 # PH 1.0 Step 4 — Continuous Runtime
 
-Approved implementation scope: user request, 2026-09-17. Implementation and
+Original runtime scope: user request, 2026-09-17. Named PH speed redesign
+approved and implemented 2026-10-03. Implementation and
 verification status are recorded separately in
 [Current Development Status](Current%20Development%20Status.md).
 
@@ -9,24 +10,47 @@ verification status are recorded separately in
 This increment implements the existing [PH step 4](Stage%201%20Implementation%20Roadmap.md#philippines-10-release-sequence)
 and [Aircraft Operations clock contract](../01%20Core%20Simulation/Aircraft%20Operations%20Technical%20Specification.md#3-authoritative-simulation-clock).
 It preserves the canonical [schema](Stage%201%20State%20Schema.md#clock-and-event-contract),
-schema version 5, domain ownership, event order and complete-event transactions.
+the clock fields introduced in schema 5 (current saves remain schema 7), domain ownership, event order and complete-event transactions.
 No new persistent field or migration is introduced.
 
-The player explicitly approved continued simulation during management navigation,
+The original increment approved continued simulation during management navigation,
 current-world validation of edits without automatic pause, retained credit during
-ordinary delays, suspension exclusion, and a measured 50-aircraft 7x acceptance gate.
-Disk persistence, offline progression, AI, leasing, used aircraft, extra speeds,
-formula changes, graphics and broad kernel redesign remain outside this increment.
+ordinary delays, suspension exclusion, and a historical 50-aircraft literal-7× gate.
+The 2026-10-03 redesign supersedes that player rate with the named ladder below.
+Disk persistence, offline progression, AI, leasing, used aircraft, formula changes, graphics and broad kernel redesign remain outside this increment.
 
 ## Clock and pacing
 
-New sessions start paused. `/resume` sets the existing NORMAL ratio to 7 and
-enters NORMAL; `/pause` enters PAUSED. FAST remains a generic kernel capability
-and is not exposed as an additional terminal speed.
+Normal Speed = **30 game days / 24 real hours**, or 30 literal game seconds
+per real second. `game.simulation.speeds` centrally defines this baseline and
+the named relative ladder:
+
+| Player speed | Relative multiplier | Literal ratio | Real seconds per game day |
+| --- | ---: | ---: | ---: |
+| Normal Speed | 1 | 30 | 2880 (48 minutes) |
+| Fast | 7 | 210 | 411.428571… (about 6m 51s) |
+| Very Fast | 30 | 900 | 96 |
+| Ultra | 60 | 1800 | 48 |
+
+New/loaded sessions start paused with Normal Speed selected in runtime-only
+controller state. Explicit Resume writes the selected **literal** ratio to the
+existing `configuration.clock_ratios.NORMAL` and enters NORMAL. Named GUI speed
+buttons select and run; Pause retains the selected name for Resume in the open
+session. A controller can select a rate while paused without starting. Switching
+samples elapsed active time at the old ratio before changing rates, retains
+fractional credit and complete-event iterator limits, and refreshes its queue
+at the next boundary. `/resume` retains the open terminal session's selection.
+Generic kernel FAST is separate from the player label Fast.
+
+Saved ratios remain literal, including old 1/7 values. Loading does not rewrite
+configuration, migrate saves or infer player selection from a saved number.
+The next explicit Resume uses Normal Speed (30), never saved-ratio × 30.
+Loading any current-speed snapshot similarly restores paused, without credit,
+with Normal Speed selected. No new schema field/version is needed.
 
 `game.simulation.pacing.RuntimeController` converts monotonic **active uptime**
-to integer simulation-nanosecond credit at exactly 7:1. Only whole simulation
-seconds become explicit kernel targets. Fractional credit, last clock sample,
+to integer simulation-nanosecond credit using the configured literal ratio. Only whole
+simulation seconds become explicit kernel targets. Fractional credit, last clock sample,
 the active iterator, diagnostics and backlog timers are runtime-only objects.
 
 Windows uses `QueryUnbiasedInterruptTime`, which excludes suspension. Ordinary
@@ -79,6 +103,9 @@ terminal requests cancellation; it does not interrupt a dictionary commit.
 
 ## Management and advancement
 
+Selectable continuous runtime is the intended normal player progression path.
+Explicit Advance remains a secondary player/debugging tool, with unchanged semantics.
+
 `/pause`, `/resume` and `/status` are available at each management prompt.
 Clock/status is visible while waiting for live input. Navigation never changes
 the clock mode. Existing injected text-stream scripts remain synchronous and
@@ -105,6 +132,10 @@ command. No event is skipped to reach a target faster.
 
 ## Performance and safety
 
+The original literal-7× measurements below are historical acceptance evidence,
+not proof of sustainable 30/210/900/1800× operation. Current named-speed smoke
+results and limitations are recorded in Current Development Status.
+
 The architecture's thousands-of-aircraft objective remains intact. This bounded
 milestone requires measured 7x operation on the representative 50-aircraft PH
 workload; 1- and 10-aircraft fixtures provide comparison. Larger or denser runs
@@ -126,7 +157,8 @@ representative busy boundary recover without overload or monotonically growing
 credit. This treatment does not forgive or discard backlog: every credited second
 remains due and overload still pauses visibly if the threshold below is sustained.
 
-The controller uses a 120-active-second backlog threshold with a
+The controller uses a 120-active-second backlog threshold (converted into game
+credit using the current literal rate) with a
 30-active-second grace period. Credit above that threshold must persist throughout
 the grace period before a visible overload pause. Credit is retained. The measured
 maximum transaction in the 50-aircraft capacity fixture is recorded in Current

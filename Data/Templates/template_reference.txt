@@ -106,8 +106,11 @@ purchases, AI fleet sales, physical logistics, banking or LTO refinancing.
 
 # PH step 4 runtime (no schema version or field additions)
 # Subordinate to Docs/03 Technical/Stage 1 State Schema.md.
-Resume uses existing simulation.configuration.clock_ratios.NORMAL = 7,
-simulation.clock_state = NORMAL. New sessions remain PAUSED.
+Resume uses existing simulation.configuration.clock_ratios.NORMAL as a literal
+ratio: Normal Speed 30, Fast 210, Very Fast 900, Ultra 1800. Relative multipliers
+are 1/7/30/60 against the 30:1 baseline; never multiply a saved ratio. Loaded
+careers stay paused, selecting Normal Speed in runtime-only controller state.
+Explicit Resume sets simulation.clock_state = NORMAL. New sessions remain PAUSED.
 Pacing samples, fractional credit, input queues, iterators and diagnostics are
 runtime-only; never serialize them into the authoritative world.
 

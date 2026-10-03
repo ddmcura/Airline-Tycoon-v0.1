@@ -1,4 +1,4 @@
-"""Runtime-only 7x pacing; one caller owns all world mutations."""
+"""Runtime-only configurable PH pacing; one caller owns all world mutations."""
 
 from datetime import timedelta
 import sys
@@ -10,6 +10,8 @@ from .kernel import (
     set_clock_mode,
 )
 from game.world_state.timestamps import format_utc, parse_canonical_utc
+
+from .speeds import player_speed
 
 NANOSECOND = 1_000_000_000
 
@@ -54,8 +56,28 @@ class RuntimeController:
         self.diagnostic = None
         self.last_result = None
         self.blocked = False
-        self.overload_ns = overload_seconds * 7 * NANOSECOND
+        self.selected_speed = player_speed('Normal Speed')
+        self.overload_seconds = overload_seconds
         self.grace_ns = overload_grace_seconds * NANOSECOND
+        self.overloaded_since = None
+
+    @property
+    def ratio(self):
+        return self.world['simulation']['configuration']['clock_ratios']['NORMAL']
+
+    @property
+    def overload_ns(self):
+        return self.overload_seconds * self.ratio * NANOSECOND
+
+    def select_speed(self, name):
+        """Sample at the old rate before switching; retain complete-event work."""
+        speed = player_speed(name)
+        if self.closed:
+            raise ValueError('session is closed')
+        self._sample()
+        self.selected_speed = speed
+        configure_clock_ratios(self.world, normal=speed.ratio)
+        self.refresh = True
         self.overloaded_since = None
 
     @property
@@ -67,18 +89,18 @@ class RuntimeController:
         if now < self.last_ns:
             raise ValueError('monotonic clock moved backward')
         if self.running:
-            self.credit_ns += (now - self.last_ns) * 7
+            self.credit_ns += (now - self.last_ns) * self.ratio
         self.last_ns = now
         return now
 
-    def resume(self):
+    def resume(self, speed=None):
         if self.closed:
             raise ValueError('session is closed')
-        self._sample()
+        name = self.selected_speed.name if speed is None else player_speed(speed).name
+        self.select_speed(name)
         if self.blocked:
             self.cancel_work()
             self.blocked = False
-        configure_clock_ratios(self.world, normal=7)
         set_clock_mode(self.world, 'NORMAL')
         self.diagnostic = None
         self.overloaded_since = None
@@ -135,7 +157,7 @@ class RuntimeController:
             result = done.value
         finally:
             finished_ns = self.clock()
-            self.credit_ns += (finished_ns - self.last_ns) * 7
+            self.credit_ns += (finished_ns - self.last_ns) * self.ratio
             self.last_ns = finished_ns
             after = parse_canonical_utc(self.world['simulation']['time_utc'])
             self.credit_ns -= int((after - before).total_seconds()) * NANOSECOND

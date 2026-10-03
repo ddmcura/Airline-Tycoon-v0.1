@@ -2,6 +2,74 @@
 
 Last updated: **2026-10-03**. Current snapshot, not operational authorization.
 
+## PH named continuous-runtime speeds (2026-10-03 working tree)
+
+Successor of verified live baseline `019daaa4001abfa1eaaedcffb7b7dffbfeef0373`.
+Normal Speed now means 30 game days / 24 real hours. Central configuration in
+`game/simulation/speeds.py` defines Normal/Fast/Very Fast/Ultra relative 1/7/30/60,
+literal 30/210/900/1800, and derived day durations. The shared controller samples
+old-rate credit before switching, retains transaction/queue limits, and uses the
+current configured literal ratio for processing-delay credit and overload bounds.
+Kivy exposes named controls and in-place named status, including visible runtime
+diagnostics. Terminal Resume consumes the same boundary; explicit Advance remains.
+
+Selected speed is runtime-only. Save schema/JSON remain unchanged; saved NORMAL
+ratios remain literal and are not multiplied on load. New controllers select
+Normal Speed; validated load remains paused, retaining the saved literal ratio
+until explicit Resume replaces it with 30. Pause/resume within an open session
+retains selection. No offline progression, worker threads or gameplay changes.
+
+Displayed native SDL2 Kivy smoke (`python -B -m tests.smoke_player_speeds --seconds 8
+--fixture <temporary starter-1.json>`) reloaded the same valid busy starter snapshot
+for each speed. It crossed a real daily Booking boundary and operated flights,
+then passed Pause/Resume, explicit Advance, manual save and exact paused reload.
+Measured on Windows/Intel UHD 630, with one aircraft and existing Booking/history:
+
+| Speed | Requested literal ratio | Active seconds | Processed game seconds | Achieved ratio | Retained game credit | Credit / requested rate (real seconds) | Longest GUI tick |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Normal Speed | 30 | 8.019 | 222 | 27.683 | 18.579 | 0.619 | 1.650 s |
+| Fast | 210 | 8.186 | 1587 | 193.856 | 132.163 | 0.629 | 1.546 s |
+| Very Fast | 900 | 8.409 | 7091 | 843.247 | 477.247 | 0.530 | 1.208 s |
+| Ultra | 1800 | 8.521 | 13801 | 1619.602 | 1537.215 | 0.854 | 1.225 s |
+
+Processed time plus retained credit exactly accounted for each requested ratio
+(to floating-point reporting precision). All worlds validated; no overload or
+handler error occurred. None had processed its entire requested target at the
+measurement stop; all retained less than one real second of work. This short
+single-aircraft observation is not sustained throughput certification, especially
+for Ultra or large airlines. Atomic transactions still stall Kivy; scalable
+runtime/catch-up remains follow-up work, with authoritative validation preserved.
+Programmatic displayed smoke does not establish human-perceived responsiveness.
+Fixtures/saves/results were temporary; production saves and `.venv/` untouched.
+
+Affected files for this bounded successor:
+
+- Runtime: `game/simulation/speeds.py`, `game/simulation/pacing.py`.
+- Shared/frontends: `app/session.py`, `app/gui/app.py`, `app/terminal/main.py`.
+- Tests/tools: `tests/test_player_speeds.py`, `tests/test_stage1_runtime.py`,
+  `tests/test_gui_foundation.py`, `tests/test_step7_save_load.py`,
+  `tests/test_advancement_performance.py`, `tests/smoke_player_speeds.py`,
+  `tests/smoke_runtime_startup.py`.
+- Authority mirror: `Data/Templates/template_reference.txt` and the canonical
+  `Stage 1 State Schema.md` clock policy text; neither adds a field or migration.
+- Current documents in `Docs/03 Technical`: this status, `Decision Register.md`,
+  `Continuous Runtime Technical Specification.md`,
+  `PH GUI Foundation Technical Specification.md`, and
+  `Stage 1 Terminal Harness Technical Specification.md`.
+
+Verification on the complete speed-redesign working-tree scope, 2026-10-03:
+
+- `.venv/Scripts/python.exe -m unittest tests.test_player_speeds tests.test_stage1_runtime tests.test_gui_foundation tests.test_step7_save_load tests.test_runtime_startup tests.test_advancement_performance`: **66 passed, 146.038 s**.
+- `.venv/Scripts/python.exe -m unittest discover -s tests`: **713 passed, 783.225 s**.
+- `.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`: exit 0.
+- `.venv/Scripts/python.exe -B -m tests.smoke_player_speeds --seconds 8 --fixture <temporary starter-1.json>`: all four displayed native speed phases plus Advance/save/paused reload passed; measurements above.
+- `.venv/Scripts/python.exe -B -m tests.smoke_runtime_startup`: displayed fresh-process direct Load Game passed, two checkpoints, 14 bookings, exact paused save/reload.
+- Documentation file links resolved; `git diff --check` clean. Self-review found
+  no remaining in-scope correctness, save, concurrency or authority issue.
+
+Follow-up remains sustainable high-speed runtime/catch-up performance for larger
+or denser airlines; this increment exposes rates without certifying throughput.
+
 ## Explicit runtime advancement performance successor (2026-10-03 working tree)
 
 Scope is the runtime-performance successor of live baseline
@@ -20,7 +88,9 @@ invocation; UTC syntax caching is bounded to immutable strings. No demand,
 booking/economy, timing, turnaround, recurrence or authoritative field changes.
 
 Explicit requests retain 10,000 processed/generated-event ceilings across yields;
-normal paced runtime keeps its existing 100-generation budget and 7× behavior.
+normal paced runtime keeps its existing 100-generation budget. The historical
+measurements in this section used the then-current literal 7× behavior; the named
+speed successor above replaces that player rate.
 Kivy yields between complete events under a 64-event/15-ms budget and rebuilds
 management projections once at completion, with in-place clock/status updates.
 One heavy event can exceed the GUI yield budget; no worker thread or frame-time

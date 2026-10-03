@@ -16,6 +16,7 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.core.window import Window
 from kivy.utils import platform
 
+from game.simulation.speeds import PLAYER_SPEEDS
 from app.session import Stage1Session
 from app.gui.gameplay import GameplayViews
 from app.gui.airport_selector import AirportSelector
@@ -129,7 +130,9 @@ class AirlineTycoonApp(GameplayViews, App):
         root.add_widget(self.identity)
         root.add_widget(self.status)
         root.add_widget(self._horizontal_buttons([
-            ('Pause', self.pause), ('Resume 7x', self.resume),
+            ('Pause', self.pause),
+            *((speed.name, lambda name=speed.name: self.resume(name))
+              for speed in PLAYER_SPEEDS),
             ('Advance', self.show_advance), ('Cancel advance', self.cancel_advance),
         ]))
         root.add_widget(self._horizontal_buttons([
@@ -360,10 +363,13 @@ class AirlineTycoonApp(GameplayViews, App):
             self._last_diagnostic = diagnostic
             self._last_autosave_error = autosave_error
             self._render_view()
-        mode = 'RUNNING 7x' if sim['clock_state'] == 'NORMAL' else 'PAUSED'
+        mode = (f'Running — {self.session.runtime_speed.name}'
+                if sim['clock_state'] == 'NORMAL' else f'Paused — {self.session.runtime_speed.name}')
         if self.session.advancing:
             mode = 'ADVANCING (event boundaries)'
         self.status.text = f"{self.session.local_clock()} hub local | {sim['time_utc']} UTC | {mode} | Cash {_money(self._cash)}"
+        if diagnostic:
+            self.status.text += f'\n{diagnostic}'
 
     def show_view(self, view):
         if view == 'Acquire' and self.current_view != 'Acquire':
@@ -463,9 +469,9 @@ class AirlineTycoonApp(GameplayViews, App):
             self.session.pause()
             self.refresh(force=True)
 
-    def resume(self):
+    def resume(self, speed=None):
         if self._idle():
-            self.session.resume()
+            self.session.resume(speed)
             self.refresh(force=True)
 
     def show_advance(self):

@@ -87,7 +87,7 @@ def run_child(root, career):
                         if e['event_type'] == 'DAILY_BOOKING_CHECKPOINT'), key=lambda e:e['due_at_utc'])
                     self.stage = 1
                 elif self.stage == 1:
-                    self.click(self.screens.get_screen('game'), 'Resume 7x')
+                    self.click(self.screens.get_screen('game'), 'Normal Speed')
                     self.now += 1000000000
                     self.tick(0)
                     self.click(self.screens.get_screen('game'), 'Pause')
