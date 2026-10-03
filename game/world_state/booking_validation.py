@@ -58,6 +58,9 @@ def _exact(validator, record, fields, path, code, message):
 
 
 def _reject_aliases(validator, value, path):
+    # Reuse only this validator invocation's successful whole-envelope proof.
+    if getattr(validator, "_aliases_checked", False):
+        return
     seen = {}
     active = set()
 

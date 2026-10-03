@@ -18,7 +18,7 @@ from game.world_state.schema import (
     PENDING_EVENT_STATUS,
     TERMINAL_EVENT_STATUSES,
 )
-from game.world_state.serialization import require_json_compatible
+from game.world_state.serialization import require_json_compatible, _clone_runtime_world
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 from game.world_state.validation import validate_world
 
@@ -312,7 +312,7 @@ def supersede_event(envelope, event_id):
 
 
 def _replace_envelope(target, candidate):
-    committed = deepcopy(candidate)
+    committed = _clone_runtime_world(candidate)
     target.clear()
     target.update(committed)
 
@@ -390,7 +390,7 @@ def _execute_event(envelope, event_id, registry):
         _resolve_without_handler(envelope, event_id, "COMPLETED", due)
         return "COMPLETED", None, ()
 
-    candidate = deepcopy(envelope)
+    candidate = _clone_runtime_world(envelope)
     candidate_event = candidate["world_state"]["pending_events"][event_id]
     candidate["simulation"]["time_utc"] = due
     try:

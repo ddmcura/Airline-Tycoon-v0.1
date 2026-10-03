@@ -55,3 +55,36 @@ def require_json_compatible(value, field_name="value"):
     if error:
         path, message = error
         raise ValueError(f"{field_name} at {path}: {message}")
+
+
+def _clone_runtime_world(envelope):
+    """Detach a validated runtime candidate with the C object-tree codec.
+
+    Only bytes produced here are decoded; this is NOT a save-file reader or
+    persistence format. Primitive dictionaries/lists preserve insertion order,
+    exact integers/floats, aliases and complete reference isolation. Non-plain
+    compatibility objects retain the previous deepcopy behavior.
+    """
+    from copy import deepcopy
+    import io
+    import pickle
+
+    class NonPlainState(Exception):
+        pass
+
+    class PlainPickler(pickle.Pickler):
+        def reducer_override(self, value):
+            # Exact built-in primitive/container types use the C fast path.
+            # Never invoke an object's custom reduction on the optimized path.
+            raise NonPlainState
+
+    class PrimitiveReader(pickle.Unpickler):
+        def find_class(self, module, name):
+            raise pickle.UnpicklingError('runtime state cannot load globals')
+
+    output = io.BytesIO()
+    try:
+        PlainPickler(output, protocol=5).dump(envelope)
+    except NonPlainState:
+        return deepcopy(envelope)
+    return PrimitiveReader(io.BytesIO(output.getvalue())).load()

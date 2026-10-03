@@ -42,7 +42,8 @@ from game.world_state.timestamps import format_utc, parse_canonical_utc
 from game.world_state.persistence import SaveStore, SaveError
 from game.simulation.pacing import RuntimeController
 from game.simulation.handlers import initialize_runtime_handlers
-from game.simulation.kernel import iter_events_through, begin_fast_forward, stop_fast_forward
+from game.simulation.kernel import (
+    iter_events_through, begin_fast_forward, stop_fast_forward, DEFAULT_MAX_EVENTS_PER_ADVANCE)
 
 
 @dataclass(frozen=True)
@@ -556,7 +557,7 @@ class Stage1Session:
         return self._bulk_work is not None
 
     def begin_advance_to(self, target_time_utc):
-        """Begin a cooperative explicit jump; callers advance one event per tick."""
+        """Begin a cooperative explicit jump; each advancement step commits one event."""
         if self._bulk_work is not None:
             raise ValueError('advancement is already active')
         target = parse_canonical_utc(target_time_utc)
@@ -564,7 +565,10 @@ class Stage1Session:
             raise ValueError('simulation time cannot move backward')
         self._manual_start()
         begin_fast_forward(self.world, target_time_utc)
-        self._bulk_work = iter_events_through(self.world, target_time_utc)
+        # Explicit catch-up retains a whole-request cap, but routine horizon
+        # extension must not exhaust the normal pacing generation budget of 100.
+        self._bulk_work = iter_events_through(self.world, target_time_utc,
+            max_generated_events=DEFAULT_MAX_EVENTS_PER_ADVANCE)
 
     def advance_tick(self):
         """Return None after a committed event, or the final advancement report."""

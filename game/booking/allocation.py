@@ -575,7 +575,7 @@ def prepare_daily_booking_allocation(
 ):
     """Return a detached 5C plan; commit at most the already-approved 5B marker."""
     try:
-        candidate = deepcopy(envelope)
+        candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
     except Exception as exc:
         return _reject(
             envelope,
@@ -825,8 +825,9 @@ def prepare_daily_booking_allocation(
         else:
             code = "BOOKING_ALLOCATION_FAILED"
         return _reject(envelope, code, message)
-    envelope.clear()
-    envelope.update(deepcopy(candidate))
+    if candidate is not envelope:
+        envelope.clear()
+        envelope.update(deepcopy(candidate))
     return deepcopy(result)
 
 

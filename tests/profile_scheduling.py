@@ -181,6 +181,8 @@ def copy_counts():
     """Count explicit world/draft copies at imported application/domain call sites."""
     import copy
     original = copy.deepcopy
+    from game.world_state import serialization
+    fast_clone = getattr(serialization, '_clone_runtime_world', None)
     count = Counter()
     def tracked(value, *args, **kwargs):
         if type(value) is dict and 'world_state' in value and 'simulation' in value:
@@ -188,18 +190,25 @@ def copy_counts():
         elif isinstance(value, WeeklyDraft):
             count['draft_copies'] += 1
         return original(value, *args, **kwargs)
+    def tracked_clone(value, *args, **kwargs):
+        count['fast_world_clones'] += 1
+        count['world_copies'] += 1
+        return fast_clone(value, *args, **kwargs)
     patched = []
     for name, module in list(sys.modules.items()):
         if module and (name.startswith('game.') or name.startswith('app.')):
             for attr, value in list(vars(module).items()):
                 if value is original:
-                    patched.append((module, attr))
+                    patched.append((module, attr, original))
                     setattr(module, attr, tracked)
+                elif fast_clone is not None and value is fast_clone:
+                    patched.append((module, attr, fast_clone))
+                    setattr(module, attr, tracked_clone)
     try:
         yield count
     finally:
-        for module, attr in patched:
-            setattr(module, attr, original)
+        for module, attr, value in patched:
+            setattr(module, attr, value)
 
 
 def measure(name, world, prepare, repeats, profile=False, allocations=False):

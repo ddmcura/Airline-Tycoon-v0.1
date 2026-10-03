@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 
-from game.simulation.kernel import DEFAULT_EVENT_HANDLERS, schedule_event
+from game.simulation.kernel import DEFAULT_EVENT_HANDLERS, schedule_event, _EVENT_TRANSACTION_TOKEN
 from game.maintenance.routine import departure_witness, maintenance_expense_minor
 from game.world_state.ids import allocate_id
 from game.world_state.schema import (
@@ -387,11 +387,11 @@ def calculate_operating_cost(envelope, flight):
     }
 
 
-def _common_checks(envelope, flight_id):
+def _common_checks(envelope, flight_id, *, _event_transaction=None):
     if type(envelope) is not dict:
         return None, _reject(envelope, flight_id, "INVALID_WORLD_STATE", "world must be a dictionary")
-    validation = validate_world(envelope)
-    if not validation.is_valid:
+    validation = None if _event_transaction is _EVENT_TRANSACTION_TOKEN else validate_world(envelope)
+    if validation is not None and not validation.is_valid:
         issue = validation.errors[0]
         errors = validation.errors
         if any(item.code == "missing_financial_account" for item in errors) or any(
@@ -440,8 +440,8 @@ def _common_checks(envelope, flight_id):
 def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, expected_operation_revision=None,
                expected_booking_revision=None, expected_inventory_revision=None,
                expected_event_order_cursor=None, expected_configuration_revision=None,
-               expected_configuration_fingerprint=None):
-    flight, rejection = _common_checks(envelope, flight_id)
+               expected_configuration_fingerprint=None, _event_transaction=None):
+    flight, rejection = _common_checks(envelope, flight_id, _event_transaction=_event_transaction)
     if rejection:
         return rejection
     world = envelope["world_state"]
@@ -489,12 +489,14 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
         return _reject(envelope, flight_id, "AIRCRAFT_OWNERSHIP_MISMATCH", "aircraft belongs to another airline")
     if aircraft.get("status") != "PARKED" or aircraft.get("current_airport_id") != flight["origin_airport_id"]:
         return _reject(envelope, flight_id, "AIRCRAFT_UNAVAILABLE", "aircraft must be parked at the origin")
-    manifest = build_confirmed_carriage_manifest(envelope, flight_id)
+    manifest = build_confirmed_carriage_manifest(envelope, flight_id,
+        _validation_token=(_PROJECTION_VALIDATION_TOKEN
+                           if _event_transaction is _EVENT_TRANSACTION_TOKEN else None))
     if not manifest.succeeded:
         issue = manifest.issues[0]
         return _reject(envelope, flight_id, issue.code, issue.message, issue.path)
     try:
-        candidate = deepcopy(envelope)
+        candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
         cworld = candidate["world_state"]
         cflight = cworld["dated_flights"][flight_id]
         previous_revision = cflight["operation_revision"]
@@ -560,7 +562,8 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
             if not final.is_valid:
                 issue = final.errors[0]
                 raise ValueError(f"{issue.code}: {issue.path}: {issue.message}")
-        _replace(envelope, candidate)
+        if candidate is not envelope:
+            _replace(envelope, candidate)
         return FlightFulfilmentResult(
             "COMPLETED", flight_id, False, event["event_id"], completion_id,
             manifest=deepcopy(manifest),
@@ -620,8 +623,8 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
                 expected_booking_revision=None, expected_inventory_revision=None,
                 expected_finance_revision=None, expected_event_order_cursor=None,
                 expected_configuration_revision=None,
-                expected_configuration_fingerprint=None):
-    flight, rejection = _common_checks(envelope, flight_id)
+                expected_configuration_fingerprint=None, _event_transaction=None):
+    flight, rejection = _common_checks(envelope, flight_id, _event_transaction=_event_transaction)
     if rejection:
         return rejection
     world = envelope["world_state"]
@@ -669,7 +672,9 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
     next_event = _next_event(envelope)
     if next_event is None or next_event["event_id"] != event["event_id"]:
         return _reject(envelope, flight_id, "EVENT_NOT_NEXT", "completion event is not the next canonical pending event")
-    manifest = build_confirmed_carriage_manifest(envelope, flight_id)
+    manifest = build_confirmed_carriage_manifest(envelope, flight_id,
+        _validation_token=(_PROJECTION_VALIDATION_TOKEN
+                           if _event_transaction is _EVENT_TRANSACTION_TOKEN else None))
     if not manifest.succeeded:
         issue = manifest.issues[0]
         return _reject(envelope, flight_id, issue.code, issue.message, issue.path)
@@ -679,7 +684,7 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
         if operation[key] != frozen[key]:
             return _reject(envelope, flight_id, "INVALID_BOOKING_AUTHORITY", "frozen manifest was corrupted or substituted")
     try:
-        candidate = deepcopy(envelope)
+        candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
         cworld = candidate["world_state"]
         cflight = cworld["dated_flights"][flight_id]
         coperation = cworld["active_aircraft_operations"][flight_id]
@@ -799,7 +804,8 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
             if not final.is_valid:
                 issue = final.errors[0]
                 raise ValueError(f"{issue.code}: {issue.path}: {issue.message}")
-        _replace(envelope, candidate)
+        if candidate is not envelope:
+            _replace(envelope, candidate)
         return FlightFulfilmentResult(
             "COMPLETED", flight_id, False, event["event_id"],
             settlement_transaction_id=transaction_id,
@@ -843,14 +849,16 @@ def process_flight_completion(envelope, dated_flight_id, **witnesses):
 
 def _departure_handler(context):
     flight_id = context.payload.get("dated_flight_id") if type(context.payload) is dict else None
-    result = _departure(context.envelope, flight_id, resolve_event=False)
+    result = _departure(context.envelope, flight_id, resolve_event=False,
+                        _event_transaction=context._transaction_token)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 
 
 def _completion_handler(context):
     flight_id = context.payload.get("dated_flight_id") if type(context.payload) is dict else None
-    result = _completion(context.envelope, flight_id, resolve_event=False)
+    result = _completion(context.envelope, flight_id, resolve_event=False,
+                         _event_transaction=context._transaction_token)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 

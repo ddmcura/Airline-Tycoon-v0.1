@@ -883,11 +883,11 @@ def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by
         if parsed.isoformat() != cohort_date or cohort_date != envelope["simulation"]["time_utc"][:10]:
             raise ValueError("Model 4 active processing is limited to the current simulation UTC date")
         derived = rebuild_model4_indexes(envelope, indexes=indexes, _event_transaction=_event_transaction)
-        active_ids = tuple(market_id for market_id in discover_active_market_ids(envelope, start_utc=activation_start_utc, end_utc=activation_end_utc, providers=activation_providers, dated_flight_indexes=dated_flight_indexes, require_model4_pack_authority=True) if market_id in envelope["world_state"]["directional_markets"])
+        active_ids = tuple(market_id for market_id in discover_active_market_ids(envelope, start_utc=activation_start_utc, end_utc=activation_end_utc, providers=activation_providers, dated_flight_indexes=dated_flight_indexes, require_model4_pack_authority=True, _event_transaction=_event_transaction) if market_id in envelope["world_state"]["directional_markets"])
         unknown = [key for key in multipliers_by_market if key not in active_ids]
         if unknown:
             raise ValueError(f"modifier markets are not active: {sorted(map(repr, unknown))}")
-        candidate = deepcopy(envelope)
+        candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
         records = candidate["world_state"]["demand_state"]["processed_cohorts"]
         intents = []
         cohorts = []
@@ -918,7 +918,8 @@ def resolve_model4_active_daily_cohorts(envelope, cohort_date, *, multipliers_by
         message = str(exc)
         code = "UNAVAILABLE_DEMAND_MARKET" if message.startswith("UNAVAILABLE_DEMAND_MARKET:") else "DEMAND_ALLOCATION_FAILED"
         return Model4ActiveDayResult("REJECTED", str(cohort_date), revision, pack_revision, issues=(DemandIssue(code, message),))
-    _replace_envelope(envelope, candidate)
+    if candidate is not envelope:
+        _replace_envelope(envelope, candidate)
     return Model4ActiveDayResult("COMPLETED", cohort_date, revision, pack_revision, active_ids, tuple(intents), tuple(cohorts))
 
 

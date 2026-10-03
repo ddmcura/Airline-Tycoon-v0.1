@@ -760,7 +760,7 @@ def prepare_daily_booking_shopping(
             "INVALID_BOOKING_CONFIGURATION",
             "5B requires the single-currency Booking policy",
         )
-    candidate = deepcopy(envelope)
+    candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
     cohort_date = candidate["simulation"]["time_utc"][:10]
     final_date = date.fromisoformat(cohort_date) + timedelta(
         days=configuration["booking_horizon_days"]
@@ -885,7 +885,8 @@ def prepare_daily_booking_shopping(
         else:
             code = "BOOKING_SHOPPING_FAILED"
         return _reject(candidate, code, message)
-    _replace_envelope(envelope, candidate)
+    if candidate is not envelope:
+        _replace_envelope(envelope, candidate)
     return deepcopy(result)
 
 

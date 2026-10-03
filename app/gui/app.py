@@ -319,13 +319,21 @@ class AirlineTycoonApp(GameplayViews, App):
         if not self.session.active:
             return
         try:
+            finished_advance = False
             if self.session.advancing:
-                report = self.session.advance_tick()
+                # Process a bounded amount of complete-event work, not one
+                # rendered frame per event. Wall time controls yielding only.
+                started = time.monotonic()
+                for _ in range(64):
+                    report = self.session.advance_tick()
+                    if report is not None or time.monotonic() - started >= .015:
+                        break
+                finished_advance = report is not None
                 if report is not None and report.result.failure:
                     self._error('Advancement stopped', report.result.failure.message)
             else:
                 self.session.pump()
-            self.refresh()
+            self.refresh(force=finished_advance)
         except Exception as exc:
             self.session.cancel_advance()
             self._error('Runtime stopped', exc)
@@ -337,7 +345,8 @@ class AirlineTycoonApp(GameplayViews, App):
         sim = world['simulation']
         diagnostic = self.session.runtime.diagnostic if self.session.runtime else None
         autosave_error = self.session.autosave_error
-        render_due = (self._last_revision != self.session.progression_revision
+        render_due = (not self.session.advancing
+                      and self._last_revision != self.session.progression_revision
                       and time.monotonic() - self._last_render_time >= .75)
         if (force or render_due or diagnostic != self._last_diagnostic
                 or autosave_error != self._last_autosave_error):
@@ -496,7 +505,7 @@ class AirlineTycoonApp(GameplayViews, App):
         try:
             self.session.begin_advance_to(target)
             self._dismiss()
-            self.refresh(force=True)
+            self.refresh()
         except Exception as exc:
             self._error('Advance Time', exc)
 

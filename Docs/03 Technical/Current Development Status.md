@@ -2,6 +2,74 @@
 
 Last updated: **2026-10-03**. Current snapshot, not operational authorization.
 
+## Explicit runtime advancement performance successor (2026-10-03 working tree)
+
+Scope is the runtime-performance successor of live baseline
+`051561ad59c4c2eaf8f35ec4ddf306264732606f`.
+See [Runtime Advancement Performance Investigation](Runtime%20Advancement%20Performance%20Investigation.md)
+for reproduction, tooling, complete/partial measurements, profiles and limitations.
+
+Measured flight/Booking CPU work contained nested whole-world transactions,
+redundant validations and primitive/subtree rescans. Nested domain commands now
+reuse the kernel-owned isolated candidate only with its exact private capability.
+Complete kernel result validation, handler contracts, detached commit, public
+command validation, Booking preparation/witnesses/provider isolation and rollback
+remain. Primitive-tree runtime clones use an internal guarded standard-library
+codec; JSON save encoding/schema is unchanged. Validator proof reuse is per
+invocation; UTC syntax caching is bounded to immutable strings. No demand,
+booking/economy, timing, turnaround, recurrence or authoritative field changes.
+
+Explicit requests retain 10,000 processed/generated-event ceilings across yields;
+normal paced runtime keeps its existing 100-generation budget and 7× behavior.
+Kivy yields between complete events under a 64-event/15-ms budget and rebuilds
+management projections once at completion, with in-place clock/status updates.
+One heavy event can exceed the GUI yield budget; no worker thread or frame-time
+authority is added. Terminal uses the same optimized session/kernel boundaries.
+
+Final complete busy-starter observations: one day 7.745 → 2.344 s; two days
+15.812 → 4.582 s; seven days 70.636 → 18.812 s. Full-state hashes match the archived
+baseline for all three. Thirty days completed in 139.458 s, 155 events/60 flights,
+including four weekly horizon extensions; the baseline had already hit its 120 s
+measurement budget partway through, so no whole-target speedup ratio is claimed.
+The detached real gameplay save had one aircraft but 718 published flights and
+525 bookings; its engine-only baseline took 119.794 s for two days. That does not
+reproduce the reported fifteen-minute GUI interval exactly. Large histories/airlines
+and busy 90-day/year catch-up retain material costs and are not certified scalable.
+
+Focused verification command:
+`python -m unittest tests.test_advancement_performance tests.test_stage1_event_kernel
+ tests.test_runtime_startup tests.test_stage1_booking_checkpoint
+ tests.test_stage1_flight_fulfilment tests.test_stage1_runtime
+ tests.test_gui_foundation -q`: **135 tests passed in 84.567 s**.
+
+Displayed fresh-process Kivy loaded-save smoke completed 46 events/22 flights/two
+Booking checkpoints in **168.009 → 33.074 s**, with the same complete hash and
+exact paused manual-save/reload. Flights/header rebuilds fell **48 → 1**; render
+time **36.628 → 1.016 s**, longest tick **9.011 → 2.742 s**. Native fresh-career
+one/two/seven-day cases also passed, including operations, finance/management views,
+validation and exact paused reload. The standalone smoke CLI passed without
+external Kivy argument/log environment setup. These are programmatic native-window
+checks, not human responsiveness certification; a heavy complete event still stalls.
+
+Quiet valid-career 90 days completed in **12.057 s**, matching the baseline hash;
+one year completed in **61.384 s** (365 Booking checkpoints/12 market rotations).
+The baseline year's explicit generation limit stopped it after 100 events.
+These low-load targets are distinct from busy rolling 90/year attempts, which were
+safely budget-limited and did not complete. Aged recurring two-day extension completed
+11 events/four flights in 12.189 s. Ten-aircraft day one completed in 61.890 s;
+25/50-aircraft and longer dense targets remain budget-limited. Full retained-history
+validation is the dominant remaining bottleneck; no successful large-airline
+catch-up or dense 50-aircraft 7× gate is claimed by this patch.
+
+`python -m unittest discover -s tests`: **707 tests passed in 436.375 s**.
+`python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+exited 0. Verification covers this performance successor working tree; no
+schema/template or reference-data changes were made. Final review retained exact
+whole-state replay witnesses, complete event rollback/commit isolation, shared
+startup registration and paused save/load. The remaining performance work is
+retained-history validation/Booking preparation and large dense catch-up, not
+unrelated gameplay or a GUI redesign. The pre-existing untracked `.venv/` is preserved.
+
 ## Shared runtime handler startup correction (2026-10-03 working tree)
 
 Scope is the startup-fix successor of `186dd7df46c1fb219aba679e24b7f706d006648d`,

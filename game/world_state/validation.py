@@ -196,6 +196,8 @@ class _Validator:
         self.errors = []
         self.world = {}
         self.schema_version = None
+        self._json_checked = False
+        self._aliases_checked = False
 
     def add(self, code, path, message, entity_type=None, entity_id=None):
         self.errors.append(ValidationIssue(code, path, message, entity_type, entity_id))
@@ -619,6 +621,7 @@ class _Validator:
             self.add("invalid_envelope", "$", "world envelope must be a dictionary")
             return False
         serialization_error = json_compatibility_error(self.envelope)
+        self._json_checked = serialization_error is None
         if serialization_error:
             path, message = serialization_error
             self.add("not_json_compatible", path, message)
@@ -638,6 +641,7 @@ class _Validator:
             self.schema_version = schema_version
             if schema_version in (3, 4, 5, 6, 7):
                 alias = _container_alias_error(self.envelope)
+                self._aliases_checked = alias is None
                 if alias is not None:
                     path, previous = alias
                     self.add(
@@ -2520,7 +2524,8 @@ class _Validator:
                 if isinstance(cursor, int) and sequence >= cursor:
                     self.add("invalid_event_cursor", f"{path}.order_key", "sequence must be below the next ordering cursor", "event", event_id)
             payload = self.require_mapping(record.get("payload"), f"{path}.payload")
-            payload_error = json_compatibility_error(payload)
+            # Root validation already proved JSON compatibility of every subtree.
+            payload_error = None if self._json_checked else json_compatibility_error(payload)
             if payload_error:
                 _payload_path, message = payload_error
                 self.add("not_json_compatible", f"{path}.payload", message, "event", event_id)
@@ -3015,26 +3020,31 @@ class _Validator:
                     continue
                 seen_containers.add(marker)
                 for key, nested in value.items():
-                    child_path = f"{path}.{key}"
-                    if key in forbidden:
-                        self.add("name_based_authoritative_reference", child_path, "legacy/name-based authoritative field is forbidden")
-                    if isinstance(key, str) and key.endswith("_minor") and not is_minor_amount(nested):
-                        self.add("invalid_money", child_path, "authoritative money must be integer minor units")
-                    if (
-                        isinstance(key, str)
-                        and key.endswith("_utc")
-                        and nested is not None
-                        and not _canonical_utc(nested)
-                    ):
-                        self.add("invalid_timestamp", child_path, "authoritative timestamp must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
-                    stack.append((nested, child_path))
+                    invalid_name = key in forbidden
+                    invalid_money = isinstance(key, str) and key.endswith("_minor") and not is_minor_amount(nested)
+                    invalid_time = (isinstance(key, str) and key.endswith("_utc")
+                                    and nested is not None and not _canonical_utc(nested))
+                    container = type(nested) in (dict, list)
+                    # Primitive leaves have already been checked at their owning
+                    # field. They cannot contain another authoritative field.
+                    if invalid_name or invalid_money or invalid_time or container:
+                        child_path = f"{path}.{key}"
+                        if invalid_name:
+                            self.add("name_based_authoritative_reference", child_path, "legacy/name-based authoritative field is forbidden")
+                        if invalid_money:
+                            self.add("invalid_money", child_path, "authoritative money must be integer minor units")
+                        if invalid_time:
+                            self.add("invalid_timestamp", child_path, "authoritative timestamp must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
+                        if container:
+                            stack.append((nested, child_path))
             elif type(value) is list:
                 marker = id(value)
                 if marker in seen_containers:
                     continue
                 seen_containers.add(marker)
                 for index, nested in enumerate(value):
-                    stack.append((nested, f"{path}[{index}]"))
+                    if type(nested) in (dict, list):
+                        stack.append((nested, f"{path}[{index}]"))
 
     def run(self):
         if self.validate_root():

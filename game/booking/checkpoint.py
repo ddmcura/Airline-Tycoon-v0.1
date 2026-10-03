@@ -16,6 +16,7 @@ from game.world_state.schema import (
     DIRECT_ECONOMY_ITINERARY_CONTRACT,
 )
 from game.world_state.validation import validate_world
+from game.world_state.serialization import _clone_runtime_world
 
 from .allocation import prepare_daily_booking_allocation
 
@@ -302,7 +303,8 @@ def prepare_daily_booking_checkpoint(
         configuration_fingerprint = configuration["configuration_fingerprint"]
 
         plan = prepare_daily_booking_allocation(
-            deepcopy(envelope),
+            (_clone_runtime_world(envelope) if _event_transaction is _EVENT_TRANSACTION_TOKEN
+             else deepcopy(envelope)),
             expected_demand_revision=demand_revision,
             expected_market_pack_revision=market_pack_revision,
             expected_booking_configuration_revision=configuration_revision,
@@ -412,7 +414,7 @@ def process_daily_booking_checkpoint(
     try:
         inventory_expectations = _exact_revision_map(expected_inventory_revisions, "expected_inventory_revisions")
         finance_expectations = _exact_revision_map(expected_finance_revisions, "expected_finance_revisions")
-        candidate = deepcopy(envelope)
+        candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
         checkpoint_id = allocate_id(candidate, "booking_checkpoint")
         candidate["world_state"]["booking_state"]["booking_checkpoints"][checkpoint_id] = {
             "booking_checkpoint_id": checkpoint_id, "checkpoint_date": checkpoint_date,
@@ -622,7 +624,8 @@ def process_daily_booking_checkpoint(
         )
         if result.requested_passengers != result.booked_passengers + result.unsuccessful_passengers:
             raise ValueError("checkpoint result conservation failed")
-        _replace(envelope, candidate)
+        if candidate is not envelope:
+            _replace(envelope, candidate)
         return deepcopy(result)
     except Exception as exc:
         message = _message(exc)

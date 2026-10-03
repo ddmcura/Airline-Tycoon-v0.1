@@ -146,3 +146,26 @@ equal-time order, failures, limits across yields, cancellation and serialization
 exclusion. Existing migrations, historical witnesses and domain regressions remain
 mandatory, followed by the complete suite, scoped compilation and documentation
 link/diff checks. Performance claims require actual measurements and host details.
+
+
+## Explicit advancement performance boundary (2026-10-03)
+
+Explicit shared-session catch-up retains the same chronological kernel and complete
+handler result gates as ordinary processing. Kernel-owned candidates are reused by
+nested domain operations using the exact private transaction capability; direct
+public commands retain independent validated boundaries. Input, handler-contract,
+complete-result and detached-commit guarantees remain. Runtime primitive-tree
+cloning is internal only and does not alter JSON save encoding or accept external
+object-codec bytes.
+
+The explicit request's generated-event ceiling is 10,000, matching its existing
+10,000 processed-event ceiling. Both accumulate across cooperative yields and
+pause visibly when exhausted. Ordinary paced runtime keeps its 100-generation
+budget and 7× behavior. Kivy may consume a bounded chunk of complete events without
+rendering each one; it refreshes management projections at completion, with clock
+status in place during work. UI pacing never decides authoritative simulation time.
+
+See [Runtime Advancement Performance Investigation](Runtime%20Advancement%20Performance%20Investigation.md)
+for before/after measurements, exact replay witnesses and unresolved history-scaling
+limits. An expensive single transaction still blocks a frame; this is not a promise
+of instantaneous long jumps or large-airline catch-up.

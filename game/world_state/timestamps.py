@@ -1,9 +1,10 @@
 """Canonical whole-second UTC timestamp helpers for authoritative state."""
 
 from datetime import datetime, timezone
+from functools import lru_cache
 
 
-def is_canonical_utc(value):
+def _uncached_canonical_utc(value):
     if not isinstance(value, str) or not value.endswith("Z"):
         return False
     try:
@@ -11,6 +12,16 @@ def is_canonical_utc(value):
     except ValueError:
         return False
     return parsed.microsecond == 0 and parsed.strftime("%Y-%m-%dT%H:%M:%SZ") == value
+
+
+# Immutable, pure UTC syntax predicates dominate repeated historical validation.
+# Bounded scalar memoization has no world/reference inputs or mutable results.
+_canonical_utc_text = lru_cache(maxsize=4096)(_uncached_canonical_utc)
+
+
+def is_canonical_utc(value):
+    return (_canonical_utc_text(value) if type(value) is str
+            else _uncached_canonical_utc(value))
 
 
 def parse_canonical_utc(value, field_name="timestamp"):

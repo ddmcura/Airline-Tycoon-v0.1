@@ -230,3 +230,12 @@ craft appear in selection; Scheduling projects their active arrival, location,
 reserved block and turnaround. Neither GUI controls nor future revisions permit
 published-flight cancellation/refunds. Larger fleets/history and publication
 transaction costs belong to the separate profiling/optimization pass.
+
+
+Explicit advancement presentation now consumes bounded chunks of complete shared
+session events (64-event ceiling, 15 ms yield budget checked between events).
+Clock/status updates in place while management projections/widgets refresh once
+at completion or failure. A single expensive event can exceed the yield budget;
+no simulation worker, frame-rate authority or intermediate-event replay is added.
+See [Runtime Advancement Performance Investigation](Runtime%20Advancement%20Performance%20Investigation.md)
+for measured limits and smoke evidence.

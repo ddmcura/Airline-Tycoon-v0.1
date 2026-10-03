@@ -490,6 +490,7 @@ def discover_active_market_ids(
     providers: Sequence[DemandActivationProvider] | None = None,
     dated_flight_indexes: DatedFlightIndexes | None = None,
     require_model4_pack_authority=False,
+    _event_transaction=False,
 ):
     """Return activated authoritative market IDs in stable immutable-ID order.
 
@@ -521,7 +522,12 @@ def discover_active_market_ids(
             if type(provider) is DirectPublishedServiceActivationProvider
             else deepcopy(envelope)
         )
-        provider_snapshot = deepcopy(provider_envelope)
+        from game.simulation.kernel import _EVENT_TRANSACTION_TOKEN
+        from game.world_state.serialization import _clone_runtime_world
+        provider_snapshot = (_clone_runtime_world(provider_envelope)
+            if _event_transaction is _EVENT_TRANSACTION_TOKEN
+            and type(provider) is DirectPublishedServiceActivationProvider
+            else deepcopy(provider_envelope))
         try:
             provided = provider.active_market_ids(
                 provider_envelope,
