@@ -67,6 +67,7 @@ class AirlineTycoonApp(GameplayViews, App):
         self._last_autosave_error = None
         self._allow_close = False
         self._ticker = None
+        self._schedule_publication_pending = None
         self._popup = None
         self._draft = None
         self._research_origin = None
@@ -94,6 +95,9 @@ class AirlineTycoonApp(GameplayViews, App):
         configure_startup_window(Window, platform)
 
     def on_stop(self):
+        if self._schedule_publication_pending is not None:
+            self._schedule_publication_pending.cancel()
+            self._schedule_publication_pending = None
         if self._ticker is not None:
             self._ticker.cancel()
         Window.unbind(on_request_close=self._window_close)
@@ -310,6 +314,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self.refresh(force=True)
 
     def tick(self, _dt):
+        if self._schedule_publication_pending is not None:
+            return
         if not self.session.active:
             return
         try:
@@ -436,6 +442,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self.refresh(force=True)
 
     def _idle(self):
+        if self._schedule_publication_pending is not None:
+            return False
         if self.session.advancing:
             self._error('Advance Time', 'Cancel or finish the current advancement first.')
             return False
@@ -537,6 +545,8 @@ class AirlineTycoonApp(GameplayViews, App):
             self._error('Delete bookmark', exc)
 
     def _guard_unsaved(self, action):
+        if self._schedule_publication_pending is not None:
+            return
         if self.session.advancing:
             self._error('Advance Time', 'Cancel or finish advancement first.')
             return

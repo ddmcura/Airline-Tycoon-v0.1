@@ -1,15 +1,18 @@
 """UI-independent, detached weekly drafts over canonical schedule publication."""
 
 from copy import deepcopy
+from contextlib import contextmanager
 from datetime import date, timedelta
 import json
 
-from game.world_state.planning_reference import planning_snapshot
+from game.world_state.planning_reference import planning_snapshot, _PlanningReferences
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 from game.world_state.validation import validate_world
-from .publication import (create_schedule_definition, publish_occurrences_through,
-                          configured_publication_horizon_utc, _expand_schedule,
-                          revise_future_schedule, _revision_for_date, _occurrence_record)
+from .publication import (
+    configured_publication_horizon_utc, _expand_schedule,
+    _revision_for_date, _occurrence_record,
+    _stage_schedule_definition, _stage_schedule_revision, _publish_detached,
+)
 from .local_time import local_departure, airport_zone, airport_local
 from .recurrence import POLICY, rolling_horizon, rolling_schedules, pattern_edit_date, ensure_publication_event
 from .rotation import _connection
@@ -73,7 +76,23 @@ class WeeklyDraft:
     def _snapshot(self, origin, destination):
         if origin == destination:
             raise ValueError('origin and destination must differ')
-        return planning_snapshot(self._base['world_state'], self.aircraft_id, origin, destination)
+        return planning_snapshot(self._base['world_state'], self.aircraft_id, origin, destination,
+                                 _references=getattr(self, '_operation_references', None))
+
+    @contextmanager
+    def _planning_operation(self):
+        """Reuse immutable base movements/reference inputs only for this batch.
+
+        Draft legs are merged afresh on every check. These inputs never survive
+        the operation, enter saves, or hide subsequent world/reference changes.
+        """
+        self._operation_references = _PlanningReferences()
+        try:
+            self._operation_movements = self._base_movements()
+            yield
+        finally:
+            self.__dict__.pop('_operation_movements', None)
+            self.__dict__.pop('_operation_references', None)
 
     @property
     def context_airport_id(self):
@@ -163,6 +182,8 @@ class WeeklyDraft:
         ids = []
         now = parse_canonical_utc(candidate['simulation']['time_utc'])
         target = now
+        capacity = (installed_capacity(candidate['world_state']['aircraft'][self.aircraft_id])
+                    if any(leg['service_type'] != 'DEADHEAD' for leg in legs) else 0)
         ordered = sorted(legs, key=lambda row: row['departure_utc'])
         for index, leg in enumerate(ordered):
             world = candidate['world_state']
@@ -180,7 +201,7 @@ class WeeklyDraft:
             common = dict(connection_id=connection, planned_aircraft_id=self.aircraft_id,
                 origin_airport_id=origin, destination_airport_id=destination,
                 planning_timing=leg['planning_timing'],
-                capacity=0 if deadhead else installed_capacity(world['aircraft'][self.aircraft_id]),
+                capacity=0 if deadhead else capacity,
                 fare_offer={'currency': 'USD', 'amount_minor': leg['fare_minor']},
                 service_type=leg['service_type'],
                 passenger_service_classification='NON_PASSENGER' if deadhead else 'ECONOMY')
@@ -194,12 +215,12 @@ class WeeklyDraft:
                 recurrence['publication_policy'] = POLICY
             if index < len(self._replacement_ids):
                 schedule_id = self._replacement_ids[index]
-                result = _result(revise_future_schedule(candidate, schedule_id,
+                result = _result(_stage_schedule_revision(candidate, schedule_id,
                     effective_from_local_date=self._revision_origin_date(world, origin),
                     expected_revision=world['schedule_definitions'][schedule_id]['current_revision'],
-                    recurrence=recurrence, _defer_publication=True, **common))
+                    recurrence=recurrence, **common))
             else:
-                result = _result(create_schedule_definition(candidate,
+                result = _result(_stage_schedule_definition(candidate,
                     airline_id=self.airline_id, effective_from_local_date=local.date().isoformat(),
                     weekdays=recurrence['weekdays'],
                     departure_local_time=recurrence['departure_local_time'],
@@ -215,23 +236,26 @@ class WeeklyDraft:
             recurrence = deepcopy(current['revisions'][str(current['current_revision'])]['recurrence'])
             recurrence.pop('until_local_date', None)
             recurrence['enabled'] = False
-            _result(revise_future_schedule(candidate, schedule_id,
+            _result(_stage_schedule_revision(candidate, schedule_id,
                 effective_from_local_date=self._revision_origin_date(candidate['world_state'],
                     current['revisions'][str(current['current_revision'])]['origin_airport_id']),
-                expected_revision=current['current_revision'], recurrence=recurrence,
-                _defer_publication=True))
+                expected_revision=current['current_revision'], recurrence=recurrence))
         ensure_publication_event(candidate, self.airline_id)
         if continuous or repeat_until:
             target = parse_canonical_utc(rolling_horizon(candidate, self.airline_id))
-        published = _result(publish_occurrences_through(candidate, format_utc(target)))
+        # Validate the complete proposed definition batch once, then reconcile
+        # inside this isolated candidate. No live authority changes until Save.
+        _valid(candidate)
+        published = _result(_publish_detached(candidate, format_utc(target)))
+        _valid(candidate)
         # Revisions and cyclic continuity are checked beyond the initial rolling
         # horizon on a discarded candidate, never materialized in live authority.
         preview = deepcopy(candidate)
-        _result(publish_occurrences_through(preview, configured_publication_horizon_utc(preview)))
-        _valid(candidate)
+        _result(_publish_detached(preview, configured_publication_horizon_utc(preview)))
+        _valid(preview)
         return candidate, tuple(ids), published
 
-    def _movements(self):
+    def _base_movements(self):
         world = self._base['world_state']
         rows = []
         flights = list(world['dated_flights'].values())
@@ -243,7 +267,8 @@ class WeeklyDraft:
         for schedule_id in sorted(world['schedule_definitions']):
             schedule = world['schedule_definitions'][schedule_id]
             if schedule['status'] == 'ACTIVE':
-                virtual, conflicts = _expand_schedule(self._base, schedule, now, limit)
+                virtual, conflicts = _expand_schedule(self._base, schedule, now, limit,
+                                                      known_occurrences=known)
                 if conflicts:
                     raise ValueError(conflicts[0].message)
                 flights.extend(flight for key, flight in sorted(virtual.items())
@@ -257,6 +282,11 @@ class WeeklyDraft:
                 rows.append((start, end, parse_canonical_utc(flight['scheduled_off_block_utc']),
                              parse_canonical_utc(flight['scheduled_in_block_utc']),
                              flight['origin_airport_id'], flight['destination_airport_id']))
+        return rows
+
+    def _movements(self):
+        base = getattr(self, '_operation_movements', None)
+        rows = list(self._base_movements() if base is None else base)
         for leg in self._legs:
             pre, block, post = timing_bounds(leg['planning_timing'])[1]
             depart = parse_canonical_utc(leg['departure_utc'])
@@ -457,21 +487,22 @@ class WeeklyDraft:
             raise ValueError('select one or more distinct weekdays')
         candidate = deepcopy(self)
         zone = airport_zone(self._base['world_state'], origin)
-        for local_date in sorted(local_dates):
-            try:
-                requested = local_departure(candidate._base['world_state'],
-                                            origin, local_date, local_time)
-                departure = (candidate.earliest(origin, destination,
-                             not_before=format_utc(requested)) if earliest
-                             else format_utc(requested))
-                if parse_canonical_utc(departure).astimezone(zone).date().isoformat() != local_date:
-                    raise ValueError('no available departure on the selected local day')
-                candidate.add(origin, destination, departure_utc=departure,
-                              fare_minor=fare_minor)
-                if return_flight:
-                    candidate.add_return(fare_minor=fare_minor)
-            except (ValueError, KeyError) as exc:
-                raise ValueError(f'{local_date}: {exc}') from exc
+        with candidate._planning_operation():
+            for local_date in sorted(local_dates):
+                try:
+                    requested = local_departure(candidate._base['world_state'],
+                                                origin, local_date, local_time)
+                    departure = (candidate.earliest(origin, destination,
+                                 not_before=format_utc(requested)) if earliest
+                                 else format_utc(requested))
+                    if parse_canonical_utc(departure).astimezone(zone).date().isoformat() != local_date:
+                        raise ValueError('no available departure on the selected local day')
+                    candidate.add(origin, destination, departure_utc=departure,
+                                  fare_minor=fare_minor)
+                    if return_flight:
+                        candidate.add_return(fare_minor=fare_minor)
+                except (ValueError, KeyError) as exc:
+                    raise ValueError(f'{local_date}: {exc}') from exc
         count = len(candidate._legs) - len(self._legs)
         self._commit_edited_sequence(candidate)
         return count
@@ -561,12 +592,13 @@ class WeeklyDraft:
         current = WeeklyDraft(envelope, airline_id=self.airline_id,
                               aircraft_id=self.aircraft_id)
         current._replacement_ids, current._revision_from = self._replacement_ids, self._revision_from
-        for leg in sorted(self._legs, key=lambda row: row['departure_utc']):
-            current.add(leg['origin_airport_id'], leg['destination_airport_id'],
-                        departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
-                        deadhead=leg['service_type'] == 'DEADHEAD')
-            if current._legs[-1]['planning_timing'] != leg['planning_timing']:
-                raise ValueError('STALE_DRAFT: aircraft timing changed; reopen the planner')
+        with current._planning_operation():
+            for leg in sorted(self._legs, key=lambda row: row['departure_utc']):
+                current.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                            departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
+                            deadhead=leg['service_type'] == 'DEADHEAD')
+                if current._legs[-1]['planning_timing'] != leg['planning_timing']:
+                    raise ValueError('STALE_DRAFT: aircraft timing changed; reopen the planner')
         return current
 
     def save_current(self, envelope, *, repeat_until=None, continuous=False):
@@ -608,8 +640,7 @@ class WeeklyDraft:
                              'arrival_local': arrival.astimezone(airport_zone(self._base['world_state'], destination)).isoformat(),
                              'departure_timezone': self._base['world_state']['airports'][origin]['timezone'],
                              'arrival_timezone': self._base['world_state']['airports'][destination]['timezone'],
-                             'pattern_only': departure - timedelta(seconds=timing_bounds(
-                                 self._snapshot(origin, destination))[1][0]) < parse_canonical_utc(self._base['simulation']['time_utc']),
+                             'pattern_only': block_start < parse_canonical_utc(self._base['simulation']['time_utc']),
                              'published': (format_utc(departure), origin, destination) in published_keys,
                              'draft_index': draft_indices.get((format_utc(departure), origin, destination))})
         return rows

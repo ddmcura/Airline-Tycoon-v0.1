@@ -141,7 +141,7 @@ class ScheduleBuilder:
 
     def add_builder_flights(self, *, target_dates=None):
         """Submit the current builder to selected days or one timeline row."""
-        if self._draft is None or not self._management_ready():
+        if self._draft is None or not self._management_ready(refresh=False):
             return
         try:
             dates = (tuple(self._week_dates()[index].isoformat()
@@ -161,5 +161,6 @@ class ScheduleBuilder:
             self.refresh(force=True)
             return count
         except Exception as exc:
+            self.refresh(force=True)
             self._error('Add Flight rejected', exc)
             return None

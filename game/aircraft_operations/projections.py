@@ -198,6 +198,35 @@ def project_airline_flights(envelope, airline_id, *, limit=20, offset=0, statuse
     ])
 
 
+def _fleet_row(world, aircraft_id):
+    aircraft = world['aircraft'][aircraft_id]
+    return {
+        "aircraft_id": aircraft_id,
+        "display_registration": aircraft["display_registration"],
+        "model_reference": aircraft["model_reference"],
+        "status": aircraft["status"],
+        "home_airport_id": aircraft["home_airport_id"],
+        "home_airport_reference_code": _airport_code(world, aircraft["home_airport_id"]),
+        "current_airport_id": aircraft["current_airport_id"],
+        "current_airport_reference_code": _airport_code(
+            world, aircraft["current_airport_id"]
+        ) if aircraft["current_airport_id"] else None,
+    }
+
+
+def _project_owned_scheduling_aircraft(envelope, airline_id, aircraft_id):
+    """Bounded read of a validated session-owned aircraft, like its header.
+
+    Public fleet projections keep validation for arbitrary external envelopes.
+    This retains no cache/state and never authorizes a gameplay mutation.
+    """
+    world = envelope['world_state']
+    aircraft = world['aircraft'].get(aircraft_id)
+    if not aircraft or aircraft['airline_id'] != airline_id or aircraft['status'] == 'RETURNED':
+        return None
+    return deepcopy(_fleet_row(world, aircraft_id))
+
+
 def project_airline_fleet(envelope, airline_id, *, limit=20, offset=0):
     if isinstance(limit, bool) or not isinstance(limit, int) or not 0 <= limit <= 100:
         raise ValueError("limit must be an integer from 0 through 100")
@@ -214,18 +243,7 @@ def project_airline_fleet(envelope, airline_id, *, limit=20, offset=0):
         aircraft = world['aircraft'][aircraft_id]
         if aircraft["airline_id"] != airline_id:
             continue
-        rows.append({
-            "aircraft_id": aircraft_id,
-            "display_registration": aircraft["display_registration"],
-            "model_reference": aircraft["model_reference"],
-            "status": aircraft["status"],
-            "home_airport_id": aircraft["home_airport_id"],
-            "home_airport_reference_code": _airport_code(world, aircraft["home_airport_id"]),
-            "current_airport_id": aircraft["current_airport_id"],
-            "current_airport_reference_code": _airport_code(
-                world, aircraft["current_airport_id"]
-            ) if aircraft["current_airport_id"] else None,
-        })
+        rows.append(_fleet_row(world, aircraft_id))
     return deepcopy(rows[:limit])
 
 

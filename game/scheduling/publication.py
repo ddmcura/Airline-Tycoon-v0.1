@@ -313,13 +313,71 @@ def create_schedule_definition(
     publication_policy=None,
 ):
     """Create one structurally valid repeating plan without publishing it."""
-    initial_validation = validate_world(envelope)
-    if not initial_validation.is_valid:
-        return ScheduleDefinitionResult(
-            "REJECTED",
-            conflicts=_conflicts_from_validation(initial_validation),
-        )
+    validation = validate_world(envelope)
+    if not validation.is_valid:
+        return ScheduleDefinitionResult('REJECTED', conflicts=_conflicts_from_validation(validation))
     candidate = deepcopy(envelope)
+    result = _stage_schedule_definition(candidate,
+        airline_id=airline_id,
+        connection_id=connection_id,
+        planned_aircraft_id=planned_aircraft_id,
+        origin_airport_id=origin_airport_id,
+        destination_airport_id=destination_airport_id,
+        weekdays=weekdays,
+        departure_local_time=departure_local_time,
+        arrival_local_time=arrival_local_time,
+        effective_from_local_date=effective_from_local_date,
+        capacity=capacity,
+        fare_offer=fare_offer,
+        service_type=service_type,
+        passenger_service_classification=passenger_service_classification,
+        arrival_day_offset=arrival_day_offset,
+        departure_local_fold=departure_local_fold,
+        arrival_local_fold=arrival_local_fold,
+        status=status,
+        planning_timing=planning_timing,
+        until_local_date=until_local_date,
+        publication_policy=publication_policy,
+    )
+    if not result.succeeded:
+        return result
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return ScheduleDefinitionResult('REJECTED', conflicts=_conflicts_from_validation(validation))
+    _replace_envelope(envelope, candidate)
+    return result
+
+
+def _stage_schedule_definition(
+    envelope,
+    *,
+    airline_id,
+    connection_id,
+    planned_aircraft_id,
+    origin_airport_id,
+    destination_airport_id,
+    weekdays,
+    departure_local_time,
+    arrival_local_time,
+    effective_from_local_date,
+    capacity,
+    fare_offer,
+    service_type="PASSENGER",
+    passenger_service_classification="ECONOMY",
+    arrival_day_offset=0,
+    departure_local_fold=0,
+    arrival_local_fold=0,
+    status="ACTIVE",
+    planning_timing=None,
+    until_local_date=None,
+    publication_policy=None,
+):
+    """Stage on an isolated scheduling candidate; caller validates before commit.
+
+    Only WeeklyDraft/public wrappers own these detached candidates. This does
+    not accept live authority as a substitute for the public command boundary.
+    """
+    candidate = envelope
     try:
         schedule_id = allocate_id(candidate, "schedule")
     except ValueError as exc:
@@ -366,13 +424,6 @@ def create_schedule_definition(
         except (ValueError, KeyError) as exc:
             return ScheduleDefinitionResult('REJECTED', conflicts=(
                 SchedulingConflict('INVALID_PUBLICATION_POLICY', str(exc)),))
-    validation = validate_world(candidate)
-    if not validation.is_valid:
-        return ScheduleDefinitionResult(
-            "REJECTED",
-            conflicts=_conflicts_from_validation(validation),
-        )
-    _replace_envelope(envelope, candidate)
     return ScheduleDefinitionResult("COMPLETED", schedule_id, 1)
 
 
@@ -478,11 +529,14 @@ def _reconcile_schema4_departure_events(candidate):
             flight["scheduled_departure_local_date"], flight["dated_flight_id"],
         ),
     )
+    events_by_flight = {}
+    for event in world['pending_events'].values():
+        if (event.get('event_type') == FLIGHT_DEPARTURE_EVENT_TYPE
+                and event.get('owner_type') == 'dated_flight'):
+            events_by_flight.setdefault(event.get('owner_id'), []).append(event)
     for flight in eligible:
-        matches = [event for event in world["pending_events"].values()
-                   if event.get("event_type") == FLIGHT_DEPARTURE_EVENT_TYPE
-                   and event.get("owner_type") == "dated_flight"
-                   and event.get("owner_id") == flight["dated_flight_id"]
+        matches = [event for event in events_by_flight.get(flight['dated_flight_id'], ())
+                   if event.get('owner_id') == flight['dated_flight_id']
                    and event.get("due_at_utc") == flight["scheduled_off_block_utc"]
                    and event.get("operation_revision") == flight["operation_revision"]
                    and event.get("payload") == _departure_payload(flight)]
@@ -498,10 +552,11 @@ def _reconcile_schema4_departure_events(candidate):
             )
 
 
-def _expand_schedule(envelope, schedule, window_start, window_end):
+def _expand_schedule(envelope, schedule, window_start, window_end, *, known_occurrences=None):
     desired = {}
     conflicts = []
-    known_occurrences = {flight['occurrence_key'] for flight in envelope['world_state']['dated_flights'].values()}
+    if known_occurrences is None:
+        known_occurrences = {flight['occurrence_key'] for flight in envelope['world_state']['dated_flights'].values()}
     now = parse_canonical_utc(envelope['simulation']['time_utc'])
     for revision_number in range(1, schedule["current_revision"] + 1):
         revision = schedule["revisions"][str(revision_number)]
@@ -719,36 +774,9 @@ def publish_occurrences_through(
             conflicts=_conflicts_from_validation(initial_validation),
         )
 
-    start = parse_canonical_utc(envelope["simulation"]["time_utc"])
-    if target < start:
-        return PublicationResult(
-            "REJECTED",
-            target_horizon_utc,
-            conflicts=(
-                SchedulingConflict(
-                    "INVALID_HORIZON", "publication horizon cannot precede simulation time"
-                ),
-            ),
-        )
-    try:
-        publication_limit = _publication_limit(envelope)
-    except ValueError as exc:
-        return PublicationResult(
-            "REJECTED",
-            target_horizon_utc,
-            conflicts=(SchedulingConflict("INVALID_HORIZON", str(exc)),),
-        )
-    if target > publication_limit:
-        return PublicationResult(
-            "REJECTED",
-            target_horizon_utc,
-            conflicts=(
-                SchedulingConflict(
-                    "HORIZON_EXCEEDS_CONFIGURATION",
-                    "target exceeds the configured rolling publication window",
-                ),
-            ),
-        )
+    start, target, failure = _publication_window(envelope, target_horizon_utc)
+    if failure is not None:
+        return failure
 
     schedules = envelope["world_state"]["schedule_definitions"]
     selected_ids = None
@@ -771,14 +799,76 @@ def publish_occurrences_through(
         )
 
     candidate = deepcopy(envelope)
+    result = _publish_candidate(candidate, start, target, target_horizon_utc, selected_ids)
+    if not result.succeeded:
+        return result
+    validation = validate_world(candidate)
+    if not validation.is_valid:
+        return PublicationResult('REJECTED', target_horizon_utc,
+                                 conflicts=_conflicts_from_validation(validation))
+    _replace_envelope(envelope, candidate)
+    return result
+
+
+def _publication_window(envelope, target_horizon_utc):
+    target = parse_canonical_utc(target_horizon_utc, 'target_horizon_utc')
+    start = parse_canonical_utc(envelope["simulation"]["time_utc"])
+    if target < start:
+        return None, None, PublicationResult(
+            "REJECTED",
+            target_horizon_utc,
+            conflicts=(
+                SchedulingConflict(
+                    "INVALID_HORIZON", "publication horizon cannot precede simulation time"
+                ),
+            ),
+        )
+    try:
+        publication_limit = _publication_limit(envelope)
+    except ValueError as exc:
+        return None, None, PublicationResult(
+            "REJECTED",
+            target_horizon_utc,
+            conflicts=(SchedulingConflict("INVALID_HORIZON", str(exc)),),
+        )
+    if target > publication_limit:
+        return None, None, PublicationResult(
+            "REJECTED",
+            target_horizon_utc,
+            conflicts=(
+                SchedulingConflict(
+                    "HORIZON_EXCEEDS_CONFIGURATION",
+                    "target exceeds the configured rolling publication window",
+                ),
+            ),
+        )
+
+    return start, target, None
+
+
+def _publish_detached(candidate, target_horizon_utc, *, selected_ids=None):
+    """No copies/commit: isolated owner must validate the complete result."""
+    start, target, failure = _publication_window(candidate, target_horizon_utc)
+    if failure is not None:
+        return failure
+    return _publish_candidate(candidate, start, target, target_horizon_utc, selected_ids)
+
+
+def _publish_candidate(candidate, start, target, target_horizon_utc, selected_ids):
+    """Reconcile a detached candidate. Caller validates its complete boundary.
+
+    Input/world validation and committing stay with the public transaction or
+    kernel event owner; conflict, booking and continuity checks stay here.
+    """
     desired = {}
     expansion_conflicts = []
+    known_occurrences = {flight['occurrence_key'] for flight in candidate['world_state']['dated_flights'].values()}
     for schedule_id in sorted(candidate["world_state"]["schedule_definitions"]):
         schedule = candidate["world_state"]["schedule_definitions"][schedule_id]
         if schedule["status"] != "ACTIVE" or (selected_ids is not None and schedule_id not in selected_ids):
             continue
         schedule_desired, conflicts = _expand_schedule(
-            candidate, schedule, start, target
+            candidate, schedule, start, target, known_occurrences=known_occurrences
         )
         desired.update(schedule_desired)
         expansion_conflicts.extend(conflicts)
@@ -919,14 +1009,6 @@ def publish_occurrences_through(
             target_horizon_utc,
             conflicts=conflicts,
         )
-    validation = validate_world(candidate)
-    if not validation.is_valid:
-        return PublicationResult(
-            "REJECTED",
-            target_horizon_utc,
-            conflicts=_conflicts_from_validation(validation),
-        )
-    _replace_envelope(envelope, candidate)
     return PublicationResult(
         "COMPLETED",
         target_horizon_utc,
@@ -1052,6 +1134,61 @@ def revise_future_schedule(
             schedule_id if isinstance(schedule_id, str) else None,
             conflicts=_conflicts_from_validation(initial_validation),
         )
+    candidate = deepcopy(envelope)
+    staged = _stage_schedule_revision(candidate, schedule_id,
+        effective_from_local_date=effective_from_local_date,
+        expected_revision=expected_revision, **changes)
+    if not staged.succeeded:
+        return staged
+    current_revision = staged.revision - 1
+    new_revision = staged.revision
+    candidate_schedule = candidate['world_state']['schedule_definitions'][schedule_id]
+    proposed = candidate_schedule['revisions'][str(new_revision)]
+    structural = validate_world(candidate)
+    if not structural.is_valid:
+        return ScheduleDefinitionResult(
+            "REJECTED",
+            schedule_id,
+            current_revision,
+            _conflicts_from_validation(structural),
+        )
+    if candidate_schedule["status"] == "ACTIVE" and not _defer_publication:
+        if proposed['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1':
+            from .recurrence import rolling_horizon
+            publication = publish_occurrences_through(candidate,
+                rolling_horizon(candidate, candidate_schedule['airline_id']),
+                expected_schedule_revisions={schedule_id: new_revision})
+        else:
+            publication = publish_configured_window(
+                candidate, expected_schedule_revisions={schedule_id: new_revision})
+        if not publication.succeeded:
+            return ScheduleDefinitionResult(
+                publication.status,
+                schedule_id,
+                current_revision,
+                publication.conflicts,
+            )
+        created = publication.created_dated_flight_ids
+        updated = publication.updated_dated_flight_ids
+        superseded = publication.superseded_dated_flight_ids
+    else:
+        created = ()
+        updated = ()
+        superseded = ()
+    _replace_envelope(envelope, candidate)
+    return ScheduleDefinitionResult(
+        "COMPLETED",
+        schedule_id,
+        new_revision,
+        created_dated_flight_ids=created,
+        updated_dated_flight_ids=updated,
+        superseded_dated_flight_ids=superseded,
+    )
+
+
+def _stage_schedule_revision(envelope, schedule_id, *, effective_from_local_date,
+                             expected_revision=None, **changes):
+    """Apply a revision only to an isolated candidate; no publication/commit."""
     schedule = (
         envelope["world_state"]["schedule_definitions"].get(schedule_id)
         if isinstance(schedule_id, str)
@@ -1117,7 +1254,7 @@ def revise_future_schedule(
             ),
         )
 
-    candidate = deepcopy(envelope)
+    candidate = envelope
     candidate_schedule = candidate["world_state"]["schedule_definitions"][schedule_id]
     previous = candidate_schedule["revisions"][str(current_revision)]
     previous["effective_until_local_date"] = (
@@ -1134,43 +1271,13 @@ def revise_future_schedule(
     if proposed['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1':
         from .recurrence import ensure_publication_event
         ensure_publication_event(candidate, candidate_schedule['airline_id'])
-    structural = validate_world(candidate)
-    if not structural.is_valid:
-        return ScheduleDefinitionResult(
-            "REJECTED",
-            schedule_id,
-            current_revision,
-            _conflicts_from_validation(structural),
-        )
-    if candidate_schedule["status"] == "ACTIVE" and not _defer_publication:
-        if proposed['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1':
-            from .recurrence import rolling_horizon
-            publication = publish_occurrences_through(candidate,
-                rolling_horizon(candidate, candidate_schedule['airline_id']),
-                expected_schedule_revisions={schedule_id: new_revision})
-        else:
-            publication = publish_configured_window(
-                candidate, expected_schedule_revisions={schedule_id: new_revision})
-        if not publication.succeeded:
-            return ScheduleDefinitionResult(
-                publication.status,
-                schedule_id,
-                current_revision,
-                publication.conflicts,
-            )
-        created = publication.created_dated_flight_ids
-        updated = publication.updated_dated_flight_ids
-        superseded = publication.superseded_dated_flight_ids
-    else:
-        created = ()
-        updated = ()
-        superseded = ()
-    _replace_envelope(envelope, candidate)
-    return ScheduleDefinitionResult(
-        "COMPLETED",
-        schedule_id,
-        new_revision,
-        created_dated_flight_ids=created,
-        updated_dated_flight_ids=updated,
-        superseded_dated_flight_ids=superseded,
-    )
+    return ScheduleDefinitionResult('COMPLETED', schedule_id, new_revision)
+
+
+def _publish_event_occurrences(context, target_horizon_utc, *, schedule_ids):
+    """Publish inside an existing complete-event candidate, never live state."""
+    from game.simulation.kernel import _EVENT_TRANSACTION_TOKEN
+    if context._transaction_token is not _EVENT_TRANSACTION_TOKEN:
+        raise ValueError('publication requires an isolated kernel event transaction')
+    return _publish_detached(context.envelope, target_horizon_utc,
+                             selected_ids=frozenset(schedule_ids))

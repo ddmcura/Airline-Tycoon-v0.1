@@ -7,10 +7,10 @@ payload-range are intentionally absent, not presumed physically unrestricted.
 from game.world_state.acquisition_validation import validate_configuration
 
 
-def check_eligibility(aircraft, distance_m):
+def check_eligibility(aircraft, distance_m, *, catalogs=None):
     if type(distance_m) is not int or distance_m < 0:
         raise ValueError('invalid planning distance')
-    view = validate_configuration(aircraft)
+    view = validate_configuration(aircraft, catalogs)
     if distance_m > view['model']['reference_range_km'] * 1000:
         raise ValueError('AIRCRAFT_RANGE_EXCEEDED: leg exceeds PH scalar maximum range')
     return view['model']

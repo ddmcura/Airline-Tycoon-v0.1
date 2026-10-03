@@ -290,6 +290,11 @@ class GameplayGuiTests(unittest.TestCase):
         self.app.show_save_schedule()
         self.click('Continue')
         self.click('Publish Schedule')
+        pending = self.app._schedule_publication_pending
+        self.assertIsNotNone(pending)
+        callback = pending.get_callback()
+        pending.cancel()
+        callback(0)
         self.assertIsNone(self.app._draft)
         self.assertTrue(session.flights(limit=100))
         self.assertTrue(session.validate())

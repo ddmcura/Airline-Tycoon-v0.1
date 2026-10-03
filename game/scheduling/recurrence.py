@@ -122,11 +122,11 @@ def pattern_edit_date(envelope, airline_id, aircraft_id):
 
 
 def _weekly_publication(context):
-    from .publication import publish_occurrences_through
+    from .publication import _publish_event_occurrences
     if context.payload != {'contract': POLICY}:
         raise ValueError('invalid weekly publication event payload')
     if rolling_schedules(context.envelope, context.event['owner_id']):
-        result = publish_occurrences_through(context.envelope,
+        result = _publish_event_occurrences(context,
                     rolling_horizon(context.envelope, context.event['owner_id']),
                     schedule_ids=tuple(row['schedule_id'] for row in rolling_schedules(
                         context.envelope, context.event['owner_id'])))

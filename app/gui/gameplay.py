@@ -57,12 +57,13 @@ class GameplayViews(WeeklyWorkspace):
                             auto_dismiss=False)
         self._popup.open()
 
-    def _management_ready(self):
+    def _management_ready(self, *, refresh=True):
         if not self._idle():
             return False
         # Callbacks and pump are serialized on Kivy's event loop.
         self.session.pause()
-        self.refresh(force=True)
+        if refresh:
+            self.refresh(force=True)
         return True
 
     def render_research(self):

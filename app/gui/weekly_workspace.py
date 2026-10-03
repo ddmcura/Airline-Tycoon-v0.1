@@ -43,9 +43,7 @@ class WeeklyWorkspace(ScheduleBuilder):
                             lambda item=row: self.start_schedule(item['aircraft_id'], edit_recurring=True)))
         else:
             draft = self._draft
-            aircraft = next((row for row in self.session.fleet(limit=100)
-                             if row['aircraft_id'] == draft.aircraft_id),
-                            self._schedule_aircraft)
+            aircraft = self.session.scheduling_aircraft(draft.aircraft_id) or self._schedule_aircraft
             airports = {row['airport_id']: row['reference_code']
                         for row in self.session.airports()}
             rows = draft.week_rows(self._schedule_week.isoformat())
@@ -538,8 +536,23 @@ class WeeklyWorkspace(ScheduleBuilder):
                       f" weekly through {repeat}?" if repeat else ' on their selected dates only?')
                    + ' Elapsed slots remain pattern only. Published flights stay protected.')
         self._dialog('Publish Schedule', message, [
-                         ('Publish Schedule', lambda: self._save_schedule(repeat, continuous=continuous)),
+                         ('Publish Schedule', lambda: self._queue_schedule_publication(repeat, continuous=continuous)),
                          ('Cancel', lambda: None)])
+
+    def _queue_schedule_publication(self, repeat, *, continuous=False):
+        """Paint feedback before one serialized domain command; no worker thread."""
+        if not self._idle():
+            return
+        self.session.pause()
+        self._dialog('Publishing schedule',
+                     'Validating and publishing the complete schedule. Please wait.', [])
+        def publish(_dt):
+            self._schedule_publication_pending = None
+            self._dismiss()
+            self._save_schedule(repeat, continuous=continuous)
+        # A short event-loop deferral lets the modal notice paint first. No world
+        # work is spread across frames and the authoritative command stays atomic.
+        self._schedule_publication_pending = Clock.schedule_once(publish, .05)
 
     def _save_schedule(self, repeat, *, continuous=False):
         try:

@@ -10,17 +10,25 @@ from .planning_validation import validate_timing
 _PATH = Path(__file__).resolve().parents[2] / 'Data' / 'Stage1' / 'scheduling_v1.json'
 
 
-def planning_snapshot(world, aircraft_id, origin_id, destination_id):
-    profile = json.loads(_PATH.read_text(encoding='utf-8'))
-    if type(profile) is not dict or set(profile) != {'profile_version', 'models', 'airports'}:
-        raise ValueError('invalid scheduling reference profile')
+class _PlanningReferences:
+    """Validated reference inputs shared only within one planning operation."""
+    def __init__(self):
+        self.profile = json.loads(_PATH.read_text(encoding='utf-8'))
+        if type(self.profile) is not dict or set(self.profile) != {'profile_version', 'models', 'airports'}:
+            raise ValueError('invalid scheduling reference profile')
+        self.catalogs = {}
+
+
+def planning_snapshot(world, aircraft_id, origin_id, destination_id, *, _references=None):
+    references = _references if _references is not None else _PlanningReferences()
+    profile = references.profile
     aircraft = world['aircraft'][aircraft_id]
     origin, destination = world['airports'][origin_id], world['airports'][destination_id]
     if 'configuration' in aircraft:
         from game.scheduling.eligibility import check_eligibility
         numerator, denominator = distance_km(origin, destination).as_integer_ratio()
         distance_m = (numerator * 1000 + denominator - 1) // denominator
-        model = check_eligibility(aircraft, distance_m)
+        model = check_eligibility(aircraft, distance_m, catalogs=references.catalogs)
         try:
             origin_taxi = profile['airports'][origin['catalog_airport_id']]
             destination_taxi = profile['airports'][destination['catalog_airport_id']]
@@ -37,7 +45,7 @@ def planning_snapshot(world, aircraft_id, origin_id, destination_id):
             'taxi_out_seconds': deepcopy(origin_taxi['taxi_out_seconds']),
             'taxi_in_seconds': deepcopy(destination_taxi['taxi_in_seconds']),
         }
-        validate_timing(snapshot)
+        validate_timing(snapshot, references.catalogs)
         return snapshot
     try:
         model = profile['models'][aircraft['model_reference']]

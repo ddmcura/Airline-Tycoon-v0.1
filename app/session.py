@@ -13,7 +13,8 @@ from game.aircraft_operations import (
     project_airline_overview,
     project_recent_flight_results,
 )
-from game.aircraft_operations.projections import _project_owned_airline_header
+from game.aircraft_operations.projections import (
+    _project_owned_airline_header, _project_owned_scheduling_aircraft)
 from game.simulation.projections import _project_event_records_owned, _project_next_pending_event_owned
 from game.aircraft_market.reference_catalog import (
     PH_AIRCRAFT_CATALOG_VERSION,
@@ -334,6 +335,10 @@ class Stage1Session:
 
     def fleet(self, *, offset=0, limit=20):
         return project_airline_fleet(self.world, self.airline_id, offset=offset, limit=limit)
+
+    def scheduling_aircraft(self, aircraft_id):
+        """Fresh detached row for the planner; command boundaries own validation."""
+        return _project_owned_scheduling_aircraft(self.world, self.airline_id, aircraft_id)
 
     def delivery_locations(self):
         from game.fleet_management.acquisition import delivery_locations

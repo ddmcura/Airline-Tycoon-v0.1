@@ -362,6 +362,14 @@ def _validate_schema4_fulfilment_authority(validator):
     results = world.get("flight_results")
     transactions = world.get("transactions", {})
     events = _all_events(world)
+    # Operation-local index preserves order and exact event checks below.
+    lifecycle_events = {}
+    for event in events.values():
+        if type(event) is dict:
+            owner, kind = event.get('owner_id'), event.get('event_type')
+            if type(owner) is str and kind in (
+                    FLIGHT_DEPARTURE_EVENT_TYPE, FLIGHT_COMPLETION_EVENT_TYPE):
+                lifecycle_events.setdefault((owner, kind), []).append(event)
     pending = world.get("pending_events", {})
     history = world.get("event_history", {})
     if type(results) is not dict:
@@ -414,12 +422,8 @@ def _validate_schema4_fulfilment_authority(validator):
         status = flight.get("status")
         operation = operations.get(flight_id) if type(operations) is dict else None
         result = results.get(flight_id)
-        departure_events = [event for event in events.values() if type(event) is dict
-                            and event.get("event_type") == FLIGHT_DEPARTURE_EVENT_TYPE
-                            and event.get("owner_id") == flight_id]
-        completion_events = [event for event in events.values() if type(event) is dict
-                             and event.get("event_type") == FLIGHT_COMPLETION_EVENT_TYPE
-                             and event.get("owner_id") == flight_id]
+        departure_events = lifecycle_events.get((flight_id, FLIGHT_DEPARTURE_EVENT_TYPE), [])
+        completion_events = lifecycle_events.get((flight_id, FLIGHT_COMPLETION_EVENT_TYPE), [])
         from game.scheduling.timing import timed_deadhead
         eligible = (
             ((flight.get("service_type") == "PASSENGER"
@@ -790,21 +794,11 @@ def _validate_schema4_fulfilment_authority(validator):
         ):
             _add(validator, "invalid_lifecycle_event", path,
                  "completed result requires exact terminal departure and completion events")
-        completion_events = [
-            event for event in events.values()
-            if type(event) is dict
-            and event.get("event_type") == FLIGHT_COMPLETION_EVENT_TYPE
-            and event.get("owner_id") == flight_id
-        ]
+        completion_events = lifecycle_events.get((flight_id, FLIGHT_COMPLETION_EVENT_TYPE), [])
         if len(completion_events) != 1:
             _add(validator, "invalid_lifecycle_event", path,
                  "completed flight must own exactly one completion event")
-        departure_events = [
-            event for event in events.values()
-            if type(event) is dict
-            and event.get("event_type") == FLIGHT_DEPARTURE_EVENT_TYPE
-            and event.get("owner_id") == flight_id
-        ]
+        departure_events = lifecycle_events.get((flight_id, FLIGHT_DEPARTURE_EVENT_TYPE), [])
         if len(departure_events) != 1:
             _add(validator, "invalid_lifecycle_event", path,
                  "completed flight must own exactly one departure event")

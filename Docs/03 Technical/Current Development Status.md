@@ -2,6 +2,57 @@
 
 Last updated: **2026-10-03**. Current snapshot, not operational authorization.
 
+## Scheduling performance investigation (2026-10-03 working tree)
+
+Implementation scope is the performance working-tree successor of
+`35ee9b70dd80ebe4eee527e41019c8d14db44ed0`, verified against live `origin/master`
+before work. See [Scheduling Performance Investigation](Scheduling%20Performance%20Investigation.md)
+for reproducible tooling, all Before/After cases, profiling, memory and limitations.
+
+Profiles confirmed nested per-definition world validation/copying, quadratic
+flight/event scans, repeated immutable base projections/reference loading and
+redundant graphical rebuilds. Detached definition/revision batches now share one
+scheduling transaction; complete input/result and discarded continuity-preview
+validation remain. Public single-definition/publisher commands retain their
+validated atomic boundaries. Weekly recurrence reconciles inside the existing
+kernel-owned candidate rather than creating a nested transaction. Full kernel
+validation/commit, deterministic order/IDs, booking protection, timezone/timing,
+finite/continuous recurrence and safe revision boundaries remain intact.
+
+The GUI performs one builder refresh, reads a detached session-owned aircraft
+row, and renders retained reservation bounds. Publication confirmation paints a
+modal notice before one serialized domain command; pending work blocks time
+advancement/exit and can be canceled by shutdown before starting. No worker,
+speculative global cache, new authoritative field/schema, timing/economy rule,
+recurrence scope or other management redesign was introduced. The terminal
+continues using the same application/domain boundaries.
+
+Three-repeat local medians: fresh Daily + Return Add **1.4110 -> 0.1424 s**;
+real weekly-draft publication creating 560 flights **17.7416 -> 1.1149 s**;
+GUI Add with 560 existing flights **10.9426 -> 1.0204 s**; populated-week render
+**0.4957 -> 0.0994 s**. The historical weekly extension (84 flights, 28 results,
+4,251 bookings) improved **4.1914 -> 2.0453 s**. All 18 scenario input/output
+hashes matched exactly. Trace peaks fell for fresh Add, large Publish and
+historical recurrence; complete historical validation/copies remain a scaling
+limit, and arbitrary-history GUI responsiveness is not proven.
+
+Focused verification passed **199 tests in 173.093 s** using:
+`python -m unittest tests.test_scheduling_performance tests.test_stage1_weekly_planner
+ tests.test_scheduling_recurrence tests.test_stage1_flight_publication
+ tests.test_gui_schedule_polish tests.test_gui_weekly_workspace tests.test_gui_gameplay
+ tests.test_gui_foundation tests.test_stage1_flight_fulfilment tests.test_stage1_runtime -q`.
+`python -m unittest discover -s tests` passed **690 tests in 540.498 s**.
+Required application-scope compilation and `git diff --check` passed.
+
+Displayed native Kivy smoke passed Daily/Daily + Return, publication of 560 flights
+(**1.3518 s** actual command plus refresh), navigation/scrolling/protected-block
+inspection, rolling extension to 700 flights, execution of two real flight results,
+and exact validated paused save/load. The maximized nonexclusive window showed all
+seven weekday rows. The maximum measured heartbeat gap was **4.4976 s** during
+combined validation/navigation/save-load checks: functional smoke passed, but human
+Windows responsiveness is not proven. See the report for isolated event timings
+and remaining historical validation/copy costs.
+
 ## Airport-local recurring weekly planner (2026-10-03 working tree)
 
 Implementation scope is the working tree based on live `origin/master`
