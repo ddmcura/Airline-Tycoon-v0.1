@@ -39,6 +39,23 @@ time adds none. Resume continues that work without resetting its processing
 limits. An explicit manual jump replaces the automatic pacing target and its
 credit; it ends paused. Close stops the controller and releases its iterator.
 
+## Runtime handler initialization
+
+The shared application session and standalone default pacing controller explicitly
+call `game.simulation.handlers.initialize_runtime_handlers` before runtime use.
+The idempotent initializer binds/verifies the complete built-in set: NO_OP,
+flight departure/completion, daily Booking checkpoint, aircraft marketplace
+rotation/payment/expiry, and weekly schedule publication. Conflicting built-in
+bindings fail visibly; an explicitly supplied custom registry stays caller-owned.
+Domain modules retain direct-import registration compatibility. Frontend navigation,
+New Game, and incidental imports are not responsible for runtime readiness.
+
+This is runtime-only initialization: saves persist events and payloads, never
+handler callables. A directly loaded validated career gets the same handlers as
+a new career without save rewriting, migration or skipped checkpoints. See
+[Current Development Status](Current%20Development%20Status.md) for fresh-process
+regression and displayed Load Game smoke evidence.
+
 ## Exclusive ownership and event boundaries
 
 The terminal/application thread is the sole owner of world mutation. A bounded

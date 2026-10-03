@@ -2,6 +2,53 @@
 
 Last updated: **2026-10-03**. Current snapshot, not operational authorization.
 
+## Shared runtime handler startup correction (2026-10-03 working tree)
+
+Scope is the startup-fix successor of `186dd7df46c1fb219aba679e24b7f706d006648d`,
+verified against live `origin/master` before work. A fresh-process direct Load Game
+restored the valid pending `DAILY_BOOKING_CHECKPOINT`, but lacked its runtime
+handler. New Game previously imported Booking indirectly and concealed the issue.
+
+`game.simulation.handlers.initialize_runtime_handlers` explicitly binds/verifies
+all eight built-in event types during shared `Stage1Session` construction and
+standalone default `RuntimeController` construction. Initialization is idempotent;
+conflicting bindings fail visibly. Caller-supplied custom registries remain
+caller-owned. Domain import registrations remain for direct-command compatibility,
+but normal startup no longer depends on them being reached by game creation or
+frontend navigation. No save, migration, schema, timing, booking formula, event
+ordering or GUI behavior changes are required.
+
+The audited set is NO_OP; flight departure/completion; daily Booking checkpoint;
+aircraft market rotation, contract payment/expiry; and weekly schedule publication.
+Booking was the missing registration. The other domain modules also use import
+registrations and are now explicitly covered by the shared initialization manifest.
+A registration inventory regression detects omitted future built-in types.
+
+Fresh subprocess tests load a temporary existing valid career without New Game or
+GUI imports, cross the checkpoint, verify completed Booking authority/next event,
+compare exact state hashes and completed-event ordering with an explicitly imported
+reference process, and validate exact paused save/reload. Separate subprocesses
+cover New Game, standalone default runtime, repeated initialization, missing bindings,
+conflicting bindings and preservation of custom registries. The fresh-load gate was
+observed failing before the fix.
+
+Focused command: `python -m unittest tests.test_runtime_startup tests.test_stage1_runtime
+ tests.test_stage1_event_kernel tests.test_step7_save_load tests.test_gui_foundation
+ tests.test_stage1_booking_checkpoint -q`: **114 tests passed in 81.733 s**.
+`python -m unittest discover -s tests`: **694 tests passed in 539.899 s**.
+`python -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+exited 0; changed-document links resolved and `git diff --check` passed.
+Final review found no save/schema, domain behavior, ordering or unrelated GUI changes.
+
+`python -B -m tests.smoke_runtime_startup` passed a displayed Kivy 2.3.1 fresh-child
+process using title Load Game/career/manual-save controls, Resume 7x, Pause and
+One day advancement. The September 2 checkpoint completed normally, producing
+14 bookings and two total completed checkpoints; time reached
+`2026-09-02T00:00:07Z`. Manual Save and direct title reload preserved exact validated
+state paused. New Game was forbidden in the child; no unrelated screens were visited.
+The maximized SDL2 window was 2560x1377. All career files were temporary. This is
+programmatic functional smoke, not human responsiveness certification.
+
 ## Scheduling performance investigation (2026-10-03 working tree)
 
 Implementation scope is the performance working-tree successor of

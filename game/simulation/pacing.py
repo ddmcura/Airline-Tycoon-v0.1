@@ -4,6 +4,7 @@ from datetime import timedelta
 import sys
 import time
 
+from .handlers import initialize_runtime_handlers
 from .kernel import (
     DEFAULT_EVENT_HANDLERS, configure_clock_ratios, iter_events_through,
     set_clock_mode,
@@ -40,6 +41,8 @@ class RuntimeController:
     def __init__(self, world, *, clock=active_monotonic_ns,
                  registry=DEFAULT_EVENT_HANDLERS,
                  overload_seconds=120, overload_grace_seconds=30):
+        if registry is DEFAULT_EVENT_HANDLERS:
+            initialize_runtime_handlers()
         self.world = world
         self.clock = clock
         self.registry = registry

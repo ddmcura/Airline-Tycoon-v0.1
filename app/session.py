@@ -41,6 +41,7 @@ from game.world_state import (
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 from game.world_state.persistence import SaveStore, SaveError
 from game.simulation.pacing import RuntimeController
+from game.simulation.handlers import initialize_runtime_handlers
 from game.simulation.kernel import iter_events_through, begin_fast_forward, stop_fast_forward
 
 
@@ -54,6 +55,7 @@ class Stage1Session:
     """Holds authority in memory; runtime preferences never enter the world."""
 
     def __init__(self, *, runtime_clock=None, save_root=None):
+        initialize_runtime_handlers()
         scenario = load_stage1_scenario(STAGE1_SCENARIO_ID)
         self._display_rates = deepcopy(scenario["display_currencies"])
         self.world = None
