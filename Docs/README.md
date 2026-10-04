@@ -39,6 +39,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   7x pacing, management while running, exclusive world ownership and performance gates.
 - [Production cooperative runtime](03%20Technical/Production%20Cooperative%20Runtime.md):
   Stage 3E bounded shared pumping, exact pacing credit, pause/catch-up barriers and production measurements.
+- [Atomic boundary cost optimization](03%20Technical/Atomic%20Boundary%20Cost%20Optimization.md):
+  Stage 3E.1 exact graph validation, retained-history profiles and the remaining measured runtime gate.
 - [Runtime trusted reads](03%20Technical/Runtime%20Trusted%20Reads.md):
   Stage 2 session ownership, disposable lookup epochs and measured read performance.
 - [Runtime shared candidate infrastructure](03%20Technical/Runtime%20Shared%20Candidate%20Infrastructure.md):

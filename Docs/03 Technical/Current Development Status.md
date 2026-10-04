@@ -2,6 +2,44 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Stage 3E.1 — atomic boundary cost optimization (2026-10-04)
+
+Baseline **be4fdd356563e7370ffef7e16aee23a4193d9f32** matched local HEAD,
+upstream and live origin/master before edits. Evidence covers this working-tree
+scope. [Full audit, controls, correctness arguments and limits](Atomic%20Boundary%20Cost%20Optimization.md).
+
+- Consolidated exact JSON/alias/forbidden-field-money-UTC graph predicates into
+  one call-local traversal. Diagnostic fallback retains original errors/paths;
+  every domain/reference/equation check and complete-world gate remains.
+  Constant common flags and parallel stacks reduce temporary allocation/GC work.
+- No world/session validation trust flag, new index, ownership transfer or copy
+  removal. Existing private manifest lookup, strict recovery, shadow/oracle,
+  committed Stage 2 epochs and persistence safeguards remain unchanged.
+- Final alternating finite controls (two samples): Divine-next **8.621 → 5.177 s**,
+  max callback **6.315 → 3.945 s**; dense25/100 events **9.216 → 7.527 s**;
+  Divine clock-only **4.696 → 2.518 s**. Complete hashes/commit vectors match.
+  Fresh original controls and host variation are separately reported.
+- Focused certification/runtime/ownership/owned-read/world suite: **282 passed in
+  658.522 s**. Final new/affected Advance suite: **29 passed in 53.558 s**.
+  `python -B -m unittest discover -s tests`: **986 passed in 1291.308 s**,
+  versus baseline 970. Production/functional regression source stayed unchanged
+  during the full run; subsequent profiler-only timing assertions: **2 passed in
+  .045 s**. Final scoped compilation, **55 local links**, diff whitespace and
+  complete self-review passed. No unresolved in-scope finding.
+- Final native Windows Kivy direct-Load smoke: both PASS, New Game forbidden,
+  actual flight/fence processing, all four speeds, drain, exact save/reload,
+  paused zero-credit restore and no offline advance. Starter 20 callbacks,
+  median **.139 s**, p95 **.304 s**, max **.312 s**. Divine 14 callbacks,
+  median **2.780 s**, p95 **4.707 s**, max **5.397 s**; max engine **5.290 s**,
+  graphical refresh **.0074 s**. Programmatic smoke does not prove human smoothness.
+- **ONE MORE SPECIFIC BLOCKER BEFORE STAGE 3F:** retained Booking/itinerary
+  validation still makes ordinary one-aircraft clock-only callbacks multi-second.
+  Proposed next bounded scope is exact retained-lineage predicate/lookup work,
+  separately approved before implementation. No automatic E.2 or Stage 3F begins.
+- Schema **7**, cap **8**, one safe step/tick, ratios **30/210/900/1800**, exact
+  pacing credit, drains/recovery and save semantics remain unchanged. No new
+  handlers, gameplay, offline progression or worker thread. `.venv/` untouched.
+
 ## Stage 3E — production cooperative shared runtime (2026-10-04)
 
 Baseline **94c53db7b86b04eea117ad696819909cf2515534** matched local HEAD,

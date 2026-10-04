@@ -187,9 +187,10 @@ class AdvancementPerformanceTests(unittest.TestCase):
 
     def test_validator_reuses_only_successful_whole_envelope_json_proof(self):
         import game.world_state.validation as validation
-        with patch.object(validation,'json_compatibility_error',wraps=validation.json_compatibility_error) as scans:
+        with patch.object(validation,'_plain_authority_tree',wraps=validation._plain_authority_tree) as graph, patch.object(validation,'json_compatibility_error',wraps=validation.json_compatibility_error) as scans:
             self.assertTrue(validate_world(self.base).is_valid)
-            self.assertEqual(scans.call_count,1)
+            self.assertEqual(graph.call_count,1)
+            self.assertEqual(scans.call_count,0)  # The exact combined graph proof succeeded.
         bad=deepcopy(self.base)
         event=next(iter(bad['world_state']['pending_events'].values()))
         event['payload']['bad']=object()

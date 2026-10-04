@@ -1,5 +1,15 @@
 # Production Cooperative Runtime — Stage 3E
 
+## Stage 3E.1 successor
+
+[Atomic Boundary Cost Optimization](Atomic%20Boundary%20Cost%20Optimization.md)
+consolidates three exact validation graph predicates without removing full gates
+or copies. Production ratios/cap/credit/drain/strict/fence/save behavior remains
+unchanged. Divine retained-history callbacks remain a measured Stage 3F blocker;
+Stage 3F and additional certification are not implemented. Dated evidence below
+records the original Stage 3E integration.
+
+
 Approved bounded integration, 2026-10-04. Initial local HEAD, upstream and live
 origin/master matched `94c53db7b86b04eea117ad696819909cf2515534`.
 Authority remains [Stage 1 State Schema](Stage%201%20State%20Schema.md#clock-and-event-contract)

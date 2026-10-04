@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
+import math
 from functools import reduce
 from operator import mul
 from zoneinfo import ZoneInfoNotFoundError
@@ -119,8 +120,106 @@ def _currency_code(value):
     )
 
 
+_FORBIDDEN_AUTHORITY_FIELDS = frozenset({
+    "airline_name", "aircraft_registration", "assigned_aircraft_registration",
+    "assigned_aircraft", "current_focus", "origin_iata", "destination_iata", "route_id",
+})
+
+
+def _plain_authority_tree(envelope):
+    """Prove the three graph predicates in one exact, call-local traversal.
+
+    This is NOT validation of references, domain rules or even root structure.
+    Success proves JSON compatibility, absence of aliases/cycles everywhere and
+    valid authority field syntax/values under world_state. Failures, unusual
+    types/keys and deep trees use the unchanged ordered diagnostic predicates.
+    Nothing is inherited from an earlier validation, revision or object identity.
+    """
+    if type(envelope) is not dict:
+        return False
+    seen = set()
+    key_flags = {}
+    # Parallel stacks avoid allocating a GC-tracked tuple per container. The
+    # traversal visits the identical graph without provoking broad generation
+    # scans merely to assemble temporary witness frames.
+    values = [envelope]
+    authorities = [False]
+    depths = [0]
+    while values:
+        value = values.pop()
+        authority = authorities.pop()
+        depth = depths.pop()
+        marker = id(value)
+        if marker in seen or depth >= 128:
+            return False
+        seen.add(marker)
+        if type(value) is dict:
+            for key, nested in value.items():
+                if type(key) is not str:
+                    return False
+                if authority:
+                    flags = key_flags.get(key)
+                    if flags is None:
+                        name = key in _FORBIDDEN_AUTHORITY_FIELDS
+                        money = key.endswith('_minor')
+                        timestamp = key.endswith('_utc')
+                        flags = (name, money, timestamp) if name or money or timestamp else (False, False, False)
+                        key_flags[key] = flags
+                    name_field, money_field, time_field = flags
+                    if name_field or (money_field and type(nested) is not int):
+                        return False
+                    if time_field and nested is not None and (type(nested) is not str or not _canonical_utc(nested)):
+                        return False
+                child_authority = authority or (depth == 0 and key == 'world_state')
+                kind = type(nested)
+                if nested is None or kind in (str, bool, int):
+                    continue
+                if kind is float:
+                    if not math.isfinite(nested):
+                        return False
+                elif kind in (dict, list):
+                    values.append(nested)
+                    authorities.append(child_authority)
+                    depths.append(depth + 1)
+                else:
+                    return False
+        else:
+            for nested in value:
+                kind = type(nested)
+                if nested is None or kind in (str, bool, int):
+                    continue
+                if kind is float:
+                    if not math.isfinite(nested):
+                        return False
+                elif kind in (dict, list):
+                    values.append(nested)
+                    authorities.append(authority)
+                    depths.append(depth + 1)
+                else:
+                    return False
+    return True
+
+
 def _container_alias_error(value):
     """Return the first repeated mutable-container path in schema-3 authority."""
+    # Success needs only identities, not a path string for every scalar leaf.
+    # On a repeated ID, replay the original walk to preserve both exact paths.
+    identifiers = set()
+    containers = [value]
+    while containers:
+        item = containers.pop()
+        if type(item) not in (dict, list):
+            continue
+        marker = id(item)
+        if marker in identifiers:
+            break
+        identifiers.add(marker)
+        if type(item) is dict and any(type(key) is not str for key in item):
+            break  # Preserve unusual key formatting in the diagnostic walker.
+        values = item.values() if type(item) is dict else item
+        containers.extend(nested for nested in values if type(nested) in (dict, list))
+    else:
+        return None
     seen = {}
     stack = [(value, "$")]
     while stack:
@@ -196,6 +295,7 @@ class _Validator:
         self.errors = []
         self.world = {}
         self.schema_version = None
+        self._graph_checked = False
         self._json_checked = False
         self._aliases_checked = False
 
@@ -620,7 +720,8 @@ class _Validator:
         if type(self.envelope) is not dict:
             self.add("invalid_envelope", "$", "world envelope must be a dictionary")
             return False
-        serialization_error = json_compatibility_error(self.envelope)
+        self._graph_checked = _plain_authority_tree(self.envelope)
+        serialization_error = None if self._graph_checked else json_compatibility_error(self.envelope)
         self._json_checked = serialization_error is None
         if serialization_error:
             path, message = serialization_error
@@ -640,7 +741,7 @@ class _Validator:
         else:
             self.schema_version = schema_version
             if schema_version in (3, 4, 5, 6, 7):
-                alias = _container_alias_error(self.envelope)
+                alias = None if self._graph_checked else _container_alias_error(self.envelope)
                 self._aliases_checked = alias is None
                 if alias is not None:
                     path, previous = alias
@@ -2999,17 +3100,13 @@ class _Validator:
             validate_schema4_fulfilment_authority(self)
 
     def validate_no_name_references_or_float_money(self):
-        forbidden = {
-            "airline_name",
-            "aircraft_registration",
-            "assigned_aircraft_registration",
-            "assigned_aircraft",
-            "current_focus",
-            "origin_iata",
-            "destination_iata",
-            "route_id",
-        }
+        if self._graph_checked:
+            return  # All values proved in this call; domain gates still run.
+        forbidden = _FORBIDDEN_AUTHORITY_FIELDS
 
+        # Cache key syntax only within this validation. Every value is still
+        # checked, including unknown fields and records added since the last gate.
+        key_flags = {}
         stack = [(self.world, "$.world_state")]
         seen_containers = set()
         while stack:
@@ -3020,10 +3117,22 @@ class _Validator:
                     continue
                 seen_containers.add(marker)
                 for key, nested in value.items():
-                    invalid_name = key in forbidden
-                    invalid_money = isinstance(key, str) and key.endswith("_minor") and not is_minor_amount(nested)
-                    invalid_time = (isinstance(key, str) and key.endswith("_utc")
-                                    and nested is not None and not _canonical_utc(nested))
+                    if type(key) is str:
+                        flags = key_flags.get(key)
+                        if flags is None:
+                            name = key in forbidden
+                            money = key.endswith("_minor")
+                            timestamp = key.endswith("_utc")
+                            flags = (name, money, timestamp) if name or money or timestamp else (False, False, False)
+                            key_flags[key] = flags
+                        invalid_name, money_field, time_field = flags
+                    else:
+                        # Preserve compatibility-key subclass behavior exactly.
+                        invalid_name = key in forbidden
+                        money_field = isinstance(key, str) and key.endswith("_minor")
+                        time_field = isinstance(key, str) and key.endswith("_utc")
+                    invalid_money = money_field and not is_minor_amount(nested)
+                    invalid_time = time_field and nested is not None and not _canonical_utc(nested)
                     container = type(nested) in (dict, list)
                     # Primitive leaves have already been checked at their owning
                     # field. They cannot contain another authoritative field.
