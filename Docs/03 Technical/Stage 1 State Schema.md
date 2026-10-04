@@ -1303,6 +1303,18 @@ minimal account foundation contains exactly one each of `cash`,
 
 ## Clock and event contract
 
+Stage 3E (2026-10-04) activates the existing exact three certificates in production
+session pacing and explicit Advance. One bounded shared resolver step per frontend
+callback retains full final validation, detached commit, strict/fence/custom fallback
+and successful-prefix recovery. Pacing debt, selected speed, catch-up/error states
+and cooperative request metadata remain runtime-only. Pause drains earned finite
+time; confirmed overload freezes accrual, drains and remains paused until explicit
+Resume. Hard pause preserves complete committed boundaries. No schema fields,
+version, gameplay, offline progression or additional certification change. See
+[Production Cooperative Runtime](Production%20Cooperative%20Runtime.md) for the
+current policy; following dated stage descriptions retain their historical scope.
+
+
 PH continuous runtime uses these existing fields without changing their shape.
 Normal Speed means 30 game days per real day. Named player speeds Normal Speed,
 Fast, Very Fast and Ultra have relative multipliers 1, 7, 30 and 60 and literal

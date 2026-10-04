@@ -1,5 +1,14 @@
 # Runtime Resolution Foundation — Stage 1
 
+## Stage 3E production successor
+
+[Production Cooperative Runtime](Production%20Cooperative%20Runtime.md) activates
+the existing exact certificates with bounded single-owner steps and earned-target
+draining. Strict/fence semantics and proof/save authority remain. Schema stays 7;
+No speed/formula changes, offline progression, new certification or Stage 3F.
+Earlier dated descriptions below retain their original scopes and measurements.
+
+
 Implemented scope: resolver facade and deterministic equivalence oracle.
 The approved direction is bounded chronological shared-candidate resolution,
 but Stage 1 retains the strict isolated event transactions described by the

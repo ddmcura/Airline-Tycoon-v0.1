@@ -1,5 +1,14 @@
 # Candidate Manifest Lookup â€” Stage 3D.3
 
+## Stage 3E production successor
+
+[Production Cooperative Runtime](Production%20Cooperative%20Runtime.md) activates
+the existing exact certificates with bounded single-owner steps and earned-target
+draining. Strict/fence semantics and proof/save authority remain. Schema stays 7;
+No speed/formula changes, offline progression, new certification or Stage 3F.
+Earlier dated descriptions below retain their original scopes and measurements.
+
+
 Approved bounded implementation, 2026-10-04. Local HEAD, upstream and live
 origin/master matched `a58fdd021ac904aea161a1d7e6bb023dbb6b61de` before editing.
 This succeeds [candidate ownership](Runtime%20Candidate%20Ownership.md) under the

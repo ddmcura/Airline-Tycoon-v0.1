@@ -30,7 +30,7 @@ class Clock:
 def drain(controller):
     for _ in range(20000):
         controller.pump()
-        if not controller.running or (controller.work is None and controller.credit_ns < NANOSECOND):
+        if not controller.processing or (controller.work is None and controller.credit_ns < NANOSECOND):
             return
     raise AssertionError('runtime did not drain')
 
@@ -39,7 +39,7 @@ class RuntimeTests(unittest.TestCase):
     def setUp(self):
         self.world = make_world()
         self.clock = Clock()
-        self.runtime = RuntimeController(self.world, clock=self.clock)
+        self.runtime = RuntimeController(self.world, clock=self.clock, max_batch_events=1)
 
     def test_irregular_fractional_credit_and_repeated_pause(self):
         start = self.world['simulation']['time_utc']
@@ -105,10 +105,11 @@ class RuntimeTests(unittest.TestCase):
         self.clock.advance(10 * NANOSECOND)
         self.runtime.pump()
         self.assertIs(self.runtime.work, work)
-        self.assertEqual(len(self.world['world_state']['pending_events']), 3)
-        self.runtime.resume()
+        self.assertEqual(len(self.world['world_state']['pending_events']), 2)
+        self.assertEqual(self.runtime.state, 'PLAYER_DRAIN')
         drain(self.runtime)
         self.assertEqual(len(self.world['world_state']['pending_events']), 0)
+        self.assertEqual(self.runtime.state, 'PAUSED')
 
     def test_incremental_limit_is_not_reset_by_yields(self):
         due = self.world['simulation']['time_utc']
@@ -202,7 +203,9 @@ class RuntimeTests(unittest.TestCase):
         self.runtime.pump()
         self.assertFalse(self.runtime.running)
         self.assertIn('OVERLOAD', self.runtime.diagnostic)
-        self.assertEqual(self.runtime.credit_ns, 80 * NANOSECOND)
+        self.assertEqual(self.runtime.state, 'RECOVERED')
+        self.assertEqual(self.runtime.credit_ns, 0)
+        self.assertEqual(self.world['simulation']['time_utc'], '2026-08-20T04:31:20Z')
 
     def test_serialization_contains_no_controller_fields(self):
         self.runtime.resume()

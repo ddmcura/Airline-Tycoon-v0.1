@@ -66,6 +66,7 @@ class AirlineTycoonApp(GameplayViews, App):
         self._last_render_time = 0.0
         self._last_diagnostic = None
         self._last_autosave_error = None
+        self._pending_runtime_action = None
         self._allow_close = False
         self._ticker = None
         self._schedule_publication_pending = None
@@ -102,6 +103,7 @@ class AirlineTycoonApp(GameplayViews, App):
         if self._ticker is not None:
             self._ticker.cancel()
         Window.unbind(on_request_close=self._window_close)
+        self._pending_runtime_action = None
         self.session.close()
 
     def _window_close(self, *_args):
@@ -127,6 +129,8 @@ class AirlineTycoonApp(GameplayViews, App):
         root = BoxLayout(orientation='vertical', spacing=dp(4), padding=dp(6))
         self.identity = _label('', height=48)
         self.status = _label('', height=54)
+        self.status.bind(texture_size=lambda label, size: setattr(
+            label, 'height', max(dp(54), size[1] + dp(12))))
         root.add_widget(self.identity)
         root.add_widget(self.status)
         root.add_widget(self._horizontal_buttons([
@@ -324,21 +328,28 @@ class AirlineTycoonApp(GameplayViews, App):
         try:
             finished_advance = False
             if self.session.advancing:
-                # Process a bounded amount of complete-event work, not one
-                # rendered frame per event. Wall time controls yielding only.
-                started = time.monotonic()
-                for _ in range(64):
-                    report = self.session.advance_tick()
-                    if report is not None or time.monotonic() - started >= .015:
-                        break
+                # One bounded resolver unit; no chain of expensive batches
+                # inside a single UI callback.
+                report = self.session.advance_tick()
                 finished_advance = report is not None
                 if report is not None and report.result.failure:
                     self._error('Advancement stopped', report.result.failure.message)
             else:
                 self.session.pump()
+            if self._pending_runtime_action is not None and not self.session.runtime.draining:
+                owner, action = self._pending_runtime_action
+                self._pending_runtime_action = None
+                if owner is not self.session.runtime:
+                    pass  # Session replacement revokes a deferred old-world action.
+                elif owner.blocked:
+                    self._error('Runtime stopped', owner.diagnostic)
+                else:
+                    action()
             self.refresh(force=finished_advance)
         except Exception as exc:
+            self._pending_runtime_action = None
             self.session.cancel_advance()
+            self.session.hard_pause()
             self._error('Runtime stopped', exc)
 
     def refresh(self, *, force=False):
@@ -363,11 +374,12 @@ class AirlineTycoonApp(GameplayViews, App):
             self._last_diagnostic = diagnostic
             self._last_autosave_error = autosave_error
             self._render_view()
-        mode = (f'Running — {self.session.runtime_speed.name}'
-                if sim['clock_state'] == 'NORMAL' else f'Paused — {self.session.runtime_speed.name}')
+        mode = self.session.runtime_status
         if self.session.advancing:
             mode = 'ADVANCING (event boundaries)'
         self.status.text = f"{self.session.local_clock()} hub local | {sim['time_utc']} UTC | {mode} | Cash {_money(self._cash)}"
+        if self.session.runtime.draining:
+            self.status.text += f'\nEarned target: {self.session.runtime.earned_target_utc}; remaining {self.session.runtime.credit_ns // 1_000_000_000} game seconds'
         if diagnostic:
             self.status.text += f'\n{diagnostic}'
 
@@ -457,6 +469,9 @@ class AirlineTycoonApp(GameplayViews, App):
         self.refresh(force=True)
 
     def _idle(self):
+        if self._pending_runtime_action is not None:
+            self._error('Pausing', 'An action is waiting for earned time to drain.')
+            return False
         if self._schedule_publication_pending is not None:
             return False
         if self.session.advancing:
@@ -471,8 +486,11 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def resume(self, speed=None):
         if self._idle():
-            self.session.resume(speed)
-            self.refresh(force=True)
+            try:
+                self.session.resume(speed)
+                self.refresh(force=True)
+            except ValueError as exc:
+                self._error('Resume', exc)
 
     def show_advance(self):
         if not self._idle():
@@ -520,14 +538,27 @@ class AirlineTycoonApp(GameplayViews, App):
             self.session.cancel_advance()
             self.refresh(force=True)
 
+    def _after_runtime_pause(self, action):
+        self.session.pause()
+        if self.session.runtime.draining:
+            if self._pending_runtime_action is not None:
+                self._error('Pausing', 'An action is already waiting for earned time to drain.')
+                return
+            self._pending_runtime_action = (self.session.runtime, action)
+            self.refresh(force=True)
+        else:
+            action()
+
     def save_game(self):
         if not self._idle():
             return
-        try:
-            self.session.save_manual()
-            self._dialog('Save Game', 'Game saved.', [('OK', lambda: None)])
-        except Exception as exc:
-            self._error('Save failed', exc)
+        def save():
+            try:
+                self.session.save_manual()
+                self._dialog('Save Game', 'Game saved.', [('OK', lambda: None)])
+            except Exception as exc:
+                self._error('Save failed', exc)
+        self._after_runtime_pause(save)
 
     def show_bookmarks(self):
         if not self._idle():
@@ -542,9 +573,14 @@ class AirlineTycoonApp(GameplayViews, App):
         self._list_popup('Bookmarks / Checkpoints', actions)
 
     def _create_bookmark(self, values):
-        self.session.save_bookmark(values['name'])
-        self._dismiss()
-        self.show_bookmarks()
+        def save():
+            try:
+                self.session.save_bookmark(values['name'])
+                self._dismiss()
+                self.show_bookmarks()
+            except Exception as exc:
+                self._error('Bookmark failed', exc)
+        self._after_runtime_pause(save)
 
     def _confirm_delete_bookmark(self, row):
         self._dialog('Delete bookmark', f"Delete {row['name']}?", [
@@ -560,6 +596,11 @@ class AirlineTycoonApp(GameplayViews, App):
             self._error('Delete bookmark', exc)
 
     def _guard_unsaved(self, action):
+        if self._schedule_publication_pending is not None:
+            return
+        if self.session.active and self.session.runtime.processing:
+            self._after_runtime_pause(lambda: self._guard_unsaved(action))
+            return
         if self._schedule_publication_pending is not None:
             return
         if self.session.advancing:

@@ -200,6 +200,8 @@ class GuiFoundationTests(unittest.TestCase):
         self.clock.advance(15 * 60)
         self.assertTrue(session.maybe_autosave())
         self.app.return_to_title()
+        while session.runtime.draining:
+            self.app.tick(0)
         next(widget for widget in self.app._popup.content.children
              if isinstance(widget, Button) and widget.text == 'Leave without saving').dispatch('on_release')
         self.assertEqual(self.app.screens.current, 'title')

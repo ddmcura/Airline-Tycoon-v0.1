@@ -1,3 +1,10 @@
+# Stage 3E production cooperative runtime (2026-10-04), Schema remains 7.
+# Exact existing Payment/Departure/Completion certificates, bounded safe steps.
+# Pacing credit/target/selected speed/drain/error/disable latch are runtime-only.
+# Pause drains; overload freezes accrual, drains owed work, remains paused.
+# No saved debt, offline progress, new certification or Stage 3F.
+# Canonical policy: Docs/03 Technical/Production Cooperative Runtime.md.
+
 # Stage 3D.3 candidate-local manifest IDs (2026-10-04); Schema remains 7.
 # Canonical clock/event contract; no new persistent field or save migration.
 # Lazy verified sorted Booking IDs via authoritative itinerary.dated_flight_ids.

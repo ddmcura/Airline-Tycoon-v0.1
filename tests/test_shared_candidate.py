@@ -433,7 +433,7 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertFalse(state.enabled)
         self.assertTrue(validate_world(self.world).is_valid)
 
-    def test_normal_session_runtime_is_not_multi_event(self):
+    def test_normal_session_runtime_uses_bounded_shared_execution(self):
         with tempfile.TemporaryDirectory() as root:
             now = [0]
             session = Stage1Session(save_root=root, runtime_clock=lambda: now[0])
@@ -443,9 +443,9 @@ class SharedCandidateTests(unittest.TestCase):
             session.resume()
             now[0] = 1_000_000_000
             session.pump()
-            self.assertIs(type(session.runtime.work), ResolutionRequest)
+            self.assertIs(type(session.runtime.work), shared.SharedResolutionRequest)
             history = session.world['world_state']['event_history']
-            self.assertEqual([event for event in ids if event in history], ids[:1])
+            self.assertEqual([event for event in ids if event in history], ids)
             session.close()
 
     def test_shadow_real_fallback_calls_have_unchanged_transaction_counts(self):

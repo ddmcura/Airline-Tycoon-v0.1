@@ -2,6 +2,68 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Stage 3E — production cooperative shared runtime (2026-10-04)
+
+Baseline **94c53db7b86b04eea117ad696819909cf2515534** matched local HEAD,
+upstream and live origin/master before edits. Evidence covers this working-tree
+implementation. [Complete production policy, measurements and limitations](Production%20Cooperative%20Runtime.md).
+
+- Normal session/Kivy pacing and explicit Advance now opt into the existing exact
+  shared resolver, one safe step per callback, cap **eight** certified events.
+  Payment/Departure/Completion remain the same identity-bound certificates;
+  Booking/publication/expiry remain fences, rotation/custom/unsupported remain
+  strict. Candidates/lookups close before callbacks return; no worker threads.
+- Literal ratios **30/210/900/1800** are unchanged. Integer earned credit and
+  finite request limits survive cooperative returns. Player Pause freezes accrual
+  and drains owed work. Existing normalized **120-second backlog /30-second grace**
+  confirms overload; catch-up freezes earnings, drains exactly and stays paused
+  until explicit Resume. Hard pause closes requests at committed boundaries.
+- Save/bookmark and GUI return/exit use a drain barrier then existing storage and
+  Save/discard/cancel choices. Deferred actions are runtime-owner-bound/revoked on
+  replacement/error. Autosave still snapshots only committed authority at existing
+  thresholds. Load is exact/paused with zero pacing debt and no offline progress.
+- Deterministic failure stays paused without retry storms. Optimizer divergence
+  keeps the strict recovered prefix and disables sharing until controller replacement;
+  explicit Resume can continue strictly. Stage 2 invalidates once per committed unit;
+  GUI views retain throttled refresh. Clock display never substitutes earned target.
+- Finite frozen dense-25/100-event controls: strict **54.92 s**, shared cap eight
+  **10.63 s**; cap64 **4.91 s** but longer atomic callbacks (**2.65 vs1.04 s**).
+  Final controller repeat **9.192 s**, 13 commits/14 callbacks; all
+  strict/shared/budget complete-world hashes match. Isolated routes remain near
+  parity; no speculative lookahead routing is added.
+- All **20** production speed probes validate. Starter/ten/aged-ten show bounded
+  short tails; dense25 Very Fast ends with a larger unfinished target. Divine Air
+  still stalls **6–7 seconds**, including costly clock-only work. These are short
+  probes, not sustained speed acceptance or proof of human GUI smoothness.
+- Schema remains **7**. No gameplay, new certification, saved runtime fields,
+  offline progression, Stage 3F or additional GUI/gameplay work. Pre-existing
+  untracked `.venv/` is untouched.
+- Recommendation: **NOT READY FOR STAGE 3F** responsiveness/capacity acceptance.
+  Profile remaining whole-world/clock-only validation and commit costs in a
+  separately approved task before claiming responsive 50-aircraft Ultra.
+
+### Verification
+
+- Final new regressions: `python -B -m unittest tests.test_cooperative_runtime
+  tests.test_gui_cooperative_runtime -q`: **32 passed in 129.299 s**.
+- Broader focused runtime/resolver/shared/GUI/advancement suite: **114 passed in
+  250.199 s**; final new suite also covers subsequent scoped status/action guards.
+- `python -B -m tests.smoke_cooperative_runtime`: **PASS**, fresh native Windows
+  Load Game with New Game forbidden, all four speeds, pause/drain/save/exact reload,
+  controlled overload catch-up and paused recovery. **65 callbacks**, median
+  **.194 s**, p95 **.225 s**, maximum **1.064 s**; final exact paused saved UTC
+  `2026-09-07T02:36:00Z`. Programmatic interaction between units only.
+- `python -B -m unittest discover -s tests`: **970 passed in 1435.903 s**,
+  versus predecessor 938. Includes complete Stage 1 exact-world oracle, Stage 2
+  ownership/invalidation, prior Stage 3 certification/recovery, Booking/manifest,
+  finance/journal, aircraft/maintenance, kernel/runtime/Advance, GUI and persistence.
+- `python -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`:
+  passed on final source. Production and regression-test source stayed unchanged during the full run;
+  diagnostic benchmark guards were separately changed and verified afterwards.
+- Scoped Markdown local links and `git diff --check`: passed. Complete diff reviewed
+  for debt/targets, safe boundaries, strict/fences, failure/replay, UI/deferred actions,
+  Stage 2 visibility, persistence/Schema 7 and Stage 3F scope protection.
+
 ## Stage 3D.3 — candidate-local Booking/manifest lookup (2026-10-04)
 
 Baseline **a58fdd021ac904aea161a1d7e6bb023dbb6b61de** matched local HEAD,

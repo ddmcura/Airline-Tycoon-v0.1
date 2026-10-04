@@ -1,5 +1,14 @@
 # Runtime Shared Candidate Infrastructure — Stage 3A
 
+## Stage 3E production successor
+
+[Production Cooperative Runtime](Production%20Cooperative%20Runtime.md) activates
+the existing exact certificates with bounded single-owner steps and earned-target
+draining. Strict/fence semantics and proof/save authority remain. Schema stays 7;
+No speed/formula changes, offline progression, new certification or Stage 3F.
+Earlier dated descriptions below retain their original scopes and measurements.
+
+
 ## Stage 3D.3 successor
 
 [Candidate Manifest Lookup](Candidate%20Manifest%20Lookup.md) adds a lazy verified

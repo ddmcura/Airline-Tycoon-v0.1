@@ -37,6 +37,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
   7x pacing, management while running, exclusive world ownership and performance gates.
+- [Production cooperative runtime](03%20Technical/Production%20Cooperative%20Runtime.md):
+  Stage 3E bounded shared pumping, exact pacing credit, pause/catch-up barriers and production measurements.
 - [Runtime trusted reads](03%20Technical/Runtime%20Trusted%20Reads.md):
   Stage 2 session ownership, disposable lookup epochs and measured read performance.
 - [Runtime shared candidate infrastructure](03%20Technical/Runtime%20Shared%20Candidate%20Infrastructure.md):

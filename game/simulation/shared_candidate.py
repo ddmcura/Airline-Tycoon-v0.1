@@ -1,6 +1,6 @@
 """Opt-in shared infrastructure. Certified payments/flights have local proofs.
 
-No application/runtime caller enables this path yet. Unapproved handlers execute
+Production pacing explicitly uses this bounded path. Unapproved handlers execute
 the strict kernel transaction. Private candidates exist only within step(), not
 between cooperative returns. The strict kernel remains the recovery authority.
 """

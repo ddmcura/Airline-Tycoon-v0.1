@@ -134,9 +134,8 @@ class ResolutionRequest:
 
 def begin_resolution(envelope, target_time_utc, *, shared=False, shadow=False,
                      max_batch_events=8, execution_state=None, **kernel_options):
-    """Strict by default. Stage 3A shared/shadow infrastructure is opt-in only.
+    """Strict by default for compatibility/oracles; production opts into shared.
 
-    Pacing/session/Kivy deliberately keep using the unchanged strict default.
     Arbitrary stop callbacks require the original per-event strict boundaries.
     """
     if shared and kernel_options.get('stop_condition') is None:

@@ -112,6 +112,13 @@ class Stage1Session:
         return self.runtime.selected_speed if self.runtime else PLAYER_SPEEDS[0]
 
     @property
+    def runtime_status(self):
+        if not self.active:
+            return 'No active career'
+        self._ensure_runtime()
+        return self.runtime.status_text
+
+    @property
     def active(self):
         return self.world is not None
 
@@ -169,6 +176,7 @@ class Stage1Session:
             raise SaveError('ADVANCEMENT_ACTIVE', 'Finish or cancel advancement before saving')
         if not self.active:
             raise SaveError('NO_GAME', 'No active game')
+        self._save_boundary()
         now = self._clock_ns()
         self.save_store.save(self.career_id, 'manual', self.world,
                              progression_revision=self.progression_revision)
@@ -176,6 +184,14 @@ class Stage1Session:
         self._last_auto_active_ns = now
         self._last_auto_sim_time = self.world['simulation']['time_utc']
         return self.career_id
+
+    def _save_boundary(self):
+        # Normal requests stop accrual and finish owed work before manual storage.
+        # Errors remain savable at their last valid committed prefix; no debt is
+        # serialized. A frontend may defer/retry this same existing save command.
+        self.pause()
+        if self.runtime.draining:
+            raise SaveError('RUNTIME_DRAINING', 'Draining earned time; retry Save when paused')
 
     def resolve_departure(self, choice):
         """Apply an explicit Save/discard/cancel choice before leaving a career."""
@@ -191,6 +207,7 @@ class Stage1Session:
             raise SaveError('ADVANCEMENT_ACTIVE', 'Finish or cancel advancement before bookmarking')
         if not self.active:
             raise SaveError('NO_GAME', 'No active game')
+        self._save_boundary()
         now = self._clock_ns()
         bookmark_id = self.save_store.save(self.career_id, 'bookmark', self.world,
                                            bookmark_name=name,
@@ -283,7 +300,17 @@ class Stage1Session:
     def pause(self):
         self._ensure_runtime()
         before = self.world['simulation']['clock_state']
-        self.runtime.pause()
+        if self._bulk_work is not None:
+            self.runtime.hard_pause()  # Explicit Advance cancellation boundary.
+        else:
+            self.runtime.pause()
+        if self.world['simulation']['clock_state'] != before:
+            self._mark_progress()
+
+    def hard_pause(self):
+        self._ensure_runtime()
+        before = self.world['simulation']['clock_state']
+        self.runtime.hard_pause()
         if self.world['simulation']['clock_state'] != before:
             self._mark_progress()
 
@@ -307,9 +334,13 @@ class Stage1Session:
         if self._bulk_work is not None:
             return None
         self._ensure_runtime()
-        result = self.runtime.pump()
-        if result is not None:
-            self._mark_progress()
+        before = (self.runtime.commit_serial, self.world['simulation']['clock_state'])
+        try:
+            result = self.runtime.pump()
+        finally:
+            if (self.runtime.commit_serial, self.world['simulation']['clock_state']) != before:
+                # One epoch notification per safe unit, never speculative reads.
+                self._mark_progress()
         self.maybe_autosave()
         return result
 
@@ -578,7 +609,7 @@ class Stage1Session:
             self._last_auto_sim_time = self.world['simulation']['time_utc']
 
     def _manual_start(self):
-        self.pause()
+        self.hard_pause()
         self.runtime.cancel_work()
         # An explicit time jump replaces the outstanding pacing target.
         self.runtime.credit_ns = 0
@@ -609,7 +640,7 @@ class Stage1Session:
         return self._bulk_work is not None
 
     def begin_advance_to(self, target_time_utc):
-        """Begin a cooperative explicit jump; each advancement step commits one event."""
+        """Begin a cooperative explicit jump; each step publishes a bounded prefix."""
         if self._bulk_work is not None:
             raise ValueError('advancement is already active')
         target = parse_canonical_utc(target_time_utc)
@@ -621,7 +652,9 @@ class Stage1Session:
         # Explicit catch-up retains a whole-request cap, but routine horizon
         # extension must not exhaust the normal pacing generation budget of 100.
         self._bulk_work = begin_resolution(self.world, target_time_utc,
-            max_generated_events=DEFAULT_MAX_EVENTS_PER_ADVANCE)
+            max_generated_events=DEFAULT_MAX_EVENTS_PER_ADVANCE,
+            shared=True, max_batch_events=self.runtime.max_batch_events,
+            execution_state=self.runtime.execution_state)
 
     def advance_tick(self):
         """Return None after a committed event, or the final advancement report."""
@@ -630,6 +663,9 @@ class Stage1Session:
         try:
             progress = self._bulk_work.step()
             if progress.finished:
+                if progress.processing_result.failure:
+                    failure = progress.processing_result.failure
+                    self.runtime._stop_error(f'{failure.code}: {failure.message}')
                 return self._report(progress.processing_result)
             self._mark_progress()
             return None

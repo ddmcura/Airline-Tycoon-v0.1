@@ -62,6 +62,9 @@ class GameplayViews(WeeklyWorkspace):
             return False
         # Callbacks and pump are serialized on Kivy's event loop.
         self.session.pause()
+        if self.session.runtime.draining:
+            self._error('Pausing', 'Earned time is draining. Retry this edit when paused.')
+            return False
         if refresh:
             self.refresh(force=True)
         return True
