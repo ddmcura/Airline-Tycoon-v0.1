@@ -8,6 +8,22 @@ draining. Strict/fence semantics and proof/save authority remain. Schema stays 7
 No speed/formula changes, offline progression, new certification or Stage 3F.
 Earlier dated descriptions below retain their original scopes and measurements.
 
+## Stage 3F capacity gate and certification
+
+The approved final PH 1.0 capacity gate is **50 operational aircraft sustaining
+Ultra at literal 1800x**, or one game day per 48 real seconds. Earned-but-unresolved
+credit is debt, not serviced game time. Backlog must remain bounded and temporary
+fence spikes must recover without ordinary repeated overload. Exact credit, UTC,
+events, validation, cap eight, deterministic outcomes and save safety remain.
+100 aircraft is optional stress/headroom, not a PH 1.0 pass requirement.
+
+This replaces the historical literal-7x capacity gate for the current named-speed
+runtime; the dated evidence below remains historical. Throughput and atomic
+callback responsiveness are separate assessments. The final measurement-only
+[Stage 3F certification report](Runtime%20Capacity%20Certification.md) records
+**PH 1.0 RUNTIME NOT CERTIFIED**: sustained 50-aircraft Ultra backlog grows and
+enters overload. No production optimization or further runtime stage is included.
+
 
 Original runtime scope: user request, 2026-09-17. Named PH speed redesign
 approved and implemented 2026-10-03. Implementation and

@@ -36,13 +36,16 @@ domain contracts. Neither historical code nor a template overrides the schema.
 - [Routine maintenance specification](03%20Technical/Routine%20Maintenance%20Technical%20Specification.md):
   schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
-  7x pacing, management while running, exclusive world ownership and performance gates.
+  current 30/210/900/1800x pacing, management while running, exclusive world ownership and performance gates.
 - [Production cooperative runtime](03%20Technical/Production%20Cooperative%20Runtime.md):
   Stage 3E bounded shared pumping, exact pacing credit, pause/catch-up barriers and production measurements.
 - [Atomic boundary cost optimization](03%20Technical/Atomic%20Boundary%20Cost%20Optimization.md):
   Stage 3E.1 exact graph validation, retained-history profiles and the remaining measured runtime gate.
 - [Retained Booking validation optimization](03%20Technical/Retained%20Booking%20Validation%20Optimization.md):
   Stage 3E.2 exact validation-local lineage, diagnostics, visit counts and runtime evidence.
+- [Runtime capacity certification](03%20Technical/Runtime%20Capacity%20Certification.md):
+  final Stage 3F production measurements, 50-aircraft Ultra failure evidence,
+  backlog/overload, exactness, persistence and native Kivy limits.
 - [Runtime trusted reads](03%20Technical/Runtime%20Trusted%20Reads.md):
   Stage 2 session ownership, disposable lookup epochs and measured read performance.
 - [Runtime shared candidate infrastructure](03%20Technical/Runtime%20Shared%20Candidate%20Infrastructure.md):

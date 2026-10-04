@@ -419,6 +419,11 @@ Pre-existing untracked `.venv/` remains untouched.
 
 ## Remaining cost and Stage 3F decision
 
+Successor: the approved measurement-only [Stage 3F certification](Runtime%20Capacity%20Certification.md)
+has now tested the production model and reports **PH 1.0 RUNTIME NOT CERTIFIED**.
+The readiness conclusion below meant readiness to measure, not a capacity pass.
+Stage 3 remains incomplete; no automatic additional optimization stage begins.
+
 **READY FOR STAGE 3F**, as a separately approved formal measurement/certification
 stage. This is readiness to test, not sustained 50-aircraft Ultra acceptance.
 

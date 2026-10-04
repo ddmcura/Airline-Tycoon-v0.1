@@ -1,6 +1,65 @@
 # Current Development Status
 
-Last updated: **2026-10-04**. Current snapshot, not operational authorization.
+Last updated: **2026-10-05**. Current snapshot, not operational authorization.
+
+## Stage 3F - final runtime capacity certification (2026-10-05)
+
+Baseline **ebdfc1239cb88f2ccd12a481033f1ba236588b04** matched local HEAD,
+upstream and live origin/master before measurement. Evidence covers this
+working-tree certification scope; [methodology, complete measurements and limits](Runtime%20Capacity%20Certification.md).
+
+- **PH 1.0 RUNTIME NOT CERTIFIED. Stage 3 scalability project NOT COMPLETE.**
+  The approved 50-aircraft literal Ultra 1800x requirement fails on the documented
+  i5-10400 Windows host. A real 200-sector/day airline with 7819 Bookings and
+  6800 rolling dated flights takes **375.151 engine seconds/game day** through
+  existing explicit Advance: **230.307x** unpaced, only **12.795%** of requirement.
+  Ultra permits 48 seconds/day; processing is **7.816x** that budget.
+- Actual session/controller/resolver, cap eight, strict/fences, credit ledger,
+  committed UTC, overload, Stage 2 invalidation and autosave remain active.
+  1/10/25/50 aircraft x all four speeds are measured separately from setup and
+  later commanded drain; short drained windows are not labeled sustained passes.
+- Longer 50 Ultra: running backlog slope **+1672.89 game seconds/input second**,
+  max debt **278521.0206 s**, one overload entry; **zero observed recoveries**
+  before the 220-second engine budget. Earnings freeze, exact target/credit stay
+  retained. Stop is a validated committed prefix, not a completed recovery.
+- Complete validation, detached copies and per-event kernel event/history
+  witness/comparison dominate. The 84-event prefix spends **31.2%** in kernel
+  event/history witness phases; complete-day validation is **103.161 s**.
+  The one daily Booking fence is **16.362 s**; most deficit is outside it.
+- Ordinary preloaded large requests also expose the unchanged cumulative
+  **100 generated-event** safety stop. Explicit Advance's existing allowance
+  completes the day. No silent retry, limit change or performance fix is made.
+  50 Day3/Day7, long explicit advances and conditional 100-aircraft stress are
+  not escalated after conclusive Day1 failure.
+- One-aircraft seven-day production-pump control passes seven Booking fences,
+  one real weekly publication and natural autosave (**14.627 s**). History grows;
+  Booking fence .834 ->1.518 s. 50 Normal live pause/drain/save/exact paused
+  reload/zero debt/resume/continuation/autosave checks pass outside service timing.
+- Four-speed 50-aircraft equal-time Departure/Completion prefix matches the
+  independent strict oracle across all authoritative fields. Quiet/profiled
+  entire-day hashes and all 401 event vectors match. Profiling identity/ledger/
+  routing guards prevent benchmark-only shortcuts; runtime exactness is retained.
+- Final fresh Windows Kivy direct-Load smokes pass: starter through Booking,
+  50 through flights/all speeds/15-second Ultra observation/pause/drain/save/
+  reload/resume/view navigation. Median/max: starter **.118/.280 s**, 50
+  **6.640/8.498 s**. Tick refresh <=**.065 s**. 50 responsiveness is **POOR**;
+  programmatic correctness does not prove human smoothness or capacity.
+- Focused `tests.test_runtime_capacity`, Booking-lineage, atomic-boundary and
+  production session/GUI runtime suite: **86 passed in 165.431 s**, including
+  **15 new harness accounting/routing/equivalence/persistence guards**.
+  Full `python -B -m unittest discover -s tests`: **1024 passed in 1056.680 s**
+  (baseline 1009). Final test-only unpaced metric labels/guard assertions were
+  subsequently checked with **15 passed in 14.394 s**; production source stayed
+  unchanged throughout. Scoped compilation, **228 local documentation links**,
+  new capacity anchor, diff whitespace and complete self-review pass.
+- **No production source changed.** Schema **7**, ratios **30/210/900/1800**, cap
+  **8**, exact proofs/UTC/credit, three existing certificates, gameplay and save
+  semantics remain. No offline progression, additional handlers, worker or next
+  runtime optimization stage. Pre-existing untracked `.venv/` remains untouched.
+
+Certification measurements, verification and report are complete. The failed
+capacity gate does not authorize another implementation milestone. Commit/push
+outcomes are reported separately after delivery; no pending hash is invented.
 
 ## Stage 3E.2 - retained Booking/itinerary validation (2026-10-04)
 
