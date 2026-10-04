@@ -41,6 +41,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   Stage 3E bounded shared pumping, exact pacing credit, pause/catch-up barriers and production measurements.
 - [Atomic boundary cost optimization](03%20Technical/Atomic%20Boundary%20Cost%20Optimization.md):
   Stage 3E.1 exact graph validation, retained-history profiles and the remaining measured runtime gate.
+- [Retained Booking validation optimization](03%20Technical/Retained%20Booking%20Validation%20Optimization.md):
+  Stage 3E.2 exact validation-local lineage, diagnostics, visit counts and runtime evidence.
 - [Runtime trusted reads](03%20Technical/Runtime%20Trusted%20Reads.md):
   Stage 2 session ownership, disposable lookup epochs and measured read performance.
 - [Runtime shared candidate infrastructure](03%20Technical/Runtime%20Shared%20Candidate%20Infrastructure.md):

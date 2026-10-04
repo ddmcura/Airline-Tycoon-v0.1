@@ -18,7 +18,7 @@ def prepare(root, fixture):
     return s.career_id
 
 
-def child(root, career, divine):
+def child(root, career, divine, booking_fence=False):
     from app.gui.app import AirlineTycoonApp
     from app.session import Stage1Session
     from game.simulation.pacing import NANOSECOND
@@ -37,6 +37,15 @@ def child(root, career, divine):
             engine=[0.0]; presentation=[0.0]
             from unittest.mock import patch
             original_pump=self.session.pump; original_refresh=self.refresh
+            from game.simulation.shared_candidate import SharedResolutionRequest
+            shared=SharedResolutionRequest._shared_batch; strict=SharedResolutionRequest._strict_one
+            units={'shared':0,'strict':0}
+            def shared_unit(request):
+                units['shared']+=1
+                return shared(request)
+            def strict_unit(request):
+                units['strict']+=1
+                return strict(request)
             def pump():
                 start=time.perf_counter()
                 try: return original_pump()
@@ -45,8 +54,8 @@ def child(root, career, divine):
                 start=time.perf_counter()
                 try: return original_refresh(**kw)
                 finally: presentation[0]+=time.perf_counter()-start
-            with patch.object(self.session,'pump',pump),patch.object(self,'refresh',refresh): super().tick(dt)
-            self.samples.append(dict(seconds=time.perf_counter()-before,engine_seconds=engine[0],presentation_seconds=presentation[0],events=len(self.session.world['world_state']['event_history'])-prior))
+            with patch.object(self.session,'pump',pump),patch.object(self,'refresh',refresh), patch.object(SharedResolutionRequest,'_shared_batch',shared_unit), patch.object(SharedResolutionRequest,'_strict_one',strict_unit): super().tick(dt)
+            self.samples.append(dict(seconds=time.perf_counter()-before,engine_seconds=engine[0],presentation_seconds=presentation[0],events=len(self.session.world['world_state']['event_history'])-prior,units=units,ratio=self.session.runtime.ratio,pacing=self.session.runtime.last_pump))
         def click(self,root,text):
             next(w for w in root.walk() if isinstance(w,Button) and w.text==text).dispatch('on_release')
         def on_start(self):
@@ -63,7 +72,7 @@ def child(root, career, divine):
                     self.initial=set(s.world['world_state']['event_history'])
                     # Controlled finite earned-credit stimulus avoids hours of
                     # wall waiting. Actual registered handlers/production pump.
-                    kind='STAGE1_FLIGHT_DEPARTURE' if divine else 'DAILY_BOOKING_CHECKPOINT'
+                    kind='STAGE1_FLIGHT_DEPARTURE' if divine and not booking_fence else 'DAILY_BOOKING_CHECKPOINT'
                     target=min(e['due_at_utc'] for e in s.world['world_state']['pending_events'].values() if e['event_type']==kind)
                     self.target=target
                     self.resume('Normal Speed')
@@ -74,7 +83,7 @@ def child(root, career, divine):
                     if s.world['simulation']['time_utc']<self.target: return
                     types={e['event_type'] for k,e in s.world['world_state']['event_history'].items() if k not in self.initial}
                     if 'STAGE1_FLIGHT_DEPARTURE' not in types: return
-                    if not divine and 'DAILY_BOOKING_CHECKPOINT' not in types: return
+                    if (not divine or booking_fence) and 'DAILY_BOOKING_CHECKPOINT' not in types: return
                     self.event_types=sorted(types); self.pause(); self.phase=2
                 elif self.phase==2:
                     if self.session.runtime.draining: return
@@ -92,7 +101,7 @@ def child(root, career, divine):
                     assert s.world['simulation']['time_utc']==utc
                     self._enter_game(); self.refresh(force=True)
                     durations=sorted(r['seconds'] for r in self.samples)
-                    print(json.dumps(dict(status='PASS',divine=divine,direct_load=True,event_types=self.event_types,speeds=4,save_reload_exact=True,no_offline_progress=True,callbacks=len(durations),median_callback_seconds=durations[len(durations)//2],p95_callback_seconds=durations[int(.95*(len(durations)-1))],max_callback_seconds=max(durations),samples=self.samples)),flush=True)
+                    print(json.dumps(dict(status='PASS',divine=divine,direct_load=True,event_types=self.event_types,speeds=4,save_reload_exact=True,no_offline_progress=True,callbacks=len(durations),median_callback_seconds=durations[len(durations)//2],p95_callback_seconds=durations[int(.95*(len(durations)-1))],max_callback_seconds=max(durations),units={key:sum(r['units'][key] for r in self.samples) for key in ('shared','strict')},max_gui_refresh_seconds=max(r['presentation_seconds'] for r in self.samples),booking_fence_requested=booking_fence,samples=self.samples)),flush=True)
                     self.phase=5; self.stop()
             except Exception:
                 import traceback
@@ -102,12 +111,13 @@ def child(root, career, divine):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--fixture');p.add_argument('--root');p.add_argument('--career');p.add_argument('--divine',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--fixture');p.add_argument('--root');p.add_argument('--career');p.add_argument('--divine',action='store_true');p.add_argument('--booking-fence',action='store_true');a=p.parse_args()
     os.environ.setdefault('KIVY_NO_ARGS','1');os.environ.setdefault('KIVY_NO_FILELOG','1')
-    if a.root: child(a.root,a.career,a.divine)
+    if a.root: child(a.root,a.career,a.divine,a.booking_fence)
     else:
         with tempfile.TemporaryDirectory(prefix='at-atomic-native-') as root:
             cmd=[sys.executable,'-B','-m','tests.smoke_atomic_boundaries','--root',root,'--career',prepare(root,a.fixture)]
             if a.fixture: cmd.append('--divine')
+            if a.booking_fence: cmd.append('--booking-fence')
             subprocess.run(cmd,check=True,timeout=300)
 if __name__=='__main__': main()

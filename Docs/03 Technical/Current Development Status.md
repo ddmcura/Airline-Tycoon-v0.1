@@ -2,6 +2,47 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Stage 3E.2 - retained Booking/itinerary validation (2026-10-04)
+
+Baseline **b9e8cde819deec22fcdd0bb4d8eb92fbcc643d1c** matched local HEAD,
+upstream and live origin/master before edits. Evidence covers this working-tree
+implementation; [complete technical audit, measurements and proof](Retained%20Booking%20Validation%20Optimization.md).
+
+- Original direct ID lookup is already linear, not Booking x itinerary. Call-local
+  exact source scalar tables remove repeated retained record reads and repeated
+  flight/date facts. All records/relationships are proved; anomalies use the
+  unchanged ordered diagnostic suffix and frozen differential oracle.
+- Every complete-world gate, E.1 alias/JSON/money/UTC proof, domain predicate,
+  detached copy, strict/fence transaction and persistence validation remains.
+  Tables end at validation return; no saved/session/Stage 2 trust or reuse.
+- Final quiet controls: Divine Booking **.5391 -> .3190 s** (~41% lower), full
+  validation **1.2894 -> .9912 s**. Divine next **5.363 -> 4.689 s**, short
+  **5.587 -> 4.938 s**, clock-only **2.653 -> 2.150 s**, dense25/100 events
+  **7.465 -> 7.064 s**. All complete hashes and callback event/commit vectors match.
+- Production-source focused suite: **79 passed in 39.854 s**, including **23 new**
+  differential/corruption/read-only/coverage/timestamp/scaling tests. Full suite
+  `python -B -m unittest discover -s tests`: **1009 passed in 1288.163 s**.
+  Production/functional source stayed unchanged during the run; later profiler-only
+  attribution changes passed diagnostic fixture runs. Scoped compile, local links,
+  diff whitespace and complete self-review pass; no unresolved in-scope finding.
+- Fresh-process Windows Kivy direct-Load smokes all PASS: starter through Booking
+  fence, comparable Divine departure and Divine through Booking fence. All four
+  speeds, pause/drain, exact paused save/reload and no offline progress verified.
+  Comparable Divine: 14 callbacks, median **2.119 s**, p95 **3.699 s**, maximum
+  **3.934 s**, GUI refresh **.00247 s**, versus E.1 median2.780/max5.397.
+  Longer strict Booking-fence run: 16 callbacks, max **6.839 s**. Programmatic
+  smoke does not prove human smoothness or sustained speed/backlog capacity.
+- Divine tables own ~**5.61 MiB**; isolated validation allocation peak ~**8.32 MiB**.
+  Storage is O(B+I), call-local and released, never accumulated across callbacks.
+- **READY FOR STAGE 3F**, under the approved formal-test readiness standard:
+  targeted ordinary retained-lineage stalls are substantially reduced; no new
+  concrete blocker makes formal 50-aircraft testing meaningless. Remaining full
+  traversal/copy/checkpoint costs are disclosed. This is not 50-aircraft Ultra
+  certification. Stage 3F remains unimplemented; no automatic E.3 begins.
+- Schema **7**, cap **8**, one safe unit/callback, ratios **30/210/900/1800**, exact
+  credit/drains/recovery/save semantics remain. No gameplay, RNG, new handlers,
+  offline progression or worker changes. Pre-existing `.venv/` remains untouched.
+
 ## Stage 3E.1 — atomic boundary cost optimization (2026-10-04)
 
 Baseline **be4fdd356563e7370ffef7e16aee23a4193d9f32** matched local HEAD,

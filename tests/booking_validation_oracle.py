@@ -1,13 +1,12 @@
-"""Strict schema-3 Booking validation helpers."""
+"""Frozen b9e8cde Booking predicate oracle. Test-only; do not optimize."""
 
 from datetime import date, timedelta
-from functools import lru_cache
 
-from .booking_fingerprint import calculate_booking_configuration_fingerprint
+from game.world_state.booking_fingerprint import calculate_booking_configuration_fingerprint
 
-from .ids import parse_entity_id
-from .money import is_minor_amount
-from .schema import (
+from game.world_state.ids import parse_entity_id
+from game.world_state.money import is_minor_amount
+from game.world_state.schema import (
     AGGREGATE_BOOKING_CONTRACT,
     BOOKING_CHECKPOINT_STATUSES,
     BOOKING_CONFIGURATION_CONTRACT,
@@ -18,7 +17,7 @@ from .schema import (
     SCHEMA2_BOOKING_COMPATIBILITY_CONTRACT,
     SCHEMA2_ITINERARY_COMPATIBILITY_CONTRACT,
 )
-from .timestamps import is_canonical_utc
+from game.world_state.timestamps import is_canonical_utc
 
 
 def _date(value):
@@ -41,14 +40,10 @@ def _currency(value):
 
 
 def _nonnegative_integer(value):
-    if type(value) is int:
-        return value >= 0
     return not isinstance(value, bool) and isinstance(value, int) and value >= 0
 
 
 def _positive_integer(value):
-    if type(value) is int:
-        return value >= 1
     return not isinstance(value, bool) and isinstance(value, int) and value >= 1
 
 
@@ -56,10 +51,7 @@ def _exact(validator, record, fields, path, code, message):
     if type(record) is not dict:
         validator.add(code, path, "must be a dictionary")
         return False
-    expected = fields.keys() if type(fields) is dict else fields
-    if type(expected) not in (set, frozenset) and type(fields) is not dict:
-        expected = set(fields)
-    if record.keys() != expected:
+    if set(record) != set(fields):
         validator.add(code, path, message)
         return False
     return True
@@ -368,11 +360,6 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
 
 def validate_schema3_booking_authority(validator):
     world = validator.world
-    # Pure scalar syntax only, bounded and discarded with this invocation.
-    cached_date = lru_cache(maxsize=512)(_date)
-
-    def valid_date(value):
-        return cached_date(value) if type(value) is str else _date(value)
     configuration = validator.envelope.get("simulation", {}).get("configuration", {}).get("booking")
     validate_booking_configuration(validator, configuration)
     booking_state = world.get("booking_state")
@@ -419,7 +406,7 @@ def validate_schema3_booking_authority(validator):
         if checkpoint.get("booking_checkpoint_id") != checkpoint_id or parse_entity_id(checkpoint_id, "booking_checkpoint") is None:
             validator.add("invalid_booking_checkpoint", f"{checkpoint_path}.booking_checkpoint_id", "must equal its immutable checkpoint collection key")
         checkpoint_date = checkpoint.get("checkpoint_date")
-        if not valid_date(checkpoint_date):
+        if not _date(checkpoint_date):
             validator.add("invalid_booking_checkpoint", f"{checkpoint_path}.checkpoint_date", "must be canonical YYYY-MM-DD")
         elif checkpoint_date in checkpoint_dates:
             validator.add("invalid_booking_checkpoint", f"{checkpoint_path}.checkpoint_date", "checkpoint date must be unique")
@@ -541,7 +528,7 @@ def validate_schema3_booking_authority(validator):
                 }
                 if not _exact(validator, desired_result, fields, desired_path, "result_validation_failed", "must contain exactly the canonical desired-date result fields"):
                     continue
-                if desired_result.get("desired_travel_date") != desired_date or not valid_date(desired_date):
+                if desired_result.get("desired_travel_date") != desired_date or not _date(desired_date):
                     validator.add("result_validation_failed", f"{desired_path}.desired_travel_date", "must equal its canonical date key")
                 values = tuple(desired_result.get(field) for field in (
                     "requested_passenger_count", "booked_passenger_count",
@@ -705,31 +692,6 @@ def validate_schema3_booking_authority(validator):
                 "daily Booking event must be owned by a completed checkpoint",
             )
 
-    # All prior complete-world predicates and this checkpoint prefix must pass.
-    # The graph proof is local to THIS invocation, never a session trust flag.
-    if validator._graph_checked and not validator.errors:
-        from .booking_lineage_validation import valid_booking_relationships
-        if valid_booking_relationships(world, valid_date=valid_date):
-            return
-    _validate_booking_relationships_detailed(validator)
-
-
-def _validate_booking_relationships_detailed(validator):
-    """Original suffix, including diagnostic order and compatibility behavior."""
-    world = validator.world
-    path = "$.world_state.booking_state"
-    booking_state = world.get("booking_state", {})
-    booking_revision = booking_state.get("booking_revision")
-    checkpoints = booking_state.get("booking_checkpoints", {})
-    if type(checkpoints) is not dict:
-        checkpoints = {}
-    demand_state = world.get("demand_state", {})
-    processed_cohorts = demand_state.get("processed_cohorts", {}) if type(demand_state) is dict else {}
-    if type(processed_cohorts) is not dict:
-        processed_cohorts = {}
-    transactions = world.get("transactions", {})
-    if type(transactions) is not dict:
-        transactions = {}
     airlines = world.get("airlines", {})
     flights = world.get("dated_flights", {})
     if type(airlines) is not dict:

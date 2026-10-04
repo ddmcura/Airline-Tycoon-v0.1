@@ -1,5 +1,13 @@
 # Atomic Boundary Cost Optimization — Stage 3E.1
 
+## Stage 3E.2 successor
+
+[Retained Booking Validation Optimization](Retained%20Booking%20Validation%20Optimization.md)
+implements the separately approved exact validation-local lineage optimization.
+All E.1 graph/domain/transaction/save gates and pacing remain. Its new measurements
+and Stage 3F recommendation supersede the dated remaining-blocker decision below.
+Stage 3F is not implemented; earlier sections preserve the E.1 evidence.
+
 Approved bounded task, **2026-10-04**. Initial local HEAD, upstream and live
 origin/master matched **be4fdd356563e7370ffef7e16aee23a4193d9f32**.
 This succeeds [production cooperative runtime](Production%20Cooperative%20Runtime.md).
