@@ -1,13 +1,12 @@
 """Exact Stage 3C flight transitions from a fully valid predecessor.
 
 Runtime witnesses only. No full-world gate, authoritative index or new formulas.
-Protected-state fingerprints and manifest/kernel witnesses still grow with history.
+Exact protected bytes and manifest/kernel witnesses still grow with history.
 """
 from copy import deepcopy
-from hashlib import sha256
 import json
 from .ids import format_entity_id
-from .validation import _container_alias_error
+from .flight_proof_witness import protected_bytes, mutable_alias_error as _container_alias_error
 from .serialization import json_compatibility_error
 from .fulfilment_validation import _valid_flight_event
 from .schema import (FLIGHT_DEPARTURE_EVENT_TYPE as DEPARTURE,
@@ -44,14 +43,21 @@ def supports_departure(envelope, event):
 
 
 def _protected_digest(envelope, excluded):
+    # Historical private name; now returns exact typed bytes, not a hash.
+    # These shallow views must not erase a noncanonical root/table type.
+    if type(envelope) is not dict or any(type(envelope[key]) is not dict
+            for key in ('world_state','deterministic_state')):
+        raise ValueError('flight introduced non-JSON authority: non-plain root')
     world=dict(envelope['world_state'])
     for name,keys in excluded.items():
+        if type(world[name]) is not dict:
+            raise ValueError('flight introduced non-JSON authority: non-plain collection')
         world[name]={key:row for key,row in world[name].items() if key not in keys}
     protected={**envelope,'world_state':world}
     protected.pop('simulation')
     deterministic=dict(protected['deterministic_state']); deterministic.pop('id_allocator')
     protected['deterministic_state']=deterministic
-    return sha256(_encoded(protected).encode('utf-8')).digest()
+    return protected_bytes(protected)
 
 
 def _capture(envelope,event_id,kernel_before,completion=False):
@@ -109,14 +115,22 @@ def _kernel_transition(before,candidate,event_id,generated,successor=None):
     if set(world['event_history']) != set(before['kernel']['world_state']['event_history'])|{event_id}:
         raise ValueError('flight history topology changed')
     _exact(world['event_history'][event_id],{**event,'status':'COMPLETED','resolved_at_utc':event['due_at_utc']},'event lifecycle')
-    # JSON encoding can coerce tuples/keys; retain the canonical type contract.
-    error=json_compatibility_error(candidate)
+    # Unchanged records inherit entry JSON compatibility ONLY after exact typed
+    # protected comparison. Check every excluded/new/changed record explicitly.
+    changed=[candidate['simulation'],candidate['deterministic_state']['id_allocator']]
+    for name,keys in before['excluded'].items():
+        changed.extend(world[name][key] for key in keys if key in world[name])
+    error=json_compatibility_error(changed)
     if error is not None:
         raise ValueError(f'flight introduced non-JSON authority: {error}')
-    # Equal JSON cannot detect mutable aliases; reuse the canonical predicate.
+    # Value bytes cannot detect mutable aliases; retain the whole-graph predicate.
     if _container_alias_error(candidate) is not None:
         raise ValueError('flight introduced an authoritative mutable-container alias')
     if _protected_digest(candidate,before['excluded']) != before['protected']:
+        # Failure-only canonical diagnostic preserves useful non-JSON errors.
+        error=json_compatibility_error(candidate)
+        if error is not None:
+            raise ValueError(f'flight introduced non-JSON authority: {error}')
         raise ValueError('flight changed unrelated protected structure')
 
 

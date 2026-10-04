@@ -2,6 +2,82 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Revised Stage 3D — flight proof-cost optimization (2026-10-04 implementation)
+
+Baseline **c3d47de83b9c1d7cce1c1d82fbb48697757da21d** matched local HEAD,
+upstream and live origin/master before edits. This approved slice replaces
+additional-handler certification as Stage 3D's purpose.
+[Detailed exclusive profile, protected/type/alias audit, proof and measurements](Flight%20Proof%20Cost%20Optimization.md).
+
+- Flight certification replaces sorted JSON/SHA protected fingerprints with exact
+  typed runtime bytes. Genuine before-event equality still protects **all**
+  unchanged authority; identity/revisions are not substituted for mutation proof.
+- Canonical JSON compatibility runs on every changed/excluded record, whole
+  simulation and allocator. Protected compatibility inherits only after exact
+  typed equality. Plain root/table guards prevent shallow-view type erasure.
+  An equivalent **whole-candidate** alias predicate remains, without allocating
+  unused primitive paths. No invalid event can wait for a later repair.
+- No request witness reuse, candidate index, Stage 2 cache sharing, schema field,
+  save migration, gameplay/formula/RNG/timing change or new handler certification.
+  Payment code/proof is unchanged. Rotation remains strict; Booking, weekly
+  publication and expiry remain fences. Strict replay, shadow, final full-world
+  validation and detached commits remain unchanged.
+- Schema remains **7**. Normal session/Kivy/Advance pacing is unchanged and strict.
+  No Stage 3E, Stage 3F, overload recovery or production batching activation.
+  Pre-existing untracked `.venv/` remains untouched.
+
+### Results and current limits
+
+Same eleven frozen Stage 3C inputs, targets and complete-world hashes, three
+latency samples per flight path. Tooling uses direct non-retaining wrappers and
+exclusive timings; old nested/mock post-change measurements were discarded.
+Host timing varies; no portable performance threshold or human responsiveness
+claim is made. Full comparison tables and call/byte/scaling counts are in the audit.
+
+- Dense 25 / 100 events: fresh shared **24.694 → 12.283 s**, recorded 3C 30.662 s.
+  Fresh capture + proof **22.900 → 9.860 s**; recorded 3C 27.072 s.
+- Dense-25 max shared step **7.070 s**, versus recorded 3C 19.798 s.
+  Largest final step across all fixtures **9.018 s** (Divine-short).
+- Divine-next: shared **10.228 → 9.689 s**, still above fresh strict 8.576 s.
+  Divine-short **14.012 → 11.484 s**. Isolated regression is not eliminated.
+- Validation/clone/commit vectors are unchanged: dense-25 retains four full gates,
+  four world clones and 64/36-event commits. All 11 exact worlds match strict.
+  All six original Payment profiling fixtures also match strict (one sample/path).
+- Fresh dense-25 process peak **76.09 → 78.97 MiB**. Witness buffers are O(world
+  size), live for one transition only; no accumulation/index cache enters saves.
+- Remaining global encoding/alias and growing event/Booking/history scans remain
+  O(events × retained authority), with unchanged final-gate cost. No formal or
+  exploratory 50-aircraft certification is claimed.
+
+### Verification (actual implementation working-tree scope)
+
+- `.venv/Scripts/python.exe -B -m unittest tests.test_flight_proof_optimization
+  tests.test_flight_certification tests.test_payment_certification
+  tests.test_shared_candidate`: **126 PASS, 487.609 s**.
+- `.venv/Scripts/python.exe -B -m unittest discover -s tests`:
+  **881 PASS, 1327.709 s** (862 baseline + 19 new regressions).
+  Includes Stage 1 complete-world/oracle, Stage 2 ownership/invalidation,
+  Booking/manifest, finance/journal, aircraft/maintenance, kernel, persistence,
+  runtime/Advance, frontend and all Stage 3A–3C gates. No expected gameplay
+  witness/result was changed.
+- `.venv/Scripts/python.exe -B -m tests.smoke_runtime_startup`: **PASS** on native
+  Windows/Kivy 2.3.1 SDL2/GLEW, fresh process → Load directly → Resume/Advance →
+  two Booking checkpoints / 14 bookings → exact paused save/reload. Window
+  2560×1377. This exercises unchanged strict production pacing, not shared GUI
+  activation or human-level responsiveness.
+- `.venv/Scripts/python.exe -m compileall -q app game tests main.py
+  make_snapshot.py settings.py test.py`: **PASS**. Protected/runtime directories
+  excluded. Direct documentation links and `git diff --check`: **PASS**.
+- Full diff self-review covers genuine predecessor/type/alias guarantees,
+  intermediate failure/replay, fences, no speculative Stage 2 reads, no saved
+  witness/index, package ownership, unchanged schema/gameplay/production pacing
+  and Stage 3E/3F exclusion. Only intended implementation/tests/tooling/docs.
+
+Recommend another separately bounded proof-cost/ownership investigation before
+Stage 3E production activation: multi-second steps and isolated-event overhead
+remain. **Stop after Revised Stage 3D.** Prior dated evidence below describes the
+implemented earlier scopes; it is superseded by this current runtime snapshot.
+
 ## Flight lifecycle certification — Stage 3C (2026-10-04 working tree)
 
 Baseline **3f6f6ab76194b36825d3850651b6f96d1fd7267e** matched local/upstream/live

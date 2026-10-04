@@ -5,6 +5,17 @@ Approved implementation slice, 2026-10-04. Baseline:
 The [canonical event contract](Stage%201%20State%20Schema.md#clock-and-event-contract)
 prevails over this implementation description. Schema remains **7**.
 
+## Revised Stage 3D successor
+
+[Flight Proof Cost Optimization](Flight%20Proof%20Cost%20Optimization.md) reduces
+per-flight certification cost with exact typed protected bytes, changed-record
+canonical JSON checks and an equivalent full-graph alias predicate. Genuine
+predecessor comparisons, intermediate proofs, final full validation, detached
+commit and strict replay remain. No request witness reuse, candidate index,
+additional handler certificate or production pacing activation is introduced.
+Schema stays 7; Stage 3E/3F remain unimplemented. Earlier dated scopes below
+record their respective historical implementation boundaries.
+
 ## Stage 3C successor
 
 [Flight Shared Certification](Flight%20Shared%20Certification.md) independently

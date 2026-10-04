@@ -45,6 +45,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   Stage 3B exact transition proof, protected dependencies and payment measurements.
 - [Flight shared certification](03%20Technical/Flight%20Shared%20Certification.md):
   Stage 3C separate Departure/Completion proofs, exact flight/finance witnesses and throughput evidence.
+- [Flight proof cost optimization](03%20Technical/Flight%20Proof%20Cost%20Optimization.md):
+  revised Stage 3D exclusive profiling, exact typed witnesses and narrowed JSON proof.
 - [Runtime resolution foundation](03%20Technical/Runtime%20Resolution%20Foundation.md):
   shared strict resolver facade, complete boundaries and exact equivalence oracle.
 - [PH GUI foundation specification](03%20Technical/PH%20GUI%20Foundation%20Technical%20Specification.md):

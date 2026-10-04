@@ -7,6 +7,17 @@ Schema remains 7. Both exact built-ins now have independently enabled certificat
 for supported schema-7 inputs. Verification and repeatable before/after measurements
 are recorded in [Current Development Status](Current%20Development%20Status.md).
 
+## Revised Stage 3D successor
+
+[Flight Proof Cost Optimization](Flight%20Proof%20Cost%20Optimization.md) retains
+these exact footprints/certificates and intermediate correctness guarantees.
+Protected values now use exact typed runtime bytes; canonical JSON is checked on
+all changed/excluded records with unchanged compatibility inherited only after
+protected equality. The whole-candidate alias predicate remains equivalent but
+avoids unused path construction. The dated Stage 3C measurements below are the
+baseline, not current production pacing certification. Schema stays 7; no new
+handlers or Stage 3E/3F are implemented.
+
 ## Departure audit
 
 The exact built-in calls fulfilment._departure using the kernel transaction token.

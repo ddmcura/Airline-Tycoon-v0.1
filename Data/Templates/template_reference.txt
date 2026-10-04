@@ -1,3 +1,12 @@
+# Revised Stage 3D flight proof optimization (2026-10-04); Schema remains 7.
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
+# Exact typed protected bytes; changed/excluded-record canonical JSON checks.
+# Equivalent whole-candidate alias predicate; genuine intermediate proofs retained.
+# Final full validation/detached commit/recovery/fences unchanged; no saved proof state.
+# No new handler certification, request witness reuse or candidate index.
+# Normal session/Kivy/Advance stay strict. Stage 3E/3F remain unimplemented.
+# Following Stage 3A-C notes record their dated historical scopes.
+
 # Stage 3C flight certification (2026-10-04); schema remains 7.
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
 # Exact built-in Departure and Completion have separate schema-7 transition proofs.

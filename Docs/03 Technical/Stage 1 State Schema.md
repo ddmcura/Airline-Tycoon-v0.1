@@ -1390,6 +1390,15 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   stays strict. Session/Kivy/Advance pacing stays strict; Stage 3D–3F are not
   implemented. Schema remains 7 and no persistent fields or formulas change.
   See [Flight Shared Certification](Flight%20Shared%20Certification.md).
+- Revised Stage 3D (2026-10-04) optimizes the existing flight proof only.
+  Exact typed predecessor/successor protected bytes retain all unchanged-value
+  guarantees. Per-event canonical JSON checks cover all changed/excluded records;
+  protected compatibility is inherited only after exact equality. An equivalent
+  full-candidate mutable-alias predicate remains mandatory. Final full validation,
+  detached commit, recovery, fences, handler identity and saved Schema 7 are
+  unchanged. No request-level witness reuse or private index is introduced.
+  Session/Kivy/Advance pacing remains strict; no additional handlers or Stage 3E/3F.
+  See [Flight Proof Cost Optimization](Flight%20Proof%20Cost%20Optimization.md).
 - Handler return value is `None`; the validated candidate is the result. Handler
   context cannot mutate the runtime registry, kernel-owned clock facts, event
   identity/order, or pre-existing pending and terminal event records. It may
