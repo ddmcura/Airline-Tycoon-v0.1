@@ -2,6 +2,80 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Stage 3D.2 — shared-candidate mutation ownership (2026-10-04)
+
+Baseline **1bf99b647163ee0834908ec8820a6abd4339ba56** matched local HEAD,
+upstream and live origin/master before edits. Current evidence covers this
+working-tree implementation. [Detailed ownership/proof/profile audit](Runtime%20Candidate%20Ownership.md).
+
+- Only exact certified Payment/Departure/Completion receive per-event write
+  capsules. Protected authority is recursively read-only; genuine predecessor
+  and selected successor proofs remain. Local canonical JSON/alias checks and
+  detached publication preserve entry guarantees. No identity/revision shortcut
+  substitutes for value or alias proof. Full shadow protected/alias oracles remain.
+- The candidate-local read-capability memo uses strong source references, ends
+  before flush/recovery and never enters saves, session projections or Stage 2.
+  No Booking/manifest/history index was added. Final full validation, detached
+  commit, strict successful-prefix recovery, mixed events and causal fences remain.
+- Schema remains **7**. No formulas, gameplay, RNG, scheduling, save migration,
+  additional handler certification, normal Kivy/session/Advance shared activation,
+  pacing credit/speed or overload recovery changes. Stages 3E/3F remain unimplemented.
+  Pre-existing untracked `.venv/` remains untouched.
+
+### Measurements and limits
+
+Same eleven frozen Stage 3C worlds/targets; all original/strict/owned world hashes
+and event commit vectors match. Three-sample shared medians, independent exclusive
+profiles and isolated memory runs are recorded in the audit.
+
+- Dense-25 / 100 events: fresh shared **15.873 → 7.869 s**; historical Stage 3D
+  optimized shared was 12.283 s. Capture/transition proof **11.787 → 1.261 s**;
+  additional capsule construction/publication/close costs are explicitly included
+  in a separate approximately 1.75 s diagnostic-adjusted combined profile.
+- Protected encoding **6.383 → 0 s** / 886,445,732 bytes → 0; alias proof
+  **4.226 → 0.127 s**, now small complete output packs, not the growing world.
+  Final validators still traverse the whole world. Dense max step **4.698 s**.
+- Divine-next shared **11.199 → 12.072 s**; Divine-short **12.846 → 13.053 s**.
+  The isolated regression is not solved; the largest final shared step is
+  **10.834 s**. No human GUI responsiveness or 50-aircraft acceptance claim.
+- Guarded manifest reads now dominate dense-25 (**4.134 s**), retaining
+  O(events × Bookings) scans. Full validation/copying dominate the large save;
+  kernel pending/history witnesses and topology seals still grow with history.
+- Isolated process peak: dense-25 **75.93 → 79.76 MiB**; Divine-next
+  **373.83 → 373.99 MiB**. Private memo structural estimates are 6.24/30.49 MiB
+  respectively, cleared before commit/recovery. They are not total heap/RSS.
+- All six Payment performance fixtures match strict; dense-64 Payment shared is
+  1.176 s versus 6.138 s strict (one sample/path). Shadow remains deliberately costly.
+
+### Verification
+
+- Final focused command: `python -B -m unittest tests.test_candidate_ownership
+  tests.test_flight_proof_optimization tests.test_flight_certification
+  tests.test_payment_certification tests.test_shared_candidate -q`:
+  **157 tests passed in 627.348 s**. New ownership module adds 31 regressions.
+- `python -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`:
+  passed. `git diff --check`: passed. All **200** scoped local documentation links exist.
+- `python -B -m tests.smoke_runtime_startup`: native Windows Kivy 2.3.1 / SDL2 /
+  OpenGL fresh process, direct Load Game without New Game, two completed Booking
+  checkpoints / 14 Bookings, exact paused save/reload: **PASS**. Strict production
+  path only; this does not test shared multi-event GUI pacing or human responsiveness.
+- Full `python -B -m unittest discover -s tests`: **912 tests passed in
+  1397.137 s** (881 baseline + 31 new). This includes all Stage 1/2/3A–D,
+  booking, finance/journal, aircraft/maintenance, kernel/runtime, GUI and persistence
+  coverage. Final review then added read-view attribute-deletion rejection;
+  its affected ownership/proof tests are rerun separately below. No certified
+  handler deletes attributes; valid engine paths/benchmark results are unchanged.
+- After that final review fix: `python -B -m unittest tests.test_candidate_ownership
+  tests.test_flight_proof_optimization -q`: **50 tests passed in 33.018 s**.
+  Final scoped compilation, 200 local documentation links and `git diff --check`
+  pass. Complete diff self-review is clean within approved Stage 3D.2 scope.
+
+**Next gate: ANOTHER ENGINE OPTIMIZATION before Stage 3E.** Separately scope
+cheaper guarded manifest/read access and validation/copy/event-history scaling.
+Multi-second steps remain unsuitable for normal cooperative pacing. No follow-up
+implementation is authorized by status; stop after Stage 3D.2. Prior dated notes
+below retain their historical scope and measurements.
+
 ## Revised Stage 3D — flight proof-cost optimization (2026-10-04 implementation)
 
 Baseline **c3d47de83b9c1d7cce1c1d82fbb48697757da21d** matched local HEAD,

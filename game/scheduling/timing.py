@@ -1,6 +1,7 @@
 """Pure planning arithmetic; no live handling or random operational duration."""
 
 from datetime import timedelta
+from game.simulation.candidate_ownership import is_read_dict
 from game.world_state.timestamps import parse_canonical_utc
 
 
@@ -47,6 +48,6 @@ def timed_deadhead(world, flight):
     revision = world.get('schedule_definitions', {}).get(
         flight.get('schedule_id'), {}).get('revisions', {}).get(
             str(flight.get('schedule_revision')), {})
-    return (type(revision) is dict and flight.get('service_type') == 'DEADHEAD'
+    return (is_read_dict(revision) and flight.get('service_type') == 'DEADHEAD'
             and flight.get('passenger_service_classification') == 'NON_PASSENGER'
             and 'planning_timing' in revision)

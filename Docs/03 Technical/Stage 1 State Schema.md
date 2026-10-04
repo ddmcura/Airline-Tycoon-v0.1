@@ -1399,6 +1399,18 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   unchanged. No request-level witness reuse or private index is introduced.
   Session/Kivy/Advance pacing remains strict; no additional handlers or Stage 3E/3F.
   See [Flight Proof Cost Optimization](Flight%20Proof%20Cost%20Optimization.md).
+- Stage 3D.2 (2026-10-04) preserves the same exact three certificates with
+  an enforced private mutation boundary. Certified handlers receive writable
+  copies only for approved records, simulation and allocator; other authority
+  is recursively read-only. Genuine predecessor witnesses and exact changed/new
+  output proofs remain per event. JSON/alias validity inherits from validated
+  detached entry plus local output checks and detached publication. Full protected
+  and alias oracles remain in shadow mode. Final full validation, detached commit,
+  strict successful-prefix recovery and fence/strict boundaries remain unchanged.
+  Capability memos expire before flush/recovery and never enter saves or Stage 2.
+  No persistent field or schema version changes. Normal session/Kivy/Advance
+  pacing stays strict; no additional handlers, Stage 3E or Stage 3F are implemented.
+  See [Runtime Candidate Ownership](Runtime%20Candidate%20Ownership.md).
 - Handler return value is `None`; the validated candidate is the result. Handler
   context cannot mutate the runtime registry, kernel-owned clock facts, event
   identity/order, or pre-existing pending and terminal event records. It may

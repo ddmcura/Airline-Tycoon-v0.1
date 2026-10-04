@@ -1,3 +1,12 @@
+# Stage 3D.2 bounded mutation ownership (2026-10-04); Schema remains 7.
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
+# Exact Payment/Departure/Completion write capsules; protected read-only authority.
+# Genuine predecessor/output proofs; inherited entry JSON/aliases + local checks.
+# Shadow retains full protected/alias oracle; final full gate/commit/recovery retained.
+# Private read-capability memo expires before flush/recovery; no saved proof/index.
+# Session/Kivy/Advance stay strict; no new certification or Stage 3E/3F activation.
+# Following Stage 3A-D notes record their dated historical scopes.
+
 # Revised Stage 3D flight proof optimization (2026-10-04); Schema remains 7.
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
 # Exact typed protected bytes; changed/excluded-record canonical JSON checks.

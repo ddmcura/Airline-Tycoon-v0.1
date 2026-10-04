@@ -3,6 +3,7 @@ import argparse
 from contextlib import ExitStack
 from copy import deepcopy
 import json
+import sys
 from pathlib import Path
 from time import perf_counter
 from statistics import median
@@ -18,12 +19,38 @@ from tests.profile_ph_runtime import memory_bytes
 
 def profile(base, target, shared=True, shadow=False):
     totals={}; calls={}; stack=[]; work={}; regions={}
+    def count_containers(value, private=False):
+        from collections.abc import Mapping, Sequence
+        pending=[value]; containers=entries=0
+        while pending:
+            item=pending.pop()
+            if isinstance(item,Mapping): values=item.values()
+            elif isinstance(item,(list,tuple)): values=item
+            elif private and isinstance(item,Sequence) and not isinstance(item,(str,bytes)): values=item
+            else: continue
+            containers+=1; entries+=len(item)
+            pending.extend(v for v in values if isinstance(v,Mapping) or isinstance(v,(list,tuple))
+                           or (private and isinstance(v,Sequence) and not isinstance(v,(str,bytes))))
+        return containers,entries
+
     def wrap(fn, category):
         def call(*args, **kwargs):
             name=category(args, stack) if callable(category) else category
             calls[name]=calls.get(name,0)+1
             frame=[perf_counter(),0.0]; stack.append((name,frame))
             try:
+                if name=='ownership_close':
+                    diagnostic=perf_counter(); memo=args[0]._views
+                    own_bytes=sys.getsizeof(memo)
+                    for marker,(source,view) in memo.items():
+                        access=view._access; cells=access.__closure__ or ()
+                        own_bytes+=sum(map(sys.getsizeof,(marker,(source,view),view,access,cells)))+sum(map(sys.getsizeof,cells))
+                    work['maximum_private_memo_bytes']=max(work.get('maximum_private_memo_bytes',0),own_bytes)
+                    work['maximum_private_containers']=max(work.get('maximum_private_containers',0),len(memo))
+                    elapsed=perf_counter()-diagnostic
+                    totals['diagnostic_measurement']=totals.get('diagnostic_measurement',0)+elapsed
+                    calls['diagnostic_measurement']=calls.get('diagnostic_measurement',0)+1
+                    frame[1]+=elapsed
                 result=fn(*args,**kwargs)
                 if name=='protected_encoding':
                     work['protected_bytes']=work.get('protected_bytes',0)+len(result)
@@ -35,10 +62,28 @@ def profile(base, target, shared=True, shadow=False):
                     work['result_visits']=work.get('result_visits',0)+len(args[0]['world_state']['flight_results'])
                 if name=='kernel_witness':
                     work['event_records_copied']=work.get('event_records_copied',0)+sum(len(args[0]['world_state'][n]) for n in ('pending_events','event_history'))
+                if name=='ownership_publish' and hasattr(args[0],'_views'):
+                    work['maximum_private_containers']=max(work.get('maximum_private_containers',0),len(args[0]._views))
+                if name in ('ownership_baseline','mutable_alias'):
+                    diagnostic=perf_counter()
+                    if name=='ownership_baseline':
+                        containers=len(args[0]._views) if hasattr(args[0],'_views') else 0
+                        entries=containers
+                    else: containers,entries=count_containers(args[0])
+                    if name=='ownership_baseline':
+                        work['maximum_private_containers']=max(work.get('maximum_private_containers',0),containers)
+                        pass  # Entry creates one lazy root; publish/close report actual memo sizes.
+                    else:
+                        work['alias_container_visits']=work.get('alias_container_visits',0)+containers
+                    elapsed=perf_counter()-diagnostic
+                    totals['diagnostic_measurement']=totals.get('diagnostic_measurement',0)+elapsed
+                    calls['diagnostic_measurement']=calls.get('diagnostic_measurement',0)+1
+                    frame[1]+=elapsed
                 return result
             finally:
                 elapsed=perf_counter()-frame[0]; stack.pop()
-                if name in ('capture_departure','capture_completion','validate_departure','validate_completion'):
+                if name in ('capture_departure','capture_completion','validate_departure','validate_completion',
+                            'ownership_baseline','ownership_begin','ownership_publish','ownership_close'):
                     regions[name]=regions.get(name,0)+elapsed
                 totals[name]=totals.get(name,0)+elapsed-frame[1]
                 if stack: stack[-1][1][1]+=elapsed
@@ -63,6 +108,18 @@ def profile(base, target, shared=True, shadow=False):
         (proof,'supports_completion','completion_chronology'),
         (fulfilment,'_build_confirmed_carriage_manifest','manifest'),
         (fulfilment,'completion_cost','cost'),(fulfilment,'settlement_records','settlement')]
+    try:
+        from game.simulation import candidate_ownership as ownership
+    except ImportError:
+        ownership=None
+    if ownership is not None:
+        hooks.extend([(ownership.CandidateOwnership,'__init__','ownership_baseline'),
+                      (ownership.CandidateOwnership,'begin','ownership_begin'),
+                      (ownership.CandidateOwnership,'publish','ownership_publish'),
+                      (ownership.CandidateOwnership,'close','ownership_close'),
+                      (ownership.WriteCapsule,'checked_outputs','ownership_boundary'),
+                      (ownership,'json_compatibility_error','canonical_json'),
+                      (ownership,'mutable_alias_error','mutable_alias')])
     if hasattr(proof,'protected_bytes'):
         hooks.append((proof,'protected_bytes','protected_encoding'))
     hooks += [(proof,n,n) for n in ('capture_departure','capture_completion','validate_departure','validate_completion')]
@@ -83,7 +140,10 @@ def profile(base, target, shared=True, shadow=False):
     sizes={k:len(v) for k,v in base['world_state'].items() if type(v) in (dict,list)}
     measured=sum(totals.values())
     return dict(total_seconds=elapsed,exclusive_seconds=totals,calls=calls,unattributed_seconds=elapsed-measured,
-        measured_seconds=measured,nonoverlapping_proof_regions=regions,proof_region_seconds=sum(regions.values()),events=request._completed,batches=batches,max_step_seconds=max(steps),
+        measured_seconds=measured,nonoverlapping_proof_regions=regions,proof_region_seconds=sum(regions[n] for n in regions if n.startswith(('capture_','validate_'))),
+        ownership_plus_proof_seconds=sum(regions.values()),
+        diagnostic_adjusted_ownership_proof_seconds=sum(regions.values())-totals.get('diagnostic_measurement',0),
+        events=request._completed,batches=batches,max_step_seconds=max(steps),
         work=work,collection_sizes=sizes,world_hash=world_digest(world),process_peak_bytes=memory_bytes())
 
 

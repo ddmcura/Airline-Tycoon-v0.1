@@ -9,6 +9,7 @@ import heapq
 
 from . import kernel
 from .execution_contracts import SharedExecutionState
+from .candidate_ownership import CandidateOwnership
 from .resolver import ResolutionRequest
 from game.world_state.timestamps import parse_canonical_utc
 
@@ -17,17 +18,26 @@ def _validate_batch(candidate):
     return kernel.validate_world(candidate)
 
 
-def _shared_transition(candidate, event_id, handler, contract=None):
+def _shared_transition(candidate, event_id, handler, contract=None, *, ownership=None, oracle=False):
     before = kernel._event_contract_witness(candidate)
-    witness = (contract.capture_transition(candidate, event_id, before)
+    oracle_witness = (contract.capture_transition(candidate,event_id,before)
+                      if oracle and contract is not None else None)
+    capsule = (ownership.begin(contract.mutation_footprint(candidate,event_id))
+               if ownership is not None and contract is not None else None)
+    execution = capsule.envelope if capsule is not None else candidate
+    witness = (contract.capture_transition(candidate, event_id, before, ownership=capsule)
+               if capsule is not None else contract.capture_transition(candidate, event_id, before)
                if contract is not None else None)
     outcome, failure, generated = kernel._apply_handler_candidate(
-        before, candidate, event_id, handler)
+        before, execution, event_id, handler)
     if failure:
         return outcome, failure, generated
     if contract is not None:
         try:
-            contract.validate_transition(witness, candidate, event_id, generated)
+            contract.validate_transition(witness, execution, event_id, generated)
+            if capsule is not None: ownership.publish(candidate,capsule)
+            if oracle_witness is not None:
+                contract.validate_transition(oracle_witness,candidate,event_id,generated)
         except Exception as exc:
             return None, kernel.EventFailure('TRANSITION_PROOF_FAILED',
                 f'certified transition proof failed: {exc}', event_id), ()
@@ -178,6 +188,7 @@ class SharedResolutionRequest(ResolutionRequest):
         candidate = kernel._clone_runtime_world(self._world)
         candidate_heap = list(self._heap)
         reference = kernel._clone_runtime_world(self._world) if self.shadow else None
+        ownership = None
         records = []
         attempts = 0
         generated_count = self._generated
@@ -198,14 +209,21 @@ class SharedResolutionRequest(ResolutionRequest):
                 contract = self.registry.execution_contract_for(event['event_type'])
                 handler = self.registry.handler_for(event['event_type'])
                 if contract.validate_transition is not None:
-                    outcome, failure, generated = _shared_transition(candidate, event_id, handler, contract)
+                    if contract.mutation_footprint is not None and ownership is None:
+                        ownership = CandidateOwnership(candidate, _validated=True)
+                    outcome, failure, generated = _shared_transition(candidate, event_id, handler, contract,
+                        ownership=ownership,oracle=self.shadow)
                 else:
+                    if ownership is not None: ownership.close()
+                    ownership = None  # Full-gated probes have a broader write surface.
                     outcome, failure, generated = _shared_transition(candidate, event_id, handler)
             except Exception:
-                candidate = reference = None
+                if ownership is not None: ownership.close()
+                candidate = reference = ownership = None
                 return self._recover(attempts)
             if failure:
-                candidate = reference = None
+                if ownership is not None: ownership.close()
+                candidate = reference = ownership = None
                 return self._recover(attempts)
             heapq.heappop(candidate_heap)
             self._insert_generated(candidate_heap, candidate, generated)
@@ -215,10 +233,12 @@ class SharedResolutionRequest(ResolutionRequest):
                 try:
                     strict = kernel.process_next_event(reference, registry=self.registry)
                 except Exception:
-                    candidate = reference = None
+                    if ownership is not None: ownership.close()
+                    candidate = reference = ownership = None
                     return self._recover(attempts)
                 if not strict.succeeded or reference != candidate:
-                    candidate = reference = None
+                    if ownership is not None: ownership.close()
+                    candidate = reference = ownership = None
                     return self._recover(attempts)
             failure = self._limit_after(candidate_heap, generated_count)
             if failure:
@@ -227,13 +247,16 @@ class SharedResolutionRequest(ResolutionRequest):
             if self._paused_by_event(candidate):
                 terminal = ('STOPPED', None)
                 break
+        if ownership is not None:
+            ownership.close()
+            ownership = None
         try:
             validation = _validate_batch(candidate)
         except Exception:
-            candidate = reference = None
+            candidate = reference = ownership = None
             return self._recover(attempts)
         if not validation.is_valid or (reference is not None and reference != candidate):
-            candidate = reference = None
+            candidate = reference = ownership = None
             return self._recover(attempts)
         kernel._replace_envelope(self._world, candidate)
         self._heap = candidate_heap

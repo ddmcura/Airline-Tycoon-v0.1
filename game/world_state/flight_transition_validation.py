@@ -1,9 +1,11 @@
 """Exact Stage 3C flight transitions from a fully valid predecessor.
 
 Runtime witnesses only. No full-world gate, authoritative index or new formulas.
-Exact protected bytes and manifest/kernel witnesses still grow with history.
+Owned execution protects untouched authority structurally; full protected bytes
+remain the diagnostic oracle. Manifest/kernel witnesses still grow with history.
 """
 from copy import deepcopy
+from game.simulation.candidate_ownership import require_capsule, require_predecessor
 import json
 from .ids import format_entity_id
 from .flight_proof_witness import protected_bytes, mutable_alias_error as _container_alias_error
@@ -77,7 +79,7 @@ def _capture(envelope,event_id,kernel_before,completion=False):
     return witness
 
 
-def capture_departure(envelope,event_id,kernel_before):
+def capture_departure(envelope,event_id,kernel_before,*,ownership=None):
     from game.aircraft_operations.fulfilment import departure_operation
     if not supports_departure(envelope,envelope['world_state']['pending_events'][event_id]):
         raise ValueError('departure outside certified inputs')
@@ -89,7 +91,9 @@ def capture_departure(envelope,event_id,kernel_before):
     operation=departure_operation(envelope,next_flight,aircraft['aircraft_id'],before['manifest'],event_id)
     operation['completion_event_id']=successor_id
     before['expected_operation']=operation
-    before['protected']=_protected_digest(envelope,before['excluded'])
+    if ownership is not None: require_predecessor(ownership,envelope)
+    before['ownership']=ownership
+    before['protected']=None if ownership is not None else _protected_digest(envelope,before['excluded'])
     return before
 
 
@@ -115,6 +119,10 @@ def _kernel_transition(before,candidate,event_id,generated,successor=None):
     if set(world['event_history']) != set(before['kernel']['world_state']['event_history'])|{event_id}:
         raise ValueError('flight history topology changed')
     _exact(world['event_history'][event_id],{**event,'status':'COMPLETED','resolved_at_utc':event['due_at_utc']},'event lifecycle')
+    if before.get('ownership') is not None:
+        require_capsule(before['ownership'],candidate)
+        before['ownership'].checked_outputs()
+        return
     # Unchanged records inherit entry JSON compatibility ONLY after exact typed
     # protected comparison. Check every excluded/new/changed record explicitly.
     changed=[candidate['simulation'],candidate['deterministic_state']['id_allocator']]
@@ -150,13 +158,39 @@ def validate_departure(before,candidate,event_id,generated):
     _kernel_transition(before,candidate,event_id,generated,successor)
 
 
+def _flight_ownership(envelope,event_id,completion):
+    world=envelope['world_state']; event=world['pending_events'][event_id]
+    flight=world['dated_flights'][event['owner_id']]; flight_id=flight['dated_flight_id']
+    aircraft_id=(world['active_aircraft_operations'][flight_id]['actual_aircraft_id']
+                 if completion else flight['planned_aircraft_id'])
+    keys={'dated_flights':{flight_id},'aircraft':{aircraft_id},
+          'active_aircraft_operations':{flight_id},'pending_events':{event_id},
+          'event_history':{event_id}}
+    allocator=envelope['deterministic_state']['id_allocator']['next_by_type']
+    if completion:
+        airline_id=flight['airline_id']
+        keys.update(airlines={airline_id},financial_accounts=set(world['airlines'][airline_id]['financial_account_ids']),
+                    transactions={format_entity_id('transaction',allocator['transaction'])},flight_results={flight_id})
+    else: keys['pending_events'].add(format_entity_id('event',allocator['event']))
+    return keys
+
+
+def departure_ownership(envelope,event_id):
+    return _flight_ownership(envelope,event_id,False)
+
+
+def completion_ownership(envelope,event_id):
+    return _flight_ownership(envelope,event_id,True)
+
+
 def departure_execution_contract(handler):
     from game.aircraft_operations.fulfilment import _departure_handler
     from game.simulation.execution_contracts import ExecutionMode,HandlerExecutionContract
     if handler is not _departure_handler: raise ValueError('exact built-in departure required')
     return HandlerExecutionContract(handler,ExecutionMode.SHARED,DEPARTURE_VERSION,
         'Exact Departure before/after proof; Flight Shared Certification.md',True,(7,),
-        capture_transition=capture_departure,validate_transition=validate_departure,supports_input=supports_departure)
+        capture_transition=capture_departure,validate_transition=validate_departure,supports_input=supports_departure,
+        mutation_footprint=departure_ownership)
 
 
 def supports_completion(envelope,event):
@@ -180,7 +214,7 @@ def supports_completion(envelope,event):
     except (KeyError,TypeError,ValueError): return False
 
 
-def capture_completion(envelope,event_id,kernel_before):
+def capture_completion(envelope,event_id,kernel_before,*,ownership=None):
     from game.aircraft_operations.fulfilment import completion_cost,settlement_records,_account_ids
     if not supports_completion(envelope,envelope['world_state']['pending_events'][event_id]):
         raise ValueError('completion outside certified inputs')
@@ -205,7 +239,9 @@ def capture_completion(envelope,event_id,kernel_before):
     before.update(expected_transaction=transaction,expected_result=result,cost=cost)
     before['excluded'].update(airlines={airline_id},financial_accounts=set(before['accounts']),
         transactions={transaction_id},flight_results={flight_id})
-    before['protected']=_protected_digest(envelope,before['excluded'])
+    if ownership is not None: require_predecessor(ownership,envelope)
+    before['ownership']=ownership
+    before['protected']=None if ownership is not None else _protected_digest(envelope,before['excluded'])
     return before
 
 
@@ -238,7 +274,8 @@ def completion_execution_contract(handler):
     if handler is not _completion_handler: raise ValueError('exact built-in completion required')
     return HandlerExecutionContract(handler,ExecutionMode.SHARED,COMPLETION_VERSION,
         'Exact Completion before/after proof; Flight Shared Certification.md',True,(7,),
-        capture_transition=capture_completion,validate_transition=validate_completion,supports_input=supports_completion)
+        capture_transition=capture_completion,validate_transition=validate_completion,supports_input=supports_completion,
+        mutation_footprint=completion_ownership)
 
 
 def is_flight_certificate(contract):
@@ -249,4 +286,5 @@ def is_flight_certificate(contract):
     return (type(contract) is type(expected) and contract.handler is expected.handler
         and contract.capture_transition is expected.capture_transition
         and contract.validate_transition is expected.validate_transition
-        and contract.supports_input is expected.supports_input and contract==expected)
+        and contract.supports_input is expected.supports_input
+        and contract.mutation_footprint is expected.mutation_footprint and contract==expected)

@@ -7,6 +7,19 @@ and [marketplace specification](Aircraft%20Marketplace%20Technical%20Specificati
 Schema remains 7. This document records the audit before enabling certification;
 implementation verification is recorded in Current Development Status.
 
+## Stage 3D.2 successor — bounded mutation ownership
+
+[Runtime Candidate Ownership](Runtime%20Candidate%20Ownership.md) documents the
+separately approved successor. Exact built-in Payment/Departure/Completion receive
+one-event write capsules and recursively read-only protected authority. Genuine
+predecessor/selected-output proofs remain; protected JSON/alias validity inherits
+from fully validated entry plus enforced write isolation and local output checks.
+Full protected/alias oracles remain in shadow mode, with strict replay, final full
+validation and detached commit unchanged. Memoized read capabilities end before
+flush/recovery; they are neither authority nor Stage 2 indexes. Schema stays 7.
+Normal session/Kivy/Advance pacing remains strict; no Stage 3E/3F or new certificate.
+Earlier dated sections below retain their historical implementation evidence.
+
 ## Exact write footprint
 
 The current exact `step5._payment_handler` and its posting/scheduling helpers write:

@@ -10,6 +10,7 @@ import json
 from game.simulation.kernel import DEFAULT_EVENT_HANDLERS, schedule_event, _EVENT_TRANSACTION_TOKEN
 from game.maintenance.routine import departure_witness, maintenance_expense_minor
 from game.world_state.ids import allocate_id
+from game.simulation.candidate_ownership import is_read_dict
 from game.world_state.schema import (
     AGGREGATE_BOOKING_CONTRACT,
     DIRECT_ECONOMY_ITINERARY_CONTRACT,
@@ -130,18 +131,18 @@ def _booking_checkpoint_contains(world, booking):
     checkpoint = state.get("booking_checkpoints", {}).get(
         booking.get("booking_checkpoint_id")
     )
-    if type(checkpoint) is not dict or checkpoint.get("status") != "COMPLETED":
+    if not is_read_dict(checkpoint) or checkpoint.get("status") != "COMPLETED":
         return False
     market_id = world["itineraries"][booking["itinerary_id"]]["market_id"]
     result = checkpoint.get("market_results", {}).get(market_id)
-    if type(result) is not dict or booking["booking_id"] not in result.get(
+    if not is_read_dict(result) or booking["booking_id"] not in result.get(
         "booking_ids", []
     ):
         return False
     desired = result.get("desired_date_results", {}).get(
         booking.get("desired_travel_date")
     )
-    return type(desired) is dict and booking["booking_id"] in desired.get(
+    return is_read_dict(desired) and booking["booking_id"] in desired.get(
         "booking_ids", []
     )
 
@@ -152,7 +153,7 @@ def _sale_lineage_valid(world, booking):
         return transaction_id is None
     transaction = world.get("transactions", {}).get(transaction_id)
     return (
-        type(transaction) is dict
+        is_read_dict(transaction)
         and transaction.get("source_type") == "BOOKING_CHECKPOINT"
         and transaction.get("source_id") == booking.get("booking_checkpoint_id")
         and transaction.get("airline_id") == booking.get("airline_id")
@@ -213,7 +214,7 @@ def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids
     if not timed_deadhead(world, flight) and (
         flight.get("service_type") != "PASSENGER"
         or flight.get("passenger_service_classification") != "ECONOMY"
-        or type(market) is not dict
+        or not is_read_dict(market)
     ):
         return empty(FlightFulfilmentIssue(
             "FLIGHT_NOT_OPERABLE", "flight is not a direct Economy passenger service"
@@ -223,14 +224,14 @@ def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids
     for booking_id in (sorted(world["bookings"]) if booking_ids is None else booking_ids):
         booking = world["bookings"][booking_id]
         if (
-            type(booking) is not dict
+            not is_read_dict(booking)
             or booking.get("contract") != AGGREGATE_BOOKING_CONTRACT
             or booking.get("status") != "CONFIRMED"
         ):
             continue
         itinerary = world["itineraries"].get(booking.get("itinerary_id"))
         if (
-            type(itinerary) is not dict
+            not is_read_dict(itinerary)
             or itinerary.get("contract") != DIRECT_ECONOMY_ITINERARY_CONTRACT
             or itinerary.get("status") != "CONFIRMED"
             or itinerary.get("dated_flight_ids") != [dated_flight_id]

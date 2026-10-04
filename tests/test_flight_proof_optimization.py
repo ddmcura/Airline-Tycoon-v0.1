@@ -147,7 +147,7 @@ class FlightProofOptimizationTests(unittest.TestCase):
             if calls==2: raise ValueError('controlled encoding fault')
             return real(value)
         with patch.object(proof,'protected_bytes',fail_after_capture):
-            result=resolve_until(self.world,target,shared=True,max_batch_events=64)
+            result=resolve_until(self.world,target,shared=True,shadow=True,max_batch_events=64)
         self.assertEqual(result.failure.code,'OPTIMIZER_DIVERGENCE')
         self.assertEqual(len(result.completed_event_ids),1)
         self.assertEqual(canonical_world(self.world),canonical_world(expected))

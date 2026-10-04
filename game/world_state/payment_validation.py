@@ -1,9 +1,10 @@
 """Versioned exact payment proof (schema 6/7), from a valid predecessor.
 
-No full-world validator or journal replay here. Protected fingerprints and journal
-chronology scans still grow with retained history. See certification document.
+No full-world validator or journal replay here. Full protected fingerprints remain
+the diagnostic oracle; journal chronology still grows with retained history.
 """
 from copy import deepcopy
+from game.simulation.candidate_ownership import require_capsule, require_predecessor
 from hashlib import sha256
 import json
 from .ids import format_entity_id
@@ -70,7 +71,7 @@ def _protected_digest(envelope, contract_id, airline_id, account_ids, transactio
     return sha256(_encoded(protected).encode('utf-8')).digest()
 
 
-def capture_payment_transition(candidate, event_id, kernel_before):
+def capture_payment_transition(candidate, event_id, kernel_before, *, ownership=None):
     from game.aircraft_market.step5 import payment_terms
     from game.economy.aircraft_market import normalize_market_entries, market_transaction_record
     event = deepcopy(candidate['world_state']['pending_events'][event_id])
@@ -92,9 +93,10 @@ def capture_payment_transition(candidate, event_id, kernel_before):
         source_id=contract['aircraft_contract_id'], entries=entries)
     successor_id = (format_entity_id('event', allocator['next_by_type']['event'])
                     if terms['next_due'] is not None else None)
-    return dict(event=event, contract=contract, airline=airline, accounts=accounts, successor_id=successor_id,
+    if ownership is not None: require_predecessor(ownership,candidate)
+    return dict(event=event, contract=contract, airline=airline, accounts=accounts, successor_id=successor_id, ownership=ownership,
         allocator=allocator, terms=terms, transaction=transaction, kernel=kernel_before,
-        protected=_protected_digest(candidate, event['owner_id'], contract['airline_id'],
+        protected=None if ownership is not None else _protected_digest(candidate, event['owner_id'], contract['airline_id'],
                                     set(accounts), transaction_id, event_id, successor_id))
 
 
@@ -143,9 +145,27 @@ def validate_payment_transition(before, candidate, event_id, generated):
         raise ValueError('payment event history topology changed')
     _exact(world['event_history'][event_id], {**event, 'status': 'COMPLETED',
         'resolved_at_utc': event['due_at_utc']}, 'event lifecycle')
+    if before.get('ownership') is not None:
+        require_capsule(before['ownership'],candidate)
+        before['ownership'].checked_outputs()
+        return
     if _protected_digest(candidate, contract_id, airline_id, set(before['accounts']),
                          transaction['transaction_id'], event_id, before['successor_id']) != before['protected']:
         raise ValueError('payment changed an unrelated protected structure')
+
+
+def payment_ownership(candidate,event_id):
+    from game.aircraft_market.step5 import payment_terms
+    world=candidate['world_state']; event=world['pending_events'][event_id]
+    contract=world['aircraft_contracts'][event['owner_id']]; airline_id=contract['airline_id']
+    allocator=candidate['deterministic_state']['id_allocator']['next_by_type']
+    pending={event_id}
+    if payment_terms(contract)['next_due'] is not None:
+        pending.add(format_entity_id('event',allocator['event']))
+    return {'aircraft_contracts':{contract['aircraft_contract_id']},'airlines':{airline_id},
+            'financial_accounts':set(world['airlines'][airline_id]['financial_account_ids']),
+            'transactions':{format_entity_id('transaction',allocator['transaction'])},
+            'pending_events':pending,'event_history':{event_id}}
 
 
 def payment_execution_contract(handler):
@@ -157,7 +177,7 @@ def payment_execution_contract(handler):
         'Exact payment delta, protected dependencies and intermediate validity; '
         'Contract Payment Shared Certification.md', True, (6, 7),
         capture_transition=capture_payment_transition, validate_transition=validate_payment_transition,
-        supports_input=supports_payment_transition)
+        supports_input=supports_payment_transition,mutation_footprint=payment_ownership)
 
 
 def is_payment_certificate(contract):
@@ -168,4 +188,5 @@ def is_payment_certificate(contract):
             and contract.capture_transition is capture_payment_transition
             and contract.validate_transition is validate_payment_transition
             and contract.supports_input is supports_payment_transition
+            and contract.mutation_footprint is payment_ownership
             and contract == expected)
