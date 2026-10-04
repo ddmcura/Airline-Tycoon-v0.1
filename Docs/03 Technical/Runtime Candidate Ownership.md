@@ -1,5 +1,13 @@
 # Runtime Candidate Ownership — Stage 3D.2
 
+## Stage 3D.3 successor
+
+[Candidate Manifest Lookup](Candidate%20Manifest%20Lookup.md) adds a lazy verified
+Booking-ID lookup only inside protected opt-in shared candidates. Current manifest
+checks, strict full-scan oracle, fences/replay/final gates and separate Stage 2
+committed read ownership remain. Schema 7 and normal Kivy/session pacing stay
+unchanged. The dated sections below retain their original evidence.
+
 Approved bounded implementation, 2026-10-04. Baseline
 `1bf99b647163ee0834908ec8820a6abd4339ba56` matched local HEAD, upstream and
 live origin/master before changes. Authority remains the

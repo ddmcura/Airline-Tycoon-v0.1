@@ -158,9 +158,9 @@ class FlightProofOptimizationTests(unittest.TestCase):
                 world=deepcopy(self.base); world['ui_state']['filters']['empty']=[]
                 expected=deepcopy(world); self.assertTrue(kernel.process_next_event(expected).succeeded)
                 real=kernel._apply_handler_candidate; calls=0
-                def corrupt(original,candidate,event_id,handler):
+                def corrupt(original,candidate,event_id,handler,**options):
                     nonlocal calls
-                    outcome=real(original,candidate,event_id,handler); calls+=1
+                    outcome=real(original,candidate,event_id,handler,**options); calls+=1
                     if calls==1:
                         flight_id=candidate['world_state']['event_history'][event_id]['owner_id']
                         operation=candidate['world_state']['active_aircraft_operations'][flight_id]
@@ -183,9 +183,9 @@ class FlightProofOptimizationTests(unittest.TestCase):
     def test_later_event_cannot_repair_protected_mutation(self):
         target=window(self.world,'departure'); calls=0
         real=kernel._apply_handler_candidate
-        def corrupt(original,candidate,event_id,handler):
+        def corrupt(original,candidate,event_id,handler,**options):
             nonlocal calls
-            outcome=real(original,candidate,event_id,handler)
+            outcome=real(original,candidate,event_id,handler,**options)
             calls+=1
             if calls==1: candidate['world_state']['airports'][next(iter(candidate['world_state']['airports']))]['corruption']=True
             return outcome

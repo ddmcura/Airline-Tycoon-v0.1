@@ -2,6 +2,73 @@
 
 Last updated: **2026-10-04**. Current snapshot, not operational authorization.
 
+## Stage 3D.3 — candidate-local Booking/manifest lookup (2026-10-04)
+
+Baseline **a58fdd021ac904aea161a1d7e6bb023dbb6b61de** matched local HEAD,
+upstream and live origin/master before edits. Evidence covers this working-tree
+implementation. [Complete access/proof/lifetime/performance audit](Candidate%20Manifest%20Lookup.md).
+
+- Certified flight capture/handlers use lazy immutable Booking IDs grouped by
+  authoritative itinerary flight relationship. Construction independently checks
+  complete coverage, association and exact sorted order; current manifest lineage,
+  capacity, revisions, checkpoint/sale and frozen completion checks remain.
+- Source Bookings/itineraries stay protected by the actual certified mutation
+  footprints. Generic capsules expose only a source-bound read callable. Lookup
+  state closes before commit/return/fence/discard/recovery; strict replay and full
+  shadow scan/oracle remain. No whole-manifest cache or persistent authority index.
+- Stage 2 committed reads stay separate. Schema remains **7**, saves are unchanged,
+  no handlers are additionally certified, and normal session/Kivy/Advance pacing
+  stays strict. No Stage 3E/3F, overload, speed, gameplay, validation/clone/history
+  redesign or unrelated GUI changes. Pre-existing untracked `.venv/` is untouched.
+- Same eleven frozen fixtures retain exact complete-world hashes and shared commit
+  vectors. Fresh three-sample medians: dense-25 / 100 events **7.931 → 4.688 s**;
+  manifest **3.998 → 1.331 s**, actual manifest Booking visits **355,200 → 7,104**.
+  Two candidate builds each make one build and one independent coverage pass.
+- Dense max shared step **4.997 → 2.730 s**. Divine-next **10.913 → 9.929 s**;
+  Divine-short **12.569 → 10.154 s**. Largest post step **7.470 s**; these are still
+  synchronous stalls. Full validation (~8.1 s) and cloning (~1.4 s) dominate Divine.
+- Controlled fixed 14-ID manifest at 896/1,616/4,453 Bookings: canonical lookup
+  **16.4/23.5/53.3 ms**, indexed **3.3/2.6/3.4 ms**. Candidate lookup structural
+  size ~18 KiB dense /225 KiB Divine; construction temporary memory remains O(B).
+  Isolated peaks dense **81.19 → 82.45 MiB**, Divine **374.37 → 372.94 MiB**.
+- Exploratory 50 aircraft /200 events: **12.471 s**, max step **4.048 s**, one shared
+  sample only. This is not formal 50-aircraft Ultra/Stage 3F certification.
+- All six Payment fixtures match strict authority. Alternating isolated medians
+  overlap/are near parity; strict for exactly one eligible transition is a reasonable
+  future integration policy, not implemented or proven universally fastest here.
+- **A — proceed to a separately approved bounded Stage 3E integration** is the
+  recommendation. Remaining history/full-validation/clone costs remain visible;
+  this is not sustainable Ultra or human GUI responsiveness acceptance.
+
+### Verification
+
+- `python -B -m unittest tests.test_candidate_manifest_lookup
+  tests.test_candidate_ownership tests.test_flight_proof_optimization
+  tests.test_flight_certification tests.test_payment_certification
+  tests.test_shared_candidate -q`: **183 passed in 641.146 s**, including 26 new
+  lookup/order/corruption/lifetime/recovery/serialization/metadata regressions.
+- `python -B -m tests.profile_contract_payment --case all --mode both --repeats 1`:
+  all six strict/shared complete-world hashes match, after final certificate review.
+- `python -B -m unittest discover -s tests`: **938 passed in 1557.209 s**,
+  versus predecessor 912. Includes complete Stage 1 oracle, Stage 2 ownership/
+  invalidation, Stage 3A–D infrastructure/certification/recovery, Booking/manifest,
+  finance/journal, aircraft/maintenance, kernel/runtime/Advance, GUI and persistence.
+- `python -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`:
+  passed on final source. No source changes followed the full run.
+- `python -B -m tests.smoke_runtime_startup`: **PASS**, native Windows Python
+  3.12.10 / Kivy 2.3.1 / SDL2 / OpenGL, fresh process direct Load Game without
+  New Game, two completed Booking checkpoints /14 Bookings, exact paused
+  save/reload at `2026-09-02T00:00:30Z`; window 2560 ×1377. Ordinary strict
+  production startup is verified; human shared-path responsiveness is not claimed.
+- Final self-review covers the complete diff, exact source/order/coverage,
+  immutable IDs/current resolution, protected mutation union, expiry/recovery,
+  aliases/JSON, Payment metadata identity, weak callback lifetime, Stage 2 and
+  persistence separation. Documentation links and `git diff --check` pass.
+  Commit/push outcomes are reported after the actual Git operations.
+
+The dated Stage 3D.2 evidence below records the predecessor implementation; its
+"another proof-cost pass first" recommendation is superseded by Stage 3D.3 above.
+
 ## Stage 3D.2 — shared-candidate mutation ownership (2026-10-04)
 
 Baseline **1bf99b647163ee0834908ec8820a6abd4339ba56** matched local HEAD,

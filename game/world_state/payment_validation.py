@@ -189,4 +189,5 @@ def is_payment_certificate(contract):
             and contract.validate_transition is validate_payment_transition
             and contract.supports_input is supports_payment_transition
             and contract.mutation_footprint is payment_ownership
+            and contract.read_lookup_factory is expected.read_lookup_factory
             and contract == expected)

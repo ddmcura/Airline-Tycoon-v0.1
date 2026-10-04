@@ -1,5 +1,13 @@
 # Flight Shared Certification — Stage 3C
 
+## Stage 3D.3 successor
+
+[Candidate Manifest Lookup](Candidate%20Manifest%20Lookup.md) adds a lazy verified
+Booking-ID lookup only inside protected opt-in shared candidates. Current manifest
+checks, strict full-scan oracle, fences/replay/final gates and separate Stage 2
+committed read ownership remain. Schema 7 and normal Kivy/session pacing stay
+unchanged. The dated sections below retain their original evidence.
+
 Bounded approved scope, 2026-10-04. Baseline
 `3f6f6ab76194b36825d3850651b6f96d1fd7267e` matched live origin/master.
 Authority: [canonical contract](Stage%201%20State%20Schema.md#clock-and-event-contract).

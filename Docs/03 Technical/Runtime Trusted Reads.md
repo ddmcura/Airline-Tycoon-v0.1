@@ -1,5 +1,13 @@
 # Runtime Trusted Reads — Stage 2
 
+## Stage 3D.3 successor
+
+[Candidate Manifest Lookup](Candidate%20Manifest%20Lookup.md) adds a lazy verified
+Booking-ID lookup only inside protected opt-in shared candidates. Current manifest
+checks, strict full-scan oracle, fences/replay/final gates and separate Stage 2
+committed read ownership remain. Schema 7 and normal Kivy/session pacing stay
+unchanged. The dated sections below retain their original evidence.
+
 Scope: measured read/derivation optimization on Stage 1 baseline
 `6c729ff0d1265f6eef2abac8420f8ed69afca5b5`, live origin/master verified before edits.
 Authority stays in the [canonical schema](Stage%201%20State%20Schema.md).

@@ -93,6 +93,7 @@ class EventContext:
     envelope: dict
     event: dict
     _transaction_token: object | None = None
+    _read_capability: object | None = None
 
     @property
     def payload(self):
@@ -438,7 +439,7 @@ def _event_contract_witness(candidate):
     }
 
 
-def _apply_handler_candidate(original, candidate, event_id, handler):
+def _apply_handler_candidate(original, candidate, event_id, handler, *, read_capability=None):
     """Same handler/lifecycle machinery for strict and opt-in shared work.
 
     Caller supplies genuine before-event evidence and owns validation/commit.
@@ -448,7 +449,8 @@ def _apply_handler_candidate(original, candidate, event_id, handler):
     due = candidate_event["due_at_utc"]
     candidate["simulation"]["time_utc"] = due
     try:
-        handler_result = handler(EventContext(candidate, deepcopy(candidate_event), _EVENT_TRANSACTION_TOKEN))
+        handler_result = handler(EventContext(candidate, deepcopy(candidate_event),
+                                             _EVENT_TRANSACTION_TOKEN, read_capability))
     except Exception as exc:  # handler boundary deliberately converts to data
         return None, EventFailure("HANDLER_FAILED", str(exc), event_id), ()
     if handler_result is not None:

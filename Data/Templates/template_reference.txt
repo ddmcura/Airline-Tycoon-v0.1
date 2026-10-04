@@ -1,3 +1,11 @@
+# Stage 3D.3 candidate-local manifest IDs (2026-10-04); Schema remains 7.
+# Canonical clock/event contract; no new persistent field or save migration.
+# Lazy verified sorted Booking IDs via authoritative itinerary.dated_flight_ids.
+# Current manifest lineage/capacity proof retained; protected sources cannot mutate.
+# Candidate-only lifetime; discarded before commit/fence/return/recovery.
+# Separate from Stage 2; no saved index. Session/Kivy stay strict; no Stage 3E/3F.
+# Following dated notes preserve their historical implementation scopes.
+
 # Stage 3D.2 bounded mutation ownership (2026-10-04); Schema remains 7.
 # Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
 # Exact Payment/Departure/Completion write capsules; protected read-only authority.

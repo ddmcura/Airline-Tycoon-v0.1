@@ -1411,6 +1411,16 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   No persistent field or schema version changes. Normal session/Kivy/Advance
   pacing stays strict; no additional handlers, Stage 3E or Stage 3F are implemented.
   See [Runtime Candidate Ownership](Runtime%20Candidate%20Ownership.md).
+- Stage 3D.3 (2026-10-04) adds only a private candidate-local Booking-ID
+  lookup for the existing certified flight handlers. Verified sorted IDs derive
+  from Booking-to-itinerary-to-flight authority and remain reusable only while
+  the enforced write footprints protect those source collections. Current-record
+  manifest/lineage checks and exact predecessor/output proofs remain mandatory.
+  Lazy construction and independent complete-coverage checks occur once per
+  candidate; lookup state is discarded before every commit/return/fence/recovery.
+  It is separate from Stage 2 reads and never saved. Schema stays 7; normal
+  session/Kivy/Advance remains strict, with no added certification or Stage 3E/3F.
+  See [Candidate Manifest Lookup](Candidate%20Manifest%20Lookup.md).
 - Handler return value is `None`; the validated candidate is the result. Handler
   context cannot mutate the runtime registry, kernel-owned clock facts, event
   identity/order, or pre-existing pending and terminal event records. It may

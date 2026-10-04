@@ -5,6 +5,7 @@ boundary, not a sandbox against deliberate Python reflection or monkeypatching.
 Canonical world/alias validators and detached publication remain independent.
 """
 from copy import deepcopy
+from weakref import ref
 import json
 from collections.abc import Mapping, Sequence
 
@@ -207,15 +208,42 @@ class CandidateOwnership:
             if error: raise ValueError(f'non-JSON ownership baseline: {error}')
         self._candidate = candidate
         self._views = {}
+        self._read_lookups = {}
         self._alive = [True]
         self._snapshot = _view_factory(self._views,self._alive)(candidate)
 
-    def begin(self, footprint):
+    def begin(self, footprint, *, read_lookup_factory=None):
         if not self._alive[0]: raise ValueError('ownership candidate expired')
-        return WriteCapsule(self._snapshot, footprint, _token=_OWNERSHIP_TOKEN, _alive=self._alive, _source_identity=id(self._candidate))
+        # Also protect an existing service from a later mixed-handler footprint.
+        for factory in self._read_lookups:
+            if set(footprint).intersection(factory.protected_collections):
+                raise ValueError('candidate lookup source is writable')
+        if read_lookup_factory is not None and set(footprint).intersection(read_lookup_factory.protected_collections):
+            raise ValueError('candidate lookup source is writable')
+        capsule = WriteCapsule(self._snapshot, footprint, _token=_OWNERSHIP_TOKEN,
+                              _alive=self._alive, _source_identity=id(self._candidate))
+        capsule_ref = ref(capsule)
+        def read(envelope, key):
+            # Avoid a capsule -> callback -> capsule cycle retaining event copies.
+            bound = capsule_ref()
+            if bound is None: raise ValueError('ownership read capability expired')
+            require_predecessor(bound, envelope)
+            if envelope is bound.envelope:
+                for name in read_lookup_factory.protected_collections:
+                    if envelope['world_state'][name] is not bound._world_roots[name]:
+                        raise ValueError('candidate lookup source replaced')
+            service = self._read_lookups.get(read_lookup_factory)
+            if service is None:
+                service = read_lookup_factory(self._candidate)
+                self._read_lookups[read_lookup_factory] = service
+            return service.lookup(envelope, key)
+        capsule.read_lookup = read if read_lookup_factory is not None else None
+        return capsule
 
     def close(self):
         self._alive[0] = False
+        for service in self._read_lookups.values(): service.close()
+        self._read_lookups.clear()
         self._views.clear()
         self._candidate = self._snapshot = None
 

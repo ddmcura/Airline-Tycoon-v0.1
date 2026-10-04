@@ -22,14 +22,16 @@ def _shared_transition(candidate, event_id, handler, contract=None, *, ownership
     before = kernel._event_contract_witness(candidate)
     oracle_witness = (contract.capture_transition(candidate,event_id,before)
                       if oracle and contract is not None else None)
-    capsule = (ownership.begin(contract.mutation_footprint(candidate,event_id))
+    capsule = (ownership.begin(contract.mutation_footprint(candidate,event_id),
+                               read_lookup_factory=contract.read_lookup_factory)
                if ownership is not None and contract is not None else None)
     execution = capsule.envelope if capsule is not None else candidate
     witness = (contract.capture_transition(candidate, event_id, before, ownership=capsule)
                if capsule is not None else contract.capture_transition(candidate, event_id, before)
                if contract is not None else None)
     outcome, failure, generated = kernel._apply_handler_candidate(
-        before, execution, event_id, handler)
+        before, execution, event_id, handler,
+        read_capability=capsule.read_lookup if capsule is not None else None)
     if failure:
         return outcome, failure, generated
     if contract is not None:

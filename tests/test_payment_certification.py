@@ -280,8 +280,8 @@ class PaymentSharedTests(unittest.TestCase):
         primitive = kernel._apply_handler_candidate
         ids = payment_ids(self.world)
         touched = []
-        def defect(before, candidate, event_id, handler):
-            outcome = primitive(before, candidate, event_id, handler)
+        def defect(before, candidate, event_id, handler, **options):
+            outcome = primitive(before, candidate, event_id, handler, **options)
             if event_id == ids[1]:
                 owner = candidate['world_state']['event_history'][event_id]['owner_id']
                 candidate['world_state']['aircraft_contracts'][owner]['principal_paid_minor'] += 1

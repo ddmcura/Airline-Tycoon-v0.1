@@ -39,6 +39,21 @@ def profile(base, target, shared=True, shadow=False):
             calls[name]=calls.get(name,0)+1
             frame=[perf_counter(),0.0]; stack.append((name,frame))
             try:
+                if name=='lookup_close':
+                    diagnostic=perf_counter(); lookup=args[0]; groups=lookup._groups
+                    ids=sum(len(v) for v in groups.values())
+                    own_bytes=sum(map(sys.getsizeof,(lookup,vars(lookup),lookup._sources,lookup._sizes,groups,dict(groups))))+sum(sys.getsizeof(v) for v in groups.values())
+                    work['maximum_lookup_bytes']=max(work.get('maximum_lookup_bytes',0),own_bytes)
+                    work['maximum_lookup_groups']=max(work.get('maximum_lookup_groups',0),len(groups))
+                    work['maximum_lookup_ids']=max(work.get('maximum_lookup_ids',0),ids)
+                    elapsed=perf_counter()-diagnostic
+                    totals['diagnostic_measurement']=totals.get('diagnostic_measurement',0)+elapsed
+                    calls['diagnostic_measurement']=calls.get('diagnostic_measurement',0)+1
+                    frame[1]+=elapsed
+                if name=='lookup_build':
+                    work['booking_build_visits']=work.get('booking_build_visits',0)+len(args[1]['world_state']['bookings'])
+                if name=='lookup_verify':
+                    work['booking_verification_visits']=work.get('booking_verification_visits',0)+len(args[0]['bookings'])
                 if name=='ownership_close':
                     diagnostic=perf_counter(); memo=args[0]._views
                     own_bytes=sys.getsizeof(memo)
@@ -56,8 +71,14 @@ def profile(base, target, shared=True, shadow=False):
                     work['protected_bytes']=work.get('protected_bytes',0)+len(result)
                     work['maximum_protected_bytes']=max(work.get('maximum_protected_bytes',0),len(result))
                 if name=='manifest':
-                    work['booking_visits']=work.get('booking_visits',0)+len(args[0]['world_state']['bookings'])
+                    ids=kwargs.get('booking_ids')
+                    visits=len(args[0]['world_state']['bookings']) if ids is None else len(ids)
+                    work['booking_visits']=work.get('booking_visits',0)+visits
+                    key='canonical_booking_visits' if ids is None else 'indexed_booking_visits'
+                    work[key]=work.get(key,0)+visits
                     work['manifest_booking_rows']=work.get('manifest_booking_rows',0)+len(result.source_booking_ids)
+                if name=='lookup_query':
+                    work['lookup_ids_returned']=work.get('lookup_ids_returned',0)+len(result)
                 if name=='completion_chronology':
                     work['result_visits']=work.get('result_visits',0)+len(args[0]['world_state']['flight_results'])
                 if name=='kernel_witness':
@@ -120,6 +141,15 @@ def profile(base, target, shared=True, shadow=False):
                       (ownership.WriteCapsule,'checked_outputs','ownership_boundary'),
                       (ownership,'json_compatibility_error','canonical_json'),
                       (ownership,'mutable_alias_error','mutable_alias')])
+    try:
+        from game.aircraft_operations import manifest_lookup
+    except ImportError:
+        manifest_lookup=None
+    if manifest_lookup is not None:
+        hooks.extend([(manifest_lookup.CandidateManifestLookup,'__init__','lookup_build'),
+                      (manifest_lookup,'_verify_groups','lookup_verify'),
+                      (manifest_lookup.CandidateManifestLookup,'lookup','lookup_query'),
+                      (manifest_lookup.CandidateManifestLookup,'close','lookup_close')])
     if hasattr(proof,'protected_bytes'):
         hooks.append((proof,'protected_bytes','protected_encoding'))
     hooks += [(proof,n,n) for n in ('capture_departure','capture_completion','validate_departure','validate_completion')]

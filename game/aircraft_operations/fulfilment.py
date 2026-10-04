@@ -163,7 +163,7 @@ def _sale_lineage_valid(world, booking):
 
 
 def build_confirmed_carriage_manifest(
-    envelope, dated_flight_id, *, _validation_token=None
+    envelope, dated_flight_id, *, _validation_token=None, _booking_lookup=None
 ):
     """Return the detached strict confirmed V1 Booking manifest."""
     empty = lambda issue: FlightManifest(
@@ -181,14 +181,18 @@ def build_confirmed_carriage_manifest(
             return empty(FlightFulfilmentIssue(
                 "INVALID_WORLD_STATE", issue.message, issue.path
             ))
-    return _build_confirmed_carriage_manifest(envelope, dated_flight_id)
+    if _booking_lookup is not None and _validation_token is not _PROJECTION_VALIDATION_TOKEN:
+        raise ValueError('candidate manifest lookup requires owned event reads')
+    ids = _booking_lookup(envelope, dated_flight_id) if _booking_lookup is not None else None
+    return _build_confirmed_carriage_manifest(envelope, dated_flight_id, booking_ids=ids)
 
 
 def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids=None):
     """Same manifest rules; private read lookup requires validated owner context.
 
-    Event handlers/public callers keep the full scan. A session read snapshot can
-    supply its immutable source-bound IDs; no index authorizes any mutation.
+    Strict handlers/public callers keep the full scan. Owned read snapshots and
+    certified private capsules may supply immutable source-bound IDs. The same
+    current-record lineage/capacity rules below always run; no index owns authority.
     """
     empty = lambda issue: FlightManifest(
         dated_flight_id if type(dated_flight_id) is str else "",
@@ -500,7 +504,7 @@ def departure_operation(envelope, flight, aircraft_id, manifest, event_id):
 def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, expected_operation_revision=None,
                expected_booking_revision=None, expected_inventory_revision=None,
                expected_event_order_cursor=None, expected_configuration_revision=None,
-               expected_configuration_fingerprint=None, _event_transaction=None):
+               expected_configuration_fingerprint=None, _event_transaction=None, _booking_lookup=None):
     flight, rejection = _common_checks(envelope, flight_id, _event_transaction=_event_transaction)
     if rejection:
         return rejection
@@ -551,7 +555,8 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
         return _reject(envelope, flight_id, "AIRCRAFT_UNAVAILABLE", "aircraft must be parked at the origin")
     manifest = build_confirmed_carriage_manifest(envelope, flight_id,
         _validation_token=(_PROJECTION_VALIDATION_TOKEN
-                           if _event_transaction is _EVENT_TRANSACTION_TOKEN else None))
+                           if _event_transaction is _EVENT_TRANSACTION_TOKEN else None),
+        _booking_lookup=_booking_lookup)
     if not manifest.succeeded:
         issue = manifest.issues[0]
         return _reject(envelope, flight_id, issue.code, issue.message, issue.path)
@@ -744,7 +749,7 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
                 expected_booking_revision=None, expected_inventory_revision=None,
                 expected_finance_revision=None, expected_event_order_cursor=None,
                 expected_configuration_revision=None,
-                expected_configuration_fingerprint=None, _event_transaction=None):
+                expected_configuration_fingerprint=None, _event_transaction=None, _booking_lookup=None):
     flight, rejection = _common_checks(envelope, flight_id, _event_transaction=_event_transaction)
     if rejection:
         return rejection
@@ -795,7 +800,8 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
         return _reject(envelope, flight_id, "EVENT_NOT_NEXT", "completion event is not the next canonical pending event")
     manifest = build_confirmed_carriage_manifest(envelope, flight_id,
         _validation_token=(_PROJECTION_VALIDATION_TOKEN
-                           if _event_transaction is _EVENT_TRANSACTION_TOKEN else None))
+                           if _event_transaction is _EVENT_TRANSACTION_TOKEN else None),
+        _booking_lookup=_booking_lookup)
     if not manifest.succeeded:
         issue = manifest.issues[0]
         return _reject(envelope, flight_id, issue.code, issue.message, issue.path)
@@ -892,7 +898,8 @@ def process_flight_completion(envelope, dated_flight_id, **witnesses):
 def _departure_handler(context):
     flight_id = context.payload.get("dated_flight_id") if type(context.payload) is dict else None
     result = _departure(context.envelope, flight_id, resolve_event=False,
-                        _event_transaction=context._transaction_token)
+                        _event_transaction=context._transaction_token,
+                        _booking_lookup=context._read_capability)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 
@@ -900,7 +907,8 @@ def _departure_handler(context):
 def _completion_handler(context):
     flight_id = context.payload.get("dated_flight_id") if type(context.payload) is dict else None
     result = _completion(context.envelope, flight_id, resolve_event=False,
-                         _event_transaction=context._transaction_token)
+                         _event_transaction=context._transaction_token,
+                         _booking_lookup=context._read_capability)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 

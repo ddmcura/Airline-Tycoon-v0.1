@@ -2,7 +2,7 @@
 
 Runtime witnesses only. No full-world gate, authoritative index or new formulas.
 Owned execution protects untouched authority structurally; full protected bytes
-remain the diagnostic oracle. Manifest/kernel witnesses still grow with history.
+remain the diagnostic oracle. Manifest reads use private candidate IDs; kernel witnesses still grow with history.
 """
 from copy import deepcopy
 from game.simulation.candidate_ownership import require_capsule, require_predecessor
@@ -62,14 +62,15 @@ def _protected_digest(envelope, excluded):
     return protected_bytes(protected)
 
 
-def _capture(envelope,event_id,kernel_before,completion=False):
+def _capture(envelope,event_id,kernel_before,completion=False,ownership=None):
     from game.aircraft_operations import fulfilment
     world=envelope['world_state']; event=deepcopy(world['pending_events'][event_id])
     flight=deepcopy(world['dated_flights'][event['owner_id']]); flight_id=flight['dated_flight_id']
     operation=deepcopy(world['active_aircraft_operations'].get(flight_id))
     aircraft_id=operation['actual_aircraft_id'] if completion else flight['planned_aircraft_id']
     aircraft=deepcopy(world['aircraft'][aircraft_id])
-    manifest=fulfilment._build_confirmed_carriage_manifest(envelope,flight_id)
+    ids = ownership.read_lookup(envelope, flight_id) if ownership is not None and ownership.read_lookup is not None else None
+    manifest=fulfilment._build_confirmed_carriage_manifest(envelope,flight_id,booking_ids=ids)
     if not manifest.succeeded: raise ValueError(manifest.issues[0].message)
     allocator=deepcopy(envelope['deterministic_state']['id_allocator'])
     excluded={'dated_flights':{flight_id},'aircraft':{aircraft_id},
@@ -83,7 +84,8 @@ def capture_departure(envelope,event_id,kernel_before,*,ownership=None):
     from game.aircraft_operations.fulfilment import departure_operation
     if not supports_departure(envelope,envelope['world_state']['pending_events'][event_id]):
         raise ValueError('departure outside certified inputs')
-    before=_capture(envelope,event_id,kernel_before)
+    if ownership is not None: require_predecessor(ownership,envelope)
+    before=_capture(envelope,event_id,kernel_before,ownership=ownership)
     flight=before['flight']; aircraft=before['aircraft']; allocator=before['allocator']
     successor_id=format_entity_id('event',allocator['next_by_type']['event'])
     before['excluded']['pending_events'].add(successor_id)
@@ -186,11 +188,12 @@ def completion_ownership(envelope,event_id):
 def departure_execution_contract(handler):
     from game.aircraft_operations.fulfilment import _departure_handler
     from game.simulation.execution_contracts import ExecutionMode,HandlerExecutionContract
+    from game.aircraft_operations.manifest_lookup import CandidateManifestLookup
     if handler is not _departure_handler: raise ValueError('exact built-in departure required')
     return HandlerExecutionContract(handler,ExecutionMode.SHARED,DEPARTURE_VERSION,
         'Exact Departure before/after proof; Flight Shared Certification.md',True,(7,),
         capture_transition=capture_departure,validate_transition=validate_departure,supports_input=supports_departure,
-        mutation_footprint=departure_ownership)
+        mutation_footprint=departure_ownership,read_lookup_factory=CandidateManifestLookup)
 
 
 def supports_completion(envelope,event):
@@ -218,7 +221,8 @@ def capture_completion(envelope,event_id,kernel_before,*,ownership=None):
     from game.aircraft_operations.fulfilment import completion_cost,settlement_records,_account_ids
     if not supports_completion(envelope,envelope['world_state']['pending_events'][event_id]):
         raise ValueError('completion outside certified inputs')
-    before=_capture(envelope,event_id,kernel_before,completion=True)
+    if ownership is not None: require_predecessor(ownership,envelope)
+    before=_capture(envelope,event_id,kernel_before,completion=True,ownership=ownership)
     world=envelope['world_state']; flight=before['flight']; operation=before['operation']
     flight_id=flight['dated_flight_id']; airline_id=flight['airline_id']
     frozen=before['manifest'].as_dict()
@@ -271,11 +275,12 @@ def validate_completion(before,candidate,event_id,generated):
 def completion_execution_contract(handler):
     from game.aircraft_operations.fulfilment import _completion_handler
     from game.simulation.execution_contracts import ExecutionMode,HandlerExecutionContract
+    from game.aircraft_operations.manifest_lookup import CandidateManifestLookup
     if handler is not _completion_handler: raise ValueError('exact built-in completion required')
     return HandlerExecutionContract(handler,ExecutionMode.SHARED,COMPLETION_VERSION,
         'Exact Completion before/after proof; Flight Shared Certification.md',True,(7,),
         capture_transition=capture_completion,validate_transition=validate_completion,supports_input=supports_completion,
-        mutation_footprint=completion_ownership)
+        mutation_footprint=completion_ownership,read_lookup_factory=CandidateManifestLookup)
 
 
 def is_flight_certificate(contract):
@@ -287,4 +292,5 @@ def is_flight_certificate(contract):
         and contract.capture_transition is expected.capture_transition
         and contract.validate_transition is expected.validate_transition
         and contract.supports_input is expected.supports_input
-        and contract.mutation_footprint is expected.mutation_footprint and contract==expected)
+        and contract.mutation_footprint is expected.mutation_footprint
+        and contract.read_lookup_factory is expected.read_lookup_factory and contract==expected)

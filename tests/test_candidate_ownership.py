@@ -285,9 +285,9 @@ class OwnershipTransitionTests(unittest.TestCase):
         expected=deepcopy(self.world)
         for _ in range(4): self.assertTrue(kernel.process_next_event(expected).succeeded)
         actual=kernel._apply_handler_candidate; calls=0
-        def faulty(original,candidate,event_id,handler):
+        def faulty(original,candidate,event_id,handler,**options):
             nonlocal calls
-            result=actual(original,candidate,event_id,handler); calls+=1
+            result=actual(original,candidate,event_id,handler,**options); calls+=1
             if calls==4: candidate['world_state']['airports'][next(iter(candidate['world_state']['airports']))]['bad']=True
             return result
         with patch.object(kernel,'_apply_handler_candidate',faulty):

@@ -28,6 +28,7 @@ class HandlerExecutionContract:
     validate_transition: object = None
     supports_input: object = None
     mutation_footprint: object = None
+    read_lookup_factory: object = None
 
     def permits_shared(self, handler, schema, *, shadow):
         return (self.handler is handler and self.mode is ExecutionMode.SHARED

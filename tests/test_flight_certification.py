@@ -163,8 +163,8 @@ class DepartureSharedTests(unittest.TestCase):
         ids=[e['event_id'] for e in sorted(self.world['world_state']['pending_events'].values(),key=kernel._event_key)][:3]
         bad_aircraft=self.world['world_state']['dated_flights'][self.world['world_state']['pending_events'][ids[1]]['owner_id']]['planned_aircraft_id']
         primitive=kernel._apply_handler_candidate; touched=[]
-        def faulty(before,candidate,event_id,handler):
-            result=primitive(before,candidate,event_id,handler)
+        def faulty(before,candidate,event_id,handler,**options):
+            result=primitive(before,candidate,event_id,handler,**options)
             if event_id==ids[1]: candidate['world_state']['aircraft'][bad_aircraft]['current_airport_id']='bad'; touched.append(event_id)
             if event_id==ids[2]: candidate['world_state']['aircraft'][bad_aircraft]['current_airport_id']=None; touched.append(event_id)
             return result
@@ -321,8 +321,8 @@ class CompletionSharedTests(unittest.TestCase):
         ids=[e['event_id'] for e in sorted(self.world['world_state']['pending_events'].values(),key=kernel._event_key)][:3]
         bad_flight=self.world['world_state']['pending_events'][ids[1]]['owner_id']
         primitive=kernel._apply_handler_candidate; touched=[]
-        def faulty(before,candidate,event_id,handler):
-            outcome=primitive(before,candidate,event_id,handler)
+        def faulty(before,candidate,event_id,handler,**options):
+            outcome=primitive(before,candidate,event_id,handler,**options)
             if event_id==ids[1]: candidate['world_state']['flight_results'][bad_flight]['operating_cost_minor']+=1; touched.append(event_id)
             if event_id==ids[2]: candidate['world_state']['flight_results'][bad_flight]['operating_cost_minor']-=1; touched.append(event_id)
             return outcome

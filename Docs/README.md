@@ -49,6 +49,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   revised Stage 3D exclusive profiling, exact typed witnesses and narrowed JSON proof.
 - [Runtime candidate ownership](03%20Technical/Runtime%20Candidate%20Ownership.md):
   Stage 3D.2 enforced mutation reachability, local alias proofs and measured scaling.
+- [Candidate manifest lookup](03%20Technical/Candidate%20Manifest%20Lookup.md):
+  Stage 3D.3 protected private Booking IDs, exact coverage/lifetime and measured scaling.
 - [Runtime resolution foundation](03%20Technical/Runtime%20Resolution%20Foundation.md):
   shared strict resolver facade, complete boundaries and exact equivalence oracle.
 - [PH GUI foundation specification](03%20Technical/PH%20GUI%20Foundation%20Technical%20Specification.md):
