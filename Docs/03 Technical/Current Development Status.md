@@ -2,6 +2,30 @@
 
 Last updated: **2026-10-05**. Current snapshot, not operational authorization.
 
+## Scheduling Patch 1.1 — Earliest Available initial activation (2026-10-05)
+
+Baseline **8d91bd6ed135d5b8f574b76cf993f44405ac9a78** matched local HEAD,
+upstream and live origin/master. [Measured timestamps, correction and limits](Scheduling%20Earliest%20Activation%20Fix.md).
+
+- Earliest no longer interprets an early lower bound as elapsed operational
+  intent. The reproduced false CEB position came from an inert 06:00 MNL→CEB
+  pattern; actual position remained MNL. Correct earliest is 08:30 PH.
+- Initial activation proposals are proven through existing detached Add/publication
+  validation because insertion can change the skipped prefix. A measured equality
+  case requires **08:30:01**, not 08:30:00; canonical seconds pass unchanged through
+  both GUI workflows. No minute-rounding bug or arbitrary turnaround buffer.
+- Nine domain plus two GUI regressions; focused suites **112 passed in 81.289 s**.
+  Native Windows Kivy PASS: multi-day Earliest + Return Add **.494 s**, four real
+  flights/results, exact save/paused reload, single-insert second-boundary publication.
+  Programmatic smoke does not prove human smoothness. All saves/output use TEMP.
+- Full `python -B -m unittest discover -s tests`: **1048 passed in 993.514 s**,
+  final production source frozen throughout the run. Scoped application compilation,
+  **33 affected documentation links** and diff whitespace pass. Complete self-review found
+  no schema, recurrence, save, runtime/speed, GUI layout or unrelated gameplay changes.
+  No automatic deadhead; ordinary incompatible origins/conflicts remain strict.
+- Larger initial partial drafts can require several detached validation trials;
+  broad performance work is deferred. No Patch 2/Stage 3G begins; `.venv/` untouched.
+
 ## Scheduling Patch 1 - initial partial-week activation and hang (2026-10-05)
 
 Baseline **3b524084cc0ea24e69a9505a1ac31e4a5fd5126a** matched local HEAD,

@@ -1,6 +1,6 @@
 """UI-independent, detached weekly drafts over canonical schedule publication."""
 
-from copy import deepcopy
+from copy import copy, deepcopy
 from contextlib import contextmanager
 from datetime import date, timedelta
 import json
@@ -323,7 +323,19 @@ class WeeklyDraft:
         pre, block, post = timing_bounds(snapshot)[1]
         now = parse_canonical_utc(self._base['simulation']['time_utc'])
         floor = parse_canonical_utc(not_before) if not_before else now
-        pattern = _pattern_only or (floor - timedelta(seconds=pre) < now and not_before is not None)
+        # Only an explicitly inert return is pattern planning. A lower bound
+        # before preparation/now does not turn Earliest Available into history.
+        pattern = _pattern_only
+        if not pattern:
+            from .activation import initial_week_end
+            if initial_week_end(self._base, self.aircraft_id,
+                                ((parse_canonical_utc(leg['departure_utc']) - timedelta(
+                                    seconds=timing_bounds(leg['planning_timing'])[1][0]),
+                                  parse_canonical_utc(leg['departure_utc']))
+                                 for leg in self._legs)) is not None:
+                return self._earliest_initial_activation(origin, destination, snapshot,
+                                                         max(floor, now + timedelta(seconds=pre)),
+                                                         self._movements())
         cursor = floor if pattern else max(now + timedelta(seconds=pre), floor)
         location = origin if pattern else self.projected_location
         turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
@@ -348,6 +360,50 @@ class WeeklyDraft:
         if cursor > limit:
             raise ValueError('no slot within the publication horizon')
         return format_utc(cursor)
+
+    def _earliest_initial_activation(self, origin, destination, snapshot, floor, rows):
+        """Search exact change points, proving each proposal through publication.
+
+        Inserting a first operational leg can change which initial prefix is
+        skipped. The already-filtered predecessor sequence cannot prove that
+        new sequence. All search inputs are domain reservation bounds; Add and
+        detached publication remain the validators, not this search.
+        """
+        pre, block, post = timing_bounds(snapshot)[1]
+        turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
+        limit = parse_canonical_utc(self._base['simulation']['time_utc']) + timedelta(
+            days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
+        boundaries = {floor}
+        for start, end, departure, arrival, _, _ in rows:
+            boundaries.update((start + timedelta(seconds=pre), end + timedelta(seconds=pre),
+                               arrival + timedelta(seconds=turnaround), departure,
+                               start - timedelta(seconds=block + post),
+                               departure - timedelta(seconds=block + turnaround)))
+        # Order/strict inequalities can change immediately AFTER an equality.
+        # One second is the canonical timestamp resolution, not a safety buffer.
+        candidates = boundaries | {value + timedelta(seconds=1) for value in boundaries if value < limit}
+        failure = None
+        for departure in sorted(value for value in candidates if floor <= value <= limit):
+            leg = dict(origin_airport_id=origin, destination_airport_id=destination,
+                       departure_utc=format_utc(departure), planning_timing=snapshot,
+                       fare_minor=0, service_type='PASSENGER')
+            proposed = (departure - timedelta(seconds=pre), departure + timedelta(seconds=block + post),
+                        departure, departure + timedelta(seconds=block), origin, destination)
+            if proposed not in self._movements(operational=True, extra=leg):
+                continue  # Earliest means operational, never another inert slot.
+            trial = copy(self)
+            trial._legs = list(self._legs)
+            trial._undo_stack = []
+            try:
+                trial.add(origin, destination, departure_utc=leg['departure_utc'])
+                trial._candidate(trial._legs)
+            except ValueError as exc:
+                failure = exc
+                continue
+            return leg['departure_utc']
+        if failure is not None:
+            raise failure
+        raise ValueError('REPOSITIONING_REQUIRED: no feasible operational departure from the chosen origin')
 
     def add(self, origin, destination, *, departure_utc=None, fare_minor=0, deadhead=False):
         if type(fare_minor) is not int or fare_minor < 0:

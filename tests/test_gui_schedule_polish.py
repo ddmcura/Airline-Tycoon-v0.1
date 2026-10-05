@@ -258,6 +258,39 @@ class GuiWorkspacePolishTests(unittest.TestCase):
         self.app.on_stop()
         self.temp.cleanup()
 
+    def test_earliest_builder_current_partial_day_and_multiple_days(self):
+        app = self.app
+        app._builder_origin = self.airports['MNL']
+        app._builder_destination = self.airports['CEB']
+        app._builder_time = '06:00'
+        app._builder_return = False
+        app._builder_earliest = False
+        self.assertEqual(app.add_builder_flights(target_dates=('2026-09-01',)), 1)
+        app._builder_destination = self.airports['DVO']
+        app._builder_time = '00:00'
+        app._builder_earliest = True
+        app._builder_return = True
+        self.assertEqual(app.add_builder_flights(target_dates=('2026-09-01', '2026-09-02')), 4)
+        self.assertEqual(app._draft.legs[1]['departure_utc'], '2026-09-01T00:30:00Z')
+        self.assertEqual(app._draft.legs[2]['departure_utc'], '2026-09-01T02:40:00Z')
+
+    def test_single_insert_earliest_keeps_authoritative_seconds(self):
+        app = self.app
+        app._draft.add_weekdays(self.airports['MNL'], self.airports['CEB'],
+                                ['2026-09-01'], '06:00')
+        app._draft.add_weekdays(self.airports['CEB'], self.airports['DVO'],
+                                ['2026-09-01'], '08:30')
+        app._draft.add_weekdays(self.airports['DVO'], self.airports['MNL'],
+                                ['2026-09-01'], '11:00')
+        with patch.object(app, '_choice_form') as form:
+            app.show_add_leg()
+        submit = form.call_args.args[2]
+        submit(dict(origin=self.airports['MNL'], destination=self.airports['DVO'],
+                    date='2026-09-01', time='08:00', timing='Earliest available',
+                    fare='116', service='Passenger', position='Reject'))
+        self.assertEqual(app._draft.legs[-1]['departure_utc'], '2026-09-01T00:30:01Z')
+        app._draft.validate_current(app.session.world)
+
     def row_add(self, weekday_index):
         rows = self.app._draft.week_rows(self.app._schedule_week.isoformat())
         airports = {row['airport_id']: row['reference_code']

@@ -28,6 +28,11 @@ occurrences, established recurrences and replacement revisions cannot acquire
 this exception. No retroactive movement or automatic deadhead is created. This
 uses existing definitions/dated authority, with no activation field or schema
 change; see the [implementation and reproduction](../03%20Technical/Scheduling%20Initial%20Activation%20Fix.md).
+Earliest Available uses operational authority even when its lower bound precedes
+current preparation. In an initial partial week, its proposed activation is checked
+through the existing detached Add/publication boundary, retaining exact seconds;
+elapsed intent cannot supply a phantom origin. Explicit inert-pattern returns
+remain pattern intent. See [Patch 1.1 evidence](../03%20Technical/Scheduling%20Earliest%20Activation%20Fix.md).
 One-off publication ends each movement on its selected date. Repeat Until is
 inclusive; continuous recurrence has no end date. Both repeating modes publish
 only a bounded calendar horizon (current base-local week plus four future weeks),
