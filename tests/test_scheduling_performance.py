@@ -45,7 +45,7 @@ class SchedulingPerformanceTests(unittest.TestCase):
                 with patch('game.scheduling.weekly.validate_world', wraps=validate_world) as validations, \
                      patch.object(publication, 'validate_world', wraps=validate_world) as nested:
                     self.assertEqual(self.add(*offsets), 2 * len(offsets))
-                self.assertEqual(validations.call_count, 3)
+                self.assertEqual(validations.call_count, 0) # Draft proof constructs no world candidate.
                 self.assertEqual(nested.call_count, 0)
                 self.assertEqual(self.world, self.base)
                 self.assertNotIn('_operation_references', self.draft.__dict__)

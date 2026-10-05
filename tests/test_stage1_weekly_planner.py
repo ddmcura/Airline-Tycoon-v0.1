@@ -207,8 +207,9 @@ class WeeklyPlannerTests(unittest.TestCase):
         self.assertEqual(encoded(self.world), before)
 
     def test_deadhead_requires_explicit_action_and_operates_without_booking(self):
-        with self.assertRaisesRegex(ValueError,'REPOSITIONING_REQUIRED'):
-            self.draft.earliest(self.airports['CEB'],self.airports['DVO'])
+        before_plan = encoded(self.world)
+        self.assertEqual(self.draft.earliest(self.airports['CEB'],self.airports['DVO']), '2026-09-01T03:55:00Z')
+        self.assertEqual(encoded(self.world),before_plan)
         self.add(departure='2026-09-01T02:00:00Z',deadhead=True)
         self.draft.save(self.world)
         result = process_events_through(self.world,'2026-09-01T06:00:00Z')
@@ -348,7 +349,7 @@ class WeeklyPlannerTests(unittest.TestCase):
             path.read_text.return_value = json.dumps(profile)
             with self.assertRaises(KeyError):
                 self.draft.copy_day('2026-09-07', '2026-09-10')
-            self.assertEqual(path.read_text.call_count, 2)
+            self.assertEqual(path.read_text.call_count, 1)
         self.assertEqual(self.draft.legs, legs)
         self.assertEqual(encoded(self.world), before)
         self.draft.copy_day('2026-09-07', '2026-09-10')

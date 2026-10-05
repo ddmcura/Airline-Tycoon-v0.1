@@ -71,17 +71,17 @@ class EarliestActivationTests(unittest.TestCase):
         before = self.draft.legs
         with self.assertRaises(ValueError):
             self.draft.add_weekdays(self.ports['CEB'], self.ports['DVO'],
-                                   ['2026-09-01', '2026-09-02'], '08:00', earliest=True)
+                                   ['2026-09-01', '2026-09-02'], '09:00', earliest=False)
         self.assertEqual(self.draft.legs, before)
         self.draft.save_current(self.world)
         self.assertTrue(validate_world(self.world).is_valid)
 
-    def test_genuinely_incompatible_origin_is_not_invented_or_skipped(self):
+    def test_different_origin_earliest_is_planning_only_not_invented_movement(self):
         self.prefix()
         before = self.draft.legs
-        with self.assertRaisesRegex(ValueError, 'REPOSITIONING_REQUIRED'):
-            self.earliest('CEB', 'DVO')
+        self.assertEqual(self.earliest('CEB', 'DVO'), '2026-09-01T02:15:00Z')
         self.assertEqual(self.draft.legs, before)
+        self.assertEqual(self.world, self.base)
 
     def test_insertion_rechecks_activation_of_later_prefix(self):
         self.prefix()
@@ -89,9 +89,8 @@ class EarliestActivationTests(unittest.TestCase):
         self.draft.add_weekdays(self.ports['DVO'], self.ports['MNL'], ['2026-09-01'], '11:00')
         # At equality the new leg activates before the incompatible CEB leg.
         bad = deepcopy(self.draft)
-        bad.add(self.ports['MNL'], self.ports['DVO'], departure_utc='2026-09-01T00:30:00Z')
-        with self.assertRaisesRegex(ValueError, 'REPOSITIONING_REQUIRED'):
-            bad.save_current(deepcopy(self.world))
+        with self.assertRaisesRegex(ValueError, 'REPOSITIONING_INFEASIBLE|OVERLAP'):
+            bad.add(self.ports['MNL'], self.ports['DVO'], departure_utc='2026-09-01T00:30:00Z')
         self.assertEqual(self.earliest(), '2026-09-01T00:30:01Z')
         self.draft.add(self.ports['MNL'], self.ports['DVO'], departure_utc=self.earliest())
         self.draft.save_current(self.world)

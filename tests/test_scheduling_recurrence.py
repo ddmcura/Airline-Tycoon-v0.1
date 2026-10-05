@@ -202,8 +202,11 @@ class RecurringSchedulingTests(unittest.TestCase):
         draft.add_weekdays(self.airports['DVO'], self.airports['CEB'], ('2026-09-07',), '10:10')
         draft.save_current(self.world)
         wrong = self.draft()
+        wrong.add_weekdays(self.airports['MNL'], self.airports['CEB'], ('2026-09-08',), '08:00')
+        before_publish = deepcopy(self.world)
         with self.assertRaisesRegex(ValueError, 'REPOSITIONING_REQUIRED'):
-            wrong.add_weekdays(self.airports['MNL'], self.airports['CEB'], ('2026-09-08',), '08:00')
+            wrong.save_current(self.world)
+        self.assertEqual(self.world,before_publish)
         self.assertTrue(validate_world(self.world).is_valid)
 
     def test_origin_and_destination_timezones_and_midnight(self):

@@ -81,19 +81,27 @@ class WeeklyDraft:
                                  _references=getattr(self, '_operation_references', None))
 
     @contextmanager
-    def _planning_operation(self):
+    def _planning_operation(self, *, defer=False):
         """Reuse immutable base movements/reference inputs only for this batch.
 
         Draft legs are merged afresh on every check. These inputs never survive
         the operation, enter saves, or hide subsequent world/reference changes.
         """
+        if hasattr(self, '_operation_references'):
+            previous_defer = getattr(self, '_defer_plan_validation',False)
+            self._defer_plan_validation = defer
+            try:yield
+            finally:self._defer_plan_validation = previous_defer
+            return
         self._operation_references = _PlanningReferences()
+        self._defer_plan_validation = defer
         try:
             self._operation_movements = self._base_movements()
             yield
         finally:
             self.__dict__.pop('_operation_movements', None)
             self.__dict__.pop('_operation_references', None)
+            self.__dict__.pop('_defer_plan_validation', None)
 
     @property
     def context_airport_id(self):
@@ -318,92 +326,92 @@ class WeeklyDraft:
                                         activated_at=min(activated) if activated else None)
         return sorted(rows)
 
+    def _planning_rows(self, legs, *, repeat_until=None, continuous=False):
+        """Bounded transient intent expansion; no definitions/events/IDs allocated."""
+        from .activation import initial_week_end
+        base = getattr(self, '_operation_movements', None)
+        rows = list(self._base_movements() if base is None else base)
+        now = parse_canonical_utc(self._base['simulation']['time_utc'])
+        limit = now + timedelta(days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
+        eligible = set()
+        prototypes = []
+        for leg in legs:
+            pre, block, post = timing_bounds(leg['planning_timing'])[1]
+            depart = parse_canonical_utc(leg['departure_utc'])
+            prototypes.append((depart-timedelta(seconds=pre),depart))
+            zone = airport_zone(self._base['world_state'],leg['origin_airport_id'])
+            local = depart.astimezone(zone)
+            end = date.fromisoformat(repeat_until) if repeat_until else None
+            if end is not None and end < local.date():raise ValueError('repeat end precedes a draft flight')
+            day = local.date()
+            while depart <= limit:
+                if end is not None and day > end:break
+                row = (depart-timedelta(seconds=pre),depart+timedelta(seconds=block+post),
+                       depart,depart+timedelta(seconds=block),leg['origin_airport_id'],leg['destination_airport_id'])
+                rows.append(row);eligible.add(row)
+                if not (repeat_until or continuous):break
+                day += timedelta(days=7)
+                depart = local_departure(self._base['world_state'],leg['origin_airport_id'],day.isoformat(),local.strftime('%H:%M:%S'),fold=local.fold)
+        return rows, eligible, initial_week_end(self._base,self.aircraft_id,prototypes)
+
+    def validate_planning(self, *, repeat_until=None, continuous=False, _legs=None):
+        """Prove physical draft feasibility, independently of actual publication."""
+        from .planning_feasibility import PlanningFeasibility
+        legs = self._legs if _legs is None else _legs
+        rows,eligible,end = self._planning_rows(legs,repeat_until=repeat_until,continuous=continuous)
+        proof = PlanningFeasibility(self)
+        # Past-only pattern chronology must also be physical, but has no anchor.
+        past = sorted(row for row in rows if row in eligible and row[0] < proof.now)
+        for previous,row in zip(past,past[1:]):
+            failure = proof.conflict(previous,row)
+            if failure is not None:raise failure
+        return proof.validate(rows,eligible,end)
+
     def earliest(self, origin, destination, *, not_before=None, _pattern_only=False):
-        snapshot = self._snapshot(origin, destination)
-        pre, block, post = timing_bounds(snapshot)[1]
+        """Search exact readiness/order boundaries through the same plan proof."""
+        from .planning_feasibility import PlanningFeasibility
+        snapshot = self._snapshot(origin,destination)
+        pre,block,post = timing_bounds(snapshot)[1]
         now = parse_canonical_utc(self._base['simulation']['time_utc'])
         floor = parse_canonical_utc(not_before) if not_before else now
-        # Only an explicitly inert return is pattern planning. A lower bound
-        # before preparation/now does not turn Earliest Available into history.
-        pattern = _pattern_only
-        if not pattern:
-            from .activation import initial_week_end
-            if initial_week_end(self._base, self.aircraft_id,
-                                ((parse_canonical_utc(leg['departure_utc']) - timedelta(
-                                    seconds=timing_bounds(leg['planning_timing'])[1][0]),
-                                  parse_canonical_utc(leg['departure_utc']))
-                                 for leg in self._legs)) is not None:
-                return self._earliest_initial_activation(origin, destination, snapshot,
-                                                         max(floor, now + timedelta(seconds=pre)),
-                                                         self._movements())
-        cursor = floor if pattern else max(now + timedelta(seconds=pre), floor)
-        location = origin if pattern else self.projected_location
-        turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
-        for start, end, departure, arrival, row_origin, row_destination in self._movements(operational=not pattern):
-            if pattern:
-                if (not _pattern_only and departure >= now) or (format_utc(departure), row_origin, row_destination) not in {
-                    (leg['departure_utc'], leg['origin_airport_id'], leg['destination_airport_id'])
-                    for leg in self._legs}:
-                    continue
-            elif end <= now:
-                continue
-            if (location == origin
-                    and cursor + timedelta(seconds=block + post) <= start
-                    and cursor + timedelta(seconds=block + turnaround) <= departure):
-                return format_utc(cursor)
-            cursor = max(cursor, end + timedelta(seconds=pre),
-                         arrival + timedelta(seconds=turnaround))
-            location = row_destination
-        if location != origin:
-            raise ValueError('REPOSITIONING_REQUIRED: aircraft cannot reach the chosen origin; add an explicit positioning flight')
-        limit = now + timedelta(days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
-        if cursor > limit:
-            raise ValueError('no slot within the publication horizon')
-        return format_utc(cursor)
-
-    def _earliest_initial_activation(self, origin, destination, snapshot, floor, rows):
-        """Search exact change points, proving each proposal through publication.
-
-        Inserting a first operational leg can change which initial prefix is
-        skipped. The already-filtered predecessor sequence cannot prove that
-        new sequence. All search inputs are domain reservation bounds; Add and
-        detached publication remain the validators, not this search.
-        """
-        pre, block, post = timing_bounds(snapshot)[1]
-        turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
-        limit = parse_canonical_utc(self._base['simulation']['time_utc']) + timedelta(
-            days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
-        boundaries = {floor}
-        for start, end, departure, arrival, _, _ in rows:
-            boundaries.update((start + timedelta(seconds=pre), end + timedelta(seconds=pre),
-                               arrival + timedelta(seconds=turnaround), departure,
-                               start - timedelta(seconds=block + post),
-                               departure - timedelta(seconds=block + turnaround)))
-        # Order/strict inequalities can change immediately AFTER an equality.
-        # One second is the canonical timestamp resolution, not a safety buffer.
-        candidates = boundaries | {value + timedelta(seconds=1) for value in boundaries if value < limit}
-        failure = None
-        for departure in sorted(value for value in candidates if floor <= value <= limit):
-            leg = dict(origin_airport_id=origin, destination_airport_id=destination,
-                       departure_utc=format_utc(departure), planning_timing=snapshot,
-                       fare_minor=0, service_type='PASSENGER')
-            proposed = (departure - timedelta(seconds=pre), departure + timedelta(seconds=block + post),
-                        departure, departure + timedelta(seconds=block), origin, destination)
-            if proposed not in self._movements(operational=True, extra=leg):
-                continue  # Earliest means operational, never another inert slot.
-            trial = copy(self)
-            trial._legs = list(self._legs)
-            trial._undo_stack = []
-            try:
-                trial.add(origin, destination, departure_utc=leg['departure_utc'])
-                trial._candidate(trial._legs)
-            except ValueError as exc:
-                failure = exc
-                continue
-            return leg['departure_utc']
-        if failure is not None:
-            raise failure
-        raise ValueError('REPOSITIONING_REQUIRED: no feasible operational departure from the chosen origin')
+        floor = floor if _pattern_only else max(floor,now+timedelta(seconds=pre))
+        if _pattern_only:
+            proof = PlanningFeasibility(self)
+            previous = self._legs[-1]
+            bounds = timing_bounds(previous['planning_timing'])[1]
+            depart = parse_canonical_utc(previous['departure_utc'])
+            row = (depart-timedelta(seconds=bounds[0]),depart+timedelta(seconds=bounds[1]+bounds[2]),
+                   depart,depart+timedelta(seconds=bounds[1]),previous['origin_airport_id'],previous['destination_airport_id'])
+            return format_utc(max(floor,proof.ready(row,origin,pre)))
+        trial = copy(self);trial._legs=list(self._legs);trial._undo_stack=[]
+        with trial._planning_operation():
+            proof = PlanningFeasibility(trial)
+            rows,_,_ = trial._planning_rows(trial._legs)
+            limit = now+timedelta(days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
+            boundaries = {floor}
+            if not _pattern_only:
+                try:boundaries.add(proof.ready(None,origin,pre))
+                except (ValueError,KeyError):pass
+            for row in rows:
+                boundaries.update((row[2],row[0]+timedelta(seconds=pre)))
+                try:boundaries.add(proof.ready(row,origin,pre))
+                except (ValueError,KeyError):pass
+            candidates = boundaries | {value+timedelta(seconds=1) for value in boundaries if value < limit}
+            failure = None
+            for departure in sorted(value for value in candidates if floor <= value <= limit):
+                leg=dict(origin_airport_id=origin,destination_airport_id=destination,
+                         departure_utc=format_utc(departure),planning_timing=snapshot,
+                         fare_minor=0,service_type='PASSENGER')
+                proposed=(departure-timedelta(seconds=pre),departure+timedelta(seconds=block+post),departure,
+                          departure+timedelta(seconds=block),origin,destination)
+                try:
+                    checked=trial.validate_planning(_legs=trial._legs+[leg])
+                    if not _pattern_only and proposed not in checked:continue
+                except ValueError as exc:
+                    failure=exc;continue
+                return leg['departure_utc']
+        if failure is not None:raise failure
+        raise ValueError('REPOSITIONING_INFEASIBLE: no feasible departure within the planning horizon')
 
     def add(self, origin, destination, *, departure_utc=None, fare_minor=0, deadhead=False):
         if type(fare_minor) is not int or fare_minor < 0:
@@ -426,38 +434,9 @@ class WeeklyDraft:
         limit = now + timedelta(days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
         if depart > limit:
             raise ValueError('departure exceeds publication horizon')
-        location = origin if pattern else self.projected_location
-        turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
-        movements = self._movements() if pattern else self._movements(operational=True, extra=leg)
-        proposed = (start, end, depart, depart + timedelta(seconds=block), origin, destination)
-        if not pattern and proposed not in movements:
-            # Initial incompatible prefix remains intent only; publication
-            # proves the complete recurrence and strict post-activation chain.
-            self._undo_stack.append(deepcopy(self._legs))
-            self._legs = self._legs + [leg]
-            return deepcopy(leg)
-        if not pattern:
-            movements.remove(proposed)
-        for row_start, row_end, row_departure, arrival, row_origin, row_destination in movements:
-            if pattern:
-                if (format_utc(row_departure), row_origin, row_destination) not in {
-                    (item['departure_utc'], item['origin_airport_id'], item['destination_airport_id'])
-                    for item in self._legs}:
-                    continue
-            elif row_end <= now:
-                continue
-            if start < row_end and end > row_start:
-                raise ValueError('reserved ground/flight blocks overlap')
-            if row_departure < depart:
-                location = row_destination
-                if depart < arrival + timedelta(seconds=turnaround):
-                    raise ValueError('INSUFFICIENT_TURNAROUND')
-            elif row_departure < depart + timedelta(seconds=block + turnaround):
-                raise ValueError('INSUFFICIENT_TURNAROUND')
-        if location != origin:
-            raise ValueError('REPOSITIONING_REQUIRED: add an explicit positioning flight')
-        # A later movement may temporarily need a bridging leg while drafting.
-        # Publication validates the entire chain atomically at Save.
+        # Validate the resulting chronology before recording an atomic edit.
+        if not getattr(self,'_defer_plan_validation',False):
+            self.validate_planning(_legs=self._legs + [leg])
         self._undo_stack.append(deepcopy(self._legs))
         self._legs = self._legs + [leg]
         return deepcopy(leg)
@@ -474,7 +453,7 @@ class WeeklyDraft:
                leg['origin_airport_id'], leg['destination_airport_id'])
         departure = self.earliest(leg['destination_airport_id'], leg['origin_airport_id'],
                                  not_before=floor,
-                                 _pattern_only=row not in self._movements(operational=True))
+                                 _pattern_only=row not in self.validate_planning())
         return self.add(leg['destination_airport_id'], leg['origin_airport_id'],
                         departure_utc=departure,
                         fare_minor=leg['fare_minor'] if fare_minor is None else fare_minor)
@@ -492,11 +471,13 @@ class WeeklyDraft:
         anchor_local = anchor.astimezone(airport_zone(self._base['world_state'], selected[0]['origin_airport_id']))
         translated = local_departure(self._base['world_state'], selected[0]['origin_airport_id'],
                                      target.isoformat(), anchor_local.strftime('%H:%M:%S'))
-        for leg in selected:
-            departure = translated + (parse_canonical_utc(leg['departure_utc']) - anchor)
-            candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
-                          departure_utc=format_utc(departure), fare_minor=leg['fare_minor'],
-                          deadhead=leg['service_type'] == 'DEADHEAD')
+        with candidate._planning_operation(defer=True):
+            for leg in selected:
+                departure = translated + (parse_canonical_utc(leg['departure_utc']) - anchor)
+                candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                              departure_utc=format_utc(departure), fare_minor=leg['fare_minor'],
+                              deadhead=leg['service_type'] == 'DEADHEAD')
+            candidate.validate_planning()
         self._undo_stack.append(original)
         self._legs = candidate._legs
 
@@ -571,7 +552,7 @@ class WeeklyDraft:
     def _commit_edited_sequence(self, candidate):
         """Validate a detached edit and record one undo step, never world state."""
         if candidate._legs:
-            candidate._candidate(candidate._legs)
+            candidate.validate_planning()
         self._undo_stack.append(deepcopy(self._legs))
         self._legs = deepcopy(candidate._legs)
 
@@ -582,7 +563,7 @@ class WeeklyDraft:
             raise ValueError('select one or more distinct weekdays')
         candidate = deepcopy(self)
         zone = airport_zone(self._base['world_state'], origin)
-        with candidate._planning_operation():
+        with candidate._planning_operation(defer=True):
             for local_date in sorted(local_dates):
                 try:
                     requested = local_departure(candidate._base['world_state'],
@@ -598,8 +579,8 @@ class WeeklyDraft:
                         candidate.add_return(fare_minor=fare_minor)
                 except (ValueError, KeyError) as exc:
                     raise ValueError(f'{local_date}: {exc}') from exc
-        count = len(candidate._legs) - len(self._legs)
-        self._commit_edited_sequence(candidate)
+            count = len(candidate._legs) - len(self._legs)
+            self._commit_edited_sequence(candidate)
         return count
 
     def paste_weekdays(self, clipboard, local_dates, local_time):
@@ -626,10 +607,11 @@ class WeeklyDraft:
         candidate = WeeklyDraft(self._base, airline_id=self.airline_id,
                                 aircraft_id=self.aircraft_id)
         candidate._replacement_ids, candidate._revision_from = self._replacement_ids, self._revision_from
-        for leg in sorted(remaining, key=lambda row: row['departure_utc']):
-            candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
-                          departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
-                          deadhead=leg['service_type'] == 'DEADHEAD')
+        with candidate._planning_operation(defer=True):
+            for leg in sorted(remaining, key=lambda row: row['departure_utc']):
+                candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                              departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
+                              deadhead=leg['service_type'] == 'DEADHEAD')
         self._commit_edited_sequence(candidate)
         return len(indices)
 
@@ -645,10 +627,11 @@ class WeeklyDraft:
         candidate = WeeklyDraft(self._base, airline_id=self.airline_id,
                                 aircraft_id=self.aircraft_id)
         candidate._replacement_ids, candidate._revision_from = self._replacement_ids, self._revision_from
-        for leg in sorted(intents, key=lambda row: row['departure_utc']):
-            candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
-                          departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
-                          deadhead=leg['service_type'] == 'DEADHEAD')
+        with candidate._planning_operation(defer=True):
+            for leg in sorted(intents, key=lambda row: row['departure_utc']):
+                candidate.add(leg['origin_airport_id'], leg['destination_airport_id'],
+                              departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
+                              deadhead=leg['service_type'] == 'DEADHEAD')
         self._commit_edited_sequence(candidate)
         return deepcopy(moved)
 
@@ -671,7 +654,13 @@ class WeeklyDraft:
             raise ValueError('STALE_DRAFT: world changed; reopen the planner')
         if not self._legs and not self._replacement_ids:
             raise ValueError('draft has no flights')
-        candidate, ids, published = self._candidate(self._legs, repeat_until, continuous=continuous)
+        self.validate_planning(repeat_until=repeat_until,continuous=continuous)
+        try:
+            candidate, ids, published = self._candidate(self._legs, repeat_until, continuous=continuous)
+        except ValueError as exc:
+            if 'REPOSITIONING_REQUIRED' in str(exc):
+                raise ValueError(f'{exc}; planning-only reposition does not move aircraft: publication requires actual positioning') from exc
+            raise
         envelope.clear()
         envelope.update(deepcopy(candidate))
         self._base = deepcopy(candidate)
@@ -687,13 +676,14 @@ class WeeklyDraft:
         current = WeeklyDraft(envelope, airline_id=self.airline_id,
                               aircraft_id=self.aircraft_id)
         current._replacement_ids, current._revision_from = self._replacement_ids, self._revision_from
-        with current._planning_operation():
+        with current._planning_operation(defer=True):
             for leg in sorted(self._legs, key=lambda row: row['departure_utc']):
                 current.add(leg['origin_airport_id'], leg['destination_airport_id'],
                             departure_utc=leg['departure_utc'], fare_minor=leg['fare_minor'],
                             deadhead=leg['service_type'] == 'DEADHEAD')
                 if current._legs[-1]['planning_timing'] != leg['planning_timing']:
                     raise ValueError('STALE_DRAFT: aircraft timing changed; reopen the planner')
+            current.validate_planning()
         return current
 
     def save_current(self, envelope, *, repeat_until=None, continuous=False):

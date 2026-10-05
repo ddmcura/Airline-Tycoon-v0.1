@@ -1,6 +1,35 @@
 # Current Development Status
 
-Last updated: **2026-10-05**. Current snapshot, not operational authorization.
+Last updated: **2026-10-06**. Current snapshot, not operational authorization.
+
+## Scheduling Patch 4 — planning-only reposition feasibility (2026-10-06)
+
+Baseline local HEAD/upstream/live origin/master matched **0623a621835f2a8d6ca10d06f19d26b55cd42fff**.
+[Exact contract, audit, measurements and operational boundary](Scheduling%20Planning%20Reposition%20Feasibility.md).
+
+- Draft chronology allows a different next origin only when existing maximum
+  travel/handling and scalar-range/profile bounds prove it reachable in time.
+  Atomic inserts/edits, finite/continuous preview and Earliest share that proof.
+  Past intent stays inert; real obligations and later infeasible adjacency stay strict.
+- Publication remains unchanged and literal: implicit gaps do not operate. An
+  unresolved gap rejects without altering world/draft, with an actual-positioning
+  explanation. Existing explicit DEADHEAD lifecycle remains; none is inserted.
+- Daily one-way DVO→MNL accepted 7 legs in median .014916s (baseline rejected at
+  .010448 s); MWF .010317s. Valid Daily+Return .106638s→.022470s. One base projection
+  per Add; no discarded world construction/validation during draft Add.
+- Focused scheduling/planning/recurrence/performance/GUI **130 passed in 73.682 s**,
+  including 18 new regressions. Scoped application compilation and diff checks pass.
+- Fresh native Windows Kivy builder PASS: Daily 7 (.121473s), MWF 3, valid/invalid
+  gap edits, Earliest, Return, strict implicit-publication refusal and exact paused
+  save/reload of a literal published pair. Programmatic smoke does not prove human smoothness.
+- Surrounding Patch2/3 management/GUI/event-safety **62 passed in 133.421 s**.
+  Full `python -B -m unittest discover -s tests`: **1109 passed in 1111.512 s**.
+  All 226 affected local documentation links, scoped application compilation,
+  `git diff --check` and final self-review pass for the frozen Patch 4 source scope.
+- Schema 7/templates/save/operational timing/bookings/runtime/pacing unchanged.
+  Runway performance remains unmodeled; large Earliest/history-query scaling is not
+  redesigned. No Ultra-hang investigation, Stage3G or unrelated GUI work.
+  Stop after this patch; next step is human playtesting.
 
 ## Management GUI Patch 3 — operational Flights and directional Bookings (2026-10-05)
 

@@ -1,5 +1,22 @@
 # Airline Tycoon - Flight Scheduling Architecture
 
+## Approved planning-only reposition feasibility — 2026-10-06
+
+Unpublished drafts may contain geographic discontinuity when the aircraft could
+physically reposition within the gap using existing maximum travel/handling,
+range and approved airport-profile bounds. Every proposed resulting chronological
+plan is checked atomically, including earlier/later obligations and bounded
+recurrence week boundaries. Past intent stays inert. No hypothetical movement
+changes authority or creates operational effects.
+
+This supersedes literal incoming-origin equality only for draft feasibility.
+Publication/runtime still require actual aircraft continuity and reject unresolved
+positioning gaps. Existing explicit timed DEADHEAD execution remains; no automatic
+positioning is authorized or implemented. Earliest uses the same planning proof,
+retaining whole seconds and initial partial-week rules. See the
+[exact contract, boundary and measurements](../03%20Technical/Scheduling%20Planning%20Reposition%20Feasibility.md).
+Schema remains 7; no persistent field or gameplay timing formula changes.
+
 ## Approved airport-local recurring planner — 2026-10-03
 
 This successor uses the existing weekly definitions, effective-dated revisions,

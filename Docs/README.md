@@ -80,6 +80,9 @@ Historical documents tracked under lowercase `docs/` preserve earlier designs.
 Their authority claims and maintenance instructions are superseded. They are not
 current implementation status or permission to begin work.
 
+- [Planning-only reposition feasibility](03%20Technical/Scheduling%20Planning%20Reposition%20Feasibility.md):
+  Patch4 physical draft-gap proof, exact readiness and strict publication boundary.
+
 ## Domain documents
 
 - [`01 Core Simulation`](./01%20Core%20Simulation/) — passenger demand, scheduling, aircraft operations, and economy systems.

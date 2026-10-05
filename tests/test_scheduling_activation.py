@@ -107,7 +107,7 @@ class InitialActivationTests(unittest.TestCase):
         self.build()
         before = self.draft.legs
         for origin, destination, departure, message in (
-            ('CEB', 'MNL', '19:00', 'REPOSITIONING_REQUIRED'),
+            ('CEB', 'MNL', '19:00', 'REPOSITIONING_INFEASIBLE'),
             ('DVO', 'MNL', '15:45', 'overlap|TURNAROUND')):
             with self.assertRaisesRegex(ValueError, message):
                 self.draft.add_weekdays(self.ports[origin], self.ports[destination],
@@ -129,16 +129,18 @@ class InitialActivationTests(unittest.TestCase):
             self.draft._candidate(legs)
         self.assertEqual(self.world, self.base)
 
-    def test_no_elapsed_pattern_does_not_allow_first_future_origin_skip(self):
-        with self.assertRaisesRegex(ValueError, 'REPOSITIONING_REQUIRED'):
+    def test_no_elapsed_pattern_does_not_allow_impossible_first_future_origin_skip(self):
+        with self.assertRaisesRegex(ValueError, 'REPOSITIONING_INFEASIBLE'):
             self.draft.add_weekdays(self.ports['CEB'], self.ports['DVO'], ['2026-09-01'], '09:00')
         self.assertEqual(self.draft.legs, [])
 
-    def test_complete_future_week_never_uses_initial_skip(self):
+    def test_complete_future_week_allows_feasible_planning_but_never_publication_skip(self):
         self.draft.add_weekdays(self.ports['MNL'], self.ports['CEB'], ['2026-09-01'], '06:00')
-        # Wednesday isn't a partial first day: an incompatible origin stays invalid.
+        self.draft.add_weekdays(self.ports['CEB'], self.ports['DVO'], ['2026-09-07'], '08:30')
+        before = deepcopy(self.world)
         with self.assertRaisesRegex(ValueError, 'REPOSITIONING_REQUIRED'):
-            self.draft.add_weekdays(self.ports['CEB'], self.ports['DVO'], ['2026-09-07'], '08:30')
+            self.draft.save_current(self.world)
+        self.assertEqual(self.world, before)
 
     def test_monday_eight_am_activation_and_next_monday(self):
         result = process_events_through(self.world, '2026-09-07T00:00:00Z')
