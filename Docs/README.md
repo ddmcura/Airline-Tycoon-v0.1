@@ -64,6 +64,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   shared strict resolver facade, complete boundaries and exact equivalence oracle.
 - [PH GUI foundation specification](03%20Technical/PH%20GUI%20Foundation%20Technical%20Specification.md):
   approved Kivy frontend, shared application session and graphical playtest scope.
+- [Management GUI architecture and pages](03%20Technical/Management%20GUI%20Architecture%20and%20Pages.md):
+  active-page lifecycle, stable tables, Fleet/Details/Research semantics and Patch 2 evidence.
 - [Decision Register](03%20Technical/Decision%20Register.md):
   durable decisions and links to their canonical definitions.
 - [Project Foundation](01%20Core%20Simulation/Project%20Foundation.md):

@@ -2,17 +2,36 @@
 
 from kivy.metrics import dp
 from kivy.uix.scrollview import ScrollView
+from kivy.effects.scroll import ScrollEffect
 
 
 class AxisScrollView(ScrollView):
     def __init__(self, **kwargs):
         self.eager_drag_handles = kwargs.pop('eager_drag_handles', False)
+        # Clamped kinetic scrolling avoids elastic spring instability after a
+        # long atomic engine frame. Scoped to our containers, never a Kivy patch.
+        kwargs.setdefault('effect_cls', ScrollEffect)
+        kwargs.setdefault('always_overscroll', False)
         kwargs.setdefault('bar_width', dp(14))
         kwargs.setdefault('bar_color', (.65, .7, .75, 1))
         kwargs.setdefault('bar_inactive_color', (.5, .55, .6, .65))
         kwargs.setdefault('scroll_type', ['bars', 'content'])
         kwargs.setdefault('scroll_wheel_distance', dp(90))
         super().__init__(**kwargs)
+
+    def stop_motion(self):
+        for effect in (self.effect_x, self.effect_y):
+            if effect is not None:
+                effect.velocity = 0
+                effect.is_manual = False
+                effect.trigger_velocity_update.cancel()
+
+    def dispose(self):
+        self.stop_motion()
+        event = getattr(self, '_update_effect_bounds_ev', None)
+        if event is not None: event.cancel()
+        for child in list(self.walk()):
+            if child is not self and isinstance(child, AxisScrollView): child.dispose()
 
     def on_touch_down(self, touch):
         # ScrollView normally withholds child touches until its drag timeout.

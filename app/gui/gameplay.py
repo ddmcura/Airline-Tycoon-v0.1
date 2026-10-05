@@ -69,45 +69,6 @@ class GameplayViews(WeeklyWorkspace):
             self.refresh(force=True)
         return True
 
-    def render_research(self):
-        from app.gui.app import _button, _label
-        airports = self.session.airports()
-        if self._research_origin not in {a['airport_id'] for a in airports}:
-            self._research_origin = self._header['base_airports'][0]['airport_id']
-        self._research_origin_selector = AirportSelector(airports, selected_id=self._research_origin)
-        self._research_origin_selector.bind(selected_id=lambda _widget, identity:
-                                            self._set_research_origin(identity))
-        self.content.add_widget(_label('Research origin'))
-        self.content.add_widget(self._research_origin_selector)
-        self._research_destination_selector = AirportSelector(
-            airports, selected_id=self._research_destination, allow_clear=True,
-            placeholder='All destinations')
-        self._research_destination_selector.bind(selected_id=lambda _widget, identity:
-                                                 self._set_research_destination(identity))
-        self.content.add_widget(_label('Research destination filter'))
-        self.content.add_widget(self._research_destination_selector)
-        origin = next(a for a in airports if a['airport_id'] == self._research_origin)
-        self.content.add_widget(_label(f"Directional opportunities from {airport_label(origin)}"))
-        rows = self.session.market_opportunities(origin_airport_id=self._research_origin,
-                                                 limit=100)
-        if self._research_destination:
-            rows = [row for row in rows if row['destination_airport_id'] ==
-                    self._research_destination]
-        for row in rows:
-            fare = '—' if row['player_fare_minor'] is None else self._money(row['player_fare_minor'])
-            self.content.add_widget(_label(
-                f"{row['destination_airport_reference_code']} {row['destination_airport_city']}"
-                f"  |  {row['distance_km']} km  |  Base daily bookers "
-                f"{row['base_daily_directional_bookers']}\n"
-                f"Market {'available' if row['market_available'] else 'unavailable'}"
-                f"  |  Your seats {row['player_published_capacity']}"
-                f"  |  Fare {fare}  |  Confirmed {row['current_confirmed_bookings']}",
-                height=95))
-        if not rows:
-            self.content.add_widget(_label('No current opportunities from this origin.'))
-        self.content.add_widget(_label(
-            'Actual bookings depend on fare, schedule, capacity and competition.', height=60))
-
     def choose_research_origin(self):
         self._popup = self._research_origin_selector.open_dropdown()
 

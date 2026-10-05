@@ -62,8 +62,8 @@ class GameplayGuiTests(unittest.TestCase):
         self.assertIs(Stage1Session, TerminalSession)
         before = self.app.session.authoritative_bytes()
         self.app.show_view('Research')
-        labels = [w.text for w in self.app.content.children if isinstance(w, Label)]
-        self.assertTrue(any('Base daily bookers' in text for text in labels))
+        self.assertEqual(self.app.content.header_buttons['bookers'].text, 'BASE DAILY BOOKERS')
+        self.assertTrue(self.app.content.visible_rows)
         self.assertEqual(self.app.session.authoritative_bytes(), before)
         self.app.choose_research_origin()
         self.assertTrue(self.app._popup)

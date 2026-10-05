@@ -204,15 +204,22 @@ class WeeklyWorkspace(ScheduleBuilder):
         return self.session.local_datetime(self._draft.context_airport_id).date()
 
     def _focus_week_start(self):
-        self.content.parent.scroll_y = 1
+        if self._week_focus_event is not None:
+            self._week_focus_event.cancel()
+        viewport = self.content.parent
+        button = self._schedule_monday_button
+        viewport.scroll_y = 1
 
         def focus(_dt):
-            button = self._schedule_monday_button
+            self._week_focus_event = None
+            # Navigation or refresh may have detached/replaced this exact tree.
             if (self._draft is not None and self.current_view == 'Schedule'
+                    and button is not None and self.content.parent is viewport
+                    and self._schedule_monday_button is button
                     and button.get_root_window() is not None):
-                self.content.parent.scroll_to(button, padding=dp(8))
+                viewport.scroll_to(button, padding=dp(8))
 
-        Clock.schedule_once(focus, .3)
+        self._week_focus_event = Clock.schedule_once(focus, .3)
 
     def reschedule_from_drag(self, index, departure_local, delta_px):
         """Translate a gesture to a five-minute UI slot; domain validates it."""

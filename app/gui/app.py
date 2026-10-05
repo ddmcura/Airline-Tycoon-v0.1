@@ -13,12 +13,15 @@ from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.textinput import TextInput
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.utils import platform
 
 from game.simulation.speeds import PLAYER_SPEEDS
 from app.session import Stage1Session
 from app.gui.gameplay import GameplayViews
+from app.gui.navigation import SECTIONS, section_for
+from app.gui.management_pages import FleetPage, ResearchPage, AircraftDetailsPage
 from app.gui.airport_selector import AirportSelector
 from app.gui.scrolling import AxisScrollView
 from app.gui.windowing import configure_startup_window
@@ -69,6 +72,11 @@ class AirlineTycoonApp(GameplayViews, App):
         self._pending_runtime_action = None
         self._allow_close = False
         self._ticker = None
+        self._active_page = None
+        self._week_focus_event = None
+        self._page_states = {}
+        self._section = None
+        self._details_aircraft_id = None
         self._schedule_publication_pending = None
         self._popup = None
         self._draft = None
@@ -104,6 +112,7 @@ class AirlineTycoonApp(GameplayViews, App):
             self._ticker.cancel()
         Window.unbind(on_request_close=self._window_close)
         self._pending_runtime_action = None
+        self._leave_page()
         self.session.close()
 
     def _window_close(self, *_args):
@@ -140,22 +149,13 @@ class AirlineTycoonApp(GameplayViews, App):
             ('Advance', self.show_advance), ('Cancel advance', self.cancel_advance),
         ]))
         root.add_widget(self._horizontal_buttons([
-            ('Overview', lambda: self.show_view('Overview')),
-            ('Fleet', lambda: self.show_view('Fleet')),
-            ('Research', lambda: self.show_view('Research')),
-            ('Acquire', lambda: self.show_view('Acquire')),
-            ('Schedule', lambda: self.show_view('Schedule')),
-            ('Flights / Bookings', lambda: self.show_view('Flights')),
-            ('Finance', lambda: self.show_view('Finance')),
-            ('Save / Bookmarks', lambda: self.show_view('Saves')),
-        ]))
-        scroll = AxisScrollView(do_scroll_x=False, eager_drag_handles=True)
+            (section, lambda name=section: self.show_view(SECTIONS[name][0][1]))
+            for section in SECTIONS]))
+        self.subnavigation = BoxLayout(orientation='vertical',size_hint_y=None,height=dp(58))
+        root.add_widget(self.subnavigation)
+        self.page_host = BoxLayout(orientation='vertical')
+        root.add_widget(self.page_host)
         self.content = _column()
-        scroll.add_widget(self.content)
-        root.add_widget(scroll)
-        root.add_widget(self._horizontal_buttons([
-            ('Return to Title', self.return_to_title), ('Exit', self.request_exit),
-        ]))
         screen.add_widget(root)
         return screen
 
@@ -302,6 +302,9 @@ class AirlineTycoonApp(GameplayViews, App):
         self._guard_unsaved(perform)
 
     def _enter_game(self):
+        self._leave_page()
+        self._page_states.clear()
+        self._section = None
         self.current_view = 'Overview'
         self.view_offset = 0
         self._draft = None
@@ -361,7 +364,7 @@ class AirlineTycoonApp(GameplayViews, App):
         autosave_error = self.session.autosave_error
         render_due = (not self.session.advancing
                       and self._last_revision != self.session.progression_revision
-                      and time.monotonic() - self._last_render_time >= .75)
+                      and time.monotonic() - self._last_render_time >= 1.5)
         if (force or render_due or diagnostic != self._last_diagnostic
                 or autosave_error != self._last_autosave_error):
             overview = self.session.header()
@@ -383,15 +386,82 @@ class AirlineTycoonApp(GameplayViews, App):
         if diagnostic:
             self.status.text += f'\n{diagnostic}'
 
+    def _leave_page(self):
+        if self._week_focus_event is not None:
+            self._week_focus_event.cancel()
+            self._week_focus_event = None
+        page = self._active_page
+        if page is None: return
+        if hasattr(page, 'snapshot'):
+            self._page_states[self.current_view] = page.snapshot()
+        else:
+            self._page_states[self.current_view] = {'scroll_x':page.scroll_x,'scroll_y':page.scroll_y,'offset':self.view_offset}
+        if hasattr(page, 'close'): page.close()
+        else: page.dispose()
+        if page.parent is not None: page.parent.remove_widget(page)
+        descendants = set(page.walk())
+        for widget in descendants:
+            if isinstance(widget,TextInput): widget.focus = False
+        for name,value in list(vars(self).items()):
+            if name != '_active_page' and isinstance(value,Widget) and value in descendants:
+                setattr(self,name,None)
+        self._active_page = None
+
     def show_view(self, view):
+        if view != self.current_view:
+            self._leave_page()
+            self.view_offset = self._page_states.get(view,{}).get('offset',0)
         if view == 'Acquire' and self.current_view != 'Acquire':
             self._acquire_maker = self._acquire_model = None
         self.current_view = view
-        self.view_offset = 0
         self.refresh(force=True)
 
     def _render_view(self):
-        self.content.clear_widgets()
+        view = self.current_view
+        section = section_for(view)
+        if section != self._section:
+            for old in self.subnavigation.children:
+                if isinstance(old,AxisScrollView): old.dispose()
+            self.subnavigation.clear_widgets()
+            actions=[(text, lambda value=value:self.show_view(value)) for text,value in SECTIONS[section]]
+            if section == 'Game / System':
+                actions += [('Return to Title',self.return_to_title),('Exit',self.request_exit)]
+            self.subnavigation.add_widget(self._horizontal_buttons(actions))
+            self._section = section
+        if view in {'Fleet','Research','Aircraft Details'}:
+            if self._active_page is None:
+                state = self._page_states.get(view)
+                factory = {'Fleet':FleetPage,'Research':ResearchPage}.get(view)
+                page = factory(self,state) if factory else AircraftDetailsPage(self,self._details_aircraft_id,state)
+                page.refresh_data()  # Resolve before attaching to visible host.
+                self.page_host.add_widget(page);self._active_page=page
+            else: self._active_page.refresh_data()
+            self.content=self._active_page
+            return
+        # Existing non-redesigned pages render offscreen, then swap once. Their
+        # outer viewport survives refresh; inactive viewports stop all momentum.
+        old_content = self.content
+        replacement = _column()
+        self.content = replacement
+        try:
+            self._render_compatibility_content()
+        except Exception:
+            self.content = old_content
+            raise
+        if self._active_page is None:
+            scroll=AxisScrollView(do_scroll_x=False,eager_drag_handles=True)
+            scroll.add_widget(replacement);self.page_host.add_widget(scroll);self._active_page=scroll
+            state=self._page_states.get(view,{})
+            scroll.scroll_x=state.get('scroll_x',0);scroll.scroll_y=state.get('scroll_y',1)
+        else:
+            scroll=self._active_page
+            scroll.stop_motion()
+            old=scroll._viewport
+            for w in list(old.walk()):
+                if isinstance(w,AxisScrollView):w.dispose()
+            scroll.remove_widget(old);scroll.add_widget(replacement)
+
+    def _render_compatibility_content(self):
         view = self.current_view
         self.content.add_widget(_label(view, height=40))
         if view == 'Overview':
@@ -403,20 +473,11 @@ class AirlineTycoonApp(GameplayViews, App):
                 self.content.add_widget(_label(self.session.runtime.diagnostic, height=70))
             if self.session.autosave_error:
                 self.content.add_widget(_label('Autosave failed: ' + self.session.autosave_error, height=70))
-        elif view == 'Research':
-            self.render_research()
         elif view == 'Acquire':
             self.render_acquisition()
         elif view == 'Schedule':
             self.render_scheduling()
-        elif view == 'Fleet':
-            rows = self.session.fleet(offset=self.view_offset, limit=20)
-            for row in rows:
-                place = row['current_airport_reference_code'] or 'IN FLIGHT'
-                self.content.add_widget(_label(
-                    f"{row['display_registration']}  |  {row['model_reference']}  |  {row['status']} at {place}\n{row['aircraft_id']}", height=72))
-            self._page_buttons(len(rows), 20)
-        elif view == 'Flights':
+        elif view in {'Flights','Bookings'}:
             rows = self.session.flights(offset=self.view_offset, limit=30)
             for row in rows:
                 self.content.add_widget(_label(
@@ -453,6 +514,42 @@ class AirlineTycoonApp(GameplayViews, App):
             for text, action in [('Save Game', self.save_game), ('Bookmarks / Checkpoints', self.show_bookmarks)]:
                 self.content.add_widget(_button(text, action))
             self.content.add_widget(_label('One current manual save; autosaves run by the existing session policy.', height=65))
+
+    def open_aircraft_details(self, aircraft_id):
+        self.session.aircraft_details(aircraft_id)  # Stable identity/ownership gate.
+        if self.current_view == 'Aircraft Details': self._leave_page()
+        self._details_aircraft_id = aircraft_id
+        self.show_view('Aircraft Details')
+
+    def research_add_flight(self, origin_id, destination_id):
+        ids = self.session.compatible_aircraft(origin_id, destination_id)
+        if not ids:
+            self._dialog('No compatible aircraft', 'No owned aircraft meets current route planning eligibility.', [('OK', lambda:None)])
+            return
+        if len(ids) == 1:
+            self.schedule_handoff(ids[0],origin_id,destination_id)
+            return
+        rows = {r['aircraft_id']:r for r in self.session.management_fleet()}
+        self._list_popup('Choose compatible aircraft — availability validated in Scheduling',[
+            (rows[k]['registration']+' — '+rows[k]['model'], lambda key=k:(self._dismiss(),self.schedule_handoff(key,origin_id,destination_id)))
+            for k in ids])
+
+    def schedule_handoff(self, aircraft_id, origin_id=None, destination_id=None):
+        def open_planner():
+            self.show_view('Schedule')
+            if self._draft is None or self._draft.aircraft_id != aircraft_id:
+                self.start_schedule(aircraft_id)
+            if self._draft is not None and self._draft.aircraft_id == aircraft_id:
+                if origin_id is not None: self._builder_origin=origin_id
+                if destination_id is not None: self._builder_destination=destination_id
+                if origin_id is not None:
+                    self._builder_fare_manual=False;self._sync_suggested_fare()
+                self.refresh(force=True)
+        def proceed(): self._after_runtime_pause(open_planner)
+        if self._draft is not None and self._draft.aircraft_id != aircraft_id and self._draft.legs:
+            self._dialog('Unpublished draft', 'Discard the current draft before selecting another aircraft?',[
+                ('Discard draft and open',lambda:self._discard_draft_then(proceed)),('Cancel',lambda:None)])
+        else: proceed()
 
     _money = staticmethod(_money)
 
@@ -639,6 +736,7 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def return_to_title(self):
         def leave():
+            self._leave_page()
             self.session.leave_game()
             self._draft = None
             self._schedule_selected.clear()

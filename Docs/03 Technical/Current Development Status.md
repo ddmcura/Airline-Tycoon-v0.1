@@ -2,6 +2,45 @@
 
 Last updated: **2026-10-05**. Current snapshot, not operational authorization.
 
+## Management GUI Patch 2 — sections, Fleet, Details and Research (2026-10-05)
+
+Baseline **c2a8bb11646bbfb9efa183665784cc3d4a7bb7e4** matched local HEAD,
+upstream and live origin/master. [Architecture, audited semantics and measurements](Management%20GUI%20Architecture%20and%20Pages.md).
+
+- Section/subpage shell has one active page host. Fleet/Research fixed controls,
+  synchronized table headers and two-axis viewport survive ordinary refresh.
+  Data is derived before replacement; unchanged rows do no widget work. Inactive
+  pages stop scrolling, release keyboard focus and drop app widget references.
+- Fleet uses immutable aircraft IDs, catalog model/manufacturer, actual status,
+  home base and current home-local weekly carried+confirmed passenger-seat load.
+  Name is unmodeled/neutral. Details exposes modeled attributes and local-time
+  current-week published flights, with Back/Schedule Aircraft handoff.
+- Research preserves existing availability boolean and future-horizon capacity /
+  confirmed counts; base demand display rounds only. Search/sort/airport input
+  and compatible-aircraft choice prefill the existing builder without publication.
+- Baseline measured 25 live clears/empty intervals; isolated long-frame damped
+  scrolling reproduces the NaN/round ValueError. Stable geometry, offscreen legacy
+  column replacement, local clamped effects and explicit disposal remove those
+  mechanisms. Exact original human gesture/history is not reconstructed.
+- Affected GUI/scheduling/activation/Earliest/runtime safety suites **108 passed
+  in 165.309 s**. Final **19 management regressions passed in 39.155 s** after
+  self-review. Native Windows Kivy PASS: 80 navigation operations, 50 finite-table
+  checks, Normal/Fast/Very Fast, real airborne status and exact save/reload.
+  Dashboard count stayed 32, one app ticker, no page refresh timers; quiet median
+  navigation .0782 s/max .9787 s. Programmatic smoke does not prove human smoothness.
+- Full-suite review exposed a deferred Schedule focus callback referencing a
+  departed widget. Page departure now cancels it; exact-target checks also reject
+  already dequeued stale work. **51 focused scheduling/management tests passed
+  in 73.693 s**, with 20 management regressions total. Native rerun also PASS:
+  same 80/50 checks and constant counts, median .0792 s / max 1.0311 s, exact reload.
+- Final `python -B -m unittest discover -s tests`: **1079 passed in 1102.349 s**.
+  Scoped `python -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+  passed; 215 affected local documentation links resolve; `git diff --check` clean.
+  Evidence covers the final Patch 2 source working tree based on the baseline above.
+- No new dependencies, schema fields, gameplay/runtime/speed/recurrence changes,
+  acquisition redesign or legacy authority. Stage 3F failure remains. Flights /
+  Bookings table redesign is deferred to Patch 3; no Stage 3G begins. `.venv/` untouched.
+
 ## Runtime Patch 1.2B — causal generation safety accounting (2026-10-05)
 
 Baseline **947de8a1a47f2b57cfc37e2fd1a95b716b4c48b8** matched local HEAD,

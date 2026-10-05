@@ -344,6 +344,5 @@ class WeeklyWorkspaceGuiTests(unittest.TestCase):
         self.assertEqual(self.app._research_destination, self.airports['DVO'])
         self.assertEqual(len(self.app.session.market_opportunities(
             origin_airport_id=self.airports['MNL'], limit=100)), 42)
-        visible = [widget.text for widget in self.app.content.children
-                   if hasattr(widget, 'text')]
-        self.assertEqual(sum('Base daily bookers' in text for text in visible), 1)
+        self.assertEqual(len(self.app.content.visible_rows), 1)
+        self.assertEqual(self.app.content.visible_rows[0]['code'], 'DVO')

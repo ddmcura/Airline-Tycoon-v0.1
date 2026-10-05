@@ -27,6 +27,20 @@ not a simulation input. Paused load, autosave, safe snapshots, exact UTC and
 event order follow the existing [save](Game%20State%20%26%20Save%20Technical%20Specification.md)
 and [runtime](Continuous%20Runtime%20Technical%20Specification.md) contracts.
 
+## Patch 2 management pages (2026-10-05)
+
+[Management GUI Architecture and Pages](Management%20GUI%20Architecture%20and%20Pages.md)
+defines the approved one-active-page section shell, fixed controls/table viewport,
+active-only refresh and keyboard/scroll disposal contract. Fleet Overview and its
+Aircraft Details child page use detached committed fleet reads; Research uses
+existing directional projections and authoritative planning compatibility for
+handoff to the one existing Schedule Builder. Search/filter/sort/scroll/selection
+remain transient. Ordinary table refresh updates existing cells after deriving
+replacement data; it does not clear the visible page first. App containers use
+clamped kinetic scrolling, not elastic spring effects or NaN exception suppression.
+No simulation, persistence schema or gameplay change is introduced. Flights and
+Bookings remain existing content until their separately scoped Patch 3 redesign.
+
 ## Session-owned management reads (Stage 2)
 
 Fleet/Flights/Finance use the session's private validated read epoch, immutable

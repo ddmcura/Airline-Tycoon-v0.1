@@ -419,6 +419,21 @@ class Stage1Session:
         views = self._owned_reads()
         return views.fleet(self.airline_id, offset=offset, limit=limit) if views else None
 
+    def management_fleet(self):
+        if self._owned_reads() is None: raise ValueError("no valid active career")
+        from game.fleet_management.management_projection import _project_management_fleet_owned
+        return _project_management_fleet_owned(self.world, self.airline_id)
+
+    def aircraft_details(self, aircraft_id):
+        if self._owned_reads() is None: raise ValueError("no valid active career")
+        from game.fleet_management.management_projection import _project_aircraft_details_owned
+        return _project_aircraft_details_owned(self.world, self.airline_id, aircraft_id)
+
+    def compatible_aircraft(self, origin_id, destination_id):
+        if self._owned_reads() is None: raise ValueError("no valid active career")
+        from game.scheduling.route_compatibility import compatible_aircraft
+        return compatible_aircraft(self.world, self.airline_id, origin_id, destination_id)
+
     def scheduling_aircraft(self, aircraft_id):
         """Fresh detached row for the planner; command boundaries own validation."""
         return _project_owned_scheduling_aircraft(self.world, self.airline_id, aircraft_id)
