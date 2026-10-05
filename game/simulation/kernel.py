@@ -487,6 +487,32 @@ def _failure_result(started, envelope, failure, completed=(), skipped=()):
     )
 
 
+def _causal_generation_accounting(envelope, event_id, generated, boundary, count):
+    """Runtime-only same-UTC expansion, not allocation of future queue work.
+
+    Both resolvers call this after a complete event. A committed shared batch
+    may already have resolved a child, so its immutable due time can be read
+    from pending OR history. No parent lineage is persisted or inferred by type.
+    """
+    world = envelope['world_state']
+    due = world['event_history'][event_id]['due_at_utc']
+    if boundary != due:
+        boundary, count = due, 0
+    for child_id in generated:
+        child = world['pending_events'].get(child_id) or world['event_history'][child_id]
+        count += child['due_at_utc'] == due
+    return boundary, count
+
+
+def _causal_generation_limit(heap, boundary, count, limit):
+    """Stop only if more work remains at the exhausted causal timestamp."""
+    if count >= limit and heap and heap[0][0] == parse_canonical_utc(boundary):
+        return EventFailure('EVENT_GENERATION_LIMIT_REACHED',
+            'processing stopped after the generated-event safety limit; retry explicitly to continue',
+            heap[0][3])
+    return None
+
+
 def iter_events_through(
     envelope,
     target_time_utc,
@@ -520,6 +546,7 @@ def iter_events_through(
     completed = []
     skipped = []
     generated_event_count = 0
+    generation_boundary = None
     while heap and heap[0][0] <= target:
         if len(completed) + len(skipped) >= max_events:
             next_event_id = heap[0][3]
@@ -546,20 +573,15 @@ def iter_events_through(
                 heap,
                 _event_key(envelope["world_state"]["pending_events"][new_event_id]),
             )
-        generated_event_count += len(new_event_ids)
-        if (
-            generated_event_count >= max_generated_events
-            and heap
-            and heap[0][0] <= target
-        ):
+        generation_boundary, generated_event_count = _causal_generation_accounting(
+            envelope, event_id, new_event_ids, generation_boundary, generated_event_count)
+        generation_failure = _causal_generation_limit(
+            heap, generation_boundary, generated_event_count, max_generated_events)
+        if generation_failure:
             return _failure_result(
                 started,
                 envelope,
-                EventFailure(
-                    "EVENT_GENERATION_LIMIT_REACHED",
-                    "processing stopped after the generated-event safety limit; retry explicitly to continue",
-                    heap[0][3],
-                ),
+                generation_failure,
                 completed,
                 skipped,
             )

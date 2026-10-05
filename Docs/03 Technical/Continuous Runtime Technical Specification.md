@@ -215,10 +215,14 @@ complete-result and detached-commit guarantees remain. Runtime primitive-tree
 cloning is internal only and does not alter JSON save encoding or accept external
 object-codec bytes.
 
-The explicit request's generated-event ceiling is 10,000, matching its existing
-10,000 processed-event ceiling. Both accumulate across cooperative yields and
-pause visibly when exhausted. Ordinary paced runtime keeps its 100-generation
-budget and 7× behavior. Kivy may consume a bounded chunk of complete events without
+The explicit request's generated-event ceiling remains 10,000; ordinary paced
+runtime retains 100. These count same-UTC causal children, not future queue
+allocation. They accumulate across cooperative yields/flushes at one timestamp,
+reset on chronological progress, and stop only if more work remains at that UTC.
+The processed-event ceiling remains 10,000 across the entire request, protecting
+advancing chains as well. Approved speed ratios are unchanged. See
+[Causal Generation Accounting](Runtime%20Causal%20Generation%20Accounting.md).
+Kivy may consume a bounded chunk of complete events without
 rendering each one; it refreshes management projections at completion, with clock
 status in place during work. UI pacing never decides authoritative simulation time.
 

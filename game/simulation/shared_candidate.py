@@ -84,6 +84,7 @@ class SharedResolutionRequest(ResolutionRequest):
         self.finished = False
         self.result = None
         self._completed = self._stale = self._generated = 0
+        self._generation_boundary = None
         self._completed_ids = []
         self._skipped_ids = []
         self._last_event_id = self._last_event_utc = None
@@ -103,12 +104,8 @@ class SharedResolutionRequest(ResolutionRequest):
                 heap[0][3])
         return None
 
-    def _limit_after(self, heap, generated):
-        if generated >= self.max_generated and heap and heap[0][0] <= self._target:
-            return kernel.EventFailure('EVENT_GENERATION_LIMIT_REACHED',
-                'processing stopped after the generated-event safety limit; retry explicitly to continue',
-                heap[0][3])
-        return None
+    def _limit_after(self, heap, boundary, generated):
+        return kernel._causal_generation_limit(heap, boundary, generated, self.max_generated)
 
     def _paused_by_event(self, world):
         return (self._started_mode != 'PAUSED'
@@ -123,7 +120,8 @@ class SharedResolutionRequest(ResolutionRequest):
         (self._skipped_ids if outcome == 'STALE' else self._completed_ids).append(event_id)
         self._stale += outcome == 'STALE'
         self._completed += outcome != 'STALE'
-        self._generated += len(generated)
+        self._generation_boundary, self._generated = kernel._causal_generation_accounting(
+            self._world, event_id, generated, self._generation_boundary, self._generated)
         self._remember_event(event_id)
 
     def _can_share(self, world, event_id):
@@ -159,7 +157,7 @@ class SharedResolutionRequest(ResolutionRequest):
         heapq.heappop(self._heap)
         self._insert_generated(self._heap, self._world, generated)
         self._record(event_id, outcome, generated)
-        failure = self._limit_after(self._heap, self._generated)
+        failure = self._limit_after(self._heap, self._generation_boundary, self._generated)
         if failure:
             return self._finish('BLOCKED', failure)
         if self._paused_by_event(self._world):
@@ -194,6 +192,7 @@ class SharedResolutionRequest(ResolutionRequest):
         records = []
         attempts = 0
         generated_count = self._generated
+        generation_boundary = self._generation_boundary
         terminal = None
         while candidate_heap and candidate_heap[0][0] <= self._target:
             failure = self._limit_before(candidate_heap, len(records))
@@ -230,7 +229,8 @@ class SharedResolutionRequest(ResolutionRequest):
             heapq.heappop(candidate_heap)
             self._insert_generated(candidate_heap, candidate, generated)
             records.append((event_id, outcome, generated))
-            generated_count += len(generated)
+            generation_boundary, generated_count = kernel._causal_generation_accounting(
+                candidate, event_id, generated, generation_boundary, generated_count)
             if reference is not None:
                 try:
                     strict = kernel.process_next_event(reference, registry=self.registry)
@@ -242,7 +242,7 @@ class SharedResolutionRequest(ResolutionRequest):
                     if ownership is not None: ownership.close()
                     candidate = reference = ownership = None
                     return self._recover(attempts)
-            failure = self._limit_after(candidate_heap, generated_count)
+            failure = self._limit_after(candidate_heap, generation_boundary, generated_count)
             if failure:
                 terminal = ('BLOCKED', failure)
                 break

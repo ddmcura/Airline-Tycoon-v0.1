@@ -1439,10 +1439,15 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   request `PAUSED`; new work is scheduled through the event API.
 - Commit detaches the validated candidate again; references retained by a
   handler cannot mutate live authority after the transaction.
-- Runtime-only per-command total and generated-event limits prevent unbounded
-  same-timestamp self-scheduling. Hitting either leaves the next event pending
-  and requires an explicit continuation command; limits are not authoritative
-  save data.
+- Runtime-only processed-event limits accumulate across the entire request.
+  Generated-event limits instead count children due at the generating event's
+  exact UTC, accumulating across yields/flushes at that causal timestamp and
+  resetting only when processing advances to another UTC. Later pending children
+  do not consume that budget, even when inside the requested target. The generated
+  limit stops only while more work remains at the exhausted timestamp. Hitting
+  either limit retains complete-event commits and leaves the next event pending
+  for explicit continuation; counters are not authoritative save data. See
+  [Causal Generation Accounting](Runtime%20Causal%20Generation%20Accounting.md).
 
 ## Authoritative, derived, runtime, and compatibility data
 

@@ -119,9 +119,14 @@ the next event. No static event sequence is preselected.
 
 At count cap, fence/uncertified/custom/unknown/stale work, target or event-requested
 pause, the valid eligible prefix flushes. The next strict event executes on a later
-step, after that commit. Request-wide total/generated ceilings do not reset across
-flushes or management refreshes. The generation ceiling retains the generating
-event's commit and leaves the next event pending. Stale applicability is checked
+step, after that commit. The processed-event ceiling remains request-wide. The
+generated-event ceiling counts only same-UTC causal children: it survives
+flushes/yields/management refreshes at that UTC, resetting on chronological
+progress. Future allocation is excluded. The ceiling retains the generating
+event's commit and leaves the next same-UTC event pending. Speculative accounting
+is discarded on recovery and reconstructed from committed pending/history facts.
+See [Causal Generation Accounting](Runtime%20Causal%20Generation%20Accounting.md).
+Stale applicability is checked
 before unknown-handler dispatch, preserving existing lifecycle behavior.
 
 `boundary_requested=True` yields unchanged authority before starting more work.

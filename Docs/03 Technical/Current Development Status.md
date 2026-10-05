@@ -2,6 +2,36 @@
 
 Last updated: **2026-10-05**. Current snapshot, not operational authorization.
 
+## Runtime Patch 1.2B — causal generation safety accounting (2026-10-05)
+
+Baseline **947de8a1a47f2b57cfc37e2fd1a95b716b4c48b8** matched local HEAD,
+upstream and live origin/master. [Contract, reproduction and evidence](Runtime%20Causal%20Generation%20Accounting.md).
+
+- Strict/shared paths count same-UTC causal children rather than legitimate future
+  queue allocation. Count persists across yields/flushes at one timestamp, resets
+  on chronological progress, and stops only when more work remains at that UTC.
+  Default 100 and request-wide processed 10,000 remain; ordering/proofs preserved.
+- One/two-aircraft dense recurrence creates 112 departures + one next publication
+  without false stop. Two-aircraft before: BLOCKED after publication, .2061 s;
+  after: publication + two departures complete, .4948 s (three-run medians;
+  different completed work, not a speedup). All 113 children remain unique/pending.
+- Eleven new regressions pass (48.264 s); existing affected runtime suites **133
+  pass (120.576 s)**; surrounding scheduling/activation/Earliest/recurrence and
+  certification/ownership/GUI suites **159 pass (346.318 s)**. Genuine direct and
+  indirect same-time loops stop at 100, strict/shared full authority matches,
+  exact debt and retry semantics remain; no transient counter is saved.
+- Fresh native Windows Kivy direct-load smoke PASS at Normal/Fast/Very Fast:
+  publication, due flights, continued UTC, pause/resume and exact save/paused
+  reload. Maximum measured pump .2484 s; programmatic smoke does not prove
+  human smoothness or larger-fleet capacity. All artifacts/saves are TEMP.
+- Full `python -B -m unittest discover -s tests`: **1059 passed in 1050.849 s**,
+  production source/tests frozen throughout. Scoped application compilation,
+  **67 affected local documentation links**, diff whitespace and complete
+  self-review pass; no unresolved in-scope finding.
+- Schema remains 7; no persistent fields, gameplay/recurrence/horizon, speed,
+  cap-eight, pacing/overload or unrelated GUI changes. Stage 3F capacity failure
+  remains; no Stage 3G or Patch 2 begins. Pre-existing `.venv/` untouched.
+
 ## Scheduling Patch 1.1 — Earliest Available initial activation (2026-10-05)
 
 Baseline **8d91bd6ed135d5b8f574b76cf993f44405ac9a78** matched local HEAD,

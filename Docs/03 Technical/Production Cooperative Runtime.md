@@ -1,5 +1,13 @@
 # Production Cooperative Runtime — Stage 3E
 
+## Patch 1.2B safety-accounting correction (2026-10-05)
+
+[Causal Generation Accounting](Runtime%20Causal%20Generation%20Accounting.md)
+corrects future queue allocation being charged as same-UTC runaway expansion.
+Both resolver paths retain exact ordering, limits, complete-event transactions,
+cap eight, credit and existing fences. This correctness patch does not resolve
+the Stage 3F capacity failure or begin Stage 3G.
+
 ## Stage 3E.1 successor
 
 [Atomic Boundary Cost Optimization](Atomic%20Boundary%20Cost%20Optimization.md)
@@ -39,7 +47,9 @@ final validation/detached publication, then control returns. Fences/strict/custo
 stale/unsupported events execute using existing strict transactions on separate
 steps. No private candidate, ownership capsule, Booking lookup or proof memo
 survives that return. The request retains only committed-source heap, finite
-target, IDs and cumulative safety counters. No lookahead/history scan is added.
+target, IDs, request-wide processed count and current-UTC causal generation
+count. Only chronological progress resets the latter; future pending allocation
+is excluded. No lookahead/history scan is added.
 
 Routing always enters the shared facade, which already performs exact identity/
 input/fence dispatch. Isolated production controls are near parity; an extra

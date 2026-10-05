@@ -1,3 +1,9 @@
+# Patch 1.2B causal generation accounting (2026-10-05); Schema remains 7.
+# Runtime-only generated limits count same-UTC children, excluding future allocation.
+# Counter survives yields/flushes; resets on chronological progress. Total limit unchanged.
+# No persistent counter, field, migration, horizon, gameplay or pacing change.
+# Canonical clock/event policy: Docs/03 Technical/Stage 1 State Schema.md.
+
 # Stage 3E production cooperative runtime (2026-10-04), Schema remains 7.
 # Exact existing Payment/Departure/Completion certificates, bounded safe steps.
 # Pacing credit/target/selected speed/drain/error/disable latch are runtime-only.
