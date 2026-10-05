@@ -2,6 +2,35 @@
 
 Last updated: **2026-10-05**. Current snapshot, not operational authorization.
 
+## Scheduling Patch 1 - initial partial-week activation and hang (2026-10-05)
+
+Baseline **3b524084cc0ea24e69a9505a1ac31e4a5fd5126a** matched local HEAD,
+upstream and live origin/master. [Full reproduction and implementation evidence](Scheduling%20Initial%20Activation%20Fix.md).
+
+- Fixed an infinite recurrence loop: skipping elapsed preparation no longer skips
+  advancing the date cursor. The baseline repeated one occurrence indefinitely;
+  timing arithmetic was not the root cost.
+- Draft and publisher distinguish inert intent from real aircraft position and
+  reservations. A new policy-managed initial partial week can omit an infeasible
+  unpublished prefix until first feasible activation; post-activation continuity,
+  turnaround and conflicts remain strict. The next week keeps the full pattern.
+  Existing published/booked obligations and established revisions remain protected.
+- Fresh five-leg pattern now adds in **.417 s**, publishes in **.133 s** (three-run
+  medians); baseline rejected its second leg. Preparation-boundary Add previously
+  hung, now **.081 s**. No finite baseline completion/speedup is claimed.
+- Thirteen new regressions; focused scheduling/publication/performance/GUI suites
+  **109 passed in 72.869 s**. Full `python -B -m unittest discover -s tests`:
+  **1037 passed in 1003.867 s**, production source frozen throughout the run.
+  Scoped compilation, **31 affected local documentation links**, diff whitespace
+  and complete self-review pass; no unresolved in-scope finding.
+- Actual Windows Kivy builder smoke PASS: five Add actions **.158-.227 s** each,
+  publication **.151 s**, two initial-week and five next-week occurrences,
+  real flight completion and exact manual save/paused reload. Programmatic smoke
+  does not prove human smoothness. All fixture/save/profile output is TEMP.
+- No schema/template/persistent-field/save, economy, demand, runtime architecture,
+  speed or unrelated GUI changes. No deadhead or retroactive operational effects.
+  Stage 3F capacity failure remains; no Stage 3G begins. `.venv/` untouched.
+
 ## Stage 3F - final runtime capacity certification (2026-10-05)
 
 Baseline **ebdfc1239cb88f2ccd12a481033f1ba236588b04** matched local HEAD,

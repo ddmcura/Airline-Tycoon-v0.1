@@ -12,6 +12,7 @@ from .publication import (
     configured_publication_horizon_utc, _expand_schedule,
     _revision_for_date, _occurrence_record,
     _stage_schedule_definition, _stage_schedule_revision, _publish_detached,
+    _initial_partial_activation,
 )
 from .local_time import local_departure, airport_zone, airport_local
 from .recurrence import POLICY, rolling_horizon, rolling_schedules, pattern_edit_date, ensure_publication_event
@@ -264,6 +265,7 @@ class WeeklyDraft:
         limit = now + timedelta(days=self._base['simulation']['configuration']['scheduling']['publication_horizon_days'])
         replacement_boundary = (local_departure(world, self.context_airport_id, self._revision_from, '00:00')
                                 if self._revision_from else None)
+        desired = {}
         for schedule_id in sorted(world['schedule_definitions']):
             schedule = world['schedule_definitions'][schedule_id]
             if schedule['status'] == 'ACTIVE':
@@ -271,9 +273,11 @@ class WeeklyDraft:
                                                       known_occurrences=known)
                 if conflicts:
                     raise ValueError(conflicts[0].message)
-                flights.extend(flight for key, flight in sorted(virtual.items())
+                desired.update(virtual)
+        _initial_partial_activation(self._base, desired)
+        flights.extend(flight for key, flight in sorted(desired.items())
                                if key not in known and not (
-                                   schedule_id in self._replacement_ids
+                                   flight['schedule_id'] in self._replacement_ids
                                    and parse_canonical_utc(flight['scheduled_off_block_utc']) >= replacement_boundary))
         for flight in flights:
             if (flight['planned_aircraft_id'] == self.aircraft_id
@@ -284,29 +288,48 @@ class WeeklyDraft:
                              flight['origin_airport_id'], flight['destination_airport_id']))
         return rows
 
-    def _movements(self):
+    def _movements(self, *, operational=False, extra=None):
         base = getattr(self, '_operation_movements', None)
         rows = list(self._base_movements() if base is None else base)
-        for leg in self._legs:
+        eligible = set()
+        for leg in self._legs + ([extra] if extra is not None else []):
             pre, block, post = timing_bounds(leg['planning_timing'])[1]
             depart = parse_canonical_utc(leg['departure_utc'])
             arrival = depart + timedelta(seconds=block)
-            rows.append((depart - timedelta(seconds=pre), arrival + timedelta(seconds=post),
-                         depart, arrival, leg['origin_airport_id'], leg['destination_airport_id']))
+            row = (depart - timedelta(seconds=pre), arrival + timedelta(seconds=post),
+                   depart, arrival, leg['origin_airport_id'], leg['destination_airport_id'])
+            rows.append(row)
+            eligible.add(row)
+        if operational:
+            from .activation import initial_week_end, initial_week_window, operational_sequence
+            end = initial_week_end(self._base, self.aircraft_id, ((row[0], row[2]) for row in eligible))
+            beginning, boundary = initial_week_window(self._base, self.aircraft_id)
+            activated = []
+            world = self._base['world_state']
+            for flight in world['dated_flights'].values():
+                if flight['planned_aircraft_id'] != self.aircraft_id or flight['status'] in {'SUPERSEDED', 'CANCELLED'}:
+                    continue
+                revision = world['schedule_definitions'][flight['schedule_id']]['revisions'][str(flight['schedule_revision'])]
+                departure = parse_canonical_utc(flight['scheduled_off_block_utc'])
+                if (revision['recurrence'].get('publication_policy') == POLICY
+                        and beginning <= departure < boundary):
+                    activated.append(departure)
+            rows = operational_sequence(self._base, self.aircraft_id, rows, eligible, end,
+                                        activated_at=min(activated) if activated else None)
         return sorted(rows)
 
-    def earliest(self, origin, destination, *, not_before=None):
+    def earliest(self, origin, destination, *, not_before=None, _pattern_only=False):
         snapshot = self._snapshot(origin, destination)
         pre, block, post = timing_bounds(snapshot)[1]
         now = parse_canonical_utc(self._base['simulation']['time_utc'])
         floor = parse_canonical_utc(not_before) if not_before else now
-        pattern = floor - timedelta(seconds=pre) < now and not_before is not None
+        pattern = _pattern_only or (floor - timedelta(seconds=pre) < now and not_before is not None)
         cursor = floor if pattern else max(now + timedelta(seconds=pre), floor)
         location = origin if pattern else self.projected_location
         turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
-        for start, end, departure, arrival, row_origin, row_destination in self._movements():
+        for start, end, departure, arrival, row_origin, row_destination in self._movements(operational=not pattern):
             if pattern:
-                if departure >= now or (format_utc(departure), row_origin, row_destination) not in {
+                if (not _pattern_only and departure >= now) or (format_utc(departure), row_origin, row_destination) not in {
                     (leg['departure_utc'], leg['origin_airport_id'], leg['destination_airport_id'])
                     for leg in self._legs}:
                     continue
@@ -349,7 +372,17 @@ class WeeklyDraft:
             raise ValueError('departure exceeds publication horizon')
         location = origin if pattern else self.projected_location
         turnaround = self._base['simulation']['configuration']['scheduling']['minimum_turnaround_seconds']
-        for row_start, row_end, row_departure, arrival, row_origin, row_destination in self._movements():
+        movements = self._movements() if pattern else self._movements(operational=True, extra=leg)
+        proposed = (start, end, depart, depart + timedelta(seconds=block), origin, destination)
+        if not pattern and proposed not in movements:
+            # Initial incompatible prefix remains intent only; publication
+            # proves the complete recurrence and strict post-activation chain.
+            self._undo_stack.append(deepcopy(self._legs))
+            self._legs = self._legs + [leg]
+            return deepcopy(leg)
+        if not pattern:
+            movements.remove(proposed)
+        for row_start, row_end, row_departure, arrival, row_origin, row_destination in movements:
             if pattern:
                 if (format_utc(row_departure), row_origin, row_destination) not in {
                     (item['departure_utc'], item['origin_airport_id'], item['destination_airport_id'])
@@ -379,7 +412,13 @@ class WeeklyDraft:
         leg = self._legs[-1]
         pre, block, post = timing_bounds(leg['planning_timing'])[1]
         floor = format_utc(parse_canonical_utc(leg['departure_utc']) + timedelta(seconds=block + post))
-        departure = self.earliest(leg['destination_airport_id'], leg['origin_airport_id'], not_before=floor)
+        depart = parse_canonical_utc(leg['departure_utc'])
+        row = (depart - timedelta(seconds=pre), depart + timedelta(seconds=block + post),
+               depart, depart + timedelta(seconds=block),
+               leg['origin_airport_id'], leg['destination_airport_id'])
+        departure = self.earliest(leg['destination_airport_id'], leg['origin_airport_id'],
+                                 not_before=floor,
+                                 _pattern_only=row not in self._movements(operational=True))
         return self.add(leg['destination_airport_id'], leg['origin_airport_id'],
                         departure_utc=departure,
                         fare_minor=leg['fare_minor'] if fare_minor is None else fare_minor)

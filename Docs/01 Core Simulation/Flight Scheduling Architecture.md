@@ -17,6 +17,17 @@ show local time alongside the exact UTC simulation clock.
 Elapsed slots within the current local week are reusable pattern intent only.
 They never publish past dated flights, Bookings, operation results, journals or
 utilization. Future occurrences retain ordinary feasibility and settlement rules.
+The approved initial partial-week activation correction (2026-10-05) starts a
+new policy-managed pattern from authoritative aircraft position and reservations,
+including a real active operation's projected arrival. Where that pattern has
+elapsed intent in its first home-local week, an infeasible unpublished future
+prefix may remain inert until the first feasible occurrence. From that occurrence
+onward, ordinary continuity, turnaround and reservation conflicts are strict.
+The next complete week retains the entire pattern. Existing published/booked
+occurrences, established recurrences and replacement revisions cannot acquire
+this exception. No retroactive movement or automatic deadhead is created. This
+uses existing definitions/dated authority, with no activation field or schema
+change; see the [implementation and reproduction](../03%20Technical/Scheduling%20Initial%20Activation%20Fix.md).
 One-off publication ends each movement on its selected date. Repeat Until is
 inclusive; continuous recurrence has no end date. Both repeating modes publish
 only a bounded calendar horizon (current base-local week plus four future weeks),

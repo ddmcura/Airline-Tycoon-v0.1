@@ -582,6 +582,8 @@ def _expand_schedule(envelope, schedule, window_start, window_end, *, known_occu
         if "until_local_date" in revision["recurrence"]:
             last = min(last, date.fromisoformat(revision["recurrence"]["until_local_date"]))
         weekdays = set(revision["recurrence"]["weekdays"])
+        preparation_seconds = (timing_bounds(revision['planning_timing'])[1][0]
+                               if 'planning_timing' in revision else 0)
         while current <= last:
             if current.weekday() in weekdays:
                 try:
@@ -602,12 +604,10 @@ def _expand_schedule(envelope, schedule, window_start, window_end, *, known_occu
                     )
                     if window_start <= departure <= window_end:
                         known = occurrence['occurrence_key'] in known_occurrences
-                        preparation = departure - timedelta(seconds=timing_bounds(
-                            revision['planning_timing'])[1][0]) if 'planning_timing' in revision else departure
-                        if (revision['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1'
+                        preparation = departure - timedelta(seconds=preparation_seconds)
+                        if not (revision['recurrence'].get('publication_policy') == 'ROLLING_FOUR_WEEKS_V1'
                                 and not known and preparation < now):
-                            continue
-                        desired[occurrence["occurrence_key"]] = occurrence
+                            desired[occurrence["occurrence_key"]] = occurrence
             current += timedelta(days=1)
     return desired, conflicts
 
@@ -879,6 +879,8 @@ def _publish_candidate(candidate, start, target, target_horizon_utc, selected_id
             conflicts=tuple(expansion_conflicts),
         )
 
+    _initial_partial_activation(candidate, desired)
+
     flights = candidate["world_state"]["dated_flights"]
     booked_counts = _strict_confirmed_booking_counts(candidate["world_state"])
     existing_by_key = {
@@ -1017,6 +1019,92 @@ def _publish_candidate(candidate, start, target, target_horizon_utc, selected_id
         tuple(superseded),
         tuple(sorted(set(unchanged))),
     )
+
+
+def _initial_partial_activation(envelope, desired):
+    """Filter only unpublished initial policy prefixes; never alter definitions."""
+    from .activation import initial_week_end, initial_week_window, operational_sequence
+    from .timing import flight_reservation
+    world = envelope['world_state']
+    known = {flight['occurrence_key'] for flight in world['dated_flights'].values()}
+    prototypes = {}
+    initial_ids = {}
+    for schedule in world['schedule_definitions'].values():
+        if schedule['status'] != 'ACTIVE' or schedule['current_revision'] != 1:
+            continue
+        revision = schedule['revisions']['1']
+        if revision['recurrence'].get('publication_policy') != 'ROLLING_FOUR_WEEKS_V1':
+            continue
+        aircraft_id = revision['planned_aircraft_id']
+        # Examine actual selected weekdays, not an effective date that may
+        # itself be a non-operating day. At most the current calendar week.
+        beginning, end = initial_week_window(envelope, aircraft_id)
+        zone = _timezone_for(envelope, revision['origin_airport_id'])
+        recurrence = revision['recurrence']
+        if not recurrence.get('enabled', True):
+            continue
+        first = date.fromisoformat(revision['effective_from_local_date'])
+        while first.weekday() not in recurrence['weekdays']:
+            first += timedelta(days=1)
+        try:
+            first_occurrence = _occurrence_record(envelope, schedule, revision, first)
+        except ValueError:
+            continue
+        first_departure = parse_canonical_utc(first_occurrence['scheduled_off_block_utc'])
+        if not beginning <= first_departure < end:
+            continue  # Established recurrences/revisions never reacquire initial skipping.
+        initial_ids.setdefault(aircraft_id, set()).add(schedule['schedule_id'])
+        current = max(beginning.astimezone(zone).date(),
+                      date.fromisoformat(revision['effective_from_local_date']))
+        last = parse_canonical_utc(envelope['simulation']['time_utc']).astimezone(zone).date()
+        if recurrence.get('until_local_date'):
+            last = min(last, date.fromisoformat(recurrence['until_local_date']))
+        while current <= last:
+            if current.weekday() in recurrence['weekdays']:
+                try:
+                    prototype = _occurrence_record(envelope, schedule, revision, current)
+                except ValueError:
+                    # Future invalid local occurrences are rejected by normal
+                    # expansion. An invalid elapsed intent cannot activate.
+                    pass
+                else:
+                    prototypes.setdefault(aircraft_id, []).append((flight_reservation(world, prototype)[0],
+                        parse_canonical_utc(prototype['scheduled_off_block_utc'])))
+            current += timedelta(days=1)
+    for aircraft_id, starts in prototypes.items():
+        end = initial_week_end(envelope, aircraft_id, starts)
+        if end is None:
+            continue
+        rows = []
+        eligible = set()
+        keys = {}
+        for key, flight in desired.items():
+            if flight['planned_aircraft_id'] != aircraft_id:
+                continue
+            row = (*flight_reservation(world, flight),
+                   parse_canonical_utc(flight['scheduled_off_block_utc']),
+                   parse_canonical_utc(flight['scheduled_in_block_utc']),
+                   flight['origin_airport_id'], flight['destination_airport_id'])
+            rows.append(row)
+            if key not in known and flight['schedule_id'] in initial_ids[aircraft_id]:
+                eligible.add(row)
+                keys[key] = row
+        activated = []
+        for flight in world['dated_flights'].values():
+            if flight['planned_aircraft_id'] != aircraft_id or flight['status'] in {'SUPERSEDED', 'CANCELLED'}:
+                continue
+            if flight['schedule_id'] in initial_ids[aircraft_id]:
+                activated.append(parse_canonical_utc(flight['scheduled_off_block_utc']))
+            if flight['occurrence_key'] not in desired:
+                rows.append((*flight_reservation(world, flight),
+                    parse_canonical_utc(flight['scheduled_off_block_utc']),
+                    parse_canonical_utc(flight['scheduled_in_block_utc']),
+                    flight['origin_airport_id'], flight['destination_airport_id']))
+        retained = set(operational_sequence(envelope, aircraft_id, rows, eligible, end,
+                       activated_at=min(activated) if activated else None))
+        for key, row in keys.items():
+            if row not in retained:
+                del desired[key]
 
 
 def publish_configured_window(envelope, *, expected_schedule_revisions=None):
