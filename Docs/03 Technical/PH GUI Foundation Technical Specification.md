@@ -41,6 +41,16 @@ clamped kinetic scrolling, not elastic spring effects or NaN exception suppressi
 No simulation, persistence schema or gameplay change is introduced. Flights and
 Bookings remain existing content until their separately scoped Patch 3 redesign.
 
+## Patch 3 operational pages (2026-10-05)
+
+[Operational Management Pages](Operational%20Management%20Pages.md) defines the
+Flights operational day and directional Booking week matrix on the existing
+Patch 2 lifecycle/table. Only published occurrence/active/result/aggregate Booking
+authority is shown; patterns do not create fake history. Controls and pinned day
+labels remain stable while service columns scroll. Counts distinguish confirmed,
+locked and carried passengers. No simulation/schema/scheduling changes.
+This completes the current management GUI slice; next step is human playtesting.
+
 ## Session-owned management reads (Stage 2)
 
 Fleet/Flights/Finance use the session's private validated read epoch, immutable

@@ -310,8 +310,11 @@ class GameplayGuiTests(unittest.TestCase):
             self.app.tick(0)
         self.assertFalse(session.advancing)
         self.app.show_view('Flights')
-        self.assertTrue(any('COMPLETED' in w.text for w in self.app.content.children
-                            if isinstance(w, Label)))
+        from game.scheduling.local_time import airport_local
+        day = airport_local(session.world['world_state'], flights[0]['origin_airport_id'],
+                            flights[0]['scheduled_departure_utc']).date().isoformat()
+        self.app.content.day_picker.select(day)
+        self.assertTrue(any(row['status']=='COMPLETED' for row in self.app.content.rows))
         self.app.show_view('Finance')
         self.assertTrue(any('Passenger revenue' in w.text for w in self.app.content.children
                             if isinstance(w, Label)))

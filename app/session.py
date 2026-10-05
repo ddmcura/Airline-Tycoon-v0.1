@@ -538,6 +538,22 @@ class Stage1Session:
         views = self._owned_reads()
         return views.flights(self.airline_id, offset=offset, limit=limit) if views else None
 
+    def operational_context(self):
+        if self._owned_reads() is None: raise ValueError('no valid active career')
+        from game.aircraft_operations.management_projection import _operational_context_owned
+        return _operational_context_owned(self.world,self.airline_id)
+
+    def operational_flights(self, start_date, *, days=1, market=None, include_spanning=False):
+        if type(days) is not int or days not in (1,7): raise ValueError('query one day or one week')
+        views=self._owned_reads()
+        if views is None: raise ValueError('no valid active career')
+        return views.operational_rows(self.airline_id,start_date,days,market,include_spanning)
+
+    def service_markets(self):
+        views=self._owned_reads()
+        if views is None: raise ValueError('no valid active career')
+        return views.service_markets(self.airline_id)
+
     def finances(self):
         views = self._owned_reads()
         return views.finances(self.airline_id) if views else None

@@ -66,6 +66,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   approved Kivy frontend, shared application session and graphical playtest scope.
 - [Management GUI architecture and pages](03%20Technical/Management%20GUI%20Architecture%20and%20Pages.md):
   active-page lifecycle, stable tables, Fleet/Details/Research semantics and Patch 2 evidence.
+- [Operational management pages](03%20Technical/Operational%20Management%20Pages.md):
+  Flights day view, directional Booking week matrix, committed queries and Patch 3 evidence.
 - [Decision Register](03%20Technical/Decision%20Register.md):
   durable decisions and links to their canonical definitions.
 - [Project Foundation](01%20Core%20Simulation/Project%20Foundation.md):

@@ -35,6 +35,7 @@ class _OwnedReadViews:
         self.world = world
         self.revision = revision
         self._parts = _source_parts(world)
+        self._dated_indexes = None
         self._lookup = None
         self._lookup_ready = False
         self._pages = OrderedDict()
@@ -82,3 +83,18 @@ class _OwnedReadViews:
         return self._page(('finance',airline_id), lambda:
             _project_recent_flight_results_owned(self.world,airline_id,
                                                  lookup=self._operations()))
+
+    def _dated(self):
+        if self._dated_indexes is None:
+            from game.scheduling.indexes import rebuild_dated_flight_indexes
+            self._dated_indexes=rebuild_dated_flight_indexes(self.world)
+        return self._dated_indexes
+
+    def operational_rows(self, airline_id, start_date, days, market=None, include_spanning=False):
+        from game.aircraft_operations.management_projection import _operational_period_owned
+        return self._page(('operational',airline_id,start_date,days,tuple(market) if market else None,include_spanning),
+            lambda:_operational_period_owned(self.world,airline_id,start_date,days,self._dated(),self._operations(),market,include_spanning))
+
+    def service_markets(self, airline_id):
+        from game.aircraft_operations.management_projection import _service_markets_owned
+        return self._page(('service_markets',airline_id),lambda:_service_markets_owned(self.world,airline_id,self._dated()))

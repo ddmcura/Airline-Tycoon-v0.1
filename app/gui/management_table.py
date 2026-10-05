@@ -23,8 +23,12 @@ class ManagementTable(BoxLayout):
     world authority. Ordinary refresh reuses cells keyed by immutable entity ID.
     No page timer: the owning application refreshes only its active page.
     """
-    def __init__(self, title, columns, *, search_fields, state=None, filters=(), actions=None, **kwargs):
+    def __init__(self, title, columns, *, search_fields, state=None, filters=(), actions=None, sortable=True, row_height=56, pin_first=False, **kwargs):
         super().__init__(orientation='vertical', spacing=dp(4), **kwargs)
+        self.pin_first = pin_first
+        self.pinned_scroll = None
+        self.row_height = row_height
+        self.sortable = sortable
         self.state = dict(state or {})
         self.state.setdefault('query', ''); self.state.setdefault('filters', {})
         self.state.setdefault('sort', columns[0][0]); self.state.setdefault('descending', False)
@@ -47,23 +51,64 @@ class ManagementTable(BoxLayout):
                 widget.bind(text=lambda w, text, k=key, c=caption: self._filter(k, c, text))
                 self.filter_widgets[key] = (widget, caption); bar.add_widget(widget)
             self.add_widget(bar)
-        self.table_width = dp(sum(c[2] for c in columns))
+        self.table_width = dp(sum(c[2] for c in (columns[1:] if pin_first else columns)))
         self.header_scroll = AxisScrollView(size_hint_y=None, height=dp(48), do_scroll_y=False)
         header = BoxLayout(size_hint_x=None, width=self.table_width)
         self.header_buttons = {}
-        for key, title, width in columns:
+        for key, title, width in (columns[1:] if pin_first else columns):
             button = Button(text=title, size_hint_x=None, width=dp(width))
-            if key not in self.actions: button.bind(on_release=lambda _, k=key: self.sort_by(k))
+            if self.sortable and key not in self.actions: button.bind(on_release=lambda _, k=key: self.sort_by(k))
             header.add_widget(button); self.header_buttons[key] = button
-        self.header_scroll.add_widget(header); self.add_widget(self.header_scroll)
+        self.header_scroll.add_widget(header)
+        if pin_first:
+            self.pinned_heading=Button(text=columns[0][1],size_hint_x=None,width=dp(columns[0][2]))
+            self.header_buttons[columns[0][0]]=self.pinned_heading
+            bar=BoxLayout(size_hint_y=None,height=dp(48));bar.add_widget(self.pinned_heading);bar.add_widget(self.header_scroll)
+            self.add_widget(bar)
+        else:self.add_widget(self.header_scroll)
         self.viewport = AxisScrollView(do_scroll_x=True, do_scroll_y=True)
         self.body = BoxLayout(orientation='vertical', size_hint=(None,None), width=self.table_width, height=dp(52))
-        self.viewport.add_widget(self.body); self.add_widget(self.viewport)
+        self.viewport.add_widget(self.body)
+        if pin_first:
+            self.pinned_scroll=AxisScrollView(size_hint_x=None,width=dp(columns[0][2]),do_scroll_x=False)
+            self.pinned_body=BoxLayout(orientation='vertical',size_hint_y=None,height=dp(self.row_height))
+            self.pinned_scroll.add_widget(self.pinned_body)
+            area=BoxLayout();area.add_widget(self.pinned_scroll);area.add_widget(self.viewport);self.add_widget(area)
+            self.viewport.bind(scroll_y=lambda _,v:self._sync_vertical(self.pinned_scroll,v))
+            self.pinned_scroll.bind(scroll_y=lambda _,v:self._sync_vertical(self.viewport,v))
+        else:self.add_widget(self.viewport)
         self.viewport.bind(scroll_x=self._sync_header); self.header_scroll.bind(scroll_x=self._sync_body)
         self.footer = Label(text='', size_hint_y=None, height=dp(46)); self.add_widget(self.footer)
+        self.footer.bind(size=lambda w,size:setattr(w,'text_size',(size[0],size[1])))
         self.viewport.scroll_x = self.state.get('scroll_x', 0)
         self.viewport.scroll_y = self.state.get('scroll_y', 1)
         self.apply()
+
+    def set_columns_and_rows(self, columns, rows):
+        """A weekly matrix changes service columns only when its shape changes.
+
+        Keep the page, controls, header viewport and body viewport. Prepare the
+        replacement header before swapping, with valid positive extents.
+        """
+        if columns != self.columns:
+            width=dp(sum(c[2] for c in (columns[1:] if self.pin_first else columns)))
+            header=BoxLayout(size_hint_x=None,width=width)
+            buttons={columns[0][0]:self.pinned_heading} if self.pin_first else {}
+            for key,title,w in (columns[1:] if self.pin_first else columns):
+                button=Button(text=title,size_hint_x=None,width=dp(w))
+                if self.sortable: button.bind(on_release=lambda _,k=key:self.sort_by(k))
+                buttons[key]=button;header.add_widget(button)
+            self.viewport.stop_motion();self.header_scroll.stop_motion()
+            self.header_scroll.remove_widget(self.header_scroll._viewport)
+            self.header_scroll.add_widget(header)
+            self.columns=columns;self.table_width=width;self.body.width=width
+            self.header_buttons=buttons;self.row_widgets={};self.cells={};self.rows=[]
+            if self.state['sort'] not in buttons:self.state['sort']=columns[0][0]
+        self.set_rows(rows)
+
+    @staticmethod
+    def _sync_vertical(target, value):
+        if target.scroll_y != value:target.scroll_y=value
 
     def _sync_header(self, _, value):
         if self.header_scroll.scroll_x != value: self.header_scroll.scroll_x = value
@@ -110,14 +155,17 @@ class ManagementTable(BoxLayout):
         for row in rows:
             identity = row['id']
             if identity not in self.row_widgets:
-                line = BoxLayout(size_hint_y=None, height=dp(56), width=self.table_width)
+                line = BoxLayout(size_hint_y=None, height=dp(self.row_height), width=self.table_width)
                 cells = {}
                 for column, _, width in self.columns:
                     if column in self.actions:
                         w = Button(text=self.actions[column][0], size_hint_x=None, width=dp(width))
                         w.bind(on_release=lambda _, k=identity, c=column: self._act(c,k))
                     else: w = cell('', width)
-                    cells[column] = w; line.add_widget(w)
+                    cells[column] = w
+                    if self.pin_first and column == self.columns[0][0]:
+                        w.size_hint_y=None;w.height=dp(self.row_height)
+                    else:line.add_widget(w)
                 self.row_widgets[identity] = line; self.cells[identity] = cells
             for column, _, _ in self.columns:
                 if column not in self.actions:
@@ -128,16 +176,23 @@ class ManagementTable(BoxLayout):
         for identity in set(self.row_widgets)-keep:
             del self.row_widgets[identity]; del self.cells[identity]
         current = list(reversed(self.body.children))
-        if current != prepared or self.body.height != dp(max(1,len(rows))*56):
+        if current != prepared or self.body.height != dp(max(1,len(rows))*self.row_height):
             self.viewport.stop_motion(); self.header_scroll.stop_motion()
+            if self.pinned_scroll:self.pinned_scroll.stop_motion()
         # Height never passes through zero. Clear/reorder is synchronous, after
         # preparation, with an unchanged valid extent until final rows attach.
-        self.body.height = dp(max(1,len(rows))*56)
+        self.body.height = dp(max(1,len(rows))*self.row_height)
         if current != prepared or not prepared:
             self.body.clear_widgets()
             if not prepared: self.body.add_widget(cell('No matching records', sum(c[2] for c in self.columns)))
             else:
                 for line in prepared: self.body.add_widget(line)
+        if self.pinned_scroll:
+            self.pinned_body.height=self.body.height
+            pinned=[self.cells[r['id']][self.columns[0][0]] for r in rows]
+            if list(reversed(self.pinned_body.children)) != pinned:
+                self.pinned_body.clear_widgets()
+                for widget in pinned:self.pinned_body.add_widget(widget)
         self.visible_rows = rows
         self.footer.text = f'{len(rows)} of {len(self.rows)} records'
         for column, _, _ in self.columns:
@@ -154,9 +209,14 @@ class ManagementTable(BoxLayout):
 
     def close(self):
         self.closed = True; self.viewport.dispose(); self.header_scroll.dispose()
+        if self.pinned_scroll:self.pinned_scroll.dispose()
 
     def finite(self):
         widgets = (self, self.body, self.viewport, self.header_scroll)
         values = [v for w in widgets for v in (*w.pos,*w.size)] + [self.viewport.scroll_x,self.viewport.scroll_y]
         values += [v for e in (self.viewport.effect_x,self.viewport.effect_y) for v in (e.value,e.velocity,e.min,e.max)]
+        if self.pinned_scroll:
+            values += [*self.pinned_body.pos,*self.pinned_body.size,self.pinned_scroll.scroll_y]
+            e=self.pinned_scroll.effect_y
+            values += [e.value,e.velocity,e.min,e.max]
         return all(isfinite(v) for v in values)

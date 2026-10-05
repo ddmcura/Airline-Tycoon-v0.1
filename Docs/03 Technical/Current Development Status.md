@@ -2,6 +2,43 @@
 
 Last updated: **2026-10-05**. Current snapshot, not operational authorization.
 
+## Management GUI Patch 3 — operational Flights and directional Bookings (2026-10-05)
+
+Baseline **548b83c5384edfb8d3f7e1beb380a0541cf1dd03** matched local HEAD,
+upstream and live origin/master. [Data/lifecycle contract and audit](Operational%20Management%20Pages.md).
+
+- Flights is a selected base-local operational-day table, with Previous/Today/Next,
+  calendar, search/filter/sort and distinct published occurrence rows. Retained
+  actual results/active operations and published upcoming flights touching that
+  day are shown, including overnight arrivals;
+  weekly patterns never manufacture history. Origin/destination local times are
+  displayed; authoritative engine/save UTC remains unchanged.
+- Bookings selects ordered OD IDs and a base-local Monday week. Seven calendar
+  rows show separate time/ordinal cells for exact published passenger occurrences,
+  confirmed upcoming / locked airborne / carried completed counts and seat load.
+  Capacity-zero/no-service is neutral; opposite directions never merge.
+- Reuses Patch 2's single active page, fixed controls, epoch-owned detached reads,
+  clamped scroll/disposal and presentation cadence. Small table extensions support
+  changing service columns, static matrix headers, taller identity cells, and a
+  synchronized pinned weekday rail (justified by narrow-window screenshot review).
+- Final affected command in the linked report: **96 passed in 160.574 s**, including
+  12 new operational GUI regressions and Patch 1/1.1/1.2B + Patch 2 coverage.
+  Full `python -B -m unittest discover -s tests`: **1091 passed in 1130.769 s**.
+  Scoped application compilation, all 76 affected local documentation links and
+  `git diff --check` pass for the reviewed Patch 3 working-tree scope.
+- Final native Windows SDL2 smoke PASS: 80 navigation operations, 40 finite-table
+  checks, Normal/Fast/Very Fast, real Upcoming/Airborne/Completed transitions,
+  Booking checkpoint, resized 1200x900 window and exact paused save/reload.
+  Dashboard count remained 32 in ten samples, one app ticker, zero page refresh
+  timers. Navigation median .0396 s / max .5292 s. Flights entry median .2226 s /
+  max .3509 s; Bookings .0396 s / .2359 s. Warm forced refresh medians .000272 s /
+  .000454 s. No blank/disappearing content or NaN observed; screenshots inspected.
+- No schema/template, save-format, runtime/pacing, scheduling, Booking/formula or
+  gameplay changes. Large tables/history read scaling remain deferred; this is
+  not Stage 3F capacity certification or a claim of human smoothness.
+- All implementation/verification gates passed for Patch 3. This management-GUI
+  slice stops; **next step: human playtesting**, no automatic milestone.
+
 ## Management GUI Patch 2 — sections, Fleet, Details and Research (2026-10-05)
 
 Baseline **c2a8bb11646bbfb9efa183665784cc3d4a7bb7e4** matched local HEAD,

@@ -20,6 +20,7 @@ from kivy.utils import platform
 from game.simulation.speeds import PLAYER_SPEEDS
 from app.session import Stage1Session
 from app.gui.gameplay import GameplayViews
+from app.gui.operations_pages import FlightsPage, BookingsPage
 from app.gui.navigation import SECTIONS, section_for
 from app.gui.management_pages import FleetPage, ResearchPage, AircraftDetailsPage
 from app.gui.airport_selector import AirportSelector
@@ -428,10 +429,10 @@ class AirlineTycoonApp(GameplayViews, App):
                 actions += [('Return to Title',self.return_to_title),('Exit',self.request_exit)]
             self.subnavigation.add_widget(self._horizontal_buttons(actions))
             self._section = section
-        if view in {'Fleet','Research','Aircraft Details'}:
+        if view in {'Fleet','Research','Aircraft Details','Flights','Bookings'}:
             if self._active_page is None:
                 state = self._page_states.get(view)
-                factory = {'Fleet':FleetPage,'Research':ResearchPage}.get(view)
+                factory = {'Fleet':FleetPage,'Research':ResearchPage,'Flights':FlightsPage,'Bookings':BookingsPage}.get(view)
                 page = factory(self,state) if factory else AircraftDetailsPage(self,self._details_aircraft_id,state)
                 page.refresh_data()  # Resolve before attaching to visible host.
                 self.page_host.add_widget(page);self._active_page=page
@@ -477,17 +478,6 @@ class AirlineTycoonApp(GameplayViews, App):
             self.render_acquisition()
         elif view == 'Schedule':
             self.render_scheduling()
-        elif view in {'Flights','Bookings'}:
-            rows = self.session.flights(offset=self.view_offset, limit=30)
-            for row in rows:
-                self.content.add_widget(_label(
-                    f"{row['origin_airport_reference_code']} → {row['destination_airport_reference_code']}  "
-                    f"{row['scheduled_departure_utc']}  {row['status']}\n"
-                    f"{row['aircraft_registration']}  |  Booked {row['booked_passenger_count']}/{row['published_capacity']}  "
-                    f"|  Carried {row['carried_passenger_count']}  |  Ticket sales {_money(row['ticket_sales_minor'])}\n"
-                    f"Revenue {_money(row['recognized_revenue_minor'])}  |  Cost {_money(row['operating_cost_minor'])} "
-                    f"(routine maintenance {_money(row['maintenance_expense_minor'])})", height=116))
-            self._page_buttons(len(rows), 30)
         elif view == 'Finance':
             finance = self.session.finances()
             for caption, key in [('Cash', 'cash_minor'), ('Aircraft assets', 'aircraft_assets_minor'),
