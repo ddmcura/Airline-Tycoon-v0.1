@@ -1,6 +1,36 @@
 # Current Development Status
 
-Last updated: **2026-10-06**. Current snapshot, not operational authorization.
+Last updated: **2026-10-07**. Current snapshot, not operational authorization.
+
+## Stage 3G-A — runtime scalability/main-thread forensic audit (2026-10-07)
+
+Baseline local HEAD/upstream/live origin/master matched **299f53c9f03981d3b1147dfa142978651566cb68**.
+[Methods, attribution, exact baselines and proposed stages](Runtime%20Scalability%20Forensic%20Audit.md).
+
+- Audit only: diagnostic tooling/guards/report, no production semantics, Schema 7,
+  templates, formulas/RNG, save, speed/cap/overload or additional certification changes.
+- Real 1/10/25/50 fixtures: quiet day 1.142/17.992/78.870/280.155 s. Fifty resolves
+  401 events at308.4× vs required1800×; capacity remains NOT CERTIFIED.
+- Exclusive50: proof/ownership111.096s, validation77.975s, clones25.933s,
+  GC27.354s. One day: 54 full validations/104 kernel clones/400 event witnesses;
+  pending/history/table traversal still repeats per small causal write.
+- Native no-navigation Ultra: median50 callback4.945s, retained one-plane
+  Divine2.510s. Isolated50 Booking13.508s /heartbeat13.580s; GUI .00295s.
+  55/56 phase-filtered active OS samples not responding. Earlier unfiltered counts
+  include startup/post-loop snapshot work, not running-game evidence.
+- Sixteen controlled speed probes retain exact credit. Native50 enters overload
+  drain with ~272704 game seconds retained; no recovery/capacity pass claimed.
+- Four speeds/independent strict50 prefix and full day retain Stage3F hashes.
+  Native committed-prefix snapshot/reload exact/paused; player Save/drain not
+  claimed while audit debt remains. Real Saves untouched.
+- Verification: 122 distinct affected cases pass (module-loader typos corrected);
+  full python -B -m unittest discover -s tests: **1116 passed in1167.058s**.
+  Seven new guards; scoped compilation, Windows-script parsing, 75 local links,
+  diff checks and audit-only self-review pass. No production source changed.
+- Proof locality → dependency validation → narrow transactions → bounded atomic
+  preparation → measured Booking/hot-cold reads → recertification are proposals,
+  not Approved implementation. No Stage3G-B/unrelated roadmap work begins.
+  Pre-existing untracked .venv remains untouched.
 
 ## Scheduling Patch 4 — planning-only reposition feasibility (2026-10-06)
 

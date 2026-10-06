@@ -43,6 +43,9 @@ domain contracts. Neither historical code nor a template overrides the schema.
   Stage 3E.1 exact graph validation, retained-history profiles and the remaining measured runtime gate.
 - [Retained Booking validation optimization](03%20Technical/Retained%20Booking%20Validation%20Optimization.md):
   Stage 3E.2 exact validation-local lineage, diagnostics, visit counts and runtime evidence.
+- [Runtime scalability forensic audit](03%20Technical/Runtime%20Scalability%20Forensic%20Audit.md):
+  Stage 3G-A throughput/main-thread attribution, native OS response evidence,
+  exactness baseline and proposed future stages; no production optimization.
 - [Runtime capacity certification](03%20Technical/Runtime%20Capacity%20Certification.md):
   final Stage 3F production measurements, 50-aircraft Ultra failure evidence,
   backlog/overload, exactness, persistence and native Kivy limits.
