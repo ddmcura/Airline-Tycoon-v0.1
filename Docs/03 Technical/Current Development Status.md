@@ -2,6 +2,33 @@
 
 Last updated: **2026-10-08**. Current snapshot, not operational authorization.
 
+## Stage 2A — dependency/ownership read foundation (2026-10-08)
+
+Baseline **3d23d34f3d3ea6da3fb7f3578f7a274afd39c136**, verified against fetched
+upstream/origin/master and live remote. [Implementation record](Quarterly%20Dependency%20Read%20Foundation.md).
+Scheduling-local immutable direct dependency reads and one session read entry point
+are implemented. Selected plan/revision/slot references prove direct owner equality;
+explicit version comparisons reject endpoint inconsistencies within their read scope.
+No global schema endpoint invariant or feasibility/mutation certificate is claimed.
+Schema 8/template/validators/allocators/persistence remain unchanged; dormant plans still
+create no operational supply or events. Existing GUI/scheduling/Booking/runtime remain.
+Focused `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_reads
+tests.test_quarterly_foundation -q`: **40 PASS in 20.022s** (20 new + 20 Stage 1).
+Targeted `.venv/Scripts/python.exe -B -m unittest tests.test_scheduling_recurrence
+tests.test_step7_save_load tests.test_stage1_runtime tests.test_shared_candidate -q`:
+**85 PASS in 147.496s**. Scoped `.venv/Scripts/python.exe -B -m compileall -q app
+game tests main.py make_snapshot.py settings.py test.py` PASS. Documentation checks:
+146 links / 4 anchors, casing, structure and scope PASS. Full `.venv/Scripts/python.exe
+-B -m unittest discover -s tests -q`: **1175 PASS in 2469.631s**, source/tests frozen.
+This run was longer than the prior recorded suite; no engine performance improvement
+or certification is claimed. No separate large gameplay/performance certification run.
+Final diff/authority/scope review and `git diff --check` PASS; only two production files,
+one new test file and six documentation files changed. No later slice implemented.
+No product decision blocks this completed read slice. Next requires separate approval:
+Schema 9 prerequisite → 2B → 2C → 2D → 2E → later Stage 3 / consumer migration.
+Number reuse, mutations/indexes and quarterly activation are not implemented; 3G-C PARKED.
+Archival stash and pre-existing untracked `.venv/` untouched.
+
 ## Quarterly Stage 2 contracts finalized — implementation not started (2026-10-08)
 
 Baseline **f079c5dfcaff216d4aad5c2984f2bca7787116e6**, matching fetched origin/master

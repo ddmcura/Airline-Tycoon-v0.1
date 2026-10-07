@@ -1,6 +1,12 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
-**FINALIZED CONTRACT DESIGN — IMPLEMENTATION NOT YET STARTED**
+**FINALIZED CONTRACT DESIGN — STAGE 2A READ FOUNDATION IMPLEMENTED; LATER SLICES NOT STARTED**
+
+Stage 2A successor (2026-10-08): [read implementation](Quarterly%20Dependency%20Read%20Foundation.md)
+adds direct selected-reference ownership/dependency resolution, recursively immutable
+reads and a session entry point. Endpoint checks cover explicitly selected versions only;
+no global Schema 8 invariant, command, index or consumer migration. Earlier finalization
+statements below retain their historical scope; schema-first reuse work remains next.
 
 Prepared 2026-10-08 from the restored Stage 1 checkpoint
 **f079c5dfcaff216d4aad5c2984f2bca7787116e6**. Fetch succeeded; local HEAD,

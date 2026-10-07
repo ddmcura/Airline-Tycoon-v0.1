@@ -107,4 +107,6 @@ Existing documentation outside this hierarchy should remain in place until it is
 
 - [Quarterly Authority and Identity Foundation](03%20Technical/Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.
 
-- [Quarterly Dependency Ownership and Command Contracts](03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized Stage 2 contract design, implementation not started; approved reuse/publication rules and future schema-first ordering.
+- [Quarterly Dependency Ownership and Command Contracts](03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads implemented, later slices not started; approved reuse/publication rules and schema-first ordering.
+
+- [Quarterly Dependency Read Foundation](03%20Technical/Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A implemented, dormant Schema 8 direct ownership/dependency reads; later slices and quarterly gameplay remain unimplemented.

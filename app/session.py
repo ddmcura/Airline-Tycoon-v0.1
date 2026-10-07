@@ -438,6 +438,22 @@ class Stage1Session:
         """Fresh detached row for the planner; command boundaries own validation."""
         return _project_owned_scheduling_aircraft(self.world, self.airline_id, aircraft_id)
 
+    def quarterly_plan_dependencies(self, weekly_plan_id, *, expected_revision,
+                                    revision=None, slot_keys=None, compare_with=()):
+        """Dormant immutable reads; comparisons cover explicitly supplied versions only."""
+        from game.scheduling.quarterly_reads import (
+            PlanReadRequest, QuarterlyReadResult, ReadIssue, resolve_quarterly_reads,
+        )
+        if self._owned_reads() is None:
+            return QuarterlyReadResult(issues=(ReadIssue(
+                'INVALID_WORLD', 'session', 'no valid active career'),))
+        if type(compare_with) is not tuple:
+            return QuarterlyReadResult(issues=(ReadIssue(
+                'INVALID_REQUEST', 'compare_with', 'immutable comparison requests required'),))
+        request = PlanReadRequest(weekly_plan_id, expected_revision, revision, slot_keys)
+        return resolve_quarterly_reads(self.world, airline_id=self.airline_id,
+                                      selections=(request, *compare_with))
+
     def delivery_locations(self):
         from game.fleet_management.acquisition import delivery_locations
         ids = delivery_locations(self.world['world_state'], self.airline_id)

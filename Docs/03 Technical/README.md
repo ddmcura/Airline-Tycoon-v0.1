@@ -33,4 +33,6 @@ are subordinate references; follow the authority order in [AGENTS.md](../../AGEN
 
 - [Quarterly Authority and Identity Foundation](Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.
 
-- [Quarterly Dependency Ownership and Command Contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; no Stage 2 implementation, current Schema 8 unchanged.
+- [Quarterly Dependency Ownership and Command Contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; only Stage 2A reads implemented, current Schema 8 unchanged.
+
+- [Quarterly Dependency Read Foundation](Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A read infrastructure implemented; no commands, indexes, Schema 9 or quarterly activation.

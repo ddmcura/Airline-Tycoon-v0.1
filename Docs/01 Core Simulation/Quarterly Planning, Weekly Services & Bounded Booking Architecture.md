@@ -1,6 +1,8 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
 **APPROVED DESIGN — STAGE 1 FOUNDATION IMPLEMENTED; QUARTER WORKFLOWS NOT YET IMPLEMENTED**
+Stage 2A now adds [dormant dependency/ownership reads](../03%20Technical/Quarterly%20Dependency%20Read%20Foundation.md)
+under unchanged Schema 8; this does not activate any product workflow below.
 Approved direction recorded 2026-10-07; publication and lifecycle product
 clarifications approved after the migration audit on 2026-10-07. This remains
 the canonical future-design description, not implementation permission. The
@@ -24,7 +26,8 @@ and its subordinate [template mirror](../../Data/Templates/template_reference.tx
 define current authority: **Schema 8 adds the dormant Stage 1 foundation**; existing
 operational domain semantics remain. Schema 7 is historical development authority. Domain specifications
 continue to govern current behavior. Historical implementation reports remain
-historical; only the bounded authority/identity Stage 1 is implemented.
+historical; the bounded authority/identity Stage 1 and dormant Stage 2A reads are
+implemented. Quarterly gameplay workflows remain unimplemented.
 
 Current documented behavior includes effective-dated weekly schedule revisions,
 published dated flights, optional rolling current-week-plus-four-future-weeks
