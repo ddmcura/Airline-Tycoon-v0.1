@@ -1,9 +1,12 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
 **APPROVED DESIGN DIRECTION — NOT YET IMPLEMENTED**
-Approved direction recorded 2026-10-07. Next task: dedicated architecture audit.
-This document records the intended gameplay and architecture; it neither performs
-that audit nor authorizes implementation. Exact representations remain unresolved.
+Approved direction recorded 2026-10-07; publication and lifecycle product
+clarifications approved after the migration audit on 2026-10-07. This remains
+the canonical future-design description, not implementation permission. The
+[audit](../03%20Technical/Quarterly%20Weekly%20Architecture%20Migration%20Audit.md)
+preserves its original analysis with explicitly superseded assumptions.
+Exact implementation representations remain unresolved.
 
 ## Authority and current implemented behavior
 
@@ -31,18 +34,20 @@ No fuller accounting system is introduced by this direction.
 analyzed runtime scalability. [Stage 3G-B](../03%20Technical/Runtime%20Local%20Certified%20Proofs.md)
 localized major proof/event-selection work with substantial measured improvements
 and exact behavior preserved. Runtime remains NOT CERTIFIED. Dependency-complete
-incremental validation (the contemplated Stage 3G-C) is not complete. Before further
-optimization of the existing scheduling/publication architecture, audit this
-quarterly/weekly direction to determine retained, simplified and removable
-structures, whether/where incremental validation is needed, and safe migration.
+incremental validation (the contemplated Stage 3G-C) is not complete. The completed
+migration audit recommends its concept as part of transition to the new authority
+model, in a reduced/different form, rather than broad optimization of outgoing
+publication machinery. This recommendation does not authorize implementation.
 
 ## Approved future direction: strategic quarters
 
 Calendar quarters are Q1 January–March, Q2 April–June, Q3 July–September and
-Q4 October–December. The quarter is a stable strategic planning and preparation
-boundary. During months 1 and 2, strategic changes target the next quarter.
-During month 3, that next quarter is already sealed for planning, so new
-strategic changes target the quarter after next.
+Q4 October–December. Quarter boundaries use the global simulation calendar / UTC;
+flight departure/arrival planning retains appropriate airport-local time rules.
+The quarter is a stable strategic planning and preparation boundary. During
+months 1 and 2, the next quarter is normally editable and unpublished. At the
+start of month 3 it automatically publishes and locks for ordinary strategic
+editing; new planning targets the quarter after next.
 
 | Change made in | Eligible strategic target |
 | --- | --- |
@@ -55,11 +60,60 @@ strategic changes target the quarter after next.
 | October / November | Q1 next year |
 | December | Q2 next year |
 
-Player-facing explanations use planning periods and effective dates, not cache
-terminology. A rolling pipeline may conceptually progress from editable/planning
-to sealed, prepared/cached, active, then historical. These are conceptual labels,
-not final enums or new authoritative fields. Exact boundary/timezone semantics
-and rollover mechanics require the audit.
+Player-facing explanations use planning periods, publication and effective dates,
+not cache terminology. Conceptual lifecycle states are **planning/unpublished →
+published/committed → active → historical**; no persisted enum names are approved.
+Derived preparation is separate from commercial commitment. **Unpublished flights
+cannot receive bookings.** Publication bridges strategic planning and sale.
+
+| Active quarter | Months 1–2 | Automatic publication at 00:00 UTC | Month 3 |
+| --- | --- | --- | --- |
+| Q1 | Q2 planning/unpublished | March 1: Q2 publishes | Q2 committed/bookable; Q3 planning |
+| Q2 | Q3 planning/unpublished | June 1: Q3 publishes | Q3 committed/bookable; Q4 planning |
+| Q3 | Q4 planning/unpublished | September 1: Q4 publishes | Q4 committed/bookable; next-year Q1 planning |
+| Q4 | Next-year Q1 planning/unpublished | December 1: next-year Q1 publishes | Next-year Q1 committed/bookable; next-year Q2 planning |
+
+At quarter rollover the published incoming plan becomes active. Ordinary PH 1.0
+strategic edits cannot alter published plans, whether future or active; after
+publication they target the next eligible unpublished quarter. This includes an
+early manual commitment: its published quarter is no longer a free editing target.
+
+### Carry-forward and first operating quarter
+
+The current published weekly schedule is the baseline for the next planning quarter.
+The player edits that future version optionally. With no strategic changes, the
+weekly schedule carries forward unchanged and publishes on the normal automatic
+date. No player action does not mean no future schedule. Copy-on-write or another
+storage mechanism is not chosen here; operational feasibility constraints still apply.
+
+A new airline follows the same future-quarter targets in the table above: January/
+February → Q2, March → Q3, and so on. There is **no partial-current-quarter Initial
+Operating Plan**. Its first weekly plan is built for the eligible future quarter;
+there is no existing service to carry forward before such a plan exists.
+
+Early **Manual Publish** is supported for the initial/new-airline situation. The
+player may explicitly commit the eligible future-quarter plan before its normal
+automatic publication date, making its eligible future occurrences bookable without
+moving their operating dates into the current quarter. This also applies when the
+normal initial target is the quarter after next under the month-3 rule.
+Before confirmation, the eventual GUI must explain that publication opens passenger
+bookings, commits the schedule and closes ordinary free strategic editing, or the
+player may keep planning and await automatic publication. Final wording/UI is deferred.
+This does not approve unrestricted manual publication of arbitrary future periods.
+
+### Published amendments versus operational outcomes
+
+PH 1.0 supports free edits of unpublished planning versions. Published plans are
+locked against ordinary strategic edits. They are not architecturally impossible
+to amend forever: future post-publication amendments may involve rebooking, refunds,
+compensation, operational cost, reputation or other consequences. Those mechanics
+are deferred, outside the current implementation target.
+
+Published strategy and actual outcomes are distinct. A published DAB01 planned for
+08:00 may later have a CANCELLED result with reason aircraft unavailable; the result
+does not rewrite the planned flight as though it never existed. Delays, diversions,
+maintenance and other legitimate operational exceptions remain possible when their
+systems exist. No new disruption mechanics are implemented or approved here.
 
 The active strategic operating plan stays stable for its period. Planning affects
 an eligible future quarter, avoiding repeated invalidation of strategic state
@@ -68,7 +122,7 @@ simulation.** Bookings, departures/arrivals, passenger counts, revenue/cost and
 actual aircraft state continue evolving. Delays, cancellations, breakdowns,
 diversions, emergency maintenance and other legitimate operational consequences
 must occur when required, rather than wait for a quarter. Deviations and recovery
-representation remain unresolved; strategic exceptions also require audit.
+representation remain unresolved; post-publication amendments remain deferred.
 
 ## Approved future direction: weekly plans and service identity
 
@@ -78,17 +132,31 @@ For example, Monday 08:00 MNL → DVO and 10:10 DVO → MNL may repeat through t
 quarter. Aircraft availability/delivery, airport and route eligibility, range,
 turnaround, positioning and other authoritative constraints still apply, including
 maintenance/disruption rules when implemented. Permanent full authoritative
-records for every future occurrence are not assumed; materialization is an audit
-question.
+records for every future occurrence are not assumed; materialization remains an
+implementation-planning question.
 
-DAB001 illustrates a persistent service identity: April 5, 12 and 19 operations
-are dated occurrences of that service, not newly invented service identities.
-A Q1 Monday 08:00 plan and Q2 Monday 09:00 plan may retain DAB001. A service may
-operate on multiple weekdays/frequencies; one identity is not assumed to mean
-exactly one weekly occurrence. Historical results must identify the correct dated
-operation and applicable plan/version, and retired identities remain historically
-unambiguous. Display flight numbers do not replace immutable internal relationship
-IDs. Final storage, versioning and identity allocation/reuse rules await audit.
+The weekly plan is the repeating unit. If it contains DAB01 through DAB25,
+the following week repeats those same numbers; it does not start at DAB26 merely
+because a week elapsed. DAB01 / 2028-04-03, DAB01 / 2028-04-10 and DAB01 /
+2028-04-17 are distinct dated occurrences of a recurring weekly flight number.
+Player-facing numbers alone cannot be database/history primary identities.
+
+A continuing service normally keeps its number across quarterly versions: DAB01
+MNL → DVO at 08:00 in Q1 may remain DAB01 at 08:30 in Q2. A new quarter does not
+renumber continuing services. A genuinely new unrelated service receives a new
+number; removing a service retires/reserves its number rather than automatically
+assigning it to the next unrelated new service.
+
+Conceptually distinguish active/continuing numbers, retired/reserved numbers and
+potential future reusable numbers. A later approved reuse/cooldown policy may make
+retired display numbers reusable, but history must remain unambiguous through stable
+internal identity and dated/version attribution. No cooldown, encoding or storage
+representation is chosen here.
+
+A service may operate on multiple weekdays/frequencies; one identity is not assumed
+to mean exactly one weekly occurrence. Correct dated occurrence and applicable
+plan/version must remain attributable even after retirement or eventual number reuse.
+Immutable internal IDs own relationships; flight numbers remain display values.
 
 ## Approved future direction: future preparation
 
@@ -99,8 +167,8 @@ avoiding a huge synchronous world rebuild where possible.
 
 “Background preparation” means preparation while the game continues operating;
 it does not approve threads or concurrency. Incremental work, bounded work
-between runtime updates, maintained indexes, caches or other mechanisms require
-audit. Ownership, dependency coverage, invalidation and reconstruction must be
+between runtime updates, maintained indexes, caches or other mechanisms need
+concrete implementation contracts. Ownership, dependency coverage, invalidation and reconstruction must be
 explicit; stale derived state cannot supply authoritative outcomes. Derived
 caches do not become authoritative persistent state merely for performance.
 
@@ -123,30 +191,39 @@ have different scopes and may be directional. A conceptual 1,000 baseline with
 No new modifier, demand value or equation is introduced. Stable inputs and
 safe derived values should eventually be maintainable/cacheable.
 
-The intended bookable horizon covers remaining eligible dates in the active
-quarter and dates in the immediately following quarter, never beyond it.
-Q1 therefore extends through Q2 end; Q2 through Q3 end. At rollover the newly
-following quarter opens for booking. Planning eligibility and booking eligibility
-are distinct: the sealed next plan can be bookable while new strategic edits
-target a later quarter.
+**Bookings may only use commercially published supply.** Active-plus-next-quarter
+supply is not continuously bookable. Normally January–February sell eligible Q1
+occurrences only: Q2 remains unpublished. On March 1 Q2 publishes, so eligible Q1
+and Q2 dates become sellable. April–May sell eligible Q2 only; Q3 opens June 1.
+July–August sell Q3 only, with Q4 opening September 1. October–November sell Q4
+only, with next-year Q1 opening December 1. Published state and exact occurrence
+eligibility determine sales; unpublished planning projections are never offers.
 
-Preserve progressive accumulation: flights months ahead can gradually fill as
-daily demand enters markets. This is not static quarterly passenger allocation.
-Booking inventory, lead-time distributions, exact date boundaries and interaction
-with current 365-day configuration/desired-date windows require audit before
-changing any current Booking contract.
+The sellable horizon expands at publication, rather than automatically opening a
+new following quarter at rollover. An initial early Manual Publish similarly opens
+only that eligible committed future plan, including the month-3 initial target;
+it does not make other unpublished quarters bookable.
+
+Preserve progressive daily accumulation. Published flights months ahead gradually
+fill as daily directional demand arrives; no static quarterly passenger allocation.
+Capacity does not create base demand. Booking inventory and lead-time distribution
+within the publication-dependent horizon still need implementation contracts before
+changing the current 365-day Booking configuration/equations.
 
 ## Approved future direction: delivery and advance cash
 
 Commercial planning is separate from physical aircraft location. Once an
-acquisition/delivery is sufficiently authoritative under game rules, future
-planning should be possible before physical arrival. An aircraft acquired in
+acquisition has an authoritative future availability/delivery timestamp and
+location, future planning should be possible before physical arrival. An aircraft acquired in
 February for May 10 delivery at MNL may be planned for Q2 operations only after
 valid availability at the required location, including preparation/turnaround.
 The player need not wait until May 10 to begin planning. Validate projected future
 feasibility without weakening range, airport, delivery, positioning or other
-constraints. Authoritative delivery guarantees and mid-quarter activation require
-audit; delayed delivery is not current immediate-acquisition behavior.
+constraints. No additional philosophical delivery-guarantee system is requested
+for PH 1.0. No occurrence may operate before authoritative availability. If current
+acquisition lacks the necessary time/location contract, later implementation may
+introduce only the minimum required authority. Delayed delivery is not current
+immediate-acquisition behavior; no acquisition change occurs in this task.
 
 Preserve advance ticket cash receipt unless a later explicit finance design
 changes it. Sales increase current available liquidity before operation, allowing
@@ -175,18 +252,18 @@ core concepts, not Philippines-specific rules. PH 1.0 remains current content
 scope; future country policies/data should remain content-driven where possible.
 No Southeast Asia content or country expansion is included.
 
-## Open questions requiring the next architecture audit
+## Implementation details still unresolved
 
 - Exact authoritative representation of quarter plans and persistent service IDs.
 - Service identity relationship to multiple weekly frequencies/days, versions and retirement.
 - When dated occurrences materialize and how bounded-horizon Booking inventory works.
 - Cache/derived-state domain ownership, dependency closure, invalidation and reconstruction.
 - Whether prepared future state is persisted or reconstructed, and horizon persistence needs.
-- Quarter sealing/rollover mechanics, date/timezone boundaries and preparation readiness.
-- Mid-quarter delivery guarantees, aircraft availability and projected feasibility.
-- Strategic schedule exceptions, operational disruptions and recovery.
+- Exact publication/rollover mechanics, same-time event ordering and preparation readiness; quarter calendar is UTC.
+- Minimum future availability contract and projected feasibility, including mid-quarter delivery.
+- Operational exception representation and recovery; costly post-publication amendments remain deferred.
 - Historical compact results, lineage preservation and historical compaction.
-- Migration from recurrence/publication structures without silently breaking existing saves.
+- Replacement of recurrence/publication authority for new saves; no development-save conversion requirement.
 - Effects on current scheduling GUI, previews, effective-date explanations and commands.
 - Deterministic save/load effects: quarter/weekly plans, identity/version history,
   dated operations, booking state, prepared state and cache reconstruction/invalidation.
@@ -196,8 +273,26 @@ No Southeast Asia content or country expansion is included.
 World-state construction, validation and persistence remain in `game/world_state`;
 generic clock/event orchestration in `game/simulation`; domain behavior in its
 owning package. Preserve complete event-boundary snapshots, separate validated
-load candidates, previous valid files on failure and paused restoration. Existing
-processed history and compatibility witnesses cannot be silently rewritten.
+load candidates, previous valid files on failure and paused restoration. These
+safety requirements remain; they do not require conversion of old development saves.
+
+## Historical records and development saves
+
+Retain finalized flights/results and accounting facts for finished-flight inspection,
+finance reporting, route/service/airline statistics, historical analysis and future
+replay/analytics where supported. Retained completed flights should not participate
+in booking eligibility, future aircraft availability, current schedule conflict checks
+or active event discovery merely because their history remains stored. Separate cold
+history from hot work safely; no destructive compaction losing required player-visible
+facts is approved.
+
+Existing development Schema 7 saves do **not** need compatibility with the new
+quarterly architecture; new saves after transition are acceptable. Do not add
+conversion/run-off/compatibility layers solely to migrate those development files.
+Schema 7 remains authoritative for current implementation. A later new schema must
+be explicit, documented, validated and internally coherent; incompatible old saves
+must not be silently misinterpreted. No files are deleted or migrated here. Required
+history/accounting within new careers and safe save/load still apply.
 
 ## Deferred implementation details and non-goals
 
@@ -206,5 +301,5 @@ rollover algorithm, modifier stacking mathematics or migration is chosen here.
 This task does not change Python, tests, JSON/game data, Schema 7, save files,
 Booking equations/horizons, demand values, acquisition, finance, runtime or GUI.
 It implements neither quarterly planning nor weekly-service persistence, Stage
-3G-C, AI or new countries. The next task is the dedicated architecture audit;
-implementation needs subsequent bounded approval and contracts.
+3G-C, AI or new countries. No repeat audit is performed; implementation planning
+and implementation require subsequent bounded approval and concrete contracts.

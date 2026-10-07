@@ -1,8 +1,12 @@
 # Airline Tycoon - Passenger Demand, Booking & Network Simulation Architecture
 
-## Approved future direction (2026-10-07; not implemented)
+## Approved future direction (clarified 2026-10-07; not implemented)
 
-The approved future direction bounds Booking to the active and immediately following quarter while preserving daily market demand and progressive accumulation. Current 365-day and published-occurrence contracts below remain unchanged.
+The approved future rule is published supply only: next-quarter planning remains
+unbookable until normal final-month publication or permitted initial Manual Publish.
+Active-plus-next-quarter supply is not continuously sellable. Daily directional
+demand, progressive accumulation and capacity-not-demand remain. Current 365-day
+and published-occurrence contracts below are unchanged.
 See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
 current implemented contracts or authorize implementation.
 

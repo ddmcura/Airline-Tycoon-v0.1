@@ -1,8 +1,11 @@
 # Airline Tycoon - Passenger Demand Technical Specification
 
-## Approved future direction (2026-10-07; not implemented)
+## Approved future direction (clarified 2026-10-07; not implemented)
 
-The future quarter-bounded horizon requires an audit of the current 365-day configuration, lead-time distribution and dated-shopping contracts below. No equation or configuration changes are approved by this documentation update.
+The future sellable horizon follows commercial publication, not continuous
+active-plus-next-quarter availability. Unpublished projections are never Booking
+offers. Lead-time/inventory mechanics still need concrete contracts; daily demand
+and progressive sales remain. No current equation/configuration changes occur.
 See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
 current implemented contracts or authorize implementation.
 

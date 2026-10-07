@@ -1,8 +1,12 @@
 # Airline Tycoon - Flight Scheduling Architecture
 
-## Approved future direction (2026-10-07; not implemented)
+## Approved future direction (clarified 2026-10-07; not implemented)
 
-Quarter-versioned weekly operating plans and persistent service identity are the approved future direction. Existing recurrence, revision and dated-publication contracts below remain current until audited replacement.
+Quarter-versioned weekly plans use publication to commit future supply and close
+ordinary PH 1.0 strategic editing. Carry-forward, initial early Manual Publish and
+weekly flight-number continuation/retirement follow the canonical future design.
+Published strategy is distinct from actual operational outcomes; costly amendments
+remain deferred. Existing recurrence/revision/publication below remains current.
 See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
 current implemented contracts or authorize implementation.
 

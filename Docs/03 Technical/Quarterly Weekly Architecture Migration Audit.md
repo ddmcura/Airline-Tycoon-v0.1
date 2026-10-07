@@ -8,6 +8,70 @@ was present. This is targeted source/dependency tracing and review of recorded
 measurements, not new performance testing. No production, tests, schema, templates,
 data, migration, optimization or Stage 3G-C implementation changed.
 
+## Post-audit product clarification (2026-10-07)
+
+**The original audit below is historical analysis at c0a4191.** Product decisions
+approved after audit commit `8192e76` supersede the assumptions identified here;
+they are not findings that the original audit reached. The
+[canonical future design](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) governs. This annotation is documentation-only,
+not a repeated audit, revised measurement or approved implementation plan.
+
+- Only published/committed supply is bookable. The audit's continuously sellable
+  active-plus-next-quarter assumption is superseded. Normally the next quarter
+  stays unpublished in months 1–2 and publishes/locks at 00:00 UTC on March 1,
+  June 1, September 1 or December 1. At publication, sales open and planning
+  moves to the next eligible unpublished quarter; at rollover the published plan
+  becomes active. Calendar quarters use global simulation UTC; flights stay local-time planned.
+- Current published weekly service carries forward as the next planning baseline;
+  no player changes means unchanged continuation, not an empty future schedule.
+  New airlines use the same future-quarter targeting rule, with no partial current-
+  quarter Initial Operating Plan. Initial Manual Publish explicitly commits that
+  eligible future-quarter plan early and opens sales, including a month-3 initial
+  quarter-after-next target. It closes ordinary editing; waiting remains an option.
+- PH 1.0 published plans are locked against ordinary strategic editing. This resolves
+  the audit's editable-but-sold next-quarter tension for the current target. Costly
+  post-publication amendments/rebooking/refunds are deferred mechanics, not impossible
+  forever. Actual cancellations/delays/other exceptions remain outcomes against the plan.
+- Weekly flight numbers repeat each week; continuing quarterly services keep numbers.
+  New unrelated services get new numbers; removed numbers retire/reserve. Possible
+  later reuse/cooldown is unresolved; internal identities keep history unambiguous.
+- Future planning uses authoritative aircraft availability time/location with existing
+  constraints; no extra philosophical guarantee system is required for PH 1.0.
+- Old development Schema 7 saves need no conversion compatibility; new saves are
+  acceptable. Original migration/run-off/adjacent conversion stages, rollback claims
+  based on converted old saves, and compatibility-specific tests are not target
+  requirements. Do not build complexity solely for those files. Future new-schema
+  save/load remains explicit/coherent/validated, with incompatible inputs rejected,
+  complete snapshots, paused load and previous valid file protection.
+- Historical flight/accounting information remains required in new careers. Retention
+  does not justify keeping completed flights in booking/future-availability/current-
+  conflict/active-event discovery. Lossy destructive compaction is not approved.
+
+Affected original conclusions: opening materialization recommendation; horizon table
+and 91–184-date/dense-fleet estimates; editable-sold-plan question; calendar/bootstrap/
+carry-forward/guarantee questions; old-save risk register, migration stages and unresolved
+human-decision list. These are preserved below as earlier analysis, not live product
+questions or unconditional prescriptions. In particular January/February ordinarily
+sell only the active quarter; March opens the next published quarter. The original
+January 1/February 15 two-quarter horizon counts do not describe the clarified lifecycle.
+Manual initial publication can open a different eligible future quarter, so the old
+active-plus-next bound must not constrain that approved capability.
+
+The earlier full-row bridge, occurrence thinning, indexes and transaction staging are
+audit recommendations, not newly approved mechanisms. Any later implementation plan
+must adapt them to publication-dependent supply and new-save-only transition; exact
+storage, event lead time, enum/ID encoding and compaction remain undecided here.
+Lead-time allocation mechanics within sellable supply and exact boundary event ordering
+still require implementation contracts. The **B + D** 3G-C recommendation remains:
+target dependency-complete/local validation as part of migration in reduced/different
+form, rather than broad optimization of outgoing publication machinery.
+
+The source correction remains valid: current scheduling defaults to 90 days, normal
+recurrence roughly five weeks, and the current 365-day limit belongs to Booking.
+No current source/schema contract changes. No measured performance claim changes.
+
+## Original audit analysis — read with the supersessions above
+
 ## Authority, method and conclusion
 
 The [approved target](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md)
@@ -557,7 +621,7 @@ countries/AI or airport-code branches.
 | Calendar/country explanation | MEDIUM | Approve UTC/local semantics; non-PH zones, year carry and pack gates. |
 | Duplicate derived lifecycle enums | LOW | Derive target/quarter/readiness from time/versions; do not duplicate authority. |
 
-## Proposed migration stages and rollback
+## Proposed migration stages and rollback (original; compatibility assumptions superseded)
 
 Proposals only; each needs bounded approval. Compatibility is one-way conversion/
 run-off with a sunset, never permanent dual scheduling writers.
@@ -614,7 +678,7 @@ memory and short prefixes rather than multi-hour days. Vary H/M/S independently 
 Reserve sustained 50 Ultra/native certification for coherent milestones, not every
 small step. Higher fleets are future scale targets, not forecasts from arithmetic.
 
-## Human decisions and gameplay invariants
+## Human decisions and gameplay invariants (original; resolved items noted above)
 
 Approval still needed: calendar timezone/boundary priority; new-career bootstrap/
 no-change carry-forward; editable sold next-quarter terms/refund rights; multi-frequency

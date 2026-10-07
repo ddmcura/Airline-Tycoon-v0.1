@@ -2,6 +2,29 @@
 
 Last updated: **2026-10-07**. Current snapshot, not operational authorization.
 
+## Post-audit product clarification (2026-10-07; documentation only)
+
+Baseline **8192e765531c4195780f9e83888cb395cdbfdf4a** matched local HEAD and live
+origin/master. [Canonical future design](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) updated; the migration audit
+now marks superseded assumptions explicitly without changing original source evidence.
+Future target: UTC final-month publication commits next quarter and opens sales;
+unpublished plans cannot book. Carry-forward is default; new airlines plan the normal
+future quarter and may manually publish early, with no partial current-quarter plan.
+PH 1.0 ordinary published edits close; costly future amendments remain deferred.
+Weekly numbers repeat/continue, removed numbers retire/reserve; reuse policy deferred.
+Authoritative future aircraft time/location suffices, no extra guarantee system.
+History/accounting retained; old development-save conversion is not required.
+3G-C concept remains part of transition in reduced/different form, not implemented.
+Next: concrete implementation contracts/scope approval, including lead-time mechanics,
+representation/event ordering and minimum availability authority. No repeat audit,
+production/tests/schema/templates/game-data changes, gameplay suites or benchmarks.
+Earlier audit decision lists/stages below are historical where superseded here.
+Pre-existing untracked `.venv/` remains untouched.
+Validation PASS on 2026-10-07: inline Python checker verified 281 local links,
+57 heading targets and tracked-path casing across nine changed Markdown files;
+complete diff/authority/contradiction/scope review and `git diff --check` PASS.
+No gameplay/performance suite or compilation run for this documentation-only scope.
+
 ## Quarterly / weekly migration audit (2026-10-07)
 
 Audited baseline **c0a4191a615132615df699d49722d66a150d222f**, matching live
