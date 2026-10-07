@@ -482,6 +482,8 @@ class MixedFlightTests(unittest.TestCase):
         self.assertEqual(self.world,expected)
 
     def test_schema6_is_valid_strict_fallback_without_divergence(self):
+        from tests.legacy_starter_fixture import strip_quarterly_foundation
+        strip_quarterly_foundation(self.world)
         self.world['metadata']['save_schema_version']=6
         self.world['simulation']['configuration'].pop('maintenance')
         # Schema-6 schedules cannot contain the later rolling-publication options.

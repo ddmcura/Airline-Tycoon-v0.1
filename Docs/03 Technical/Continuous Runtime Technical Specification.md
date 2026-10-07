@@ -41,7 +41,7 @@ verification status are recorded separately in
 This increment implements the existing [PH step 4](Stage%201%20Implementation%20Roadmap.md#philippines-10-release-sequence)
 and [Aircraft Operations clock contract](../01%20Core%20Simulation/Aircraft%20Operations%20Technical%20Specification.md#3-authoritative-simulation-clock).
 It preserves the canonical [schema](Stage%201%20State%20Schema.md#clock-and-event-contract),
-the clock fields introduced in schema 5 (current saves remain schema 7), domain ownership, event order and complete-event transactions.
+the clock fields introduced in schema 5 (current saves use schema 8 with dormant quarterly identity authority), domain ownership, event order and complete-event transactions.
 No new persistent field or migration is introduced.
 
 The original increment approved continued simulation during management navigation,

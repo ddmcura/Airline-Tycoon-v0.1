@@ -185,7 +185,7 @@ class OperationsGuiTests(unittest.TestCase):
             gc.collect();counts.append(len(list(self.app.screens.walk())))
         self.assertEqual(len(set(counts)),1,counts);self.assertEqual(before,self.s.authoritative_bytes())
         self.s.save_manual();self.s.load_saved(self.s.career_id)
-        self.assertEqual(before,self.s.authoritative_bytes());self.assertEqual(self.s.world['metadata']['save_schema_version'],7)
+        self.assertEqual(before,self.s.authoritative_bytes());self.assertEqual(self.s.world['metadata']['save_schema_version'],8)
         self.assertFalse(self.s.runtime.running)
 
 if __name__=='__main__':unittest.main()

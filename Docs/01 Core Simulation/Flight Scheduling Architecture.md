@@ -10,6 +10,13 @@ remain deferred. Existing recurrence/revision/publication below remains current.
 See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
 current implemented contracts or authorize implementation.
 
+## Quarterly migration Stage 1 implemented foundation
+
+[Schema 8 identity/plan foundation](../03%20Technical/Quarterly%20Authority%20and%20Identity%20Foundation.md)
+is dormant authority for later migration. Current Schedule Builder/recurrence/publisher
+still own operational supply and do not write new service/plan tables. No quarter
+publication, Booking eligibility or player workflow change is implemented.
+
 ## Approved planning-only reposition feasibility — 2026-10-06
 
 Unpublished drafts may contain geographic discontinuity when the aircraft could

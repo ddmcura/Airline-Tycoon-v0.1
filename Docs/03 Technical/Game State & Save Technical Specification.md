@@ -2,10 +2,11 @@
 
 ## Approved future direction (clarified 2026-10-07; not implemented)
 
-The future transition requires explicit, validated new-schema authority; compatibility
+Stage 1 now supplies dormant Schema 8 identity/plan authority and new-save-only
+persistence; see [implementation record](Quarterly%20Authority%20and%20Identity%20Foundation.md). Compatibility
 with existing development Schema 7 saves is not required, and new saves are acceptable.
-Do not add conversion machinery solely for those files. Current Schema 7/migrations
-remain unchanged; complete snapshots, separate validated candidates, previous-file
+Disk Save/Load requires Schema 8; no 7-to-8 converter. Earlier migrations remain
+historical bootstrap/fixture code. Complete snapshots, separate validated candidates, previous-file
 safety, paused restoration and retained history/accounting remain requirements.
 See the [focused design direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
 current implemented contracts or authorize implementation.

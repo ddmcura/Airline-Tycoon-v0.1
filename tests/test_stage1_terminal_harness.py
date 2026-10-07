@@ -80,7 +80,7 @@ class Stage1BootstrapTests(unittest.TestCase):
         right = new_world("DVO")
         self.assertEqual(encoded(left), encoded(right))
         self.assertTrue(validate_world(left).is_valid, validate_world(left).as_dict())
-        self.assertEqual(left["metadata"]["save_schema_version"], 7)
+        self.assertEqual(left["metadata"]["save_schema_version"], 8)
         right["world_state"]["player"]["ceo_display_name"] = "Changed"
         self.assertEqual(left["world_state"]["player"]["ceo_display_name"], "Avery Chen")
 

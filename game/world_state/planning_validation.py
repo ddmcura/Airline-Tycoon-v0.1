@@ -98,7 +98,7 @@ def validate_planning(envelope):
                 raise ValueError('rolling pattern requires retained planning timing')
             until = revision['recurrence'].get('until_local_date')
             if until is not None:
-                if envelope['metadata']['save_schema_version'] not in (4, 5, 6, 7):
+                if envelope['metadata']['save_schema_version'] not in (4, 5, 6, 7, 8):
                     raise ValueError('bounded planner recurrence requires schema 4')
                 if (type(until) is not str or date.fromisoformat(until).isoformat() != until
                         or until < revision['effective_from_local_date']):
@@ -107,7 +107,7 @@ def validate_planning(envelope):
                 raise ValueError('recurrence end date cannot be null')
             if 'planning_timing' in revision:
                 validate_timing(revision['planning_timing'], catalogs)
-                if envelope['metadata']['save_schema_version'] not in (4, 5, 6, 7):
+                if envelope['metadata']['save_schema_version'] not in (4, 5, 6, 7, 8):
                     raise ValueError('timed planning requires schema 4')
                 model = world['aircraft'][revision['planned_aircraft_id']]['model_reference']
                 if revision['planning_timing']['model_reference'] != model:

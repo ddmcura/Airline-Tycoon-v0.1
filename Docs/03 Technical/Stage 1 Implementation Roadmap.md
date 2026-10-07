@@ -11,6 +11,16 @@ milestone sections preserve their historical contracts. Statements that work
 "remains deferred" describe that milestone's boundary, not necessarily current
 availability; consult Current Development Status and later completed increments.
 
+## Quarterly migration Stage 1 foundation (2026-10-07)
+
+[Authority/identity foundation](Quarterly%20Authority%20and%20Identity%20Foundation.md)
+implemented as dormant Schema 8 authority for new careers. Legacy operational paths
+retain gameplay; no old development-save conversion. This is only Stage 1, not
+quarter publication/Booking/carry-forward/GUI completion. Next is bounded Stage 2
+validation/dependency/ownership specification and approval; do not start it automatically.
+The audit recommendation remains reduced/different 3G-C within migration, not broad
+optimization of the outgoing graph. Prior roadmap history below retains dated scope.
+
 ## Next architecture checkpoint (2026-10-07)
 
 After implemented Stage 3G-B, perform a dedicated architecture audit of the

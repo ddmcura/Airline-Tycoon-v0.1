@@ -220,7 +220,7 @@ class WeeklyDraft:
                 arrival_day_offset=(arrival_local.date() - local.date()).days)
             if end_date is not None:
                 recurrence['until_local_date'] = end_date
-            if candidate['metadata']['save_schema_version'] == 7:
+            if candidate['metadata']['save_schema_version'] in (7, 8):
                 recurrence['publication_policy'] = POLICY
             if index < len(self._replacement_ids):
                 schedule_id = self._replacement_ids[index]

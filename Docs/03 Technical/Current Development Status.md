@@ -2,6 +2,33 @@
 
 Last updated: **2026-10-07**. Current snapshot, not operational authorization.
 
+## Quarterly migration Stage 1 — authority and identity foundation (2026-10-07)
+
+Baseline **c6fab14e6ed63161cf50882cef867fc81645b226**. Source scope and contracts:
+[implementation record](Quarterly%20Authority%20and%20Identity%20Foundation.md).
+Schema/template updated before production; current new careers use Schema 8 with
+empty service/numbering/quarter-plan tables. Stable service/slot identities, quarter
+versions, monotonic reserved display numbers, UTC calendar and publication-derived
+lifecycle are implemented. Exact new-save persistence; old development files reject,
+no conversion. Dormant plans generate no supply/events and do not enter current Booking.
+Current scheduling/recurrence/Booking365/runtime/finance/acquisition/GUI remain intact;
+additive guards permit existing certified handlers under Schema 8, with full gates.
+No quarter publication/carry-forward/Booking migration/GUI/delivery/3G-C implemented.
+Next: separately approved Stage 2 dependency/ownership/validation contracts.
+Focused new 20 tests PASS in 5.517s; acquisition/maintenance plus foundation 48 PASS
+in 37.978s. Initial historical downgrade fixture failure fixed by omitting only empty
+Schema 8 additions; host Python missing tzdata, use existing `.venv` Python with -B.
+First full discovery: 1155 cases in 1146.380s, 1152 passed; two schema-7 fixed-hash
+fixtures required explicit empty-foundation projection and NO_OP needed an additive
+schema-8 guard. Historical hashes preserved; all 49 affected advancement/shared cases
+PASS in 47.298s. Final `.venv/Scripts/python.exe -B -m unittest discover -s tests -q`:
+**1155 passed in 1151.585s** on frozen Stage 1 source/test working-tree scope.
+Scoped `.venv/Scripts/python.exe -B -m compileall -q app game tests main.py
+make_snapshot.py settings.py test.py` PASS after the correction. Documentation checker:
+365 local links / 63 headings and tracked casing PASS; complete production/test/
+documentation diff, schema-first/name/authority/scope review and `git diff --check` PASS.
+Pre-existing untracked `.venv/` left unchanged; no data/runtime artifacts staged.
+
 ## Post-audit product clarification (2026-10-07; documentation only)
 
 Baseline **8192e765531c4195780f9e83888cb395cdbfdf4a** matched local HEAD and live

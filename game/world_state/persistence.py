@@ -16,10 +16,6 @@ from pathlib import Path
 import shutil
 import uuid
 
-from .migration import (
-    migrate_schema_1_to_2, migrate_schema_2_to_3, migrate_schema_3_to_4,
-    migrate_schema_4_to_5, migrate_schema_5_to_6, migrate_schema_6_to_7,
-)
 from .schema import LATEST_SAVE_SCHEMA_VERSION
 from .validation import validate_world
 
@@ -71,7 +67,7 @@ def _validated(world):
 
 
 def _migrated(source, *, foundation_snapshot=None):
-    """Upgrade a detached source through every adjacent schema boundary."""
+    """Validate new-save authority without reinterpreting development saves."""
     world = deepcopy(source)
     metadata = world.get("metadata") if type(world) is dict else None
     version = metadata.get("save_schema_version") if type(metadata) is dict else None
@@ -81,30 +77,9 @@ def _migrated(source, *, foundation_snapshot=None):
         raise SaveError("NEWER_SCHEMA", f"Save schema {version} is newer than supported schema {LATEST_SAVE_SCHEMA_VERSION}")
     if version < 1:
         raise SaveError("INVALID_SCHEMA", "Unsupported save schema version")
+    if version != LATEST_SAVE_SCHEMA_VERSION:
+        raise SaveError('UNSUPPORTED_SCHEMA', 'Development saves before schema 8 are not supported; start a new career')
     _validated(world)
-    while version < LATEST_SAVE_SCHEMA_VERSION:
-        if version == 1:
-            if foundation_snapshot is None:
-                raise SaveError("FOUNDATION_REQUIRED", "Schema 1 requires its approved historical country foundation snapshot")
-            result = migrate_schema_1_to_2(world, foundation_snapshot=foundation_snapshot)
-            if not result.succeeded:
-                issue = result.issues[0] if result.issues else None
-                raise SaveError("MIGRATION_FAILED", issue.message if issue else "Schema 1 migration failed")
-        else:
-            migrate = {
-                2: migrate_schema_2_to_3,
-                3: migrate_schema_3_to_4,
-                4: migrate_schema_4_to_5,
-                5: migrate_schema_5_to_6,
-                6: migrate_schema_6_to_7,
-            }[version]
-            result = migrate(world)
-            if not result.succeeded:
-                issue = result.issues[0] if result.issues else None
-                raise SaveError("MIGRATION_FAILED", issue.message if issue else f"Schema {version} migration failed")
-            world = result.migrated_world
-        version += 1
-        _validated(world)
     world["simulation"]["clock_state"] = "PAUSED"
     world["simulation"]["fast_forward"]["target_time_utc"] = None
     _validated(world)
@@ -227,6 +202,11 @@ class SaveStore:
     def save(self, career_id, kind, world, *, bookmark_name=None,
              bookmark_id=None, progression_revision=0):
         _career_id(career_id)
+        version = world.get('metadata', {}).get('save_schema_version') if type(world) is dict else None
+        if type(version) is int and version > LATEST_SAVE_SCHEMA_VERSION:
+            raise SaveError('NEWER_SCHEMA', 'Cannot write a newer schema')
+        if version != LATEST_SAVE_SCHEMA_VERSION:
+            raise SaveError('UNSUPPORTED_SCHEMA', 'Only schema 8 new-career saves can be written')
         prior = self._entries(career_id)
         lineage = world.get('metadata', {}).get('lineage_id') if type(world) is dict else None
         if any(e['world']['metadata']['lineage_id'] != lineage for e in prior):

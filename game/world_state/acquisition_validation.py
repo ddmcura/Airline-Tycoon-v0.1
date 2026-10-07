@@ -33,7 +33,7 @@ def validate_acquisition(envelope):
     purchases = [t for t in world['transactions'].values()
                  if t.get('source_type') == 'AIRCRAFT_PURCHASE']
     schema_version = envelope['metadata']['save_schema_version']
-    if schema_version not in (5, 6, 7):
+    if schema_version not in (5, 6, 7, 8):
         if configured or purchases:
             raise ValueError('aircraft acquisition requires schema 5')
         return
@@ -81,7 +81,7 @@ def validate_acquisition(envelope):
             raise ValueError('purchase journal must exchange cash for the catalog-price asset')
     if schema_version == 5 and seen_aircraft != set(configured):
         raise ValueError('configured aircraft requires purchase provenance')
-    if schema_version in (6, 7):
+    if schema_version in (6, 7, 8):
         new_purchase_aircraft = set()
         legacy_purchase_aircraft = set()
         for aircraft_id, aircraft in configured.items():

@@ -246,7 +246,7 @@ class LeasePreview:
 
 def preview_lease(envelope, *, airline_id, offer_id, contract_type, term_years,
                   delivery_airport_id, command_id=None):
-    if envelope["metadata"]["save_schema_version"] not in (6, 7):
+    if envelope["metadata"]["save_schema_version"] not in (6, 7, 8):
         raise ValueError("leasing requires schema 6")
     world = envelope["world_state"]
     if offer_id not in world["aircraft_lease_offers"]:

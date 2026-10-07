@@ -30,3 +30,5 @@ are subordinate references; follow the authority order in [AGENTS.md](../../AGEN
 - [Quarterly Planning, Weekly Services & Bounded Booking Architecture](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) — approved direction, not implemented; migration audit recorded, implementation approval pending.
 
 - [Quarterly / Weekly Architecture Migration Audit](Quarterly%20Weekly%20Architecture%20Migration%20Audit.md) — audit recommendations, not implementation approval; source mapping, simplification, risks and proposed migration stages.
+
+- [Quarterly Authority and Identity Foundation](Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.

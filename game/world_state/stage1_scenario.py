@@ -568,6 +568,8 @@ def create_stage1_new_game(
         "lifetime_flight_seconds": 0, "lifetime_cycles": 0,
         "service_condition_bps": 10_000,
     }
+    from .quarterly_construction import _initialize_quarterly_foundation
+    _initialize_quarterly_foundation(candidate)
     validation = validate_world(candidate)
     if not validation.is_valid:
         issue = validation.errors[0]

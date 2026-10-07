@@ -45,7 +45,7 @@ def enter_purchased_aircraft(candidate, airline_id, delivery_airport_id, view):
         raise ValueError('registration namespace exhausted')
     aircraft = world['aircraft'][aircraft_id]
     aircraft['display_registration'] = registration
-    if candidate.get('metadata', {}).get('save_schema_version') in (6, 7):
+    if candidate.get('metadata', {}).get('save_schema_version') in (6, 7, 8):
         airframe_id = allocate_id(candidate, 'airframe')
         aircraft['lifecycle'] = {
             'airframe_id': airframe_id, 'acquisition_type': 'NEW_PURCHASE',

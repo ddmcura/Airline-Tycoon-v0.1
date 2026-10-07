@@ -69,7 +69,7 @@ class CandidateManifestLookup:
     protected_collections = frozenset(('bookings', 'itineraries'))
 
     def __init__(self, candidate):
-        if candidate['metadata']['save_schema_version'] != 7:
+        if candidate['metadata']['save_schema_version'] not in (7, 8):
             raise ValueError('candidate manifest lookup requires Schema 7')
         self._world = candidate['world_state']
         self._sources = {name: self._world[name] for name in self.protected_collections}

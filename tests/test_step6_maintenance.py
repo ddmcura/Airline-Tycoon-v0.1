@@ -24,6 +24,8 @@ def encoded(value):
 
 def schema6(world):
     candidate = deepcopy(world)
+    from tests.legacy_starter_fixture import strip_quarterly_foundation
+    strip_quarterly_foundation(candidate)
     candidate["metadata"]["save_schema_version"] = 6
     del candidate["simulation"]["configuration"]["maintenance"]
     assert validate_world(candidate).is_valid, validate_world(candidate).as_dict()

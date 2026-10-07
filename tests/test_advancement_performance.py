@@ -15,6 +15,16 @@ from tests.profile_advancement import starting_world
 from tests.profile_scheduling import copy_counts, digest
 
 
+def historical_digest(world):
+    """Keep fixed schema-7 witnesses; exclude only the additive empty foundation."""
+    from tests.legacy_starter_fixture import strip_quarterly_foundation
+    candidate = deepcopy(world)
+    if candidate['metadata']['save_schema_version'] == 8:
+        strip_quarterly_foundation(candidate)
+        candidate['metadata']['save_schema_version'] = 7
+    return digest(candidate)
+
+
 class AdvancementPerformanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -29,10 +39,12 @@ class AdvancementPerformanceTests(unittest.TestCase):
         self.session.career_id = self.session.save_store.new_career_id()
 
     def test_fast_forward_matches_baseline_hash_and_normal_speed_replay(self):
-        self.assertEqual(digest(self.base), self.asserted_input)
+        self.assertEqual(digest(self.base),
+            'ce5c21ab5eaac8b0d364e1ab8520e248931e5a2dc61111b70d49353e99e1bc55')
+        self.assertEqual(historical_digest(self.base), self.asserted_input)
         report = self.session.advance_seconds(2*86400)
         self.assertTrue(report.result.succeeded)
-        self.assertEqual(digest(self.session.world),
+        self.assertEqual(historical_digest(self.session.world),
             '2aa62106a7fedd3425addc98841cc84273ab6fa0639a93bca5f4c764174df8b6')
         normal = deepcopy(self.base)
         kernel.configure_clock_ratios(normal,normal=30)
@@ -169,7 +181,7 @@ class AdvancementPerformanceTests(unittest.TestCase):
         cloned = _clone_runtime_world(world)
         self.assertEqual(digest(cloned),digest(world))
         next(iter(cloned['world_state']['aircraft'].values()))['status']='BROKEN'
-        self.assertEqual(digest(world),self.asserted_input)
+        self.assertEqual(historical_digest(world),self.asserted_input)
         payload = {'large':2**130,'fraction':-0.0,'unicode':'\u2603','flags':[True,None,False]}
         self.assertEqual(_clone_runtime_world(payload),payload)
         import math

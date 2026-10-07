@@ -1,8 +1,8 @@
 """Concrete constants for the authoritative Stage 1 world schema."""
 
 SAVE_SCHEMA_VERSION = 1
-LATEST_SAVE_SCHEMA_VERSION = 7
-SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4, 5, 6, 7})
+LATEST_SAVE_SCHEMA_VERSION = 8
+SUPPORTED_SAVE_SCHEMA_VERSIONS = frozenset({1, 2, 3, 4, 5, 6, 7, 8})
 DEFAULT_GAME_VERSION = "0.1"
 DEFAULT_REFERENCE_DATA_VERSION = "stage1-reference-v1"
 MAX_ENTITY_ID_NUMBER = 999_999_999_999
@@ -343,3 +343,14 @@ AIRCRAFT_MARKET_CONFIGURATION = {
     "offers_per_lessor": 2,
     "used_listings_per_month": 4,
 }
+
+# Additive dormant quarterly authority; operational consumers still use legacy tables.
+SCHEMA8_ENTITY_TYPES = SCHEMA6_ENTITY_TYPES + ('service', 'weekly_plan')
+SCHEMA8_ENTITY_COLLECTIONS = {
+    **SCHEMA6_ENTITY_COLLECTIONS,
+    'service': ('services', 'service_id'),
+    'weekly_plan': ('weekly_plans', 'weekly_plan_id'),
+}
+SCHEMA8_WORLD_ROOTS = SCHEMA6_WORLD_ROOTS | frozenset({
+    'services', 'service_numbering', 'weekly_plans',
+})

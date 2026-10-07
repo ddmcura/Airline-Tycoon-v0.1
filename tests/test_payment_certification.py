@@ -349,6 +349,8 @@ class PaymentSharedTests(unittest.TestCase):
         self.assertLess(purchase_accounts(self.world['world_state'], airline)['cash']['balance_minor'], 0)
 
     def test_schema6_compatibility_uses_same_proof(self):
+        from tests.legacy_starter_fixture import strip_quarterly_foundation
+        strip_quarterly_foundation(self.world)
         self.world['metadata']['save_schema_version'] = 6
         self.world['simulation']['configuration'].pop('maintenance')
         self.assertTrue(validate_world(self.world).is_valid)

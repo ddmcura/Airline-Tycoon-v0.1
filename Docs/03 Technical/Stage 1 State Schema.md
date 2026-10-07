@@ -1,5 +1,74 @@
 # Stage 1 State Schema
 
+## Quarterly migration Stage 1 authority foundation (schema 8)
+
+Schema 8 adds dormant identity/plan authority; current schedule definitions, dated
+flights, Booking365, recurrence, events, finance and GUI still operate unchanged.
+No quarter publication/carry-forward/Booking integration is implemented in Stage 1.
+New Game alone initializes empty foundation tables after constructing fresh legacy
+domain state. Disk Load accepts schema 8 only; older development saves are rejected
+with UNSUPPORTED_SCHEMA. No 7-to-8 migration is provided. Earlier schemas remain
+validatable as historical fixtures, not playable new-schema saves.
+
+Authoritative new world roots:
+
+- `services`: map of standard `service-NNNNNNNNNNNN` IDs to exactly
+  `service_id`, `airline_id`, `flight_number_number` (positive integer),
+  `next_slot_number` (positive integer, initially 1), `retired_at_utc` (null or
+  exact UTC timestamp at/before current simulation time). IDs/numbers never reused.
+- `service_numbering`: airline-ID map to exactly `flight_number_prefix` (2..8
+  uppercase ASCII letters) and `next_number` (positive integer, initially 1).
+  Prefix fixed once initialized. Number allocation is monotonic per airline;
+  display is prefix + number padded to at least two digits, no two-digit limit.
+  Display text is derived, not a foreign key. Retired services retain their number;
+  no cooldown/reuse policy. `next_number` exceeds every retained airline number.
+- `weekly_plans`: standard `weekly_plan-NNNNNNNNNNNN` ID map to exactly
+  `weekly_plan_id`, `airline_id`, `quarter_id` (canonical `YYYY-Q1`..`YYYY-Q4`),
+  `current_revision` and `revisions`. One plan per airline/quarter. Revision map
+  keys are contiguous canonical integer strings 1..current_revision. Each value
+  has exactly `revision`, `published_at_utc` (null until committed), and `slots`.
+  Slots are a list of records each with exactly `service_id`, `slot_number`,
+  `weekdays` (sorted unique integers 0..6), `departure_local_time` (HH:MM:SS),
+  `departure_local_fold` (0/1), `origin_airport_id`, `destination_airport_id`,
+  `planned_aircraft_id`, `connection_id`, `service_type`, `capacity`, `fare_offer`,
+  `planning_timing`. These use the existing passenger/deadhead, integer-minor fare,
+  connection ownership/endpoints, installed capacity and retained timing contracts.
+  A slot number is stable within its service and less than its `next_slot_number`.
+  Distinct frequencies use distinct slot numbers; multiple weekdays may share one.
+  Service IDs own continuity across quarter plans; no positional semantic matching.
+  Slot rows are ordered by `(service_id, slot_number)` and unique within a revision.
+
+Whole-world construction/serialization/validation remain world_state-owned. New
+entity namespaces `service` and `weekly_plan` extend the persisted standard allocator.
+Local slot/flight-number cursors avoid global scans during allocation. Low-level
+constructors mutate caller-owned detached candidates, like existing construction
+primitives; they do not constitute GUI/strategic editing workflows. Revision append
+preserves prior facts, requires expected revision, and rejects committed plans or
+new inclusion of retired services. Existing retained versions remain valid on retirement.
+
+Publication authority is only `published_at_utc`: at most one published revision,
+which must be current; timestamp cannot exceed simulation time or quarter start.
+Stage 1 supplies no command/event that sets it. Pure lifecycle derives PLANNING
+when null; otherwise PUBLISHED before quarter start, ACTIVE within quarter,
+HISTORICAL after quarter end. No lifecycle/target/cache labels are saved.
+Quarter boundaries use UTC, `[start, next_start)`; shared utility handles year carry
+and normal target months1–2 +1 quarter, month3 +2. Airport-local time is unchanged.
+
+Future dated commitment identity is the pure key
+`<service_id>@<canonical origin-local operating date>#<slot_number>` (unpadded
+positive slot number). It excludes mutable number/time/aircraft/version and is stable
+across plan revisions; applicable plan/revision facts remain separate lineage.
+This is one shared future commercial/operational identity contract, not another
+saved occurrence table. No occurrences are materialized and no legacy dated IDs
+are remapped in Stage 1. Quarter/slot-aware identity query checks membership,
+weekday and UTC-quarter applicability using pinned airport timezone conversion.
+
+Full validation checks exact shapes, IDs/allocator cursors, ownership/foreign keys,
+number/plan/slot uniqueness, timing/capacity/route facts and commitment timestamps.
+Future execution feasibility, cyclic conflict validation, automatic publication,
+manual publication, carry-forward, Bookings and operational exceptions remain later.
+
+
 ## Approved airport-local recurring weekly planner (2026-10-03)
 
 Schema 7 accepts two optional `schedule_revision.recurrence` fields:

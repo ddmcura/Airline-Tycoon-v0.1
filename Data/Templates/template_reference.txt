@@ -1,3 +1,19 @@
+# Schema 8 quarterly migration Stage 1 foundation (2026-10-07).
+# Canonical authority: Docs/03 Technical/Stage 1 State Schema.md.
+# Dormant foundation; legacy operational scheduling remains the current consumer.
+world_state.services: service_id -> {service_id, airline_id, flight_number_number, next_slot_number, retired_at_utc}
+world_state.service_numbering: airline_id -> {flight_number_prefix, next_number}
+world_state.weekly_plans: weekly_plan_id -> {weekly_plan_id, airline_id, quarter_id, current_revision, revisions}
+weekly_plan.revisions: revision string -> {revision, published_at_utc, slots}
+weekly_plan.revision.slots: [{service_id, slot_number, weekdays, departure_local_time, departure_local_fold, origin_airport_id, destination_airport_id, planned_aircraft_id, connection_id, service_type, capacity, fare_offer, planning_timing}]
+# Standard allocator namespaces: service, weekly_plan. Slot numbers allocated per service.
+# Prefix 2..8 uppercase ASCII letters; derived display prefix + at-least-two-digit number.
+# Retired identities/numbers retained; no reuse. One plan per airline/quarter YYYY-Qn.
+# Only publication timestamp persisted; lifecycle/target are derived from UTC.
+# Future occurrence key: service_id@origin-local-date#positive-slot-number, no saved rows yet.
+# New Game initializes empty roots; Load accepts8 only, no development-save conversion.
+# Existing notes below preserve their historical schema scopes.
+
 # Patch 1.2B causal generation accounting (2026-10-05); Schema remains 7.
 # Runtime-only generated limits count same-UTC children, excluding future allocation.
 # Counter survives yields/flushes; resets on chronological progress. Total limit unchanged.

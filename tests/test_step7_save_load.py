@@ -178,26 +178,27 @@ class SaveLoadTests(unittest.TestCase):
             session.load_saved(self.career)
         self.assertEqual(session.world, before)
 
-    def test_migration_rejection_and_paused_no_offline_time(self):
-        old = deepcopy(self.world)
-        old['metadata']['save_schema_version'] = 6
-        del old['simulation']['configuration']['maintenance']
-        self.assertTrue(validate_world(old).is_valid)
-        self.store.save(self.career, 'manual', old)
-        loaded, _ = self.store.load(self.career)
-        self.assertEqual(loaded['metadata']['save_schema_version'], 7)
-        self.assertEqual(loaded['simulation']['time_utc'], old['simulation']['time_utc'])
-        self.assertEqual(loaded['simulation']['clock_state'], 'PAUSED')
-        self.assertEqual(self.store._read(Path(self.temp.name, self.career, 'manual.json'))['world'], old)
-        future = deepcopy(self.world)
-        future['metadata']['save_schema_version'] = 8
+    def test_old_save_rejection_and_paused_no_offline_time(self):
+        from game.world_state.persistence import _migrated, _digest
+        for version in range(1, 8):
+            old = deepcopy(self.world)
+            old['metadata']['save_schema_version'] = version
+            before = deepcopy(old)
+            with self.subTest(version=version), self.assertRaises(SaveError) as caught:
+                _migrated(old)
+            self.assertEqual(caught.exception.code, 'UNSUPPORTED_SCHEMA')
+            self.assertEqual(old, before)
+            with self.assertRaises(SaveError):
+                self.store.save(self.career, 'manual', old)
+        self.world['simulation']['clock_state'] = 'NORMAL'
         self.store.save(self.career, 'manual', self.world)
+        loaded, _ = self.store.load(self.career)
+        self.assertEqual(loaded['simulation']['time_utc'], self.world['simulation']['time_utc'])
+        self.assertEqual(loaded['simulation']['clock_state'], 'PAUSED')
         path = Path(self.temp.name, self.career, 'manual.json')
         wrapper = json.loads(path.read_text(encoding='utf-8'))
-        wrapper['world'] = future
-        from game.world_state.persistence import _digest
-        wrapper['integrity_sha256'] = _digest({k: v for k, v in wrapper.items()
-                                                if k != 'integrity_sha256'})
+        wrapper['world']['metadata']['save_schema_version'] = 9
+        wrapper['integrity_sha256'] = _digest({k: v for k, v in wrapper.items() if k != 'integrity_sha256'})
         path.write_text(json.dumps(wrapper), encoding='utf-8')
         with self.assertRaisesRegex(SaveError, 'newer'):
             self.store.load(self.career)
@@ -205,42 +206,6 @@ class SaveLoadTests(unittest.TestCase):
         with self.assertRaisesRegex(SaveError, 'newer'):
             self.store.save(self.career, 'manual', self.world)
         self.assertEqual(path.read_bytes(), future_bytes)
-
-    def test_every_supported_sequential_migration_and_schema1_foundation(self):
-        from tests.test_stage1_demand_model4_foundation import (
-            foundation_snapshot, make_schema1_world)
-        from game.world_state.migration import (
-            migrate_schema_1_to_2, migrate_schema_2_to_3,
-            migrate_schema_3_to_4, migrate_schema_4_to_5,
-            migrate_schema_5_to_6, migrate_schema_6_to_7)
-        source = make_schema1_world()
-        foundation = foundation_snapshot(source)
-        steps = (migrate_schema_1_to_2, migrate_schema_2_to_3,
-                 migrate_schema_3_to_4, migrate_schema_4_to_5,
-                 migrate_schema_5_to_6, migrate_schema_6_to_7)
-        for version in range(1, 8):
-            with self.subTest(schema=version):
-                self.store.save(self.career, 'manual', source)
-                path = Path(self.temp.name, self.career, 'manual.json')
-                original = path.read_bytes()
-                if version == 1:
-                    with self.assertRaisesRegex(SaveError, 'foundation'):
-                        self.store.load(self.career)
-                    loaded, _ = self.store.load(self.career,
-                                                foundation_snapshot=foundation)
-                else:
-                    loaded, _ = self.store.load(self.career)
-                self.assertEqual(loaded['metadata']['save_schema_version'], 7)
-                self.assertTrue(validate_world(loaded).is_valid)
-                self.assertEqual(path.read_bytes(), original)
-            if version < 7:
-                if version == 1:
-                    result = steps[0](source, foundation_snapshot=foundation)
-                    self.assertTrue(result.succeeded)
-                else:
-                    result = steps[version - 1](source)
-                    self.assertTrue(result.succeeded, result.as_dict())
-                    source = result.migrated_world
 
     def test_real_active_time_and_simulated_week_triggers_coalesce(self):
         ticks = [0]

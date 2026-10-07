@@ -262,6 +262,8 @@ class AcquisitionTests(unittest.TestCase):
             key: row for key, row in self.world['world_state']['pending_events'].items()
             if row['event_type'] != 'STAGE1_WEEKLY_PUBLICATION'
         }
+        from tests.legacy_starter_fixture import strip_quarterly_foundation
+        strip_quarterly_foundation(self.world)
         self.world['metadata']['save_schema_version'] = 5
         self.world['simulation']['configuration'].pop('aircraft_market')
         self.world['simulation']['configuration'].pop('maintenance')

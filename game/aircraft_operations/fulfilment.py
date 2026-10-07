@@ -453,7 +453,7 @@ def _common_checks(envelope, flight_id, *, _event_transaction=None):
         else:
             code = "INVALID_WORLD_STATE"
         return None, _reject(envelope, flight_id, code, issue.message, issue.path)
-    if envelope["metadata"]["save_schema_version"] not in (4, 5, 6, 7):
+    if envelope["metadata"]["save_schema_version"] not in (4, 5, 6, 7, 8):
         return None, _reject(envelope, flight_id, "INVALID_WORLD_STATE", "flight fulfilment requires schema 4")
     flight = envelope["world_state"]["dated_flights"].get(flight_id)
     if type(flight) is not dict:
@@ -499,7 +499,7 @@ def departure_operation(envelope, flight, aircraft_id, manifest, event_id):
         "departure_event_id": event_id,
         "completion_event_id": None,
     }
-    if envelope["metadata"]["save_schema_version"] == 7:
+    if envelope["metadata"]["save_schema_version"] in (7, 8):
         operation.update(departure_witness(
             world, flight, world["aircraft"][aircraft_id],
             envelope["simulation"]["configuration"]["maintenance"],
@@ -550,7 +550,7 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
     if actual_aircraft_id is not None and (type(actual_aircraft_id) is not str or not actual_aircraft_id):
         return _reject(envelope, flight_id, "AIRCRAFT_UNAVAILABLE", "actual aircraft ID must be a nonempty string")
     chosen_aircraft_id = flight["planned_aircraft_id"] if actual_aircraft_id is None else actual_aircraft_id
-    if actual_aircraft_id is not None and envelope["metadata"]["save_schema_version"] != 7:
+    if actual_aircraft_id is not None and envelope["metadata"]["save_schema_version"] not in (7, 8):
         return _reject(envelope, flight_id, "INVALID_WORLD_STATE", "substitution requires schema 7")
     aircraft = world["aircraft"].get(chosen_aircraft_id)
     if type(aircraft) is not dict:

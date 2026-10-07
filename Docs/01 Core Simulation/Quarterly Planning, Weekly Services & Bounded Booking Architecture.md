@@ -1,21 +1,24 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
-**APPROVED DESIGN DIRECTION — NOT YET IMPLEMENTED**
+**APPROVED DESIGN — STAGE 1 FOUNDATION IMPLEMENTED; QUARTER WORKFLOWS NOT YET IMPLEMENTED**
 Approved direction recorded 2026-10-07; publication and lifecycle product
 clarifications approved after the migration audit on 2026-10-07. This remains
 the canonical future-design description, not implementation permission. The
 [audit](../03%20Technical/Quarterly%20Weekly%20Architecture%20Migration%20Audit.md)
 preserves its original analysis with explicitly superseded assumptions.
-Exact implementation representations remain unresolved.
+The [Stage 1 implementation record](../03%20Technical/Quarterly%20Authority%20and%20Identity%20Foundation.md)
+and canonical schema now define the dormant identity foundation. Remaining workflows
+and later representation decisions are not implemented.
 
 ## Authority and current implemented behavior
 
 This is the focused source for the future direction, not a replacement persistent
 state contract. [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md)
 and its subordinate [template mirror](../../Data/Templates/template_reference.txt)
-remain authoritative today: **Schema 7 is unchanged**. Domain specifications
+define current authority: **Schema 8 adds the dormant Stage 1 foundation**; existing
+operational domain semantics remain. Schema 7 is historical development authority. Domain specifications
 continue to govern current behavior. Historical implementation reports remain
-historical; no implementation milestone is completed by this document.
+historical; only the bounded authority/identity Stage 1 is implemented.
 
 Current documented behavior includes effective-dated weekly schedule revisions,
 published dated flights, optional rolling current-week-plus-four-future-weeks
@@ -254,7 +257,7 @@ No Southeast Asia content or country expansion is included.
 
 ## Implementation details still unresolved
 
-- Exact authoritative representation of quarter plans and persistent service IDs.
+- Later plan workflow/consumer integration; minimum quarter/service identity is defined by Schema 8.
 - Service identity relationship to multiple weekly frequencies/days, versions and retirement.
 - When dated occurrences materialize and how bounded-horizon Booking inventory works.
 - Cache/derived-state domain ownership, dependency closure, invalidation and reconstruction.
@@ -289,17 +292,19 @@ facts is approved.
 Existing development Schema 7 saves do **not** need compatibility with the new
 quarterly architecture; new saves after transition are acceptable. Do not add
 conversion/run-off/compatibility layers solely to migrate those development files.
-Schema 7 remains authoritative for current implementation. A later new schema must
+Schema 8 is current for new careers; older development saves are rejected cleanly.
+Further schema changes must
 be explicit, documented, validated and internally coherent; incompatible old saves
 must not be silently misinterpreted. No files are deleted or migrated here. Required
 history/accounting within new careers and safe save/load still apply.
 
 ## Deferred implementation details and non-goals
 
-No final schema/database representation, lifecycle enum, cache/threading strategy,
-rollover algorithm, modifier stacking mathematics or migration is chosen here.
-This task does not change Python, tests, JSON/game data, Schema 7, save files,
-Booking equations/horizons, demand values, acquisition, finance, runtime or GUI.
-It implements neither quarterly planning nor weekly-service persistence, Stage
-3G-C, AI or new countries. No repeat audit is performed; implementation planning
-and implementation require subsequent bounded approval and concrete contracts.
+Schema 8 now defines minimum service/quarter-plan/slot identities and commitment
+facts. Calendar helpers, validation and deterministic persistence are implemented.
+This does not activate quarterly planning/publication/Booking workflows, carry-forward,
+future delivery, occurrence thinning, reduced 3G-C, AI or new countries. Cache/thread
+strategy, rollover/event generation, modifier/lead-time mechanics, number reuse and
+history representation remain later decisions. Existing Booking economics/horizon,
+operational recurrence, acquisition, finance and GUI remain unchanged. Subsequent
+implementation requires bounded approval and concrete contracts.
