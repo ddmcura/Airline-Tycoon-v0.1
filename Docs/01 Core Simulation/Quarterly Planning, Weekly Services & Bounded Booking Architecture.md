@@ -1,6 +1,6 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
-**APPROVED DESIGN DIRECTION — NOT YET IMPLEMENTED**  
+**APPROVED DESIGN DIRECTION — NOT YET IMPLEMENTED**
 Approved direction recorded 2026-10-07. Next task: dedicated architecture audit.
 This document records the intended gameplay and architecture; it neither performs
 that audit nor authorizes implementation. Exact representations remain unresolved.
