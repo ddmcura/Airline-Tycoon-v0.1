@@ -1,5 +1,11 @@
 # Airline Tycoon - Economy Simulation Architecture
 
+## Approved future direction (2026-10-07; not implemented)
+
+The future direction preserves advance ticket cash and the future service obligation. Current Booking cash/liability posting and fulfilment revenue recognition remain unchanged; no new accounting system is introduced.
+See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 > **Status:** Approved architecture. This document defines the separation between cash, earned revenue, liabilities, assets, expenses, profit, company value, entity accounts, currencies, and financial distress. It also defines how bookings, operated flights, aircraft, fuel, maintenance, and connecting itineraries affect airline finances. It does not finalize formulas, prices, tax rules, loan underwriting, exchange-rate generation, persistent schema fields, or detailed passenger compensation.
 
 ## 1. Purpose and Core Philosophy

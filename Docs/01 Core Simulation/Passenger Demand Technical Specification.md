@@ -1,5 +1,11 @@
 # Airline Tycoon - Passenger Demand Technical Specification
 
+## Approved future direction (2026-10-07; not implemented)
+
+The future quarter-bounded horizon requires an audit of the current 365-day configuration, lead-time distribution and dated-shopping contracts below. No equation or configuration changes are approved by this documentation update.
+See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 > **Status:** Approved Stage 1 technical direction. This document translates the approved Passenger Demand, Booking & Network Simulation architecture into formulas, processing rules, performance requirements, and testable behavior for the first generic Economy implementation. Numerical coefficients are configurable prototype values, not permanent balance. This document does not authorize code or schema changes by itself.
 
 ## 1. Purpose and Technical Rule

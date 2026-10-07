@@ -11,6 +11,18 @@ milestone sections preserve their historical contracts. Statements that work
 "remains deferred" describe that milestone's boundary, not necessarily current
 availability; consult Current Development Status and later completed increments.
 
+## Next architecture checkpoint (2026-10-07)
+
+After implemented Stage 3G-B, perform a dedicated architecture audit of the
+[quarterly/weekly and bounded Booking direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md).
+This takes precedence over committing to the contemplated Stage 3G-C dependency-
+complete incremental validation of current scheduling/publication machinery.
+The audit determines retained/simplified/removed structures, remaining validation
+needs and safe migration. It has not been performed; 3G-C is not complete.
+No implementation milestone or PH release gate is completed by this direction.
+Subsequent implementation requires bounded approval. Existing release scope
+and historical implementation evidence below remain unchanged.
+
 ## Philippines 1.0 release sequence
 
 Updated 2026-09-30. **Approved PH 1.0 scope; provisional implementation order.**

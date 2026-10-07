@@ -1,5 +1,11 @@
 # Game State & Save Technical Specification
 
+## Approved future direction (2026-10-07; not implemented)
+
+The future direction requires an audit of plan/version history, occurrences, bounded Booking state and reconstructible caches. Schema 7, existing migration and complete-event/paused-load contracts remain unchanged.
+See the [focused design direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 ## Status and Authority
 
 This specification translates the approved Game State & Save architecture into implementation requirements. It remains a documentation contract only. It does not itself approve edits to schemas, templates, serialization code, or game systems.

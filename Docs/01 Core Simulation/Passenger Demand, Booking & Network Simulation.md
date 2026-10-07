@@ -1,5 +1,11 @@
 # Airline Tycoon - Passenger Demand, Booking & Network Simulation Architecture
 
+## Approved future direction (2026-10-07; not implemented)
+
+The approved future direction bounds Booking to the active and immediately following quarter while preserving daily market demand and progressive accumulation. Current 365-day and published-occurrence contracts below remain unchanged.
+See the [focused design direction](Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 > **Status:** Approved architecture. This document defines potential passenger demand, market discovery, route awareness, booking accumulation, itinerary choice, capacity-aware competition, direct and connecting journeys, and the staged path toward deeper passenger behavior. It does not finalize formulas, persistent schema fields, technical algorithms, marketing mechanics, loyalty progression, compensation values, or cargo behavior.
 
 ## 1. Purpose and Core Philosophy

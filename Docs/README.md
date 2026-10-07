@@ -98,3 +98,7 @@ current implementation status or permission to begin work.
 - [`05 Future`](./05%20Future/) — approved post-v1.0 and long-term systems.
 
 Existing documentation outside this hierarchy should remain in place until it is deliberately reviewed and migrated.
+
+## Approved future architecture direction
+
+- [Quarterly Planning, Weekly Services & Bounded Booking Architecture](01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) — approved direction, not implemented; dedicated architecture audit next, before further current-architecture optimization.

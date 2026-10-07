@@ -1,5 +1,11 @@
 # PH 1.0 Step 4 — Continuous Runtime
 
+## Approved future direction (2026-10-07; not implemented)
+
+The next architecture audit examines quarterly/weekly planning before further optimization of current publication machinery. Stage 3G-C is not implemented. No runtime boundary, pacing, concurrency or measured capacity claim changes here.
+See the [focused design direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 ## Stage 3E production successor
 
 [Production Cooperative Runtime](Production%20Cooperative%20Runtime.md) activates

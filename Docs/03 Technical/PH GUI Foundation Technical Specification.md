@@ -1,5 +1,11 @@
 # PH 1.0 Kivy GUI Foundation
 
+## Approved future direction (2026-10-07; not implemented)
+
+Quarterly/weekly planning is a future direction whose effect on scheduling controls and effective-date presentation requires audit. Existing GUI scheduling behavior remains unchanged; no redesign is implemented.
+See the [focused design direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 Approved implementation scope: user request, 2026-10-01. Implementation and
 verification results are recorded in [Current Development Status](Current%20Development%20Status.md).
 

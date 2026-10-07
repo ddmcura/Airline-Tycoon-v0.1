@@ -24,3 +24,7 @@ Documentation for implementation-wide structures and engineering rules.
 The Stage 1 State Schema is the canonical persistent-state contract.
 `Data/Templates/template_reference.txt` and `docs/template_reference_with_rules.txt`
 are subordinate references; follow the authority order in [AGENTS.md](../../AGENTS.md).
+
+## Approved future architecture direction
+
+- [Quarterly Planning, Weekly Services & Bounded Booking Architecture](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) — approved direction, not implemented; dedicated architecture audit next, before further current-architecture optimization.

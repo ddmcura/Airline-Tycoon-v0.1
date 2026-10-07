@@ -2,6 +2,27 @@
 
 Last updated: **2026-10-07**. Current snapshot, not operational authorization.
 
+## Documentation checkpoint — approved future direction (2026-10-07)
+
+Baseline implementation revision: **d5811f5fb9048ecab956351f79dc42023dc407e6**.
+[Quarterly planning, weekly services and bounded Booking](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md)
+is recorded as APPROVED DESIGN DIRECTION — NOT YET IMPLEMENTED.
+Next step is a dedicated architecture audit before committing to further
+optimization of current recurrence/publication machinery (contemplated 3G-C).
+No audit or implementation was performed. Schema 7 and all gameplay remain current.
+Prior Stage 3G-B evidence below remains valid for its recorded source scope;
+its next-proposal statement is historical and the audit is now the next step.
+Pre-existing untracked `.venv/` remains untouched.
+
+Documentation validation applies only to this successor working-tree scope:
+local links/heading targets and tracked-path casing, complete documentation diff,
+authority/non-implementation review, scope/status and `git diff --check`.
+Gameplay/performance suites and compilation are not applicable to this doc-only change.
+Validation PASS on 2026-10-07: inline Python local-link/heading/casing checker
+checked 15 documentation files, 313 local links and 59 heading targets;
+`git diff --check`, complete diff and authority/scope self-review PASS.
+No dedicated repository documentation validator was found in the tracked inventory.
+
 ## Stage 3G-B — local certified proofs and canonical selection (2026-10-07)
 
 Baseline local HEAD/upstream/live origin/master matched **8b12fdd5e53390cad1fb0b541475febcc22ef912**.

@@ -1,5 +1,11 @@
 # PH 1.0 Basic New-Aircraft Acquisition
 
+## Approved future direction (2026-10-07; not implemented)
+
+Future quarterly planning should allow sufficiently authoritative future acquisitions to be scheduled before physical delivery, subject to projected availability and location. Current immediate-delivery acquisition below remains unchanged; delayed-delivery authority requires audit.
+See the [focused design direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend
+current implemented contracts or authorize implementation.
+
 ## Step 5 compatibility and future manufacturer financing
 
 Schema-6 leasing and used-aircraft behavior is specified separately in the
