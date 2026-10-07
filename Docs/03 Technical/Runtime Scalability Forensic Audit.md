@@ -1,5 +1,9 @@
 # Runtime Scalability and Main-Thread Stall Forensic Audit — Stage 3G-A
 
+Successor: the separately authorized [Stage 3G-B implementation](Runtime%20Local%20Certified%20Proofs.md)
+addresses local proofs and canonical selection only. The measurements and proposals
+below remain the historical 3G-A baseline; later stages are not authorized here.
+
 Measured **2026-10-07**, baseline **299f53c9f03981d3b1147dfa142978651566cb68**.
 Local HEAD, upstream and live origin/master matched before work. Only `.venv/`
 was initially untracked; it is untouched. **Audit only: no production changes.**

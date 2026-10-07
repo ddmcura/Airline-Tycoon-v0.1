@@ -7,7 +7,7 @@ Canonical world/alias validators and detached publication remain independent.
 from copy import deepcopy
 from weakref import ref
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence, KeysView, ItemsView, ValuesView
 
 from game.world_state.serialization import json_compatibility_error
 def mutable_alias_error(value):
@@ -124,6 +124,50 @@ class _WriteTable(dict):
         return self[key]
 
 
+class _LocalWriteTable(_WriteTable):
+    """Only approved rows are stored; other rows are immutable read capabilities.
+
+    Even dict base-class mutators can only affect this small output store. They
+    cannot reach the protected source. Output checks inspect EVERY stored key.
+    This is a one-event proof surface, not a change to outer world transactions.
+    """
+    def __init__(self, base, keys):
+        dict.__init__(self)
+        self._keys = frozenset(keys)
+        self._base = base
+        for key in self._keys:
+            if key in base: dict.__setitem__(self, key, deepcopy(base[key]))
+
+    def __getitem__(self, key):
+        if key in self._keys: return dict.__getitem__(self, key)
+        return self._base[key]
+
+    def __contains__(self, key):
+        return dict.__contains__(self, key) if key in self._keys else key in self._base
+
+    def get(self, key, default=None):
+        return self[key] if key in self else default
+
+    def __iter__(self):
+        for key in self._base:
+            if key not in self._keys or dict.__contains__(self, key): yield key
+        for key in dict.__iter__(self):
+            if key not in self._base: yield key
+
+    def __len__(self):
+        return len(self._base) + sum(int(dict.__contains__(self,k))-int(k in self._base)
+                                     for k in self._keys)
+
+    def keys(self): return KeysView(self)
+    def items(self): return ItemsView(self)
+    def values(self): return ValuesView(self)
+
+    def checked_local_keys(self, base, keys):
+        if self._base is not base or self._keys != keys or not dict.keys(self) <= keys:
+            raise ValueError('certified mutation boundary: changed key topology')
+        return set(dict.keys(self))
+
+
 _OWNERSHIP_TOKEN = object()
 
 
@@ -142,14 +186,17 @@ def require_predecessor(ownership, envelope):
 
 class WriteCapsule:
     """One-event writable copies, with protected root identities sealed."""
-    def __init__(self, snapshot, footprint, *, _token=None, _alive=None, _source_identity=None):
+    def __init__(self, snapshot, footprint, *, _token=None, _alive=None, _source_identity=None, local=False, _generation=None):
         if _token is not _OWNERSHIP_TOKEN or type(snapshot) is not ReadOnlyDict:
             raise ValueError('ownership capsules require private candidate construction')
         self._token = _token
         self._alive = _alive
+        self._generation = _generation
+        self._expected_generation = _generation[0] if _generation is not None else None
         self._consumed = False
         self._snapshot = snapshot
         self._source_identity = _source_identity
+        self.local = local
         self.footprint = {name: frozenset(keys) for name, keys in footprint.items()}
         self.envelope = dict(snapshot)
         self.envelope['world_state'] = dict(snapshot['world_state'])
@@ -157,7 +204,8 @@ class WriteCapsule:
         self.envelope['deterministic_state'] = dict(snapshot['deterministic_state'])
         self.envelope['deterministic_state']['id_allocator'] = deepcopy(snapshot['deterministic_state']['id_allocator'])
         for name, keys in self.footprint.items():
-            self.envelope['world_state'][name] = _WriteTable(snapshot['world_state'][name], keys)
+            table_type = _LocalWriteTable if local else _WriteTable
+            self.envelope['world_state'][name] = table_type(snapshot['world_state'][name], keys)
         self._roots = dict(self.envelope)
         self._world_roots = dict(self.envelope['world_state'])
         self._det_roots = dict(self.envelope['deterministic_state'])
@@ -165,6 +213,8 @@ class WriteCapsule:
     def require_envelope(self, envelope):
         if self._consumed or self._alive is None or not self._alive[0]:
             raise ValueError('ownership write capability expired')
+        if self._generation is not None and self._generation[0] != self._expected_generation:
+            raise ValueError('ownership write capability expired after publication')
         if envelope is not self.envelope:
             raise ValueError('ownership proof belongs to another transition')
 
@@ -181,9 +231,11 @@ class WriteCapsule:
             table = self.envelope['world_state'][name]
             # Also detects a base-class insertion outside the normal table API.
             base = self._snapshot['world_state'][name]
-            if table._keys != keys or set(table) - keys != set(base) - keys:
+            if self.local:
+                table.checked_local_keys(base, keys)
+            elif table._keys != keys or set(table) - keys != set(base) - keys:
                 raise ValueError('certified mutation boundary: changed key topology')
-            if any(table[key] is not row for key, row in base.items() if key not in keys):
+            if not self.local and any(table[key] is not row for key, row in base.items() if key not in keys):
                 raise ValueError('certified mutation boundary: replaced protected record')
             records[name] = {key: table[key] for key in keys if key in table}
         outputs = {'simulation': self.envelope['simulation'],
@@ -194,6 +246,19 @@ class WriteCapsule:
         if mutable_alias_error(outputs):
             raise ValueError('authoritative mutable-container alias in ownership output')
         return outputs
+
+    def event_collections(self, envelope):
+        """Exact changed-key topology, backed by structurally protected reads."""
+        self.require_envelope(envelope)
+        world = envelope['world_state']
+        result = {}
+        for name in ('pending_events', 'event_history'):
+            table = world[name]
+            if not self.local or type(table) is not _LocalWriteTable or table is not self._world_roots[name]:
+                raise ValueError('local event proof requires sealed write table')
+            keys = table.checked_local_keys(self._snapshot['world_state'][name], self.footprint[name])
+            result[name] = {key: table[key] for key in keys}
+        return result
 
 
 class CandidateOwnership:
@@ -210,9 +275,10 @@ class CandidateOwnership:
         self._views = {}
         self._read_lookups = {}
         self._alive = [True]
+        self._generation = [0]
         self._snapshot = _view_factory(self._views,self._alive)(candidate)
 
-    def begin(self, footprint, *, read_lookup_factory=None):
+    def begin(self, footprint, *, read_lookup_factory=None, local=False):
         if not self._alive[0]: raise ValueError('ownership candidate expired')
         # Also protect an existing service from a later mixed-handler footprint.
         for factory in self._read_lookups:
@@ -221,7 +287,8 @@ class CandidateOwnership:
         if read_lookup_factory is not None and set(footprint).intersection(read_lookup_factory.protected_collections):
             raise ValueError('candidate lookup source is writable')
         capsule = WriteCapsule(self._snapshot, footprint, _token=_OWNERSHIP_TOKEN,
-                              _alive=self._alive, _source_identity=id(self._candidate))
+                              _alive=self._alive, _source_identity=id(self._candidate), local=local,
+                              _generation=self._generation)
         capsule_ref = ref(capsule)
         def read(envelope, key):
             # Avoid a capsule -> callback -> capsule cycle retaining event copies.
@@ -279,3 +346,4 @@ class CandidateOwnership:
         if encoded(actual) != expected:
             raise ValueError('ownership publication divergence')
         capsule._consumed = True
+        self._generation[0] += 1

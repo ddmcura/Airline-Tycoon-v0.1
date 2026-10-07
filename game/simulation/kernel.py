@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 import heapq
 from typing import Callable
+import json
 
 from .execution_contracts import ExecutionMode, HandlerExecutionContract
 
@@ -94,6 +95,7 @@ class EventContext:
     event: dict
     _transaction_token: object | None = None
     _read_capability: object | None = None
+    _selection: object | None = None
 
     @property
     def payload(self):
@@ -155,11 +157,29 @@ def _event_key(event):
     )
 
 
+_QUEUE_TOKEN = object()
+
+
+class _CanonicalQueue(list):
+    """Kernel-owned derived heap, never supplied by raw/public event callers."""
+    def __init__(self, values, *, _token=None, _source_identity=None):
+        if _token is not _QUEUE_TOKEN:
+            raise ValueError('canonical queue requires kernel construction')
+        super().__init__(values)
+        self._source_identity = _source_identity
+
+
+def _copy_event_queue(heap, candidate):
+    if type(heap) is not _CanonicalQueue:
+        raise ValueError('canonical queue required')
+    return _CanonicalQueue(heap, _token=_QUEUE_TOKEN, _source_identity=id(candidate))
+
+
 def build_event_queue_index(envelope):
     """Rebuild and return a derived heap from authoritative pending events."""
     heap = [_event_key(event) for event in envelope["world_state"]["pending_events"].values()]
     heapq.heapify(heap)
-    return heap
+    return _CanonicalQueue(heap, _token=_QUEUE_TOKEN, _source_identity=id(envelope))
 
 
 def configure_clock_ratios(envelope, *, normal=None, fast=None):
@@ -352,7 +372,7 @@ def _handler_contract_error(original, candidate, due_at_utc):
         return "handlers can only preserve the clock mode or request PAUSED"
 
     original_world = original["world_state"]
-    candidate_world = candidate["world_state"]
+    candidate_world = _event_proof_world(original, candidate)
     for collection_name in ("pending_events", "event_history"):
         candidate_collection = candidate_world[collection_name]
         for existing_id, existing_record in original_world[collection_name].items():
@@ -424,22 +444,96 @@ def _execute_event(envelope, event_id, registry):
     return outcome, None, new_event_ids
 
 
-def _event_contract_witness(candidate):
-    """Detached before-event evidence, not a clone of the entire world.
-
-    These conservative event/history copies still scale with retained history.
-    Stage 3A does not replace them with unproved write-footprint assertions.
+def _event_contract_witness(candidate, *, ownership=None):
+    """Genuine predecessor evidence. Global by default/reference; local only
+    through an enforced private capsule, never a caller-supplied ID hint.
     """
-    return {
+    if ownership is not None:
+        from .candidate_ownership import require_predecessor
+        require_predecessor(ownership, candidate)
+        if not ownership.local: raise ValueError('local witness requires local ownership')
+    witness = {
         'simulation': deepcopy(candidate['simulation']),
-        'world_state': {name: deepcopy(candidate['world_state'][name])
+        'world_state': {name: deepcopy(candidate['world_state'][name]) if ownership is None
+                        else {key: deepcopy(candidate['world_state'][name][key])
+                              for key in ownership.footprint[name] if key in candidate['world_state'][name]}
                         for name in ('pending_events', 'event_history')},
         'deterministic_state': {'id_allocator': {'next_by_type': {
             'event': candidate['deterministic_state']['id_allocator']['next_by_type']['event']}}},
     }
+    if ownership is not None: witness['_ownership'] = ownership
+    return witness
 
 
-def _apply_handler_candidate(original, candidate, event_id, handler, *, read_capability=None):
+def _event_proof_world(original, candidate):
+    ownership = original.get('_ownership')
+    return (ownership.event_collections(candidate) if ownership is not None
+            else candidate['world_state'])
+
+
+_SELECTION_TOKEN = object()
+
+
+class _CanonicalSelection:
+    """One synchronous handler invocation; no reusable queue/cache authority.
+
+    Only the resolver's validated canonical heap may mint it. Handler-facing
+    pending authority is structurally protected except its sealed output keys.
+    Any change to those keys, selected contents, clock or heap revokes the proof.
+    Raw public domain calls receive no certificate and retain global selection.
+    """
+    def __init__(self, capsule, heap, *, _token=None):
+        if _token is not _SELECTION_TOKEN:
+            raise ValueError('canonical selection requires resolver authority')
+        if type(heap) is not _CanonicalQueue:
+            raise ValueError('canonical selection requires kernel queue')
+        from .candidate_ownership import require_capsule
+        require_capsule(capsule, capsule.envelope)
+        if heap._source_identity != capsule._source_identity:
+            raise ValueError('canonical selection belongs to another candidate')
+        self._capsule = capsule
+        self._heap = heap
+        self._key = heap[0]
+        self._event_id = self._key[3]
+        self._event = deepcopy(capsule.envelope['world_state']['pending_events'][self._event_id])
+        if _event_key(self._event) != self._key:
+            raise ValueError('canonical heap does not match selected authority')
+        self._pending = capsule.event_collections(capsule.envelope)['pending_events']
+        self._pending_bytes = json.dumps(self._pending, sort_keys=True, allow_nan=False)
+        self._utc = self._event['due_at_utc']  # kernel installs this before invocation
+        self._cursor = capsule.envelope['simulation']['event_order_cursor']
+        self._alive = True
+
+    def event(self, envelope):
+        from .candidate_ownership import require_capsule
+        if not self._alive: raise ValueError('canonical selection expired')
+        require_capsule(self._capsule, envelope)
+        pending = self._capsule.event_collections(envelope)['pending_events']
+        if (not self._heap or self._heap[0] != self._key
+                or envelope['simulation']['time_utc'] != self._utc
+                or envelope['simulation']['event_order_cursor'] != self._cursor
+                or pending.keys() != self._pending.keys()
+                or any(pending[key] is not value for key,value in self._pending.items())
+                or json.dumps(pending, sort_keys=True, allow_nan=False) != self._pending_bytes):
+            raise ValueError('canonical selection invalidated by mutation')
+        return deepcopy(self._event)
+
+    def close(self):
+        self._alive = False
+        self._capsule = self._heap = self._pending = self._event = None
+
+
+def _seal_canonical_selection(capsule, heap):
+    return _CanonicalSelection(capsule, heap, _token=_SELECTION_TOKEN)
+
+
+def _selected_event(selection, envelope):
+    if type(selection) is not _CanonicalSelection:
+        raise ValueError('unrecognized canonical selection')
+    return selection.event(envelope)
+
+
+def _apply_handler_candidate(original, candidate, event_id, handler, *, read_capability=None, selection=None):
     """Same handler/lifecycle machinery for strict and opt-in shared work.
 
     Caller supplies genuine before-event evidence and owns validation/commit.
@@ -450,9 +544,11 @@ def _apply_handler_candidate(original, candidate, event_id, handler, *, read_cap
     candidate["simulation"]["time_utc"] = due
     try:
         handler_result = handler(EventContext(candidate, deepcopy(candidate_event),
-                                             _EVENT_TRANSACTION_TOKEN, read_capability))
+                                             _EVENT_TRANSACTION_TOKEN, read_capability, selection))
     except Exception as exc:  # handler boundary deliberately converts to data
         return None, EventFailure("HANDLER_FAILED", str(exc), event_id), ()
+    finally:
+        if selection is not None: selection.close()
     if handler_result is not None:
         return None, EventFailure(
             "HANDLER_CONTRACT_VIOLATION",
@@ -470,7 +566,7 @@ def _apply_handler_candidate(original, candidate, event_id, handler, *, read_cap
         ), ()
 
     original_pending = original["world_state"]["pending_events"]
-    candidate_pending = candidate["world_state"]["pending_events"]
+    candidate_pending = _event_proof_world(original, candidate)["pending_events"]
     new_event_ids = tuple(sorted(set(candidate_pending) - set(original_pending)))
     _resolve_without_handler(candidate, event_id, "COMPLETED", due)
     return "COMPLETED", None, new_event_ids

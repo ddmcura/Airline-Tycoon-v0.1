@@ -139,9 +139,11 @@ def validate_payment_transition(before, candidate, event_id, generated):
         _exact(list(generated), [], 'final-payment generated IDs')
     _exact(candidate['deterministic_state']['id_allocator'], allocator, 'allocator cursors')
     _exact(candidate['simulation'], simulation, 'simulation/revisions/clock')
-    if set(world['pending_events']) != pending:
+    from game.simulation.kernel import _event_proof_world
+    event_world = _event_proof_world(before['kernel'], candidate)
+    if set(event_world['pending_events']) != pending:
         raise ValueError('payment pending-event topology changed')
-    if set(world['event_history']) != set(before['kernel']['world_state']['event_history']) | {event_id}:
+    if set(event_world['event_history']) != set(before['kernel']['world_state']['event_history']) | {event_id}:
         raise ValueError('payment event history topology changed')
     _exact(world['event_history'][event_id], {**event, 'status': 'COMPLETED',
         'resolved_at_utc': event['due_at_utc']}, 'event lifecycle')

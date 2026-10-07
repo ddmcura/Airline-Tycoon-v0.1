@@ -75,6 +75,10 @@ def instrument(stack,profile,families):
         (kernel,'schedule_event','queue_insertion'),
         (kernel,'_event_contract_witness','event_witness'),
         (kernel,'_handler_contract_error','handler_kernel_comparison'),
+        (kernel._CanonicalSelection,'__init__','canonical_selection'),
+        (kernel._CanonicalSelection,'event','selection_read'),
+        (candidate_ownership.WriteCapsule,'event_collections','local_event_topology'),
+        (kernel,'_copy_event_queue','queue_copy'),
         (proof,'_capture','flight_witness'),(proof,'_kernel_transition','flight_topology'),
         (proof,'_exact','flight_equations'),
         (candidate_ownership.CandidateOwnership,'begin','ownership_begin'),
@@ -102,6 +106,16 @@ def instrument(stack,profile,families):
         (Stage1Session,'maybe_autosave','autosave')]
     for owner,name,key in hooks:
         stack.enter_context(patch.object(owner,name,profile.wrap(getattr(owner,name),key)))
+    witness=kernel._event_contract_witness
+    profile.proof_volume={'local_witnesses':0,'global_witnesses':0,'pending_records':0,'history_records':0}
+    def counted_witness(*args,**kwargs):
+        result=witness(*args,**kwargs)
+        volume=profile.proof_volume
+        volume['local_witnesses' if '_ownership' in result else 'global_witnesses']+=1
+        volume['pending_records']+=len(result['world_state']['pending_events'])
+        volume['history_records']+=len(result['world_state']['event_history'])
+        return result
+    stack.enter_context(patch.object(kernel,'_event_contract_witness',counted_witness))
     original=kernel._apply_handler_candidate
     def dispatch(before,candidate,event_id,handler,**kwargs):
         event=candidate['world_state']['pending_events'][event_id];kind=event['event_type']
@@ -162,7 +176,7 @@ def run(base,seconds=60,budget=120,profiled=True,snapshot=None):
             complete=report is not None and report.result.succeeded and report.result.status=='COMPLETED',
             failure=None if report is None or report.result.failure is None else report.result.failure.as_dict() if hasattr(report.result.failure,'as_dict') else str(report.result.failure),
             callback_count=len(rows),p50=percentile(durations,.5),p95=percentile(durations,.95),p99=percentile(durations,.99) if len(durations)>=100 else None,maximum=max(durations),
-            exclusive=profile.seconds,inclusive=profile.inclusive,calls=profile.calls,gc_details=getattr(profile,'gc_details',{}),
+            exclusive=profile.seconds,inclusive=profile.inclusive,calls=profile.calls,gc_details=getattr(profile,'gc_details',{}),proof_volume=getattr(profile,'proof_volume',{}),
             residual=engine-sum(profile.seconds.values()),families=families,callbacks=rows,
             source_audit=audit(base),ending_audit=audit(s.world),first_unit_changed_ids=first_changes,
             source_structure=shape,start_memory=memory,end_memory=process_memory(),

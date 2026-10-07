@@ -46,6 +46,9 @@ domain contracts. Neither historical code nor a template overrides the schema.
 - [Runtime scalability forensic audit](03%20Technical/Runtime%20Scalability%20Forensic%20Audit.md):
   Stage 3G-A throughput/main-thread attribution, native OS response evidence,
   exactness baseline and proposed future stages; no production optimization.
+- [Runtime local certified proofs](03%20Technical/Runtime%20Local%20Certified%20Proofs.md):
+  Stage 3G-B local event/ownership/transition proofs, sealed canonical selection,
+  exactness evidence and measured remaining validation/fence costs.
 - [Runtime capacity certification](03%20Technical/Runtime%20Capacity%20Certification.md):
   final Stage 3F production measurements, 50-aircraft Ultra failure evidence,
   backlog/overload, exactness, persistence and native Kivy limits.

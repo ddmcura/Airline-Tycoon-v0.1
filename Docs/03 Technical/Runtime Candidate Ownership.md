@@ -1,5 +1,13 @@
 # Runtime Candidate Ownership — Stage 3D.2
 
+## Stage 3G-B successor
+
+[Runtime Local Certified Proofs](Runtime%20Local%20Certified%20Proofs.md) localizes
+the existing per-event proof surface with structurally protected tables and sealed
+canonical selection. Genuine predecessor/output proofs, JSON/aliases, detached
+output publication, both outer world copies, full final validation and strict/
+shadow recovery remain. Earlier dated measurements below are preserved.
+
 ## Stage 3D.3 successor
 
 [Candidate Manifest Lookup](Candidate%20Manifest%20Lookup.md) adds a lazy verified

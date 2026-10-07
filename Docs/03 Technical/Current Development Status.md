@@ -2,6 +2,38 @@
 
 Last updated: **2026-10-07**. Current snapshot, not operational authorization.
 
+## Stage 3G-B — local certified proofs and canonical selection (2026-10-07)
+
+Baseline local HEAD/upstream/live origin/master matched **8b12fdd5e53390cad1fb0b541475febcc22ef912**.
+[Architecture, proof induction, measurements and remaining limits](Runtime%20Local%20Certified%20Proofs.md).
+Verification applies to the Stage 3G-B working-tree source scope.
+
+- Exact existing Payment/Departure/Completion footprints now use local mutable
+  stores and immutable protected reads. Genuine local event/history witnesses,
+  output topology/JSON/aliases and domain equations preserve intermediate validity.
+- A sealed canonical heap selection belongs to one handler/candidate; mutation,
+  publication, close/failure/rollback/retry invalidate it. Raw public calls and
+  strict/shadow retain global reference selection/proofs. No new handler certified.
+- Quiet real1/10/25/50 complete days: **1.083/13.256/47.189/138.925s**, versus
+  1.142/17.992/78.870/280.155s. Fifty improves50.4%, but621.9x remains below1800x.
+  Exclusive proof111.096→12.826s; validation78.402s now dominates. All54 full gates
+  and104 kernel copies remain. Witness event rows2863629→400; no unrelated history.
+- All day/prefix complete-world hashes/event vectors match; fixed50 target matches
+  four speeds and independent strict reference. Schema7, ratios30/210/900/1800,
+  cap8, fences, generation100/processed10000, credit/drains and saves unchanged.
+- Native50 Ultra median5.528→2.899s, but Booking13.895s/heartbeat13.975s and34/50
+  active OS samples not responding: **POOR responsiveness**, not solved/certified.
+  Retained Divine modest improvement; both committed-prefix snapshots reload exact.
+  Starter native all-speed/pause/drain/manual-save/overload smoke PASS.
+- Focused138 existing cases,27 new/diagnostic cases and110 additional affected
+  safety/ownership/scheduling cases PASS. Full `python -B -m unittest discover -s tests`:
+  **1136 passed in1206.751s** (20 new tests). Scoped application compilation,
+  observer parsing, affected documentation links and final diff/self-review pass.
+- No gameplay/schema/retention/GUI changes, new index or outer transaction redesign.
+  PH runtime remains NOT CERTIFIED. Next measured proposal is dependency-complete
+  boundary validation; separate approval required. **Stop after Stage3G-B.**
+  Pre-existing untracked .venv remains untouched.
+
 ## Stage 3G-A — runtime scalability/main-thread forensic audit (2026-10-07)
 
 Baseline local HEAD/upstream/live origin/master matched **299f53c9f03981d3b1147dfa142978651566cb68**.

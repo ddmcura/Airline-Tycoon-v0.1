@@ -18,20 +18,23 @@ def _validate_batch(candidate):
     return kernel.validate_world(candidate)
 
 
-def _shared_transition(candidate, event_id, handler, contract=None, *, ownership=None, oracle=False):
-    before = kernel._event_contract_witness(candidate)
-    oracle_witness = (contract.capture_transition(candidate,event_id,before)
+def _shared_transition(candidate, event_id, handler, contract=None, *, ownership=None, oracle=False, selection_heap=None):
+    global_before = kernel._event_contract_witness(candidate) if oracle or ownership is None else None
+    oracle_witness = (contract.capture_transition(candidate,event_id,global_before)
                       if oracle and contract is not None else None)
     capsule = (ownership.begin(contract.mutation_footprint(candidate,event_id),
-                               read_lookup_factory=contract.read_lookup_factory)
+                               read_lookup_factory=contract.read_lookup_factory, local=True)
                if ownership is not None and contract is not None else None)
+    before = kernel._event_contract_witness(candidate, ownership=capsule) if capsule is not None else global_before
     execution = capsule.envelope if capsule is not None else candidate
     witness = (contract.capture_transition(candidate, event_id, before, ownership=capsule)
                if capsule is not None else contract.capture_transition(candidate, event_id, before)
                if contract is not None else None)
     outcome, failure, generated = kernel._apply_handler_candidate(
         before, execution, event_id, handler,
-        read_capability=capsule.read_lookup if capsule is not None else None)
+        read_capability=capsule.read_lookup if capsule is not None else None,
+        selection=kernel._seal_canonical_selection(capsule, selection_heap)
+                  if capsule is not None and selection_heap is not None else None)
     if failure:
         return outcome, failure, generated
     if contract is not None:
@@ -186,7 +189,7 @@ class SharedResolutionRequest(ResolutionRequest):
 
     def _shared_batch(self):
         candidate = kernel._clone_runtime_world(self._world)
-        candidate_heap = list(self._heap)
+        candidate_heap = kernel._copy_event_queue(self._heap, candidate)
         reference = kernel._clone_runtime_world(self._world) if self.shadow else None
         ownership = None
         records = []
@@ -213,7 +216,7 @@ class SharedResolutionRequest(ResolutionRequest):
                     if contract.mutation_footprint is not None and ownership is None:
                         ownership = CandidateOwnership(candidate, _validated=True)
                     outcome, failure, generated = _shared_transition(candidate, event_id, handler, contract,
-                        ownership=ownership,oracle=self.shadow)
+                        ownership=ownership,oracle=self.shadow,selection_heap=candidate_heap)
                 else:
                     if ownership is not None: ownership.close()
                     ownership = None  # Full-gated probes have a broader write surface.

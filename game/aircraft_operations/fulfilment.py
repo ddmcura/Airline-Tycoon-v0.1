@@ -330,7 +330,7 @@ def _next_event(envelope):
     return min(events, key=_event_key) if events else None
 
 
-def _matching_event(envelope, flight, event_type, contract, due):
+def _matching_event(envelope, flight, event_type, contract, due, *, _selection=None):
     expected_payload = {
         "contract": contract,
         "dated_flight_id": flight["dated_flight_id"],
@@ -338,7 +338,13 @@ def _matching_event(envelope, flight, event_type, contract, due):
         "schedule_revision": flight["schedule_revision"],
         "occurrence_key": flight["occurrence_key"],
     }
-    matches = [event for event in envelope["world_state"]["pending_events"].values()
+    if _selection is not None:
+        from game.simulation.kernel import _selected_event
+        event = _selected_event(_selection, envelope)
+        events = (event,)
+    else:
+        events = envelope["world_state"]["pending_events"].values()
+    matches = [event for event in events
                if event.get("owner_type") == "dated_flight"
                and event.get("owner_id") == flight["dated_flight_id"]
                and event.get("event_type") == event_type
@@ -504,7 +510,7 @@ def departure_operation(envelope, flight, aircraft_id, manifest, event_id):
 def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, expected_operation_revision=None,
                expected_booking_revision=None, expected_inventory_revision=None,
                expected_event_order_cursor=None, expected_configuration_revision=None,
-               expected_configuration_fingerprint=None, _event_transaction=None, _booking_lookup=None):
+               expected_configuration_fingerprint=None, _event_transaction=None, _booking_lookup=None, _selection=None):
     flight, rejection = _common_checks(envelope, flight_id, _event_transaction=_event_transaction)
     if rejection:
         return rejection
@@ -535,10 +541,10 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
         if expected is not None and expected != actual:
             return _reject(envelope, flight_id, code, f"expected witness {expected!r} does not match {actual!r}", status="STALE_REVISION")
     event = _matching_event(envelope, flight, FLIGHT_DEPARTURE_EVENT_TYPE,
-                            FLIGHT_DEPARTURE_EVENT_CONTRACT, flight["scheduled_off_block_utc"])
+                            FLIGHT_DEPARTURE_EVENT_CONTRACT, flight["scheduled_off_block_utc"], _selection=_selection)
     if event is None:
         return _reject(envelope, flight_id, "INVALID_LIFECYCLE_EVENT", "exact departure event is missing")
-    next_event = _next_event(envelope)
+    next_event = event if _selection is not None else _next_event(envelope)
     if next_event is None or next_event["event_id"] != event["event_id"]:
         return _reject(envelope, flight_id, "EVENT_NOT_NEXT", "departure event is not the next canonical pending event")
     if actual_aircraft_id is not None and (type(actual_aircraft_id) is not str or not actual_aircraft_id):
@@ -749,7 +755,7 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
                 expected_booking_revision=None, expected_inventory_revision=None,
                 expected_finance_revision=None, expected_event_order_cursor=None,
                 expected_configuration_revision=None,
-                expected_configuration_fingerprint=None, _event_transaction=None, _booking_lookup=None):
+                expected_configuration_fingerprint=None, _event_transaction=None, _booking_lookup=None, _selection=None):
     flight, rejection = _common_checks(envelope, flight_id, _event_transaction=_event_transaction)
     if rejection:
         return rejection
@@ -792,10 +798,10 @@ def _completion(envelope, flight_id, *, resolve_event, expected_operation_revisi
             or operation["fulfilment_configuration_fingerprint"] != configuration["configuration_fingerprint"]):
         return _reject(envelope, flight_id, "STALE_SETTLEMENT_CONFIGURATION", "operation pins a different fulfilment configuration")
     event = _matching_event(envelope, flight, FLIGHT_COMPLETION_EVENT_TYPE,
-                            FLIGHT_COMPLETION_EVENT_CONTRACT, flight["scheduled_in_block_utc"])
+                            FLIGHT_COMPLETION_EVENT_CONTRACT, flight["scheduled_in_block_utc"], _selection=_selection)
     if event is None or event["event_id"] != operation["completion_event_id"]:
         return _reject(envelope, flight_id, "INVALID_LIFECYCLE_EVENT", "exact completion event is missing")
-    next_event = _next_event(envelope)
+    next_event = event if _selection is not None else _next_event(envelope)
     if next_event is None or next_event["event_id"] != event["event_id"]:
         return _reject(envelope, flight_id, "EVENT_NOT_NEXT", "completion event is not the next canonical pending event")
     manifest = build_confirmed_carriage_manifest(envelope, flight_id,
@@ -899,7 +905,7 @@ def _departure_handler(context):
     flight_id = context.payload.get("dated_flight_id") if type(context.payload) is dict else None
     result = _departure(context.envelope, flight_id, resolve_event=False,
                         _event_transaction=context._transaction_token,
-                        _booking_lookup=context._read_capability)
+                        _booking_lookup=context._read_capability, _selection=context._selection)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 
@@ -908,7 +914,7 @@ def _completion_handler(context):
     flight_id = context.payload.get("dated_flight_id") if type(context.payload) is dict else None
     result = _completion(context.envelope, flight_id, resolve_event=False,
                          _event_transaction=context._transaction_token,
-                         _booking_lookup=context._read_capability)
+                         _booking_lookup=context._read_capability, _selection=context._selection)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 

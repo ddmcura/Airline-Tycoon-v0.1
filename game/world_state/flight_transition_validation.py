@@ -2,7 +2,8 @@
 
 Runtime witnesses only. No full-world gate, authoritative index or new formulas.
 Owned execution protects untouched authority structurally; full protected bytes
-remain the diagnostic oracle. Manifest reads use private candidate IDs; kernel witnesses still grow with history.
+remain the diagnostic oracle. Manifest reads use private candidate IDs; local kernel
+witnesses cover only structurally writable event IDs.
 """
 from copy import deepcopy
 from game.simulation.candidate_ownership import require_capsule, require_predecessor
@@ -117,8 +118,10 @@ def _kernel_transition(before,candidate,event_id,generated,successor=None):
     _exact(candidate['simulation'],simulation,'simulation/revisions')
     _exact(candidate['deterministic_state']['id_allocator'],allocator,'all allocator cursors')
     world=candidate['world_state']
-    if set(world['pending_events']) != pending: raise ValueError('flight pending topology changed')
-    if set(world['event_history']) != set(before['kernel']['world_state']['event_history'])|{event_id}:
+    from game.simulation.kernel import _event_proof_world
+    event_world = _event_proof_world(before['kernel'], candidate)
+    if set(event_world['pending_events']) != pending: raise ValueError('flight pending topology changed')
+    if set(event_world['event_history']) != set(before['kernel']['world_state']['event_history'])|{event_id}:
         raise ValueError('flight history topology changed')
     _exact(world['event_history'][event_id],{**event,'status':'COMPLETED','resolved_at_utc':event['due_at_utc']},'event lifecycle')
     if before.get('ownership') is not None:
