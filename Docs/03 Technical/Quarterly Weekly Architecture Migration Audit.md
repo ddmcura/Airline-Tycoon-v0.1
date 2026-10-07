@@ -2,6 +2,14 @@
 
 **AUDIT / RECOMMENDATION — NOT IMPLEMENTED**
 
+Successor clarification (2026-10-08): [canonical product contracts](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md)
+and [finalized Stage 2 technical design](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md)
+now settle retired display-number reuse, endpoint identity, eligible-quarter manual
+commitment/target advancement, publication-before-Booking and atomic correction/retry.
+Earlier initial-only/manual, deferred-reuse/open-ordering assumptions below remain
+historical. The original reduced/in-migration 3G-C recommendation does not override
+the current direction: 3G-C is PARKED and separate. No original findings are rewritten.
+
 Audited 2026-10-07 at **c0a4191a615132615df699d49722d66a150d222f**.
 Local HEAD and live origin/master matched. Only pre-existing untracked `.venv/`
 was present. This is targeted source/dependency tracing and review of recorded

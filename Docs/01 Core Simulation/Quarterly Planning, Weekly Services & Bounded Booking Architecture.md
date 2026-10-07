@@ -10,6 +10,12 @@ The [Stage 1 implementation record](../03%20Technical/Quarterly%20Authority%20an
 and canonical schema now define the dormant identity foundation. Remaining workflows
 and later representation decisions are not implemented.
 
+Contract finalization approved 2026-10-08: eligible retired display-number reuse,
+endpoint identity, eligible-quarter Manual Publish/target advancement, publication
+before boundary Booking and atomic publication failure/correction/retry are recorded
+below. These future contracts supersede earlier provisional decisions, not implemented
+Schema 8. See [finalized technical contracts](../03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md).
+
 ## Authority and current implemented behavior
 
 This is the focused source for the future direction, not a replacement persistent
@@ -40,7 +46,9 @@ and exact behavior preserved. Runtime remains NOT CERTIFIED. Dependency-complete
 incremental validation (the contemplated Stage 3G-C) is not complete. The completed
 migration audit recommends its concept as part of transition to the new authority
 model, in a reduced/different form, rather than broad optimization of outgoing
-publication machinery. This recommendation does not authorize implementation.
+publication machinery. That audit recommendation is historical context: **3G-C is
+PARKED and separate from Stage 2** under the 2026-10-08 direction. No runtime
+incremental-validation or transaction optimization is authorized here.
 
 ## Approved future direction: strategic quarters
 
@@ -81,28 +89,61 @@ strategic edits cannot alter published plans, whether future or active; after
 publication they target the next eligible unpublished quarter. This includes an
 early manual commitment: its published quarter is no longer a free editing target.
 
+The normal UTC target is the calendar starting point. Already committed eligible
+quarters are skipped in chronological order to find the next eligible unpublished
+planning quarter. January Manual Publish of Q2 therefore immediately makes Q3 the
+planning target; it does not change Q2's April 1 operating start. No arbitrary distant
+quarter selection is implied. Commercial eligibility follows actual committed periods,
+not an unconditional active-plus-next or rolling-365-day cap.
+
+### Publication ordering and atomic failure
+
+Publication commitment/readiness precedes the daily Booking observation at the same
+boundary. Successfully published supply is visible to that checkpoint. Exact queue
+priority/causal mechanics belong to later implementation; current events are unchanged.
+An already manually committed quarter is not committed a second time at its normal
+automatic date, and its planning pointer must not move backward.
+
+Automatic publication is atomic. Validation failure causes a safe visible pause/correction
+state and deterministic retry of the failed unpublished plan. No partial publication,
+silent removal/repair or progression into a half-committed state is allowed. Required
+publication work must succeed before simulation proceeds past its fence. Correction is
+scoped to that failed unpublished plan, not a rewrite of any published quarter. Detailed
+GUI and persistence/event mechanics are later contracts, not unresolved product behavior.
+
 ### Carry-forward and first operating quarter
 
 The current published weekly schedule is the baseline for the next planning quarter.
 The player edits that future version optionally. With no strategic changes, the
 weekly schedule carries forward unchanged and publishes on the normal automatic
-date. No player action does not mean no future schedule. Copy-on-write or another
-storage mechanism is not chosen here; operational feasibility constraints still apply.
+date, subject to required operational feasibility. Planning is editing by exception;
+conceptual continuation does not require physical copying of every record. No player
+action does not mean no future schedule. Copy-on-write, inheritance or another storage
+mechanism remains an implementation choice with deterministic validation/persistence.
+The rolling pipeline uses the applicable preceding published weekly version: after
+early Q2 commitment, Q3 planning continues that Q2 version rather than silently reverting
+to an older Q1 plan. Continuing internal service/slot identities are preserved explicitly.
 
 A new airline follows the same future-quarter targets in the table above: January/
 February → Q2, March → Q3, and so on. There is **no partial-current-quarter Initial
 Operating Plan**. Its first weekly plan is built for the eligible future quarter;
 there is no existing service to carry forward before such a plan exists.
 
-Early **Manual Publish** is supported for the initial/new-airline situation. The
-player may explicitly commit the eligible future-quarter plan before its normal
+Early **Manual Publish** is supported for the currently eligible unpublished future
+quarter, especially the initial/new-airline situation. The player may explicitly commit
+that eligible future-quarter plan before its normal
 automatic publication date, making its eligible future occurrences bookable without
 moving their operating dates into the current quarter. This also applies when the
 normal initial target is the quarter after next under the month-3 rule.
 Before confirmation, the eventual GUI must explain that publication opens passenger
 bookings, commits the schedule and closes ordinary free strategic editing, or the
 player may keep planning and await automatic publication. Final wording/UI is deferred.
-This does not approve unrestricted manual publication of arbitrary future periods.
+After commitment the next eligible unpublished quarter immediately becomes the planning
+target: January Q2 publication opens Q2 sales, locks Q2 and advances planning to Q3.
+Q2 still operates from April 1. Subsequent ordinary changes affect Q3. This is final
+commitment, never a sell-while-freely-editing preview. It does not approve an arbitrary
+future-quarter picker. The 2026-10-08 contract broadens the earlier initial-only scope;
+this does not implement Manual Publish or introduce a rolling commercial horizon.
 
 ### Published amendments versus operational outcomes
 
@@ -146,15 +187,40 @@ Player-facing numbers alone cannot be database/history primary identities.
 
 A continuing service normally keeps its number across quarterly versions: DAB01
 MNL → DVO at 08:00 in Q1 may remain DAB01 at 08:30 in Q2. A new quarter does not
-renumber continuing services. A genuinely new unrelated service receives a new
-number; removing a service retires/reserves its number rather than automatically
-assigning it to the next unrelated new service.
+renumber continuing services. A genuinely new unrelated service receives a
+number allocated under the policy below. Surviving services are never renumbered to
+compact gaps: removing DB002 does not change DB003 to DB002.
 
-Conceptually distinguish active/continuing numbers, retired/reserved numbers and
-potential future reusable numbers. A later approved reuse/cooldown policy may make
-retired display numbers reusable, but history must remain unambiguous through stable
-internal identity and dated/version attribution. No cooldown, encoding or storage
-representation is chosen here.
+**Route endpoints are part of service identity.** Either origin or destination change
+requires a NEW internal service ID and a player-facing number allocated by the new-service
+policy. Non-endpoint time/frequency/aircraft/fare/configuration facts may vary where
+lifecycle authority allows. Explicit continuation establishes identity; no semantic
+matching or historical endpoint rewrite. Service IDs are permanent and never reused.
+
+### Retired display-number reuse — approved future supersession
+
+This 2026-10-08 product decision supersedes Stage 1's provisional permanent display-number
+reservation. Current Schema 8 still implements permanent reservation; it is unchanged.
+A number used by any active/published/future-committed weekly service cannot be reused.
+Once no such schedule uses it, it may enter an eligible retired-number pool. A genuinely
+new service may receive it, while the old service ID/history remains permanently distinct.
+DB002 may therefore belong historically to S0002 and later to S0147 without identity
+continuation. New-service allocation does not require a never-before-displayed number.
+
+Deterministic allocation: preserve continuing numbers; allocate the **lowest eligible
+retired numeric suffix** for a new service; otherwise consume the next new monotonic
+suffix. Never rewind the high-water cursor, renumber survivors, reuse internal IDs or
+overwrite historical number facts. No arbitrary cooldown is introduced. A pending draft
+allocation must retain an exclusive reservation until explicitly released; absence of
+published use alone cannot let two new drafts consume the same number. Eligibility,
+reservation ownership, atomic allocation and derived pool reconstruction are specified
+in the technical contracts; no pool is implemented or made saved authority here.
+
+Plan-local removal is distinct from global retirement. Removal says the service is absent
+from that future editable plan. Global retirement ends identity continuation while
+respecting committed/historical references; it never deletes facts or cancels obligations.
+Number reuse becomes possible only after protected schedule use has ended, independently
+of preserving historical accounting and occurrence records.
 
 A service may operate on multiple weekdays/frequencies; one identity is not assumed
 to mean exactly one weekly occurrence. Correct dated occurrence and applicable
@@ -203,9 +269,16 @@ only, with next-year Q1 opening December 1. Published state and exact occurrence
 eligibility determine sales; unpublished planning projections are never offers.
 
 The sellable horizon expands at publication, rather than automatically opening a
-new following quarter at rollover. An initial early Manual Publish similarly opens
+new following quarter at rollover. Early Manual Publish similarly opens
 only that eligible committed future plan, including the month-3 initial target;
 it does not make other unpublished quarters bookable.
+
+The future horizon is bounded by the operating dates of published quarterly supply,
+not an arbitrary rolling 365-day supply window. Sequential early commitments can change
+the set of published periods; do not impose the superseded always-active-plus-next rule.
+Daily demand is not silently moved to another desired date merely because its supply
+is unpublished. Exact future lead mechanics require a later Booking migration contract;
+current Booking365 remains unchanged.
 
 Preserve progressive daily accumulation. Published flights months ahead gradually
 fill as daily directional demand arrives; no static quarterly passenger allocation.
@@ -258,11 +331,11 @@ No Southeast Asia content or country expansion is included.
 ## Implementation details still unresolved
 
 - Later plan workflow/consumer integration; minimum quarter/service identity is defined by Schema 8.
-- Service identity relationship to multiple weekly frequencies/days, versions and retirement.
+- Concrete endpoint-invariant and reusable-number schema/validation representation; product identity/reuse rules above are settled.
 - When dated occurrences materialize and how bounded-horizon Booking inventory works.
 - Cache/derived-state domain ownership, dependency closure, invalidation and reconstruction.
 - Whether prepared future state is persisted or reconstructed, and horizon persistence needs.
-- Exact publication/rollover mechanics, same-time event ordering and preparation readiness; quarter calendar is UTC.
+- Exact queue/persistence/readiness mechanics for approved publication-before-Booking and atomic correction/retry; quarter calendar is UTC.
 - Minimum future availability contract and projected feasibility, including mid-quarter delivery.
 - Operational exception representation and recovery; costly post-publication amendments remain deferred.
 - Historical compact results, lineage preservation and historical compaction.
@@ -304,7 +377,10 @@ Schema 8 now defines minimum service/quarter-plan/slot identities and commitment
 facts. Calendar helpers, validation and deterministic persistence are implemented.
 This does not activate quarterly planning/publication/Booking workflows, carry-forward,
 future delivery, occurrence thinning, reduced 3G-C, AI or new countries. Cache/thread
-strategy, rollover/event generation, modifier/lead-time mechanics, number reuse and
-history representation remain later decisions. Existing Booking economics/horizon,
+strategy, rollover/event generation, modifier/lead-time mechanics, reusable-number
+representation and history storage remain later implementation details. Reuse eligibility,
+lowest-eligible selection, endpoint identity, early commitment/target advancement, boundary
+ordering and atomic failure/retry are approved future contracts, not implemented behavior.
+Existing Booking economics/horizon,
 operational recurrence, acquisition, finance and GUI remain unchanged. Subsequent
 implementation requires bounded approval and concrete contracts.

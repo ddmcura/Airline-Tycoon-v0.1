@@ -1,6 +1,33 @@
 # Current Development Status
 
-Last updated: **2026-10-07**. Current snapshot, not operational authorization.
+Last updated: **2026-10-08**. Current snapshot, not operational authorization.
+
+## Quarterly Stage 2 contracts finalized — implementation not started (2026-10-08)
+
+Baseline **f079c5dfcaff216d4aad5c2984f2bca7787116e6**, matching fetched origin/master
+and upstream; tracked tree initially clean, only the expected design document and `.venv/`
+untracked. [Finalized contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md)
+and [canonical product design](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md)
+record approved reuse of safely retired display numbers (lowest eligible first), permanent
+internal service IDs, endpoint replacement as new identity, eligible-quarter Manual Publish
+with immediate future-target advancement, publication before boundary Booking, and atomic
+failure/pause/correction/retry. Carry-forward is editing by exception; committed dates
+determine the future commercial horizon, with no silent demand-date movement.
+This supersedes provisional FUTURE number reservation/manual-scope/open-ordering assumptions.
+CURRENT Schema 8 still permanently reserves numbers and Booking365/current runtime remain
+operational; no schema/template/source/test/data or gameplay implementation changed.
+Recommended order: read-only 2A first with Schema 8; narrow schema-first reuse/endpoint
+prerequisite (recommend Schema 9 semantics, existing fields, reconstructible pool) before
+2B allocates reusable numbers. No product decision blocks 2A; later Booking weighting,
+configuration/delivery and storage mechanics remain scoped future work. 3G-C is PARKED
+and separate; no Stage 2 slice, Stage 3 or consumer migration is started.
+Prior Stage 1 verification below remains valid. Documentation-only link/heading/casing/
+structure, whitespace, complete diff and current/future-authority review performed;
+PASS: 351 local links / 57 heading targets, tracked casing, balanced fences/tables,
+no new repeated headings and `git diff --check` (including the untracked contract).
+No gameplay/performance suite or compilation. Archival stash and `.venv/` untouched.
+Finalization initially remained uncommitted for review. The approved successor checkpoint
+records documentation only; Stage 2 implementation still needs separate authorization.
 
 ## Quarterly migration Stage 1 — authority and identity foundation (2026-10-07)
 

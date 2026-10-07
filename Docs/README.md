@@ -106,3 +106,5 @@ Existing documentation outside this hierarchy should remain in place until it is
 - [Quarterly / Weekly Architecture Migration Audit](03%20Technical/Quarterly%20Weekly%20Architecture%20Migration%20Audit.md) — audit recommendations, not implementation approval; source mapping, simplification, risks and proposed migration stages.
 
 - [Quarterly Authority and Identity Foundation](03%20Technical/Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.
+
+- [Quarterly Dependency Ownership and Command Contracts](03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized Stage 2 contract design, implementation not started; approved reuse/publication rules and future schema-first ordering.
