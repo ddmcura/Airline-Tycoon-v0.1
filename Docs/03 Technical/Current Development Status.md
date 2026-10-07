@@ -2,6 +2,25 @@
 
 Last updated: **2026-10-07**. Current snapshot, not operational authorization.
 
+## Quarterly / weekly migration audit (2026-10-07)
+
+Audited baseline **c0a4191a615132615df699d49722d66a150d222f**, matching live
+origin/master. [Audit and recommendations](Quarterly%20Weekly%20Architecture%20Migration%20Audit.md).
+Source tracing confirms scheduling defaults 90 days, normal rolling publication
+roughly five weeks, while Booking uses inclusive 0..365 lead offsets. The target
+may enlarge normal live supply; quarter bounds alone do not solve validation/copies.
+Recommendation: one service/quarter plan authority and dated commitment identity,
+bounded progressive Booking; target local validation/index/delta foundations before
+broad supply growth. 3G-C should be part of migration in a reduced form, not automatic
+optimization of the outgoing graph. This is not implementation approval.
+Next: approve calendar/bootstrap/carry-forward, sold-plan editing, lead-time policy,
+future delivery and save/run-off contracts, then authorize a bounded first stage.
+No source/tests/schema/template/data changes, benchmarks or gameplay suite.
+Prior implementation evidence remains valid; `.venv/` untouched.
+Validation PASS (2026-10-07): inline Python checker verified 157 local links,
+4 heading targets and tracked-path casing across 6 changed Markdown files;
+complete audit/diff, authority/contradiction/scope review and `git diff --check` PASS.
+
 ## Documentation checkpoint — approved future direction (2026-10-07)
 
 Baseline implementation revision: **d5811f5fb9048ecab956351f79dc42023dc407e6**.

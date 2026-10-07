@@ -17,4 +17,6 @@ Documents should distinguish finalized architecture from configurable balancing 
 
 ## Approved future architecture direction
 
-- [Quarterly Planning, Weekly Services & Bounded Booking Architecture](./Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) — approved direction, not implemented; dedicated architecture audit next, before further current-architecture optimization.
+- [Quarterly Planning, Weekly Services & Bounded Booking Architecture](./Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md) — approved direction, not implemented; migration audit recorded, implementation approval pending.
+
+- [Quarterly / Weekly Architecture Migration Audit](../03%20Technical/Quarterly%20Weekly%20Architecture%20Migration%20Audit.md) — source-grounded recommendations and open decisions; not implementation approval.

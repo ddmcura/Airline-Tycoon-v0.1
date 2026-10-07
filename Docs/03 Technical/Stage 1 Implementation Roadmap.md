@@ -17,8 +17,10 @@ After implemented Stage 3G-B, perform a dedicated architecture audit of the
 [quarterly/weekly and bounded Booking direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md).
 This takes precedence over committing to the contemplated Stage 3G-C dependency-
 complete incremental validation of current scheduling/publication machinery.
-The audit determines retained/simplified/removed structures, remaining validation
-needs and safe migration. It has not been performed; 3G-C is not complete.
+The [architecture audit](Quarterly%20Weekly%20Architecture%20Migration%20Audit.md) is complete at baseline
+`c0a4191`; it recommends target dependency-local boundaries as part of migration
+in a reduced form. Product decisions and bounded implementation scope approval
+are next. Its stages are proposals, not approved roadmap milestones; 3G-C is not complete.
 No implementation milestone or PH release gate is completed by this direction.
 Subsequent implementation requires bounded approval. Existing release scope
 and historical implementation evidence below remain unchanged.
