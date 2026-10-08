@@ -58,7 +58,7 @@ class QuarterlyCommandTests(unittest.TestCase):
 
     def test_create_appends_existing_plan_without_overwriting_old_revision(self):
         first=self.create();history=deepcopy(self.world['world_state']['weekly_plans'][first.weekly_plan_id]['revisions']['1'])
-        second=self.create(self.request(pid=first.weekly_plan_id,revision=1))
+        second=self.create(self.request(pid=first.weekly_plan_id,revision=1,departure_local_time='14:00:00'))
         self.assertEqual(second.revision,2);self.assertNotEqual(first.service_id,second.service_id)
         self.assertEqual(len(second.read.plans[0].slots),2)
         self.assertEqual(self.world['world_state']['weekly_plans'][first.weekly_plan_id]['revisions']['1'],history)
@@ -184,7 +184,7 @@ class QuarterlyCommandTests(unittest.TestCase):
         from game.world_state.quarterly_construction import append_weekly_plan_revision
         append_weekly_plan_revision(self.world,first.weekly_plan_id,expected_revision=1,slots=[])
         second=self.create(self.request(pid=first.weekly_plan_id,revision=2))
-        third=self.create(self.request(pid=first.weekly_plan_id,revision=3))
+        third=self.create(self.request(pid=first.weekly_plan_id,revision=3,departure_local_time='14:00:00'))
         self.assertNotEqual(first.service_id,second.service_id)
         self.assertEqual(second.read.plans[0].slots[0].flight_number,'DAB01')
         self.assertEqual(third.read.plans[0].slots[1].flight_number,'DAB02')

@@ -1,5 +1,10 @@
 # Quarterly Restricted Command Foundation — Stage 2B
 
+Stage 2C successor (2026-10-08): [dormant feasibility and chronology](Quarterly%20Feasibility%20and%20Chronology.md)
+now implements affected aircraft-chain proof and explicit continuation/edit/removal/retirement
+commands. Stage 2D/2E and quarterly activation remain unimplemented; earlier checkpoint
+limitations below are historical.
+
 **IMPLEMENTED: DORMANT RESTRICTED COMMANDS ONLY**, 2026-10-08.
 Starting baseline `ef47546140db2070768dc7cb5b3117d639281f2f` matched local HEAD,
 configured upstream, fetched origin/master and live remote master. Tracked tree/index

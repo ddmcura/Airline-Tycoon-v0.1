@@ -1,8 +1,13 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
-Stage 2B now adds [restricted dormant create/fare-revise commands](../03%20Technical/Quarterly%20Restricted%20Command%20Foundation.md).
-This does not activate quarterly workflows or certify operating feasibility; 2C/2D/2E
-and publication/Booking/runtime consumer migration remain unimplemented.
+Stage 2C adds [dormant planning feasibility and explicit continuation/removal](../03%20Technical/Quarterly%20Feasibility%20and%20Chronology.md).
+Schema 9 is unchanged. This does not activate publication, carry-forward, Booking or
+operational consumers; 2D/2E and later workflows remain pending. Earlier milestone
+statements below retain their checkpoint scope.
+
+Stage 2B established [restricted dormant create/fare-revise commands](../03%20Technical/Quarterly%20Restricted%20Command%20Foundation.md).
+Stage 2C extends their planning proof and editing surface. Stage 2D/2E and
+publication/Booking/runtime consumer migration remain unimplemented.
 
 Schema 9 successor: [reuse authority](../03%20Technical/Quarterly%20Flight%20Number%20Reuse%20Authority.md)
 implements protected historical display-number reuse and retained endpoint identity.

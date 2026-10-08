@@ -2,6 +2,50 @@
 
 Last updated: **2026-10-08**. Current snapshot, not operational authorization.
 
+## Stage 2C - dormant quarterly feasibility and chronology (2026-10-08)
+
+Baseline **3c7bddb4e03176022d6256975f393777cf8924b1**, matching local/upstream,
+fetched origin/master and live remote. [Implementation record](Quarterly%20Feasibility%20and%20Chronology.md).
+Existing prepare/apply commands now prove the affected old/new aircraft chains using
+approved maximum timing, ground handling, turnaround, scalar range, airport profiles
+and planning-only positioning. Finite quarterly UTC projections reuse origin-local
+pinned timezone/fold conversion; weekly wrap, prior/following quarters, retained
+published commitments, active arrivals and legacy continuous obligations remain in
+scope. Canonical service/date/slot duplicates reject across aircraft assignments too.
+Explicit non-endpoint revision, add frequency, continuation, plan-local removal,
+endpoint replacement and retirement extend the existing boundary. No new authority
+fields, schema/template change, supply/event generation or operational cutover.
+Whole-world gates and two complete copies remain transitional. Discovery enumerates
+shared mappings before filtering; no maintained inverse index or runtime speed claim.
+Preparation is only an immutable freshness witness; apply proves the final candidate.
+Retirement requires no unpublished nonended-quarter continuation, retains history and
+committed memberships, and never silently cancels obligations or releases their numbers. Removal alone does not retire or release a number.
+Focused/regression `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_feasibility
+ tests.test_quarterly_commands tests.test_quarterly_reads tests.test_quarterly_foundation
+ tests.test_service_number_reuse tests.test_planning_reposition tests.test_scheduling_continuity
+ tests.test_scheduling_recurrence tests.test_stage1_aircraft_acquisition tests.test_step7_save_load
+ tests.test_stage1_runtime tests.test_stage1_booking_checkpoint -q`: **237 PASS in 84.723s** after the retirement correction,
+including 39 new 2C cases. Earlier focused scope passed in 84.045s. Scoped application compilation and `git diff --check` PASS.
+Initial focused iterations exposed adapter argument/ID-kind mistakes, immutable-intent
+normalization, aircraft-in-flight null location handling and fixture assertions/calendar
+membership; corrected before final verification. Two old 2B same-time duplicate fixtures
+now use physically feasible second departures, retaining their identity/number checks.
+Final contract review corrected an overly restrictive retirement prerequisite: committed
+memberships survive retirement and continue protecting numbers; only unpublished future
+continuation must first be removed. The initial full run was interrupted before completion
+for this correction. Corrected full `.venv/Scripts/python.exe -B -m unittest
+ discover -s tests -q`: **1269 PASS in 1212.305s**; source/test SHA-256 witnesses
+confirmed unchanged throughout that run. Final documentation checks: 191 local links /
+7 heading targets across 8 documents, tracked-path casing and Markdown fences PASS.
+Complete diff/scope/authority review and `git diff --check` PASS. No separate performance
+certification; focused instrumentation confirms only changed old/new aircraft are proved.
+Schema 9 and 2A/2B remain coherent; quarterly gameplay stays dormant. Schedule Builder,
+legacy recurrence/publication, Booking365, runtime, acquisition, finance, GUI and history
+remain operational. Delayed delivery, runway/payload performance and configuration
+history remain absent authority, not assumed certifications. 2D -> 2E -> later Stage 3 /
+consumer migration remain pending, separately scoped; 3G-C PARKED. Archival stash and
+pre-existing `.venv/` untouched.
+
 ## Stage 2B - restricted dormant command foundation (2026-10-08)
 
 Baseline **ef47546140db2070768dc7cb5b3117d639281f2f**, matching fetched/live

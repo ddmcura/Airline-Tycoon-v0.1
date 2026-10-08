@@ -1,5 +1,10 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 2C successor (2026-10-08): [dormant feasibility and chronology](Quarterly%20Feasibility%20and%20Chronology.md)
+now implements affected aircraft-chain proof and explicit continuation/edit/removal/retirement
+commands. Stage 2D/2E and quarterly activation remain unimplemented; earlier checkpoint
+limitations below are historical.
+
 Stage 2B successor (2026-10-08): [restricted dormant commands](Quarterly%20Restricted%20Command%20Foundation.md)
 implement bundled service/initial-frequency creation and fare-only revision through
 session-issued prepare/apply boundaries, isolated validated candidates and detached
@@ -13,7 +18,7 @@ about unchanged Schema 8 or the next schema prerequisite describe this record's 
 checkpoint; the next unimplemented slice is 2B. Quarterly workflows and commands
 remain dormant; 3G-C remains PARKED.
 
-**FINALIZED CONTRACT DESIGN — STAGE 2A AND RESTRICTED 2B IMPLEMENTED; 2C–2E NOT STARTED**
+**FINALIZED CONTRACT DESIGN — STAGE 2A/2B/2C IMPLEMENTED; 2D–2E NOT STARTED**
 
 Stage 2A successor (2026-10-08): [read implementation](Quarterly%20Dependency%20Read%20Foundation.md)
 adds direct selected-reference ownership/dependency resolution, recursively immutable
