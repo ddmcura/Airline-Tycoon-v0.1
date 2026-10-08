@@ -18,7 +18,8 @@ implemented as dormant Schema 8 authority for new careers. Legacy operational pa
 retain gameplay; no old development-save conversion. This is only Stage 1, not
 quarter publication/Booking/carry-forward/GUI completion. Stage 2 contracts and dormant
 2A reads are complete; Schema 9 now supersedes lifetime display-number reservation.
-Next is separately scoped 2B, followed by 2C/2D/2E and later Stage 3/consumers.
+[Restricted dormant 2B commands](Quarterly%20Restricted%20Command%20Foundation.md) are
+implemented. Next is separately scoped 2C, then 2D/2E and later Stage 3/consumers.
 3G-C remains PARKED and separate; do not optimize the outgoing graph first.
 Prior roadmap history below retains dated scope.
 

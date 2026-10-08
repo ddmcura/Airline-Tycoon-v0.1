@@ -1,5 +1,11 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 2B successor (2026-10-08): [restricted dormant commands](Quarterly%20Restricted%20Command%20Foundation.md)
+implement bundled service/initial-frequency creation and fare-only revision through
+session-issued prepare/apply boundaries, isolated validated candidates and detached
+results. No executable feasibility, maintained index, transaction certification or
+quarterly activation. Next is 2C; prior checkpoint statements below remain historical.
+
 Schema 9 successor (2026-10-08): [flight-number reuse authority](Quarterly%20Flight%20Number%20Reuse%20Authority.md)
 now implements protected historical display-number reuse and global retained endpoint
 consistency using unchanged fields. Stage 2A reads remain compatible. Statements below
@@ -7,7 +13,7 @@ about unchanged Schema 8 or the next schema prerequisite describe this record's 
 checkpoint; the next unimplemented slice is 2B. Quarterly workflows and commands
 remain dormant; 3G-C remains PARKED.
 
-**FINALIZED CONTRACT DESIGN — STAGE 2A READ FOUNDATION IMPLEMENTED; LATER SLICES NOT STARTED**
+**FINALIZED CONTRACT DESIGN — STAGE 2A AND RESTRICTED 2B IMPLEMENTED; 2C–2E NOT STARTED**
 
 Stage 2A successor (2026-10-08): [read implementation](Quarterly%20Dependency%20Read%20Foundation.md)
 adds direct selected-reference ownership/dependency resolution, recursively immutable

@@ -2,6 +2,37 @@
 
 Last updated: **2026-10-08**. Current snapshot, not operational authorization.
 
+## Stage 2B - restricted dormant command foundation (2026-10-08)
+
+Baseline **ef47546140db2070768dc7cb5b3117d639281f2f**, matching fetched/live
+origin/master and configured upstream. [Implementation record](Quarterly%20Restricted%20Command%20Foundation.md).
+Scheduling-local bundled service/initial-frequency creation and fare-only revision
+are exposed through owner-issued prepare/apply session boundaries. Canonical IDs,
+expected revisions/absence, eligible unpublished targets, ownership, retirement,
+Schema 9 numbering and immutable endpoint rules are enforced. Isolated candidates,
+full source/candidate/detached gates and final source observations precede atomic commit;
+rejection consumes no authoritative allocations or revisions. Contexts/results are
+recursively detached; weak issuance registrations reset on New/Load/world rebind.
+No schema/template/state-shape change or operational supply/event generation.
+Initial 22-case run had two fixture issues (airline constructor arguments and expected
+error for accepted connection display metadata); fixed the fixtures. Later foreign-owner
+coverage needed explicit existing-plan expectations, then passed. Final focused/regression
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_commands
+ tests.test_quarterly_reads tests.test_quarterly_foundation tests.test_service_number_reuse
+ tests.test_step7_save_load tests.test_scheduling_recurrence tests.test_stage1_runtime
+ tests.test_shared_candidate -q`: **180 PASS in 82.528s**, including 31 new command cases.
+Scoped compilation and whitespace PASS. Full `.venv/Scripts/python.exe -B -m unittest
+ discover -s tests -q`: **1230 PASS in 1180.341s**, frozen final source/test scope
+confirmed unchanged. Documentation: 175 local links / 6 heading targets across 7
+changed documents; casing/fences/authority/scope and complete diff review PASS.
+`git diff --check` PASS. No separate performance certification.
+Whole candidates/gates are transitional, not the permanent transaction architecture.
+Creation is structural dormant authority, not executable feasibility. Fare is the only
+revision operation exposed; chronology/lifecycle/inverse-sensitive edits remain 2C.
+Schema 9/2A remain valid; Booking365 and existing operational scheduling/runtime unchanged.
+2C/2D/2E, Stage 3/consumers and 3G-C remain unimplemented/parked. Archival stash and
+pre-existing `.venv/` untouched. Next requires separately scoped 2C.
+
 ## Schema 9 - protected historical flight-number reuse (2026-10-08)
 
 Baseline **d606fa3cd4dfdcd9fde15ae0c4114f31f0daffa7**, matching local/upstream,

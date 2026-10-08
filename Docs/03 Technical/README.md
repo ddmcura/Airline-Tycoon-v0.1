@@ -33,8 +33,10 @@ are subordinate references; follow the authority order in [AGENTS.md](../../AGEN
 
 - [Quarterly Authority and Identity Foundation](Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.
 
-- [Quarterly Dependency Ownership and Command Contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads and Schema 9 prerequisite implemented; 2B and later slices unimplemented.
+- [Quarterly Dependency Ownership and Command Contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads and Schema 9 prerequisite implemented; restricted 2B implemented; 2C/2D/2E remain unimplemented.
 
-- [Quarterly Dependency Read Foundation](Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A read infrastructure implemented; no commands, maintained indexes or quarterly activation; Schema 9 prerequisite now implemented.
+- [Quarterly Dependency Read Foundation](Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A read infrastructure implemented; read-only 2A scope; 2B commands recorded separately, no maintained indexes or quarterly activation.
 
-- [Quarterly Flight Number Reuse Authority](Quarterly%20Flight%20Number%20Reuse%20Authority.md) - Schema 9 prerequisite implemented; protected reservations, lowest retired suffix and high-water cursor, no 2B commands or quarterly activation.
+- [Quarterly Flight Number Reuse Authority](Quarterly%20Flight%20Number%20Reuse%20Authority.md) - Schema 9 prerequisite implemented; protected reservations, lowest retired suffix and high-water cursor, historical prerequisite checkpoint; 2B commands now recorded separately, no quarterly activation.
+
+- [Quarterly Restricted Command Foundation](Quarterly%20Restricted%20Command%20Foundation.md) - Stage 2B implemented: bundled service creation, fare revision, owner-issued freshness and atomic candidate commit; no quarterly activation or complete feasibility.

@@ -86,6 +86,9 @@ class Stage1Session:
     def world(self, value):
         self._world = value
         self._read_views = None
+        # Runtime-only owner-issued preparations die on New/Load/foreign rebind.
+        from weakref import WeakValueDictionary
+        self._quarterly_preparations = WeakValueDictionary()
 
     def _bind_owned_reads(self):
         self._read_views = _OwnedReadViews(self.world, self.progression_revision)
@@ -453,6 +456,44 @@ class Stage1Session:
         request = PlanReadRequest(weekly_plan_id, expected_revision, revision, slot_keys)
         return resolve_quarterly_reads(self.world, airline_id=self.airline_id,
                                       selections=(request, *compare_with))
+
+    def _quarterly_command_boundary(self):
+        from game.scheduling.quarterly_commands import rejected
+        if not self.active:
+            return rejected('INVALID_WORLD', 'session', 'no active career')
+        try:
+            paused = self.world['simulation']['clock_state'] == 'PAUSED'
+        except (KeyError, TypeError):
+            return rejected('INVALID_WORLD', 'session', 'invalid simulation authority')
+        if (self._bulk_work is not None or not paused
+                or (self.runtime is not None and self.runtime.processing)):
+            return rejected('COMMAND_BOUNDARY', 'session', 'pause and finish runtime work before editing')
+        return None
+
+    def prepare_quarterly_command(self, request):
+        """Prepare dormant intent; issuance creates no authoritative allocation."""
+        from game.scheduling.quarterly_commands import prepare_quarterly_command
+        failure = self._quarterly_command_boundary()
+        if failure is not None:
+            return failure
+        result = prepare_quarterly_command(self.world, airline_id=self.airline_id, request=request)
+        if result.succeeded:
+            self._quarterly_preparations[id(result.prepared)] = result.prepared
+        return result
+
+    def apply_quarterly_command(self, prepared):
+        """Synchronous owner boundary; stale/foreign/forged preparations fail closed."""
+        from game.scheduling.quarterly_commands import apply_quarterly_command, rejected
+        failure = self._quarterly_command_boundary()
+        if failure is not None:
+            return failure
+        if self._quarterly_preparations.get(id(prepared)) is not prepared:
+            return rejected('STALE_CONTEXT', 'prepared', 'refresh after Load/rebind or foreign preparation')
+        result = apply_quarterly_command(self.world, airline_id=self.airline_id, prepared=prepared)
+        if result.succeeded:
+            self._quarterly_preparations.pop(id(prepared), None)
+            self._management_changed()
+        return result
 
     def delivery_locations(self):
         from game.fleet_management.acquisition import delivery_locations

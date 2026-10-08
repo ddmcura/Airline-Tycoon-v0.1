@@ -1,5 +1,9 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 2B now adds [restricted dormant create/fare-revise commands](../03%20Technical/Quarterly%20Restricted%20Command%20Foundation.md).
+This does not activate quarterly workflows or certify operating feasibility; 2C/2D/2E
+and publication/Booking/runtime consumer migration remain unimplemented.
+
 Schema 9 successor: [reuse authority](../03%20Technical/Quarterly%20Flight%20Number%20Reuse%20Authority.md)
 implements protected historical display-number reuse and retained endpoint identity.
 Stage 2A reads remain compatible; product workflows below remain unimplemented.
