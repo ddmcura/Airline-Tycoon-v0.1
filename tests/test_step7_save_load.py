@@ -180,7 +180,7 @@ class SaveLoadTests(unittest.TestCase):
 
     def test_old_save_rejection_and_paused_no_offline_time(self):
         from game.world_state.persistence import _migrated, _digest
-        for version in range(1, 8):
+        for version in range(1, 9):
             old = deepcopy(self.world)
             old['metadata']['save_schema_version'] = version
             before = deepcopy(old)
@@ -197,7 +197,7 @@ class SaveLoadTests(unittest.TestCase):
         self.assertEqual(loaded['simulation']['clock_state'], 'PAUSED')
         path = Path(self.temp.name, self.career, 'manual.json')
         wrapper = json.loads(path.read_text(encoding='utf-8'))
-        wrapper['world']['metadata']['save_schema_version'] = 9
+        wrapper['world']['metadata']['save_schema_version'] = 10
         wrapper['integrity_sha256'] = _digest({k: v for k, v in wrapper.items() if k != 'integrity_sha256'})
         path.write_text(json.dumps(wrapper), encoding='utf-8')
         with self.assertRaisesRegex(SaveError, 'newer'):

@@ -85,7 +85,7 @@ class EventHandlerRegistry:
             return HandlerExecutionContract(handler, ExecutionMode.SHARED,
                 'kernel-no-op-v1', 'Exact kernel callable has no handler writes; '
                 'Stage 3A also fully validates every completed transition.',
-                True, (1, 2, 3, 4, 5, 6, 7, 8))
+                True, (1, 2, 3, 4, 5, 6, 7, 8, 9))
         return HandlerExecutionContract(handler)
 
 

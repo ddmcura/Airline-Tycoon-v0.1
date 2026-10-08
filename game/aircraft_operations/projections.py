@@ -101,7 +101,7 @@ def _project_flight(envelope, world, dated_flight_id, *, lookup=None):
         base_cost = calculate_operating_cost(envelope, flight)["operating_cost_minor"]
         maintenance_cost = 0
         active = world["active_aircraft_operations"].get(dated_flight_id)
-        if envelope["metadata"]["save_schema_version"] in (7, 8) and (active is None or "maintenance_distance_m" in active):
+        if envelope["metadata"]["save_schema_version"] in (7, 8, 9) and (active is None or "maintenance_distance_m" in active):
             aircraft_id = active["actual_aircraft_id"] if active else flight["planned_aircraft_id"]
             witness = active if active else departure_witness(
                 world, flight, world["aircraft"][aircraft_id],

@@ -53,13 +53,13 @@ def allocate_id(envelope, entity_type):
     """Allocate once from authoritative state; allocated numbers are not reused."""
     if entity_type not in SCHEMA8_ENTITY_TYPES:
         raise ValueError(f"Unknown entity type: {entity_type}")
-    if entity_type in {'service', 'weekly_plan'} and envelope.get('metadata', {}).get('save_schema_version') != 8:
-        raise ValueError('quarterly identity allocation requires schema 8')
+    if entity_type in {'service', 'weekly_plan'} and envelope.get('metadata', {}).get('save_schema_version') not in (8, 9):
+        raise ValueError('quarterly identity allocation requires schema 8 or 9')
     if entity_type == "booking_checkpoint":
         metadata = envelope.get("metadata") if type(envelope) is dict else None
         if (
             type(metadata) is not dict
-            or metadata.get("save_schema_version") not in (3, 4, 5, 6, 7, 8)
+            or metadata.get("save_schema_version") not in (3, 4, 5, 6, 7, 8, 9)
         ):
             raise ValueError(
                 "booking_checkpoint IDs require save schema version 3"

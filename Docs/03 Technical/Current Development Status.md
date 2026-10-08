@@ -2,6 +2,38 @@
 
 Last updated: **2026-10-08**. Current snapshot, not operational authorization.
 
+## Schema 9 - protected historical flight-number reuse (2026-10-08)
+
+Baseline **d606fa3cd4dfdcd9fde15ae0c4114f31f0daffa7**, matching local/upstream,
+fetched origin/master and live remote. [Implementation record](Quarterly%20Flight%20Number%20Reuse%20Authority.md).
+Canonical schema then template were updated before production. Schema 9 uses the
+same fields and namespaces, allows historical display duplicates, rejects protected
+simultaneous holders and enforces endpoint identity across all retained versions.
+Non-retired services reserve numbers including drafts; active/future published use
+continues protecting retired services. Lowest eligible retired suffix first;
+otherwise high-water fresh allocation. Reuse never moves the fresh cursor.
+New Game and disk Save/Load use 9; older development saves reject without conversion.
+Stage 2A remains read-only/immutable and compatible. Legacy scheduling, recurrence,
+Booking365, runtime, acquisition, finance, GUI and history retain operational behavior.
+No 2B command API, maintained index or quarterly workflow is implemented. 3G-C PARKED.
+Focused/regression command and scope are recorded in the implementation record:
+**162 PASS in 147.521s**; earlier foundation/read **40 PASS in 13.472s**.
+Scoped compilation and whitespace PASS. Initial full discovery: 1199 cases in
+1465.114s, 18 failure entries / 11 errors from two missing compact supported-schema
+certificate declarations causing strict routing. Added 9 without changing proofs or
+transactions; affected regression command **202 PASS in 443.144s**. Compilation PASS
+again. Corrected full `.venv/Scripts/python.exe -B -m unittest discover -s tests -q`:
+**1199 PASS in 1265.353s**, frozen final source/test scope confirmed unchanged.
+Documentation: 440 links / 64 headings across 12 changed documents, casing/fences PASS.
+Full diff, authority/mirror/historical supersession and scope review; `git diff --check`
+PASS. 30 production files (22 additive operational schema guards only), 9 test files,
+12 Markdown documents and the subordinate template mirror; no game data or GUI changes.
+No separate giant performance certification or runtime improvement claim.
+Next: 2B -> 2C -> 2D -> 2E -> later Stage 3 / consumer migration, separately scoped.
+Reconstruction traverses shared service/plan mappings and processes relevant records;
+no runtime improvement claim or premature 2D index. Archival stash and `.venv/` untouched.
+Earlier sections below preserve verified checkpoint evidence under their original schema.
+
 ## Stage 2A — dependency/ownership read foundation (2026-10-08)
 
 Baseline **3d23d34f3d3ea6da3fb7f3578f7a274afd39c136**, verified against fetched

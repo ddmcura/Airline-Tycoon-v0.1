@@ -1,4 +1,4 @@
-# Schema 8 quarterly migration Stage 1 foundation (2026-10-07).
+# Schema 9 reusable flight-number authority (2026-10-08).
 # Canonical authority: Docs/03 Technical/Stage 1 State Schema.md.
 # Dormant foundation; legacy operational scheduling remains the current consumer.
 world_state.services: service_id -> {service_id, airline_id, flight_number_number, next_slot_number, retired_at_utc}
@@ -8,10 +8,17 @@ weekly_plan.revisions: revision string -> {revision, published_at_utc, slots}
 weekly_plan.revision.slots: [{service_id, slot_number, weekdays, departure_local_time, departure_local_fold, origin_airport_id, destination_airport_id, planned_aircraft_id, connection_id, service_type, capacity, fare_offer, planning_timing}]
 # Standard allocator namespaces: service, weekly_plan. Slot numbers allocated per service.
 # Prefix 2..8 uppercase ASCII letters; derived display prefix + at-least-two-digit number.
-# Retired identities/numbers retained; no reuse. One plan per airline/quarter YYYY-Qn.
+# Service IDs/slot identities never reused. Retained historical display suffixes may repeat.
+# Protected holder: non-retired service (including draft reservation), or service referenced
+# by current published revision of a quarter not yet ended in simulation UTC.
+# Distinct protected services cannot share an airline/suffix. Historical references alone
+# do not reserve a retired number. Lowest eligible retired suffix first, otherwise next_number.
+# Reuse does not advance/rewind next_number; cursor exceeds every retained suffix.
+# All retained slots of a service have identical directional endpoint IDs.
+# Holder/eligible-pool lookups are reconstructible, not persisted. One plan per airline/quarter YYYY-Qn.
 # Only publication timestamp persisted; lifecycle/target are derived from UTC.
 # Future occurrence key: service_id@origin-local-date#positive-slot-number, no saved rows yet.
-# New Game initializes empty roots; Load accepts8 only, no development-save conversion.
+# New Game initializes empty roots; Load accepts9 only, no development-save conversion.
 # Existing notes below preserve their historical schema scopes.
 
 # Patch 1.2B causal generation accounting (2026-10-05); Schema remains 7.

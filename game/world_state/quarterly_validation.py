@@ -1,4 +1,4 @@
-"""Strict additive schema-8 plan/identity validation, never operational expansion."""
+"""Strict quarterly authority validation, never operational expansion."""
 import re
 from game.utils.quarters import parse_quarter_id
 from .timestamps import parse_canonical_utc
@@ -92,6 +92,27 @@ def validate_slots(world, airline_id, slots, *, new=False):
             raise ValueError('configured timing requires configured aircraft')
 
 
+def validate_service_endpoints(world, slots):
+    """Reject endpoint reinterpretation before a low-level candidate write.
+
+    Only incoming services need comparison; retained revisions remain authority.
+    Maintained inverse relationships are intentionally deferred to Stage 2D.
+    """
+    endpoints = {}
+    for slot in slots:
+        pair = (slot['origin_airport_id'], slot['destination_airport_id'])
+        if endpoints.setdefault(slot['service_id'], pair) != pair:
+            raise ValueError('service endpoint identity cannot change')
+    if not endpoints:
+        return
+    for plan in world['weekly_plans'].values():
+        for row in plan['revisions'].values():
+            for slot in row['slots']:
+                sid = slot['service_id']
+                if sid in endpoints and endpoints[sid] != (slot['origin_airport_id'], slot['destination_airport_id']):
+                    raise ValueError('service endpoint identity cannot change')
+
+
 def validate_quarterly(envelope):
     world = envelope['world_state']; now = parse_canonical_utc(envelope['simulation']['time_utc'])
     numbering = world['service_numbering']
@@ -113,12 +134,14 @@ def validate_quarterly(envelope):
         if owner not in numbering:
             raise ValueError('service number allocation is absent')
         number = service['flight_number_number']; positive(number); positive(service['next_slot_number'])
-        if number >= numbering[owner]['next_number'] or (owner, number) in used:
+        if number >= numbering[owner]['next_number'] or (
+                envelope['metadata']['save_schema_version'] == 8 and (owner, number) in used):
             raise ValueError('duplicate/unallocated flight number')
         used.add((owner, number))
         if service['retired_at_utc'] is not None and parse_canonical_utc(service['retired_at_utc']) > now:
             raise ValueError('retirement cannot be in the future')
     periods = set()
+    endpoints = {}
     for pid, plan in world['weekly_plans'].items():
         exact(plan, {'weekly_plan_id', 'airline_id', 'quarter_id', 'current_revision', 'revisions'})
         if pid != plan['weekly_plan_id'] or parse_entity_id(pid, 'weekly_plan') is None:
@@ -141,3 +164,11 @@ def validate_quarterly(envelope):
                 if number != revision or instant > now or instant > quarter.start_utc:
                     raise ValueError('inconsistent plan publication commitment')
             validate_slots(world, owner, row['slots'])
+            if envelope['metadata']['save_schema_version'] == 9:
+                for slot in row['slots']:
+                    pair = (slot['origin_airport_id'], slot['destination_airport_id'])
+                    if endpoints.setdefault(slot['service_id'], pair) != pair:
+                        raise ValueError('service endpoint identity cannot change')
+    if envelope['metadata']['save_schema_version'] == 9:
+        from .service_numbers import protected_number_holders
+        protected_number_holders(envelope)

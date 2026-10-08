@@ -1,5 +1,12 @@
 # Quarterly Authority and Identity Foundation — Implementation Stage 1
 
+Schema 9 successor (2026-10-08): [flight-number reuse authority](Quarterly%20Flight%20Number%20Reuse%20Authority.md)
+now implements protected historical display-number reuse and global retained endpoint
+consistency using unchanged fields. Stage 2A reads remain compatible. Statements below
+about unchanged Schema 8 or the next schema prerequisite describe this record's original
+checkpoint; the next unimplemented slice is 2B. Quarterly workflows and commands
+remain dormant; 3G-C remains PARKED.
+
 Implemented scope: dormant Schema 8 authority/identity foundation, 2026-10-07.
 Baseline **c6fab14e6ed63161cf50882cef867fc81645b226**. This is not full quarterly
 planning, publication, Booking migration, future delivery or reduced 3G-C.

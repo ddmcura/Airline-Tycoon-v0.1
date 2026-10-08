@@ -143,7 +143,7 @@ class LocalProofTests(unittest.TestCase):
             self.assertTrue(result.succeeded,result.failure)
             self.assertEqual(canonical_world(actual),canonical_world(expected))
             self.assertEqual(canonical_world(save_reload(actual)),canonical_world(actual))
-            self.assertEqual(actual['metadata']['save_schema_version'],8)
+            self.assertEqual(actual['metadata']['save_schema_version'],9)
 
     def test_domain_corruption_cannot_be_repaired_by_later_event(self):
         original_apply=kernel._apply_handler_candidate

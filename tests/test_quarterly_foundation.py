@@ -90,8 +90,8 @@ class FoundationTests(unittest.TestCase):
         pid=create_weekly_plan(self.world,self.owner,quarter,slots=[row])
         return pid,sid,n,row
 
-    def test_new_game_empty_schema8_foundation(self):
-        self.assertEqual(self.base['metadata']['save_schema_version'],8)
+    def test_new_game_empty_schema9_foundation(self):
+        self.assertEqual(self.base['metadata']['save_schema_version'],9)
         for key in ('services','service_numbering','weekly_plans'):self.assertEqual(self.base['world_state'][key],{})
         self.assertTrue(validate_world(self.world).is_valid)
 
@@ -123,11 +123,11 @@ class FoundationTests(unittest.TestCase):
         self.assertNotEqual(a,b);self.assertEqual(flight_number(self.state,sid),'DAB01')
         self.assertTrue(validate_world(self.world).is_valid)
 
-    def test_retirement_reserves_number_and_keeps_versions(self):
+    def test_retirement_releases_number_and_keeps_versions(self):
         pid,sid,n,row=self.plan();old=deepcopy(self.state['weekly_plans'][pid])
         retire_service(self.world,sid);retire_service(self.world,sid)
         newer,_=self.service()
-        self.assertNotEqual(sid,newer);self.assertEqual(flight_number(self.state,newer),'DAB02')
+        self.assertNotEqual(sid,newer);self.assertEqual(flight_number(self.state,newer),'DAB01')
         self.assertEqual(flight_number(self.state,sid),'DAB01');self.assertEqual(self.state['weekly_plans'][pid],old)
         with self.assertRaises(ValueError):allocate_service_slot(self.world,sid)
         with self.assertRaises(ValueError):create_weekly_plan(self.world,self.owner,'2028-Q3',slots=[row])

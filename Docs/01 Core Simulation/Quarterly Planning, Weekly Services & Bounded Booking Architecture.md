@@ -1,8 +1,12 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Schema 9 successor: [reuse authority](../03%20Technical/Quarterly%20Flight%20Number%20Reuse%20Authority.md)
+implements protected historical display-number reuse and retained endpoint identity.
+Stage 2A reads remain compatible; product workflows below remain unimplemented.
+
 **APPROVED DESIGN — STAGE 1 FOUNDATION IMPLEMENTED; QUARTER WORKFLOWS NOT YET IMPLEMENTED**
 Stage 2A now adds [dormant dependency/ownership reads](../03%20Technical/Quarterly%20Dependency%20Read%20Foundation.md)
-under unchanged Schema 8; this does not activate any product workflow below.
+compatible with Schema 9; this does not activate any product workflow below.
 Approved direction recorded 2026-10-07; publication and lifecycle product
 clarifications approved after the migration audit on 2026-10-07. This remains
 the canonical future-design description, not implementation permission. The
@@ -15,15 +19,15 @@ and later representation decisions are not implemented.
 Contract finalization approved 2026-10-08: eligible retired display-number reuse,
 endpoint identity, eligible-quarter Manual Publish/target advancement, publication
 before boundary Booking and atomic publication failure/correction/retry are recorded
-below. These future contracts supersede earlier provisional decisions, not implemented
-Schema 8. See [finalized technical contracts](../03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md).
+below. Number reuse and endpoint identity now supersede provisional Schema 8
+semantics; other publication/consumer contracts remain future behavior. See [finalized technical contracts](../03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md).
 
 ## Authority and current implemented behavior
 
 This is the focused source for the future direction, not a replacement persistent
 state contract. [Stage 1 State Schema](../03%20Technical/Stage%201%20State%20Schema.md)
 and its subordinate [template mirror](../../Data/Templates/template_reference.txt)
-define current authority: **Schema 8 adds the dormant Stage 1 foundation**; existing
+define current authority: **Schema 9 retains the dormant Stage 1 foundation and enables safe number reuse**; existing
 operational domain semantics remain. Schema 7 is historical development authority. Domain specifications
 continue to govern current behavior. Historical implementation reports remain
 historical; the bounded authority/identity Stage 1 and dormant Stage 2A reads are
@@ -203,7 +207,7 @@ matching or historical endpoint rewrite. Service IDs are permanent and never reu
 ### Retired display-number reuse — approved future supersession
 
 This 2026-10-08 product decision supersedes Stage 1's provisional permanent display-number
-reservation. Current Schema 8 still implements permanent reservation; it is unchanged.
+reservation. Schema 9 now implements this low-level authority; Schema 8 lifetime reservation is historical.
 A number used by any active/published/future-committed weekly service cannot be reused.
 Once no such schedule uses it, it may enter an eligible retired-number pool. A genuinely
 new service may receive it, while the old service ID/history remains permanently distinct.
@@ -333,8 +337,8 @@ No Southeast Asia content or country expansion is included.
 
 ## Implementation details still unresolved
 
-- Later plan workflow/consumer integration; minimum quarter/service identity is defined by Schema 8.
-- Concrete endpoint-invariant and reusable-number schema/validation representation; product identity/reuse rules above are settled.
+- Later plan workflow/consumer integration; minimum quarter/service identity is retained by Schema 9.
+- Maintained endpoint/holder relationships and command certification; Schema 9 implements their source authority and reconstructive validation.
 - When dated occurrences materialize and how bounded-horizon Booking inventory works.
 - Cache/derived-state domain ownership, dependency closure, invalidation and reconstruction.
 - Whether prepared future state is persisted or reconstructed, and horizon persistence needs.
@@ -368,7 +372,7 @@ facts is approved.
 Existing development Schema 7 saves do **not** need compatibility with the new
 quarterly architecture; new saves after transition are acceptable. Do not add
 conversion/run-off/compatibility layers solely to migrate those development files.
-Schema 8 is current for new careers; older development saves are rejected cleanly.
+Schema 9 is current for new careers; older development saves are rejected cleanly.
 Further schema changes must
 be explicit, documented, validated and internally coherent; incompatible old saves
 must not be silently misinterpreted. No files are deleted or migrated here. Required
@@ -376,14 +380,15 @@ history/accounting within new careers and safe save/load still apply.
 
 ## Deferred implementation details and non-goals
 
-Schema 8 now defines minimum service/quarter-plan/slot identities and commitment
+Schema 9 retains minimum service/quarter-plan/slot identities and commitment
 facts. Calendar helpers, validation and deterministic persistence are implemented.
 This does not activate quarterly planning/publication/Booking workflows, carry-forward,
 future delivery, occurrence thinning, reduced 3G-C, AI or new countries. Cache/thread
 strategy, rollover/event generation, modifier/lead-time mechanics, reusable-number
-representation and history storage remain later implementation details. Reuse eligibility,
-lowest-eligible selection, endpoint identity, early commitment/target advancement, boundary
-ordering and atomic failure/retry are approved future contracts, not implemented behavior.
+maintained indexing and history storage remain later implementation details. Reuse eligibility,
+lowest-eligible selection and endpoint identity are implemented in dormant Schema 9.
+Early commitment/target advancement, boundary ordering and atomic failure/retry remain
+approved future workflows, not implemented behavior.
 Existing Booking economics/horizon,
 operational recurrence, acquisition, finance and GUI remain unchanged. Subsequent
 implementation requires bounded approval and concrete contracts.

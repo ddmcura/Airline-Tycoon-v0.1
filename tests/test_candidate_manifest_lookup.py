@@ -259,7 +259,7 @@ class CandidateManifestTests(unittest.TestCase):
             self.assertTrue(resolve_until(world, window(world, kind), shared=True).succeeded)
             restored = save_reload(world)
             self.assertEqual(canonical_world(restored), canonical_world(world))
-            self.assertEqual(restored['metadata']['save_schema_version'], 8)
+            self.assertEqual(restored['metadata']['save_schema_version'], 9)
             text = canonical_world(restored)
             for marker in ('read_lookup', 'CandidateManifestLookup', '_read_lookups', '_read_capability'):
                 self.assertNotIn(marker, text)

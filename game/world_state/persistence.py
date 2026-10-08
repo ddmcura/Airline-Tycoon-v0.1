@@ -78,7 +78,7 @@ def _migrated(source, *, foundation_snapshot=None):
     if version < 1:
         raise SaveError("INVALID_SCHEMA", "Unsupported save schema version")
     if version != LATEST_SAVE_SCHEMA_VERSION:
-        raise SaveError('UNSUPPORTED_SCHEMA', 'Development saves before schema 8 are not supported; start a new career')
+        raise SaveError('UNSUPPORTED_SCHEMA', 'Development saves before schema 9 are not supported; start a new career')
     _validated(world)
     world["simulation"]["clock_state"] = "PAUSED"
     world["simulation"]["fast_forward"]["target_time_utc"] = None
@@ -206,7 +206,7 @@ class SaveStore:
         if type(version) is int and version > LATEST_SAVE_SCHEMA_VERSION:
             raise SaveError('NEWER_SCHEMA', 'Cannot write a newer schema')
         if version != LATEST_SAVE_SCHEMA_VERSION:
-            raise SaveError('UNSUPPORTED_SCHEMA', 'Only schema 8 new-career saves can be written')
+            raise SaveError('UNSUPPORTED_SCHEMA', 'Only schema 9 new-career saves can be written')
         prior = self._entries(career_id)
         lineage = world.get('metadata', {}).get('lineage_id') if type(world) is dict else None
         if any(e['world']['metadata']['lineage_id'] != lineage for e in prior):

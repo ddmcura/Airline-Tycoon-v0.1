@@ -177,7 +177,7 @@ def payment_execution_contract(handler):
         raise ValueError('only the exact built-in payment callable can be certified')
     return HandlerExecutionContract(handler, ExecutionMode.SHARED, VERSION,
         'Exact payment delta, protected dependencies and intermediate validity; '
-        'Contract Payment Shared Certification.md', True, (6, 7, 8),
+        'Contract Payment Shared Certification.md', True, (6, 7, 8, 9),
         capture_transition=capture_payment_transition, validate_transition=validate_payment_transition,
         supports_input=supports_payment_transition,mutation_footprint=payment_ownership)
 

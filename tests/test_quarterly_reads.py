@@ -205,9 +205,9 @@ class QuarterlyReadTests(unittest.TestCase):
             with self.subTest(endpoints=(origin, dest)):
                 changed = self.slot(self.sid, self.number, origin=origin, dest=dest)
                 world = deepcopy(self.world)
-                pid = create_weekly_plan(world, self.owner, '2028-Q2', slots=[changed])
-                # Schema 8 intentionally lacks the future global endpoint invariant.
-                self.assertTrue(validate_world(world).is_valid)
+                pid = create_weekly_plan(world, self.owner, '2028-Q2', slots=[self.row])
+                world['world_state']['weekly_plans'][pid]['revisions']['1']['slots'] = [changed]
+                self.assertFalse(validate_world(world).is_valid)
                 before = encoded(world)
                 result = self.read(world=world, requests=(PlanReadRequest(self.pid, 1), PlanReadRequest(pid, 1)))
                 self.assertEqual(result.issues[0].code, 'ENDPOINT_INCONSISTENCY')
@@ -217,10 +217,12 @@ class QuarterlyReadTests(unittest.TestCase):
     def test_endpoint_check_within_selected_plan_and_across_retained_revisions(self):
         n = allocate_service_slot(self.world, self.sid)
         changed = self.slot(self.sid, n, dest=self.ceb)
-        append_weekly_plan_revision(self.world, self.pid, expected_revision=1, slots=[self.row, changed])
+        append_weekly_plan_revision(self.world, self.pid, expected_revision=1, slots=[self.row, dict(self.row, slot_number=n)])
+        self.state['weekly_plans'][self.pid]['revisions']['2']['slots'][1] = changed
         result = self.read(requests=(PlanReadRequest(self.pid, 2),))
         self.assertEqual(result.issues[0].code, 'ENDPOINT_INCONSISTENCY')
-        append_weekly_plan_revision(self.world, self.pid, expected_revision=2, slots=[changed])
+        self.state['weekly_plans'][self.pid]['revisions']['3'] = {'revision': 3, 'published_at_utc': None, 'slots': [changed]}
+        self.state['weekly_plans'][self.pid]['current_revision'] = 3
         result = self.read(requests=(PlanReadRequest(self.pid, 3, revision=1),
                                      PlanReadRequest(self.pid, 3, revision=3)))
         self.assertEqual(result.issues[0].code, 'ENDPOINT_INCONSISTENCY')
@@ -278,7 +280,7 @@ class QuarterlyReadTests(unittest.TestCase):
             counts.append(sum(t.reads for t in tables))
         self.assertEqual(len(set(counts)), 1, counts)
 
-    def test_exact_schema8_save_load_and_serialization_read_equivalence(self):
+    def test_exact_schema9_save_load_and_serialization_read_equivalence(self):
         before = encoded(self.world)
         expected = self.read()
         with tempfile.TemporaryDirectory() as root:
@@ -289,7 +291,7 @@ class QuarterlyReadTests(unittest.TestCase):
             self.assertEqual(encoded(loaded), before)
             self.assertEqual(self.read(world=loaded), expected)
         self.assertEqual(self.read(world=json.loads(before)), expected)
-        self.assertEqual(self.world['metadata']['save_schema_version'], 8)
+        self.assertEqual(self.world['metadata']['save_schema_version'], 9)
 
     def test_session_trust_boundary_and_explicit_comparison(self):
         session = Stage1Session()
@@ -303,11 +305,12 @@ class QuarterlyReadTests(unittest.TestCase):
         del bad['world_state']['aircraft'][self.aircraft]
         session.world = bad
         self.assertEqual(session.quarterly_plan_dependencies(self.pid, expected_revision=1).issues[0].code, 'INVALID_WORLD')
-        pid = create_weekly_plan(self.world, self.owner, '2028-Q2', slots=[self.slot(self.sid, self.number, dest=self.ceb)])
+        pid = create_weekly_plan(self.world, self.owner, '2028-Q2', slots=[self.row])
+        self.state['weekly_plans'][pid]['revisions']['1']['slots'] = [self.slot(self.sid, self.number, dest=self.ceb)]
         session.world = self.world
         result = session.quarterly_plan_dependencies(self.pid, expected_revision=1,
             compare_with=(PlanReadRequest(pid, 1),))
-        self.assertEqual(result.issues[0].code, 'ENDPOINT_INCONSISTENCY')
+        self.assertEqual(result.issues[0].code, 'INVALID_WORLD')
 
     def test_read_lifecycle_is_derived_and_not_changed(self):
         self.state['weekly_plans'][self.pid]['revisions']['1']['published_at_utc'] = self.world['simulation']['time_utc']

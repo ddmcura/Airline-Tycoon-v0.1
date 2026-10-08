@@ -490,7 +490,7 @@ def _validate_schema4_fulfilment_authority(validator):
             path = f"$.world_state.active_aircraft_operations.{flight_id}"
             flight = flights.get(flight_id, {})
             has_maintenance = type(operation) is dict and "maintenance_distance_m" in operation
-            allowed_fields = OPERATION_FIELDS | (MAINTENANCE_WITNESS_FIELDS if has_maintenance and validator.schema_version in (7, 8) else set())
+            allowed_fields = OPERATION_FIELDS | (MAINTENANCE_WITNESS_FIELDS if has_maintenance and validator.schema_version in (7, 8, 9) else set())
             if type(operation) is not dict or set(operation) != allowed_fields:
                 _add(validator, "result_validation_failed", path,
                      "active operation must contain exactly the canonical fields")
@@ -607,7 +607,7 @@ def _validate_schema4_fulfilment_authority(validator):
         has_maintenance = type(result) is dict and result.get("result_version") == 2
         allowed_fields = RESULT_FIELDS | (MAINTENANCE_WITNESS_FIELDS | {
             "base_operating_cost_minor", "maintenance_expense_minor"
-        } if has_maintenance and validator.schema_version in (7, 8) else set())
+        } if has_maintenance and validator.schema_version in (7, 8, 9) else set())
         if type(result) is not dict or set(result) != allowed_fields:
             _add(validator, "result_validation_failed", path,
                  "flight result must contain exactly the canonical immutable fields")

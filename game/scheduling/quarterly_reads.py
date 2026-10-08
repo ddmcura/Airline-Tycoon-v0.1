@@ -131,8 +131,8 @@ def resolve_quarterly_reads(envelope, *, airline_id, selections):
     feasibility. Rejected reads return no partial views and consume nothing.
     """
     try:
-        if envelope['metadata']['save_schema_version'] != 8:
-            raise _ReadFailure('INVALID_SCHEMA', 'metadata.save_schema_version', 'Schema 8 required')
+        if envelope['metadata']['save_schema_version'] not in (8, 9):
+            raise _ReadFailure('INVALID_SCHEMA', 'metadata.save_schema_version', 'Schema 8 or 9 required')
         if type(selections) is not tuple or not selections:
             raise _ReadFailure('INVALID_REQUEST', 'selections', 'nonempty immutable request sequence required')
         for request in selections:
@@ -195,7 +195,7 @@ def resolve_quarterly_reads(envelope, *, airline_id, selections):
                     dependencies.update((('connections', cid), ('directional_markets', market_id)))
                 dependencies.update((('services', sid), ('aircraft', aid),
                                      ('service_numbering', airline_id)))
-                # Number authority remains Schema 8; no pool or allocation is read/created.
+                # Display numbers come from service identity; historical duplicates are permitted in Schema 9.
                 number = service['flight_number_number']
                 if not _positive(number) or number >= state['service_numbering'][airline_id]['next_number']:
                     raise _ReadFailure('INVALID_REFERENCE', f'world_state.services.{sid}',

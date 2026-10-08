@@ -1,5 +1,12 @@
 # Quarterly Dependency Read Foundation — Stage 2A
 
+Schema 9 successor (2026-10-08): [flight-number reuse authority](Quarterly%20Flight%20Number%20Reuse%20Authority.md)
+now implements protected historical display-number reuse and global retained endpoint
+consistency using unchanged fields. Stage 2A reads remain compatible. Statements below
+about unchanged Schema 8 or the next schema prerequisite describe this record's original
+checkpoint; the next unimplemented slice is 2B. Quarterly workflows and commands
+remain dormant; 3G-C remains PARKED.
+
 **IMPLEMENTED: DORMANT READ FOUNDATION ONLY**, 2026-10-08.
 Starting baseline **3d23d34f3d3ea6da3fb7f3578f7a274afd39c136**, matched local HEAD,
 configured upstream, fetched origin/master and live remote master. Initially the tracked

@@ -1,11 +1,15 @@
 # Game State & Save Technical Specification
 
-## Approved future direction (clarified 2026-10-07; not implemented)
+## Quarterly authority and approved future workflows
 
-Stage 1 now supplies dormant Schema 8 identity/plan authority and new-save-only
+Schema 9 foundation is implemented; the future quarterly workflows remain unimplemented.
+
+Stage 1 supplies dormant identity/plan authority; Schema 9 now provides protected
+historical display-number reuse and new-save-only
 persistence; see [implementation record](Quarterly%20Authority%20and%20Identity%20Foundation.md). Compatibility
 with existing development Schema 7 saves is not required, and new saves are acceptable.
-Disk Save/Load requires Schema 8; no 7-to-8 converter. Earlier migrations remain
+Disk Save/Load requires Schema 9; no development-save converter. See
+[Schema 9 authority](Stage%201%20State%20Schema.md#schema-9--reusable-flight-number-authority). Earlier migrations remain
 historical bootstrap/fixture code. Complete snapshots, separate validated candidates, previous-file
 safety, paused restoration and retained history/accounting remain requirements.
 See the [focused design direction](../01%20Core%20Simulation/Quarterly%20Planning%2C%20Weekly%20Services%20%26%20Bounded%20Booking%20Architecture.md). This reference does not amend

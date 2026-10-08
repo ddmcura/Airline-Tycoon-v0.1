@@ -33,7 +33,7 @@ def supports_departure(envelope, event):
     try:
         world=envelope['world_state']; flight=world['dated_flights'][event['owner_id']]
         aircraft=world['aircraft'][flight['planned_aircraft_id']]
-        return (envelope['metadata']['save_schema_version'] in (7, 8)
+        return (envelope['metadata']['save_schema_version'] in (7, 8, 9)
             and flight['status']=='PLANNED'
             and flight['dated_flight_id'] not in world['active_aircraft_operations']
             and flight['dated_flight_id'] not in world['flight_results']
@@ -194,7 +194,7 @@ def departure_execution_contract(handler):
     from game.aircraft_operations.manifest_lookup import CandidateManifestLookup
     if handler is not _departure_handler: raise ValueError('exact built-in departure required')
     return HandlerExecutionContract(handler,ExecutionMode.SHARED,DEPARTURE_VERSION,
-        'Exact Departure before/after proof; Flight Shared Certification.md',True,(7,8),
+        'Exact Departure before/after proof; Flight Shared Certification.md',True,(7,8,9),
         capture_transition=capture_departure,validate_transition=validate_departure,supports_input=supports_departure,
         mutation_footprint=departure_ownership,read_lookup_factory=CandidateManifestLookup)
 
@@ -206,7 +206,7 @@ def supports_completion(envelope,event):
         aircraft=world['aircraft'][operation['actual_aircraft_id']]
         # Conservative chronology guard: this result must become the latest one.
         latest=(flight['scheduled_in_block_utc'],flight['dated_flight_id'])
-        return (envelope['metadata']['save_schema_version'] in (7, 8)
+        return (envelope['metadata']['save_schema_version'] in (7, 8, 9)
             and flight['status']=='OPERATIONALLY_LOCKED'
             and flight['dated_flight_id'] not in world['flight_results']
             and aircraft['status']=='IN_FLIGHT' and aircraft['current_airport_id'] is None
@@ -281,7 +281,7 @@ def completion_execution_contract(handler):
     from game.aircraft_operations.manifest_lookup import CandidateManifestLookup
     if handler is not _completion_handler: raise ValueError('exact built-in completion required')
     return HandlerExecutionContract(handler,ExecutionMode.SHARED,COMPLETION_VERSION,
-        'Exact Completion before/after proof; Flight Shared Certification.md',True,(7,8),
+        'Exact Completion before/after proof; Flight Shared Certification.md',True,(7,8,9),
         capture_transition=capture_completion,validate_transition=validate_completion,supports_input=supports_completion,
         mutation_footprint=completion_ownership,read_lookup_factory=CandidateManifestLookup)
 

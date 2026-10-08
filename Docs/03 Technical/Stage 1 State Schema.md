@@ -1,6 +1,50 @@
 # Stage 1 State Schema
 
+## Schema 9 — reusable flight-number authority
+
+Schema 9 supersedes Schema 8's permanent airline/number uniqueness, retaining
+exactly the same record fields and allocator namespaces. New Game constructs
+Schema 9; disk Load accepts only Schema 9, with no development-save conversion.
+Earlier versions remain validatable as historical fixtures under their own rules.
+Quarterly workflows remain dormant; legacy scheduling, Booking365 and runtime
+remain the operational consumers.
+
+Service IDs and slot identities are never reused. Retained services may share
+an airline's player-facing numeric suffix across distinct lifetimes. A service
+protects its suffix if `retired_at_utc` is null (including exclusive draft
+reservation), or if it is referenced by the current published revision of a
+plan whose UTC quarter has not ended. This covers active and future committed
+use even after retirement. Unpublished retained versions and historical published
+quarters alone do not protect a retired service's number. Removing plan membership
+does not release a non-retired service's reservation. Two distinct protected
+services for the same airline/suffix are invalid; historical holders alone are
+not collisions. Retirement does not erase any retained reference or obligation.
+
+New service allocation chooses the lowest eligible retired numeric suffix,
+deduplicated across historical holders, only when no protected holder remains.
+Otherwise it uses `service_numbering.next_number`. Reuse never advances or
+decreases that cursor; fresh allocation advances it by one. The cursor remains
+strictly greater than every retained suffix. Continuing services keep their
+numbers; surviving services are never renumbered to fill gaps. Prefix/format
+rules below remain unchanged. Eligibility/holder lookups are derived from
+services, current published plan references and simulation UTC; no pool or
+holder index is persisted. Cold Load validates/reconstructs without allocating.
+
+All retained slots referencing one service must have identical directional
+origin/destination IDs, across frequencies, revisions and quarters. Changing
+either endpoint requires a new service ID, regardless of number reuse.
+Canonical dated occurrence identity remains service/date/slot, never display
+number. Complete trust-boundary validation retains all existing checks and
+adds protected-holder exclusivity and the retained endpoint invariant.
+Low-level constructors remain caller-owned candidate primitives, not Stage 2B
+commands. Allocation rejects malformed relevant authority before consuming IDs
+or cursors. Reconstructive lookups are temporary; maintained indexes remain 2D.
+
 ## Quarterly migration Stage 1 authority foundation (schema 8)
+
+The following records the original Stage 1 contract. Schema 9 above supersedes
+its lifetime-number reservation and current disk-version statements, and adds
+the retained endpoint invariant without adding fields.
 
 Schema 8 adds dormant identity/plan authority; current schedule definitions, dated
 flights, Booking365, recurrence, events, finance and GUI still operate unchanged.
