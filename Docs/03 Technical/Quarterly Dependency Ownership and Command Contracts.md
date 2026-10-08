@@ -1,5 +1,9 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 2D successor (2026-10-08): [maintained inverse indexes and freshness](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md)
+are implemented for dormant Scheduling-owned dependencies. Stage 2C proof/gates remain;
+2E and quarterly activation remain pending. Earlier checkpoint limitations below are historical.
+
 Stage 2C successor (2026-10-08): [dormant feasibility and chronology](Quarterly%20Feasibility%20and%20Chronology.md)
 now implements affected aircraft-chain proof and explicit continuation/edit/removal/retirement
 commands. Stage 2D/2E and quarterly activation remain unimplemented; earlier checkpoint
@@ -18,7 +22,7 @@ about unchanged Schema 8 or the next schema prerequisite describe this record's 
 checkpoint; the next unimplemented slice is 2B. Quarterly workflows and commands
 remain dormant; 3G-C remains PARKED.
 
-**FINALIZED CONTRACT DESIGN — STAGE 2A/2B/2C IMPLEMENTED; 2D–2E NOT STARTED**
+**FINALIZED CONTRACT DESIGN — STAGE 2A/2B/2C/2D IMPLEMENTED; 2E NOT STARTED**
 
 Stage 2A successor (2026-10-08): [read implementation](Quarterly%20Dependency%20Read%20Foundation.md)
 adds direct selected-reference ownership/dependency resolution, recursively immutable
@@ -522,8 +526,12 @@ solely for old development saves; deterministic new saves still need rigorous te
 
 ## Proposed maintained indexes and invalidation
 
-No index below is implemented. Each has a concrete dependency purpose; all are derived
-and reconstructible unless a later gameplay contract proves otherwise. The atomic
+Stage 2D now maintains the Scheduling-owned inverse relationships described in
+[the implementation record](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md).
+Weekly/date projections remain on demand; Booking/Operations consumer rows below remain
+deferred, and existing Simulation selection is unchanged. The table defines ownership
+and coverage, not blanket completion. All indexes are derived and reconstructible unless
+a later gameplay contract proves otherwise. The atomic
 boundary prepares deltas from both removed/old and inserted/new facts; expose those
 deltas with accepted authority, never after an intervening query/event could use stale data.
 

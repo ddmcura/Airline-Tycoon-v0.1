@@ -1,6 +1,6 @@
 """Dormant 2B/2C commands. Full candidates/gates are transitional.
 
-No inverse indexes, publication or operational consumers.
+Private derived indexes narrow discovery; no publication or operational consumers.
 Only the serialized application owner may prepare/apply against live authority.
 """
 from copy import deepcopy
@@ -88,10 +88,11 @@ def _entry(envelope):
         _fail('INVALID_WORLD', issue.path, issue.message)
 
 
-def _target(state, owner, now):
+def _target(state, owner, now, index=None):
     """Editability query only; no workflow activation or target mutation."""
     quarter = normal_target_quarter(now)
-    committed = {p['quarter_id'] for p in state['weekly_plans'].values()
+    plans = (state['weekly_plans'][pid] for pid in index.ids('owner_plans', owner)) if index is not None else state['weekly_plans'].values()
+    committed = {p['quarter_id'] for p in plans
         if p['airline_id'] == owner
         and p['revisions'][str(p['current_revision'])]['published_at_utc'] is not None}
     while quarter.quarter_id in committed:
@@ -99,7 +100,7 @@ def _target(state, owner, now):
     return quarter.quarter_id
 
 
-def _resolve(envelope, owner, intent):
+def _resolve(envelope, owner, intent, index=None):
     state = envelope['world_state']
     _lookup(state, 'airlines', owner, 'airline')
     pid = intent['weekly_plan_id']; expected = intent['expected_revision']
@@ -109,8 +110,9 @@ def _resolve(envelope, owner, intent):
         if type(expected) is not int or expected != 0:
             _fail('INVALID_REQUEST', 'expected_revision', 'creation requires explicit absence (0)')
         parse_quarter_id(intent['quarter_id'])
-        if any(p['airline_id'] == owner and p['quarter_id'] == intent['quarter_id']
-               for p in state['weekly_plans'].values()):
+        exists = (index.plan_for_quarter(owner, intent['quarter_id']) is not None if index is not None else
+                  any(p['airline_id'] == owner and p['quarter_id'] == intent['quarter_id'] for p in state['weekly_plans'].values()))
+        if exists:
             _fail('STALE_REVISION', 'weekly_plan_id', 'quarter plan now exists; refresh')
         plan = None; quarter = intent['quarter_id']; old = QuarterlyReadResult()
     else:
@@ -129,7 +131,7 @@ def _resolve(envelope, owner, intent):
             selections=(PlanReadRequest(pid, expected),))
         if not old.succeeded:
             raise _ReadFailure(old.issues[0].code, old.issues[0].path, old.issues[0].message)
-    if quarter != _target(state, owner, envelope['simulation']['time_utc']):
+    if quarter != _target(state, owner, envelope['simulation']['time_utc'], index):
         _fail('CLOSED_TARGET', 'quarter_id', 'use the eligible unpublished future quarter')
     if intent['kind'] == 'FARE':
         sid = intent['service_id']; service = _lookup(state, 'services', sid, 'service')
@@ -154,9 +156,9 @@ def _resolve(envelope, owner, intent):
     return plan, old
 
 
-def _sources(envelope, owner, intent):
-    """Exact relevant observations, not a complete-world fingerprint or 2D index."""
-    state = envelope['world_state']; plan, old = _resolve(envelope, owner, intent)
+def _sources(envelope, owner, intent, index=None):
+    """Exact typed observations via owned indexes or authoritative enumeration."""
+    state = envelope['world_state']; plan, old = _resolve(envelope, owner, intent, index)
     refs = set(old.dependencies) | {('airlines', owner)}
     slot = intent.get('slot', intent.get('changes', {}))
     if intent['kind'] == 'CONTINUE':
@@ -183,25 +185,28 @@ def _sources(envelope, owner, intent):
             'quarter_id': plan['quarter_id'], 'current_revision': current,
             'revisions': {str(current): plan['revisions'][str(current)]}}
     # Current memberships/retirements protect numbering and editability. No old revisions scanned.
+    plans = ((pid, state['weekly_plans'][pid]) for pid in index.ids('owner_plans', owner)) if index is not None else state['weekly_plans'].items()
     owner_plans = {pid: {'quarter_id': p['quarter_id'], 'current_revision': p['current_revision'],
         'published_at_utc': p['revisions'][str(p['current_revision'])]['published_at_utc'],
         'services': sorted({s['service_id'] for s in p['revisions'][str(p['current_revision'])]['slots']})}
-        for pid, p in state['weekly_plans'].items() if p['airline_id'] == owner}
+        for pid, p in plans if p['airline_id'] == owner}
     facts = {'time_utc': envelope['simulation']['time_utc'], 'records': records,
         'plans': owner_plans}
     aircraft_ids = {identity for table, identity in refs if table == 'aircraft'}
-    facts['temporal'] = temporal_sources(envelope, aircraft_ids)
+    facts['temporal'] = temporal_sources(envelope, aircraft_ids, index=index)
     if intent['kind'] == 'CONTINUE':
         facts['source_slot'] = source_slot(state, owner, intent)
     if intent['kind'] in {'CREATE', 'REPLACE', 'RETIRE', 'ADD', 'CONTINUE'}:
         facts['numbering'] = state['service_numbering'].get(owner)
-        facts['services'] = {sid: s for sid, s in state['services'].items() if s['airline_id'] == owner}
+        services = ((sid, state['services'][sid]) for sid in index.ids('owner_services', owner)) if index is not None else state['services'].items()
+        facts['services'] = {sid: s for sid, s in services if s['airline_id'] == owner}
     return _freeze(facts)
 
 
-def prepare_quarterly_command(envelope, *, airline_id, request):
+def prepare_quarterly_command(envelope, *, airline_id, request, _indexes=None):
     try:
         _entry(envelope)
+        index = _indexes.get(envelope) if _indexes is not None else None
         if type(request) is CreateQuarterlyService:
             if type(request.slot) is not dict or set(request.slot) != SLOT_FIELDS - {
                     'service_id', 'slot_number', 'planning_timing'}:
@@ -220,7 +225,7 @@ def prepare_quarterly_command(envelope, *, airline_id, request):
             if intent is None:
                 _fail('INVALID_REQUEST', 'request', 'unsupported quarterly planning operation')
         frozen = _freeze(intent)
-        sources = _sources(envelope, airline_id, frozen)
+        sources = _sources(envelope, airline_id, frozen, index)
         return QuarterlyCommandResult(succeeded=True,
             prepared=PreparedQuarterlyCommand(airline_id, frozen, sources))
     except _ReadFailure as exc:
@@ -229,14 +234,15 @@ def prepare_quarterly_command(envelope, *, airline_id, request):
         return rejected('INVALID_REQUEST', 'quarterly_command', str(exc))
 
 
-def apply_quarterly_command(envelope, *, airline_id, prepared):
+def apply_quarterly_command(envelope, *, airline_id, prepared, _indexes=None):
     """Owner-authenticated preparation required. No candidate or writable result escapes."""
     try:
         _entry(envelope)
+        index = _indexes.get(envelope) if _indexes is not None else None
         if type(prepared) is not PreparedQuarterlyCommand or prepared.airline_id != airline_id:
             _fail('OWNERSHIP_MISMATCH', 'prepared', 'command belongs to another owner')
         intent = prepared.intent
-        if _sources(envelope, airline_id, intent) != prepared.sources:
+        if _sources(envelope, airline_id, intent, index) != prepared.sources:
             _fail('STALE_CONTEXT', 'prepared', 'dependency facts or simulation UTC changed; refresh')
         candidate = deepcopy(envelope)
         state = candidate['world_state']; pid = intent['weekly_plan_id']
@@ -257,7 +263,7 @@ def apply_quarterly_command(envelope, *, airline_id, prepared):
                 if slot['service_id'] == sid and slot['slot_number'] == number:
                     slot['fare_offer'] = _plain(intent['fare_offer'])
         else:
-            rows, sid, number = proposed_edit_rows(candidate, airline_id, intent, _plain)
+            rows, sid, number = proposed_edit_rows(candidate, airline_id, intent, _plain, index=index)
         if pid is None:
             pid = create_weekly_plan(candidate, airline_id, intent['quarter_id'], slots=rows); revision = 1
         elif intent['kind'] == 'RETIRE':
@@ -266,6 +272,9 @@ def apply_quarterly_command(envelope, *, airline_id, prepared):
             revision = append_weekly_plan_revision(candidate, pid,
                 expected_revision=intent['expected_revision'], slots=rows)
         _entry(candidate)
+        candidate_index = index.updated(candidate, plan_id=pid, service_id=sid) if index is not None else None
+        if index is not None:
+            index.verify_delta(candidate_index, candidate, plan_id=pid, service_id=sid)
         old_rows = [] if intent['weekly_plan_id'] is None else envelope['world_state']['weekly_plans'][
             intent['weekly_plan_id']]['revisions'][str(intent['expected_revision'])]['slots']
         old_by_key = {(s['service_id'], s['slot_number']): s for s in old_rows}
@@ -276,7 +285,7 @@ def apply_quarterly_command(envelope, *, airline_id, prepared):
                        for s in (old_by_key.get(key), new_by_key.get(key)) if s is not None}
         try:
             certify_quarterly_feasibility(candidate, aircraft_ids,
-                through_utc=parse_quarter_id(state['weekly_plans'][pid]['quarter_id']).end_exclusive_utc)
+                through_utc=parse_quarter_id(state['weekly_plans'][pid]['quarter_id']).end_exclusive_utc, index=candidate_index)
         except ValueError as exc:
             _fail('INFEASIBLE_PLAN', 'weekly_plan.aircraft_chronology', str(exc))
         detached = deepcopy(candidate)
@@ -285,22 +294,29 @@ def apply_quarterly_command(envelope, *, airline_id, prepared):
             selections=(PlanReadRequest(pid, revision),))
         if not read.succeeded:
             _fail('INVALID_RESULT', 'read', 'candidate read failed')
-        old_plan, old_read = _resolve(envelope, airline_id, intent)
+        old_plan, old_read = _resolve(envelope, airline_id, intent, index)
         closure = set()
         if sid is not None:
             closure.add(('services', sid))
         tables = {'plans': 'weekly_plans', 'lineage': 'weekly_plans', 'schedules': 'schedule_definitions',
                   'flights': 'dated_flights', 'operations': 'active_aircraft_operations',
                   'aircraft': 'aircraft', 'airports': 'airports'}
-        for observed in (temporal_sources(envelope, aircraft_ids), temporal_sources(candidate, aircraft_ids)):
+        for observed in (temporal_sources(envelope, aircraft_ids, index=index), temporal_sources(candidate, aircraft_ids, index=candidate_index)):
             closure.update((table, identity) for category, table in tables.items() for identity in observed[category])
         result = QuarterlyCommandResult(True, service_id=sid, slot_number=number,
             weekly_plan_id=pid, revision=revision, read=read,
             dependencies=tuple(sorted(set(old_read.dependencies) | set(read.dependencies) | closure)))
-        if _sources(envelope, airline_id, intent) != prepared.sources:
+        published_index = candidate_index.rebound(detached) if candidate_index is not None else None
+        if _indexes is not None:
+            published_index = _indexes.prepare_publication(published_index, detached)
+        if _sources(envelope, airline_id, intent, index) != prepared.sources:
             _fail('STALE_CONTEXT', 'prepared', 'dependencies changed before commit')
         # Both copies/gates and detached response are ready before exposure. No yields.
         envelope.clear(); envelope.update(detached)
+        if _indexes is not None:
+            # All fallible delta/publication work precedes authority exposure.
+            # The serialized owner publishes one prepared immutable reference.
+            object.__setattr__(_indexes, 'current', published_index)
         return result
     except _ReadFailure as exc:
         return QuarterlyCommandResult(issues=(exc.issue,))

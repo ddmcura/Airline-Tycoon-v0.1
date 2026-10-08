@@ -33,7 +33,7 @@ are subordinate references; follow the authority order in [AGENTS.md](../../AGEN
 
 - [Quarterly Authority and Identity Foundation](Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.
 
-- [Quarterly Dependency Ownership and Command Contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads and Schema 9 prerequisite implemented; restricted 2B implemented; 2C implemented; 2D/2E remain unimplemented.
+- [Quarterly Dependency Ownership and Command Contracts](Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads and Schema 9 prerequisite implemented; restricted 2B implemented; 2C implemented; 2D implemented; 2E remains unimplemented.
 
 - [Quarterly Dependency Read Foundation](Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A read infrastructure implemented; read-only 2A scope; 2B commands recorded separately, no maintained indexes or quarterly activation.
 
@@ -42,3 +42,5 @@ are subordinate references; follow the authority order in [AGENTS.md](../../AGEN
 - [Quarterly Restricted Command Foundation](Quarterly%20Restricted%20Command%20Foundation.md) - Stage 2B implemented: bundled service creation, fare revision, owner-issued freshness and atomic candidate commit; no quarterly activation or complete feasibility.
 
 - [Quarterly Feasibility and Chronology](Quarterly%20Feasibility%20and%20Chronology.md) - Stage 2C implemented: affected aircraft chains, explicit continuation/frequency edits/removal/retirement; Schema 9 and quarterly dormancy preserved.
+
+- [Quarterly Maintained Dependency Indexes and Freshness](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md) - Stage 2D implemented: private Scheduling indexes, atomic deltas and owner freshness; full gates/copies retained, quarterly gameplay dormant.

@@ -20,7 +20,9 @@ quarter publication/Booking/carry-forward/GUI completion. Stage 2 contracts and 
 2A reads are complete; Schema 9 now supersedes lifetime display-number reservation.
 [Restricted dormant 2B commands](Quarterly%20Restricted%20Command%20Foundation.md) are
 implemented. [Dormant 2C feasibility/chronology](Quarterly%20Feasibility%20and%20Chronology.md) is now implemented.
-Next is separately scoped 2D, then 2E and later Stage 3/consumers.
+[Stage 2D maintained dependencies](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md) are implemented.
+Next is separately scoped 2E certification and later Stage 3/consumers; transaction-copy
+optimization remains separate scope under the finalized contract.
 3G-C remains PARKED and separate; do not optimize the outgoing graph first.
 Prior roadmap history below retains dated scope.
 

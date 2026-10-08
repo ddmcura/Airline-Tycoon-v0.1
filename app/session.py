@@ -89,6 +89,9 @@ class Stage1Session:
         # Runtime-only owner-issued preparations die on New/Load/foreign rebind.
         from weakref import WeakValueDictionary
         self._quarterly_preparations = WeakValueDictionary()
+        # Foreign borrowed dictionaries have no exclusive-writer provenance.
+        # They retain authoritative source-scan fallback, including in-place edits.
+        self._quarterly_indexes = None
 
     def _bind_owned_reads(self):
         self._read_views = _OwnedReadViews(self.world, self.progression_revision)
@@ -152,6 +155,9 @@ class Stage1Session:
         self._ensure_runtime()
         self._bind_owned_reads()
 
+        from game.scheduling.quarterly_indexes import QuarterlyIndexOwner
+        self._quarterly_indexes = QuarterlyIndexOwner()
+
     def _clock_ns(self):
         from game.simulation.pacing import active_monotonic_ns
         return (self.runtime_clock or active_monotonic_ns)()
@@ -161,10 +167,12 @@ class Stage1Session:
         self._last_auto_active_ns = self._active_start_ns
         self._last_auto_sim_time = self.world['simulation']['time_utc']
 
-    def _mark_progress(self):
+    def _mark_progress(self, *, preserve_quarterly_indexes=False):
         self.changed = True
         self.unsaved_progress = True
         self.progression_revision += 1
+        if not preserve_quarterly_indexes and self._quarterly_indexes is not None:
+            self._quarterly_indexes.invalidate()
         # Known successful session commands/events already passed their owning
         # gate. Discard the complete old epoch, including all pages and IDs.
         # A foreign binding never acquires trust through this notification alone.
@@ -243,6 +251,8 @@ class Stage1Session:
         self._last_auto_sim_time = candidate['simulation']['time_utc']
         self.changed = True
         self._bind_owned_reads()
+        from game.scheduling.quarterly_indexes import QuarterlyIndexOwner
+        self._quarterly_indexes = QuarterlyIndexOwner()
         return data
 
     def list_careers(self):
@@ -347,8 +357,8 @@ class Stage1Session:
         self.maybe_autosave()
         return result
 
-    def _management_changed(self):
-        self._mark_progress()
+    def _management_changed(self, *, preserve_quarterly_indexes=False):
+        self._mark_progress(preserve_quarterly_indexes=preserve_quarterly_indexes)
         if self.runtime is not None:
             self.runtime.management_changed()
 
@@ -476,7 +486,8 @@ class Stage1Session:
         failure = self._quarterly_command_boundary()
         if failure is not None:
             return failure
-        result = prepare_quarterly_command(self.world, airline_id=self.airline_id, request=request)
+        result = prepare_quarterly_command(self.world, airline_id=self.airline_id, request=request,
+                                          _indexes=self._quarterly_indexes)
         if result.succeeded:
             self._quarterly_preparations[id(result.prepared)] = result.prepared
         return result
@@ -489,10 +500,11 @@ class Stage1Session:
             return failure
         if self._quarterly_preparations.get(id(prepared)) is not prepared:
             return rejected('STALE_CONTEXT', 'prepared', 'refresh after Load/rebind or foreign preparation')
-        result = apply_quarterly_command(self.world, airline_id=self.airline_id, prepared=prepared)
+        result = apply_quarterly_command(self.world, airline_id=self.airline_id, prepared=prepared,
+                                        _indexes=self._quarterly_indexes)
         if result.succeeded:
             self._quarterly_preparations.pop(id(prepared), None)
-            self._management_changed()
+            self._management_changed(preserve_quarterly_indexes=True)
         return result
 
     def delivery_locations(self):

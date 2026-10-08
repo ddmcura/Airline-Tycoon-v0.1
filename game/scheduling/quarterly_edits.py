@@ -143,12 +143,13 @@ def resolve_edit(state, owner, intent):
         fail('INVALID_REFERENCE', 'service_id', 'replacement service is absent from target')
 
 
-def proposed_edit_rows(candidate, owner, intent, thaw):
+def proposed_edit_rows(candidate, owner, intent, thaw, *, index=None):
     state = candidate['world_state']; rows = deepcopy(selected_rows(state, intent)); kind = intent['kind']
     sid = intent.get('service_id'); number = intent.get('slot_number')
     if kind == 'RETIRE':
         now = parse_canonical_utc(candidate['simulation']['time_utc'])
-        for plan in state['weekly_plans'].values():
+        plans = (state['weekly_plans'][pid] for pid in index.ids('service_plans', sid)) if index is not None else state['weekly_plans'].values()
+        for plan in plans:
             if plan['airline_id'] != owner or parse_quarter_id(plan['quarter_id']).end_exclusive_utc <= now:
                 continue
             current = plan['revisions'][str(plan['current_revision'])]

@@ -1,5 +1,9 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 2D adds [private maintained dependency indexes and freshness](../03%20Technical/Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md).
+Schema 9 and quarterly gameplay remain unchanged/dormant; Stage 2E and consumer workflows
+remain pending. This supplies dependency discovery, not publication or a feasibility shortcut.
+
 Stage 2C adds [dormant planning feasibility and explicit continuation/removal](../03%20Technical/Quarterly%20Feasibility%20and%20Chronology.md).
 Schema 9 is unchanged. This does not activate publication, carry-forward, Booking or
 operational consumers; 2D/2E and later workflows remain pending. Earlier milestone

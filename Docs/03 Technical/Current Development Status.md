@@ -2,6 +2,52 @@
 
 Last updated: **2026-10-08**. Current snapshot, not operational authorization.
 
+## Stage 2D - maintained dependencies and owner freshness (2026-10-08)
+
+Baseline **9277d96d126f2c4dcf6351a6f2b1b41ca0e1fabc**, matched local/upstream,
+fetched origin/master and live remote; clean tracked tree/index, only `.venv/` untracked.
+[Implementation and measurements](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md).
+Scheduling owns private immutable derived inverse relationships; the session owns lazy
+coverage established by New Game/validated Load. Quarterly commands stage verified
+old/new edge/number/endpoint deltas before complete Stage 2C feasibility, detached gates,
+final freshness and atomic authority/index publication. Partial delta and publication
+failures leave authority, cursors, revisions, events and the prior index epoch unchanged.
+Typed observations remain exact; unrelated-owner epoch changes alone do not stale commands.
+Legacy management/runtime/Advance notifications invalidate lazily; UTC/root/policy guards
+and New/Load/rebind reset coverage. Foreign borrowed worlds/direct domain calls keep
+validated source-scan fallback. Owned authority still requires notified supported writers;
+root identity/size is not a detector for arbitrary unnotified private row mutation.
+No schema/template, persistence shape, operational consumer, GUI or gameplay change.
+Stage 2C formulas, full chains/quarter wrap, lineage and commitment protection remain.
+Schema 9 allocation/constructor checks, full-plan reads/retention, finite projections,
+related legacy history inspection, four full gates and two whole-world copies remain.
+Immutable index map publication/coverage checking is O(index keys), not constant-time.
+Read-only Git-baseline diagnostics plus same-fixture paired current measurements use
+0/10/100/250 unrelated services: temporal baseline ~19/24/37/67 microseconds; indexed
+~41/37/40/39 microseconds. Build 23/49/289/789 microseconds; verified delta/rebind
+55/63/160/332 microseconds; conservative reachable payload 5,557/18,965/133,979/316,165
+bytes (excludes authoritative roots/RSS). Small fixtures are slower, crossover ~100;
+no meaningful total latency speedup. Prepare/apply remains ~26/110 to 94/344 ms;
+4 full gates/2 world copies dominate. Exact paired samples/conditions are in the record.
+Initial benchmark fixture omitted required purchase journals; switched to real purchase
+APIs before baseline measurements. The initial new-game test reused a missing connection;
+corrected to canonical deadhead facts. No production behavior or validation was weakened.
+Final focused/regression `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_indexes
+ tests.test_quarterly_feasibility tests.test_quarterly_commands tests.test_quarterly_reads
+ tests.test_quarterly_foundation tests.test_service_number_reuse tests.test_planning_reposition
+ tests.test_scheduling_continuity tests.test_scheduling_recurrence tests.test_stage1_aircraft_acquisition
+ tests.test_step7_save_load tests.test_stage1_runtime tests.test_stage1_booking_checkpoint -q`:
+**271 PASS in 133.085s**, including 34 new index cases. Earlier scope: 259 PASS in 114.588s,
+269 PASS in 129.702s. Scoped compilation and whitespace PASS.
+Full `.venv/Scripts/python.exe -B -m unittest discover -s tests -q`: **1303 PASS in
+1229.626s**; source/test SHA-256 witnesses confirmed unchanged during that run.
+Final documentation: 203 local links / 7 heading targets across 8 documents, casing
+and Markdown fences PASS. Complete diff/authority/scope review and `git diff --check` PASS.
+Serena Python symbol server failed initialization; targeted source searches substituted
+without tooling repairs. Archival stash and `.venv/` preserved. Quarterly gameplay dormant;
+Stage 2E certification, Stage 3/consumers and 3G-C remain pending/parked. The finalized
+contract leaves transaction-copy optimization separately scoped; none is implemented here.
+
 ## Stage 2C - dormant quarterly feasibility and chronology (2026-10-08)
 
 Baseline **3c7bddb4e03176022d6256975f393777cf8924b1**, matching local/upstream,

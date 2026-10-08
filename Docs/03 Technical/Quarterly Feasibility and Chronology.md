@@ -1,5 +1,9 @@
 # Quarterly Feasibility and Chronology — Stage 2C
 
+Stage 2D successor (2026-10-08): [maintained inverse indexes and freshness](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md)
+are implemented for dormant Scheduling-owned dependencies. Stage 2C proof/gates remain;
+2E and quarterly activation remain pending. Earlier checkpoint limitations below are historical.
+
 **IMPLEMENTED: DORMANT PLANNING COMMANDS ONLY**, 2026-10-08.
 Starting baseline `3c7bddb4e03176022d6256975f393777cf8924b1` matched local HEAD,
 upstream, fetched origin/master and live remote master. Tracked tree/index were clean;

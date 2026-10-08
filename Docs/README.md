@@ -107,12 +107,14 @@ Existing documentation outside this hierarchy should remain in place until it is
 
 - [Quarterly Authority and Identity Foundation](03%20Technical/Quarterly%20Authority%20and%20Identity%20Foundation.md) — implemented dormant Schema 8 Stage 1; quarterly workflows remain pending.
 
-- [Quarterly Dependency Ownership and Command Contracts](03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads and restricted 2B implemented, 2C implemented; 2D/2E not started; approved reuse/publication rules and schema-first ordering.
+- [Quarterly Dependency Ownership and Command Contracts](03%20Technical/Quarterly%20Dependency%20Ownership%20and%20Command%20Contracts.md) — finalized contracts; Stage 2A reads and restricted 2B implemented, 2C implemented; 2D implemented; 2E not started; approved reuse/publication rules and schema-first ordering.
 
-- [Quarterly Dependency Read Foundation](03%20Technical/Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A implemented, dormant direct ownership/dependency reads, compatible with Schema 9; 2B commands recorded separately; 2D/2E and quarterly gameplay remain unimplemented; 2C recorded separately.
+- [Quarterly Dependency Read Foundation](03%20Technical/Quarterly%20Dependency%20Read%20Foundation.md) — Stage 2A implemented, dormant direct ownership/dependency reads, compatible with Schema 9; 2B commands recorded separately; 2E and quarterly gameplay remain unimplemented; 2D recorded separately; 2C recorded separately.
 
 - [Quarterly Flight Number Reuse Authority](03%20Technical/Quarterly%20Flight%20Number%20Reuse%20Authority.md) - Schema 9 prerequisite implemented; protected reservations, lowest retired suffix and high-water cursor, historical prerequisite checkpoint; 2B commands now recorded separately, no quarterly activation.
 
 - [Quarterly Restricted Command Foundation](03%20Technical/Quarterly%20Restricted%20Command%20Foundation.md) - Stage 2B implemented: bundled service creation, fare revision, owner-issued freshness and atomic candidate commit; no quarterly activation or complete feasibility.
 
 - [Quarterly Feasibility and Chronology](03%20Technical/Quarterly%20Feasibility%20and%20Chronology.md) - Stage 2C implemented: affected aircraft chains, explicit continuation/frequency edits/removal/retirement; Schema 9 and quarterly dormancy preserved.
+
+- [Quarterly Maintained Dependency Indexes and Freshness](03%20Technical/Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md) - Stage 2D implemented: private Scheduling indexes, atomic deltas and owner freshness; full gates/copies retained, quarterly gameplay dormant.
