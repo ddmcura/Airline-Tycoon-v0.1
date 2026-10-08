@@ -1,5 +1,12 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 2E successor (2026-10-09): [transaction certification](Quarterly%20Transaction%20Certification.md)
+adds command-matrix reference comparisons, independent index/number witnesses and
+adversarial boundary coverage. Final focused/regression and full verification pass;
+no production changes were necessary. All four gates and both world
+copies remain. Earlier checkpoint limitations below are historical; quarterly
+activation, Stage 3 and transaction-copy optimization remain separate scope.
+
 Stage 2D successor (2026-10-08): [maintained inverse indexes and freshness](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md)
 are implemented for dormant Scheduling-owned dependencies. Stage 2C proof/gates remain;
 2E and quarterly activation remain pending. Earlier checkpoint limitations below are historical.
@@ -22,7 +29,7 @@ about unchanged Schema 8 or the next schema prerequisite describe this record's 
 checkpoint; the next unimplemented slice is 2B. Quarterly workflows and commands
 remain dormant; 3G-C remains PARKED.
 
-**FINALIZED CONTRACT DESIGN — STAGE 2A/2B/2C/2D IMPLEMENTED; 2E NOT STARTED**
+**FINALIZED CONTRACT DESIGN — STAGE 2A–2D IMPLEMENTED; 2E CERTIFIED**
 
 Stage 2A successor (2026-10-08): [read implementation](Quarterly%20Dependency%20Read%20Foundation.md)
 adds direct selected-reference ownership/dependency resolution, recursively immutable

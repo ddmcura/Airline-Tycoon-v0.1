@@ -1,5 +1,10 @@
 # Quarterly Maintained Dependency Indexes and Freshness — Stage 2D
 
+Stage 2E successor (2026-10-09): [transaction certification](Quarterly%20Transaction%20Certification.md)
+extends independent coverage, rebuild/reference and adversarial atomicity evidence.
+Final regression/full verification passes; this record retains its Stage 2D
+checkpoint scope and historical measurements.
+
 **IMPLEMENTED: DORMANT SCHEDULING DEPENDENCY INFRASTRUCTURE ONLY**, 2026-10-08.
 Baseline `9277d96d126f2c4dcf6351a6f2b1b41ca0e1fabc` matched local HEAD, upstream,
 fetched origin/master and live remote. Tracked tree/index were clean, only `.venv/`

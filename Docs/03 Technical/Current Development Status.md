@@ -1,6 +1,68 @@
 # Current Development Status
 
-Last updated: **2026-10-08**. Current snapshot, not operational authorization.
+Last updated: **2026-10-09**. Current snapshot, not operational authorization.
+
+## Stage 2E - quarterly transaction certification (2026-10-09)
+
+Starting baseline **54880246726c47900457e1d75e6e7e6cb86a4460**, matching local HEAD,
+upstream and live remote master; tracked tree/index clean, only `.venv/` untracked.
+Serena active and Python symbolic navigation working; core and Stage 2 memories
+read as subordinate context. No stash assumed, inspected or manipulated.
+[Certification record](Quarterly%20Transaction%20Certification.md) and
+[new tests](../../tests/test_quarterly_transactions.py) cover all eight exposed
+Stage 2B/2C command types. Preserve the four complete gates and two whole-world
+copies. No production, schema, template, persistence, gameplay or public API change.
+Indexed/source-scan observations, exact command results/serialized worlds and
+independent direct-field edges/endpoints/number/neighbor scans agree. Reference
+transactions share construction/chronology formulas; literal 2C/2D cases remain
+required, rather than claiming independent formula reimplementation.
+Post-gate/allocation/delta/feasibility/result/publication/final-source failures,
+real corrupted copies, caller/staging aliases, wrong owner, competing revision,
+Load/rebind/forged contexts, late UTC, cold rebuild and construction order are covered.
+Rejections retain exact authority, ID/number cursors, revisions, commitments, events
+and accepted index epoch; exact issued-object retry matches uninterrupted control.
+Operational witnesses exclude only dormant roots and their two ID namespaces.
+
+Sandbox temporary save permissions and new oracle/mock assumptions were corrected;
+iteration counts and details are in the certification record. Exact relationships
+remain independently checked; empty relation containers have no edge semantics.
+Late UTC rejects through the existing `INVALID_REQUEST` / `stale dependency index`
+guard before typed comparison, preserving the external change and discarding staging.
+No production defect correction, formula relaxation or validation reduction.
+Corrected `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_transactions -q`:
+**32 PASS in 204.479s**. Final caller-alias control strengthens the independent
+accepted-state comparison. Combined final working-tree verification:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_transactions
+ tests.test_quarterly_indexes tests.test_quarterly_feasibility tests.test_quarterly_commands
+ tests.test_quarterly_reads tests.test_quarterly_foundation tests.test_service_number_reuse
+ tests.test_planning_reposition tests.test_scheduling_continuity tests.test_scheduling_recurrence
+ tests.test_stage1_aircraft_acquisition tests.test_stage1_aircraft_marketplace
+ tests.test_step7_save_load tests.test_stage1_runtime tests.test_stage1_booking_checkpoint
+ tests.test_phase3_economy tests.test_gui_foundation tests.test_management_gui
+ tests.test_operations_gui -q`: **365 PASS in 623.445s**, including all 32 certification
+cases. Scoped `.venv/Scripts/python.exe -m compileall -q app game tests main.py
+ make_snapshot.py settings.py test.py` PASS. Initial documentation: 175 local links /
+8 heading targets across 6 checked documents PASS; `git diff --check` PASS.
+Full `.venv/Scripts/python.exe -B -m unittest discover -s tests -v`:
+**1335 PASS in 2556.780s**, zero failures/errors/skips; all 304 application/test-file
+SHA-256 witnesses unchanged before/after. Verified source/test working tree is based
+on the starting baseline above; later documentation changes do not invalidate it.
+Final documentation: 176 local links / 8 heading targets across 6 checked documents,
+casing and balanced code fences PASS. Final diff/scope/authority review and whitespace
+PASS. The six changed files are one test module, its certification record and four
+existing documentation updates; no production or data file changed.
+
+Documented private unnotified row mutation remains unsupported; root identity/size
+is not deep coverage certification. Supported writers notify invalidation or publish
+verified deltas; borrowed worlds scan sources. Full-history gates/copies, finite
+chronology, retained revisions and immutable-map publication costs remain. No fresh
+performance benchmark or improvement claim. Stage 3 requires separately scoped
+workflow/publication/readiness and coherent consumer migration; availability/config/
+delivery authority remains future work. Quarterly gameplay dormant; 3G-C parked.
+Stage 2E has no remaining implementation/verification work. Next is separately
+approved Stage 3; no publication/consumer work started. `.venv/` remains untracked
+and preserved. Task-specific verification artifacts are excluded from staging and
+removed before commit; no runtime saves or local tooling metadata are committed.
 
 ## Stage 2D - maintained dependencies and owner freshness (2026-10-08)
 
