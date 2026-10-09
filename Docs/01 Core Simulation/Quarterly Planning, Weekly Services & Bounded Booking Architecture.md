@@ -1,5 +1,10 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 3A adds [dormant publication-readiness inspection](../03%20Technical/Quarterly%20Publication%20Readiness.md)
+after completed Stage 2E certification. This supplies detached diagnostics, not
+publication, carry-forward, Booking or operational activation. Prior checkpoint
+limitations below retain their historical scope.
+
 Stage 2D adds [private maintained dependency indexes and freshness](../03%20Technical/Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md).
 Schema 9 and quarterly gameplay remain unchanged/dormant; Stage 2E and consumer workflows
 remain pending. This supplies dependency discovery, not publication or a feasibility shortcut.

@@ -1,5 +1,10 @@
 # Quarterly Feasibility and Chronology — Stage 2C
 
+Stage 3A successor: [readiness inspection](Quarterly%20Publication%20Readiness.md)
+reuses the proof with an optional literal-gap diagnostic collector. Known legacy
+dated occurrence keys are excluded from virtual additions to correct duplicate
+self-overlap; actual committed facts and all timing/validation rules remain.
+
 Stage 2D successor (2026-10-08): [maintained inverse indexes and freshness](Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md)
 are implemented for dormant Scheduling-owned dependencies. Stage 2C proof/gates remain;
 2E and quarterly activation remain pending. Earlier checkpoint limitations below are historical.

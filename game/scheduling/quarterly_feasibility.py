@@ -105,7 +105,8 @@ def _departures(state, now, plan, slot):
         day += timedelta(days=1)
 
 
-def certify_quarterly_feasibility(envelope, aircraft_ids, *, through_utc=None, index=None):
+def certify_quarterly_feasibility(envelope, aircraft_ids, *, through_utc=None, index=None,
+                                  _execution_blockers=None):
     """Check every relevant current-quarter version and legacy reservation.
 
     Full finite quarter projection covers weekly wrap, overnight, timezone/DST
@@ -163,7 +164,11 @@ def certify_quarterly_feasibility(envelope, aircraft_ids, *, through_utc=None, i
             desired, conflicts = _expand_schedule(envelope, schedule, now, limit, known_occurrences=known)
             if conflicts:
                 raise ValueError(conflicts[0].message)
-            flights.extend(f for f in desired.values() if f['planned_aircraft_id'] == aid)
+            # Expansion also returns already materialized keys. Their retained
+            # dated facts above own the obligation; do not count the same leg
+            # twice or replace its committed facts with a virtual revision.
+            flights.extend(f for f in desired.values() if f['planned_aircraft_id'] == aid
+                           and f['occurrence_key'] not in known)
         for flight in flights:
             start, end = flight_reservation(state, flight)
             departure = parse_canonical_utc(flight['scheduled_off_block_utc'])
@@ -182,4 +187,8 @@ def certify_quarterly_feasibility(envelope, aircraft_ids, *, through_utc=None, i
             failure = proof.conflict(previous, row)
             if failure is not None:
                 raise failure
+            if _execution_blockers is not None:
+                location = previous[5] if previous else aircraft['current_airport_id']
+                if location != row[4]:
+                    _execution_blockers.append((aid, location, row[4], row[2]))
             previous = row

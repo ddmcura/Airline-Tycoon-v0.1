@@ -1,6 +1,64 @@
 # Current Development Status
 
-Last updated: **2026-10-09**. Current snapshot, not operational authorization.
+Last updated: **2026-10-10**. Current snapshot, not operational authorization.
+
+## Stage 3A - publication-readiness inspection (2026-10-10 working tree)
+
+Starting baseline **7f9336c85ae7a256be2e06618d829264bab907c1**, matching local HEAD,
+upstream/origin master and live remote; tracked tree/index clean, only `.venv/` untracked.
+Serena context/navigation reused; repository authority supersedes its older Stage 2
+memory. [Implementation/API record](Quarterly%20Publication%20Readiness.md).
+Scheduling owns immutable readiness request/results; the existing session exposes
+`quarterly_publication_readiness` at a paused completed boundary. Publication calendar/
+lifecycle eligibility, Stage 2C planning feasibility and literal execution readiness
+are separate. Missing plans/ended quarters have no feasibility assertion; no state
+is manufactured. Eligible targets skip committed quarters; baseline is the latest
+preceding published current version. Month-three initial targeting, exact UTC/calendar
+dates, early commitment and future operating intervals remain distinct.
+
+Readiness observes aircraft/airport/service/connection, relevant temporal/legacy
+lineage and confirmed contract chains; source validation and final source comparison
+surround inspection. Unresolved hypothetical travel blocks execution. Explicit timed
+DEADHEAD is recognized without movement; lessor-owned arrivals must fit the existing
+confirmed contract horizon/renewals. New/Load/rebind revoke optional prior-result
+provenance. Results are recursively detached and cannot enter command apply.
+No allocation/revision/publication, supply/inventory/event, finance/history, accepted
+index epoch or authoritative world change. Schema 9/template and four command gates/
+two command copies remain unchanged. Legacy operation and quarterly dormancy remain.
+
+An explicit legacy positioning test exposed duplicate actual/virtual chronology:
+the expander returns known occurrence keys too. Exclude already materialized keys
+from virtual additions, retaining actual committed facts and exact timing equations.
+Initial 29 tests in 18.970s: one fixture error (duplicate keyword), one real false-
+overlap failure; corrected. Corrected standalone readiness: **29 PASS in 19.852s**.
+Affected readiness/2C/2D: **102 PASS in 92.961s**. An interim 301-test regression
+scope passed in 309.571s before the final lease-horizon cases were added. A 33-test
+iteration had one test placement error in 22.812s, corrected before the final run.
+Final combined `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_readiness
+ tests.test_quarterly_indexes tests.test_quarterly_feasibility tests.test_quarterly_commands
+ tests.test_quarterly_reads tests.test_quarterly_transactions tests.test_quarterly_foundation
+ tests.test_service_number_reuse tests.test_planning_reposition tests.test_scheduling_continuity
+ tests.test_scheduling_recurrence tests.test_stage1_runtime tests.test_step7_save_load
+ tests.test_stage1_aircraft_marketplace -q`: **313 PASS in 324.172s**, including all
+33 final readiness cases and Stage 2A–2E, legacy, persistence and marketplace coverage.
+Scoped `.venv/Scripts/python.exe -m compileall -q app game tests main.py
+ make_snapshot.py settings.py test.py` and `git diff --check` PASS. Documentation:
+170 local links / 5 heading targets across 6 documents, lexical tracked casing and
+balanced code fences PASS. Final `.venv/Scripts/python.exe -B -m unittest discover
+ -s tests -v`: **1,368 PASS in 1,736.634s** (baseline 1,335 + 33 readiness cases).
+All 306 source/test SHA-256 witnesses match before/after full discovery. Final scope
+review PASS: four source/test and six documentation files, no schema/template or
+later-stage activation changes. Verification artifacts are temporary and excluded.
+This implementation snapshot precedes its authorized commit/push; Git history and
+the completion report establish the resulting revision and remote outcome.
+
+Known costs include two full diagnostic source gates, current owner-plan observations,
+complete finite chronology, related legacy/contract reads and cold index reconstruction;
+no new performance measurement or improvement claim. Stage 3B–3G publication/lineage,
+queue/save/recovery, carry-forward/Manual Publish, Booking policy/migration, GUI and
+activation remain deferred. Configuration history, delayed delivery, automatic
+positioning, transaction-copy optimization and 3G-C are not implemented. `.venv/`
+is preserved; no stash or protected tooling metadata work is included.
 
 ## Stage 2E - quarterly transaction certification (2026-10-09)
 

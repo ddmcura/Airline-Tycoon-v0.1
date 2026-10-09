@@ -120,3 +120,5 @@ Existing documentation outside this hierarchy should remain in place until it is
 - [Quarterly Maintained Dependency Indexes and Freshness](03%20Technical/Quarterly%20Maintained%20Dependency%20Indexes%20and%20Freshness.md) - Stage 2D implemented: private Scheduling indexes, atomic deltas and owner freshness; full gates/copies retained, quarterly gameplay dormant.
 
 - [Quarterly Transaction Certification](03%20Technical/Quarterly%20Transaction%20Certification.md) - Stage 2E certified: adversarial command and independent reference coverage; all gates/copies retained, quarterly gameplay dormant.
+
+- [Quarterly Publication Readiness](03%20Technical/Quarterly%20Publication%20Readiness.md) - Stage 3A diagnostic query: separate publication eligibility, planning feasibility and literal execution readiness; no publication, supply, events or gameplay activation.

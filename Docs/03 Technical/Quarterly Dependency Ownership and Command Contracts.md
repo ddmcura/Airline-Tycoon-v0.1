@@ -1,5 +1,10 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 3A successor (2026-10-10): [publication-readiness inspection](Quarterly%20Publication%20Readiness.md)
+adds a non-mutating session/Scheduling diagnostic. Calendar/lifecycle eligibility,
+planning feasibility and literal execution readiness are distinct. No publication,
+carry-forward commitment, operational supply or consumer migration is activated.
+
 Stage 2E successor (2026-10-09): [transaction certification](Quarterly%20Transaction%20Certification.md)
 adds command-matrix reference comparisons, independent index/number witnesses and
 adversarial boundary coverage. Final focused/regression and full verification pass;

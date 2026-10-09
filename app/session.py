@@ -89,6 +89,7 @@ class Stage1Session:
         # Runtime-only owner-issued preparations die on New/Load/foreign rebind.
         from weakref import WeakValueDictionary
         self._quarterly_preparations = WeakValueDictionary()
+        self._quarterly_readiness = WeakValueDictionary()
         # Foreign borrowed dictionaries have no exclusive-writer provenance.
         # They retain authoritative source-scan fallback, including in-place edits.
         self._quarterly_indexes = None
@@ -466,6 +467,33 @@ class Stage1Session:
         request = PlanReadRequest(weekly_plan_id, expected_revision, revision, slot_keys)
         return resolve_quarterly_reads(self.world, airline_id=self.airline_id,
                                       selections=(request, *compare_with))
+
+    def quarterly_publication_readiness(self, weekly_plan_id=None, *, expected_revision=None,
+                                       expected_time_utc=None, previous=None):
+        """Paused boundary diagnostic; issued results have no publication capability."""
+        from game.scheduling.quarterly_readiness import (
+            PublicationReadinessRequest, PublicationReadinessResult,
+            inspect_quarterly_publication_readiness,
+        )
+        from game.scheduling.quarterly_reads import ReadIssue
+        failure = self._quarterly_command_boundary()
+        if failure is not None:
+            return PublicationReadinessResult(issues=failure.issues)
+        if previous is not None and self._quarterly_readiness.get(id(previous)) is not previous:
+            return PublicationReadinessResult(issues=(ReadIssue(
+                'STALE_CONTEXT', 'previous', 'inspect again after Load/rebind or foreign result'),))
+        if previous is not None and (
+                (weekly_plan_id is not None and previous.weekly_plan_id != weekly_plan_id)
+                or (expected_revision is not None and (previous.revision or 0) != expected_revision)):
+            return PublicationReadinessResult(issues=(ReadIssue(
+                'INVALID_REQUEST', 'previous', 'previous result must describe the same selection'),))
+        request = PublicationReadinessRequest(weekly_plan_id, expected_revision, expected_time_utc,
+                                              None if previous is None else previous.sources)
+        result = inspect_quarterly_publication_readiness(self.world, airline_id=self.airline_id,
+                                                       request=request, _indexes=self._quarterly_indexes)
+        if result.succeeded:
+            self._quarterly_readiness[id(result)] = result
+        return result
 
     def _quarterly_command_boundary(self):
         from game.scheduling.quarterly_commands import rejected
