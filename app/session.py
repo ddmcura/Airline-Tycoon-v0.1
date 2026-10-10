@@ -495,6 +495,15 @@ class Stage1Session:
             self._quarterly_readiness[id(result)] = result
         return result
 
+    def quarterly_occurrences(self, requests, *, require_published=True, expected_time_utc=None):
+        """Resolve explicit lineage at a paused completed boundary; no supply writes."""
+        from game.scheduling.quarterly_occurrences import OccurrenceReadResult, resolve_quarterly_occurrences
+        failure = self._quarterly_command_boundary()
+        if failure is not None:
+            return OccurrenceReadResult(issues=failure.issues)
+        return resolve_quarterly_occurrences(self.world, airline_id=self.airline_id,
+            requests=requests, require_published=require_published, expected_time_utc=expected_time_utc)
+
     def _quarterly_command_boundary(self):
         from game.scheduling.quarterly_commands import rejected
         if not self.active:

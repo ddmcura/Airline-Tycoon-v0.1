@@ -1,5 +1,10 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 3B successor: [operational lineage](Quarterly%20Operational%20Lineage.md)
+finalizes bounded derived plan/revision/service/slot/date reference resolution from
+existing Schema 9 facts. It adds no operational occurrence table or consumer writes;
+the materialization/cutover recommendations below remain future scope.
+
 Stage 3A successor (2026-10-10): [publication-readiness inspection](Quarterly%20Publication%20Readiness.md)
 adds a non-mutating session/Scheduling diagnostic. Calendar/lifecycle eligibility,
 planning feasibility and literal execution readiness are distinct. No publication,

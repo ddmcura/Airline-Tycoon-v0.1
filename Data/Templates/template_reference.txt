@@ -18,6 +18,9 @@ weekly_plan.revision.slots: [{service_id, slot_number, weekdays, departure_local
 # Holder/eligible-pool lookups are reconstructible, not persisted. One plan per airline/quarter YYYY-Qn.
 # Only publication timestamp persisted; lifecycle/target are derived from UTC.
 # Future occurrence key: service_id@origin-local-date#positive-slot-number, no saved rows yet.
+# Stage 3B resolves bounded explicit plan/revision/service/slot/date references.
+# Descriptors are detached runtime-only; no saved fields, operational supply or schema change.
+# Canonical lineage contract: Docs/03 Technical/Quarterly Operational Lineage.md.
 # New Game initializes empty roots; Load accepts9 only, no development-save conversion.
 # Existing notes below preserve their historical schema scopes.
 

@@ -1,5 +1,9 @@
 # Quarterly Publication Readiness — Stage 3A
 
+Stage 3B successor: [bounded lineage resolution](Quarterly%20Operational%20Lineage.md)
+provides derived dated references without publication, materialization or consumer
+activation. The three readiness classifications and this record's evidence remain.
+
 **IMPLEMENTED: DORMANT DIAGNOSTIC ONLY**, 2026-10-10. Verification is recorded
 in [Current Development Status](Current%20Development%20Status.md).
 Starting baseline: `7f9336c85ae7a256be2e06618d829264bab907c1`.

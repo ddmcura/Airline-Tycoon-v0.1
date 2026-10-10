@@ -1,5 +1,10 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 3B adds [operational lineage contracts and bounded derived reference resolution](../03%20Technical/Quarterly%20Operational%20Lineage.md).
+Existing Schema 9 facts remain authoritative; no dated operational supply, inventory,
+events, publication or consumer activation is introduced. Later materialization and
+persistent consumer fields remain schema-first prerequisites to their writers.
+
 Stage 3A adds [dormant publication-readiness inspection](../03%20Technical/Quarterly%20Publication%20Readiness.md)
 after completed Stage 2E certification. This supplies detached diagnostics, not
 publication, carry-forward, Booking or operational activation. Prior checkpoint

@@ -2,6 +2,72 @@
 
 Last updated: **2026-10-10**. Current snapshot, not operational authorization.
 
+## Stage 3B - operational lineage foundation (2026-10-10 working tree)
+
+Starting baseline **5d33a62c20c81a165297fef53d3b46470f90e982** matched HEAD,
+upstream/origin master and live remote master. Tracked tree/index clean, only
+`.venv/` untracked. Serena activated; core/Stage 2 memories and symbolic navigation
+used, with current contracts superseding stale memory checkpoints.
+[Finalized lineage contract](Quarterly%20Operational%20Lineage.md) was written before
+implementation. Existing Schema 9 service/date/slot identity and fixed plan/revision
+lineage suffice: no new persisted field, schema version, serializer or migration.
+Schema/template clarify only detached runtime-only resolution. AT-050 indexes this
+bounded contract; persistent operational/Booking/event storage remains later scope.
+
+Scheduling owns `QuarterlyOccurrenceReference`, `OccurrenceReadRequest`, immutable
+descriptors/results and `resolve_quarterly_occurrences`. The existing session exposes
+`quarterly_occurrences` at its paused completed boundary. At most 128 explicit date
+references; no whole-quarter enumeration or occurrence registry. Default requires
+published lineage; explicit draft inspection is diagnostic. Expected current pointer,
+optional UTC/publication observations, owner/FKs, date/weekday/timezone/fold and UTC
+quarter applicability are checked. Two full source gates and final detached source
+comparison surround reads; no transaction gate/copy is changed.
+
+Keys exclude number/time/aircraft/version; duplicate identities across requested
+lineage reject atomically. Fixed assignments/maximum planning intervals retain the
+selected revision, including cross-quarter arrival obligations; they create no
+actual operation. Continuation/retirement/reuse, explicit DEADHEAD and legacy
+coexistence retain existing authority. No cursor/revision/commitment, supply/Booking,
+event/finance/history/GUI, accepted index epoch or authoritative world mutation.
+Save/Load validates existing separate candidates and reconstructs the same descriptors
+on fresh query. Results carry no command/publication/execution capability.
+
+Final focused `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_occurrences
+ -q`: **28 PASS in 8.461s**. Valid late-source mutation freshness also passed its
+targeted case in 1.326s before source freeze. Initial fixtures used incorrect API/
+fare/boundary calls; corrected. A SaveStore return-shape error, test placement error
+and retained pre-publication world pointer were also corrected. No production
+contract defect or formula relaxation was needed.
+Combined `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_occurrences
+ tests.test_quarterly_readiness tests.test_quarterly_indexes tests.test_quarterly_feasibility
+ tests.test_quarterly_commands tests.test_quarterly_reads tests.test_quarterly_transactions
+ tests.test_quarterly_foundation tests.test_service_number_reuse tests.test_planning_reposition
+ tests.test_scheduling_continuity tests.test_scheduling_recurrence tests.test_stage1_runtime
+ tests.test_step7_save_load tests.test_stage1_aircraft_marketplace -q`:
+**341 PASS in 490.478s**. That process began before the final two fixture refinements;
+the final 28-case run and targeted valid-stale case above verify those refinements,
+and full discovery uses the frozen final source. Final `.venv/Scripts/python.exe -B
+ -m unittest discover -s tests -v`: **1,396 PASS in 1,906.995s** (baseline 1,368 + 28).
+Scoped `.venv/Scripts/python.exe -m compileall -q app game tests main.py
+ make_snapshot.py settings.py test.py` and `git diff --check` PASS.
+All 308 before/after SHA-256 source/test witnesses match; no source edits after
+full-discovery start. Documentation validation: **356 local links / 61 heading targets
+across 8 documents PASS**, tracked casing and balanced fences. Bounded 1/32/128-reference
+probe returned exactly 1/32/128 descriptors, respectively; traced peak allocations
+971093/1005477/1073869 bytes, whole-query times 1.551292/1.284061/1.511189s. Single
+small-fixture samples under tracemalloc and concurrent regressions, not scalability
+certification or an optimization claim. Final scope review PASS: three source/test
+files and nine documentation/template files; no persisted shape, serializer, runtime
+event, Booking/Finance/GUI, command-copy or later-stage activation change.
+This implementation snapshot precedes its authorized commit/push; Git history and
+the completion report establish the resulting revision and remote outcome.
+
+Quarterly gameplay remains dormant. Remaining Stage 3C–3G prerequisites are shared
+publication/carry-forward/manual workflow, persisted operational/event/failure
+contracts, Booking desired-date/lead policy and consumer migration, GUI and coherent
+activation. No automatic positioning, delayed delivery, configuration history,
+transaction-copy optimization or 3G-C. `.venv/` and protected tooling preserved.
+
 ## Stage 3A - publication-readiness inspection (2026-10-10 working tree)
 
 Starting baseline **7f9336c85ae7a256be2e06618d829264bab907c1**, matching local HEAD,

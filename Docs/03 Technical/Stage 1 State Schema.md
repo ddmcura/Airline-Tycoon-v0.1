@@ -40,6 +40,12 @@ Low-level constructors remain caller-owned candidate primitives, not Stage 2B
 commands. Allocation rejects malformed relevant authority before consuming IDs
 or cursors. Reconstructive lookups are temporary; maintained indexes remain 2D.
 
+Stage 3B [lineage contract](Quarterly%20Operational%20Lineage.md) resolves bounded
+explicit dated references from existing retained authority. Descriptors and their
+plan/revision/service/slot/date references are derived runtime-only query values,
+not new saved fields or operational supply. Commitment remains the exact selected
+revision's publication timestamp; no schema/version or serialization change.
+
 ## Quarterly migration Stage 1 authority foundation (schema 8)
 
 The following records the original Stage 1 contract. Schema 9 above supersedes
