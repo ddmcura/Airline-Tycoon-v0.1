@@ -1,5 +1,11 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 3C implements [shared dormant publication transactions](../03%20Technical/Quarterly%20Shared%20Publication.md):
+manual/automatic invocation, latest-baseline carry-forward, commitment skipping and
+atomic rejection/retry. This commits Schema 9 strategy only; runtime publication,
+dated supply, Booking and operational consumers remain unactivated. Prior checkpoint
+statements below retain their historical scope.
+
 Stage 3B adds [operational lineage contracts and bounded derived reference resolution](../03%20Technical/Quarterly%20Operational%20Lineage.md).
 Existing Schema 9 facts remain authoritative; no dated operational supply, inventory,
 events, publication or consumer activation is introduced. Later materialization and

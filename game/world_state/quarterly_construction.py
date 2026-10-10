@@ -1,6 +1,6 @@
 """Schema-9 low-level constructors for caller-owned isolated candidates.
 
-No GUI workflow, publication, recurrence expansion or legacy save conversion.
+No GUI workflow, operational publication, recurrence expansion or legacy save conversion.
 """
 from copy import deepcopy
 import re
@@ -102,3 +102,21 @@ def append_weekly_plan_revision(candidate, weekly_plan_id, *, expected_revision,
     plan['revisions'][str(number)] = {'revision': number, 'published_at_utc': None, 'slots': rows}
     plan['current_revision'] = number
     return number
+
+
+def commit_weekly_plan_publication(candidate, weekly_plan_id, *, expected_revision):
+    """Candidate-only timestamp construction; domain eligibility belongs to Scheduling."""
+    from .timestamps import parse_canonical_utc
+    world = _world(candidate); plan = world['weekly_plans'][weekly_plan_id]
+    if type(expected_revision) is not int or expected_revision != plan['current_revision']:
+        raise ValueError('stale weekly plan revision')
+    row = plan['revisions'][str(expected_revision)]
+    if row['published_at_utc'] is not None:
+        raise ValueError('published plan cannot recommit')
+    stamp = candidate['simulation']['time_utc']
+    if parse_canonical_utc(stamp) > parse_quarter_id(plan['quarter_id']).start_utc:
+        raise ValueError('publication cannot follow operating start')
+    validate_slots(world, plan['airline_id'], row['slots'], new=True)
+    validate_service_endpoints(world, row['slots'])
+    row['published_at_utc'] = stamp
+    return expected_revision

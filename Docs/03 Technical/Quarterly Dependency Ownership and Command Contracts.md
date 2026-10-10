@@ -1,5 +1,10 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 3C successor: [shared publication workflow](Quarterly%20Shared%20Publication.md)
+uses the existing four-gate/two-copy command path for dormant strategic commitments,
+with staged index publication and fresh execution proof. Automatic runtime events,
+Booking/operational cutover and failure-fence orchestration remain deferred.
+
 Stage 3B successor: [operational lineage](Quarterly%20Operational%20Lineage.md)
 finalizes bounded derived plan/revision/service/slot/date reference resolution from
 existing Schema 9 facts. It adds no operational occurrence table or consumer writes;

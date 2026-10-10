@@ -1,5 +1,11 @@
 # Quarterly Publication Readiness — Stage 3A
 
+Stage 3C successor: [shared publication](Quarterly%20Shared%20Publication.md) reuses
+calendar/source observations, literal positioning and confirmed contract-horizon
+rules, re-proving against its isolated candidate. No issued readiness result grants
+publication capability. Empty strategic commitment is now specified there; runtime
+event policy and operational activation remain deferred.
+
 Stage 3B successor: [bounded lineage resolution](Quarterly%20Operational%20Lineage.md)
 provides derived dated references without publication, materialization or consumer
 activation. The three readiness classifications and this record's evidence remain.

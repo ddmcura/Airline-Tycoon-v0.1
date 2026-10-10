@@ -46,6 +46,16 @@ plan/revision/service/slot/date references are derived runtime-only query values
 not new saved fields or operational supply. Commitment remains the exact selected
 revision's publication timestamp; no schema/version or serialization change.
 
+Stage 3C [shared publication](Quarterly%20Shared%20Publication.md) may set that
+existing timestamp through the validated dormant transaction. Missing targets with
+a published baseline create one normal full-slot revision; existing explicit
+revisions (including removals/empty plans) prevail, and retired services are not
+inherited. No extra persisted fields, version, supply table or operational consumer.
+The first create/continue edit of a missing eligible future plan seeds that same
+published baseline before its explicit change; all later revisions are complete
+snapshots. This prevents omission during first-edit initialization from masquerading
+as explicit removal. Source freshness and complete candidate validation are retained.
+
 ## Quarterly migration Stage 1 authority foundation (schema 8)
 
 The following records the original Stage 1 contract. Schema 9 above supersedes

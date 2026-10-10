@@ -124,3 +124,5 @@ Existing documentation outside this hierarchy should remain in place until it is
 - [Quarterly Publication Readiness](03%20Technical/Quarterly%20Publication%20Readiness.md) - Stage 3A diagnostic query: separate publication eligibility, planning feasibility and literal execution readiness; no publication, supply, events or gameplay activation.
 
 - [Quarterly Operational Lineage](03%20Technical/Quarterly%20Operational%20Lineage.md) - Stage 3B contract and dormant bounded occurrence-reference resolution; existing Schema 9 authority, no materialized supply or consumer cutover.
+
+- [Shared Quarterly Publication](03%20Technical/Quarterly%20Shared%20Publication.md) - Stage 3C dormant manual/automatic/carry-forward transaction and atomic retry; no runtime publication events or operational consumer activation.

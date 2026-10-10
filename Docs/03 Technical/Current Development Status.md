@@ -2,6 +2,83 @@
 
 Last updated: **2026-10-10**. Current snapshot, not operational authorization.
 
+## Stage 3C - shared quarterly publication (2026-10-10 working tree)
+
+Starting baseline **13a01deeaa978a003e9103ec4a5554538fc49b7e** matched HEAD,
+upstream, fetched origin/master and live remote; tracked tree/index clean with
+only `.venv/` untracked. Serena context and symbolic navigation reused.
+[Shared publication contract](Quarterly%20Shared%20Publication.md) documented before
+implementation; canonical Schema 9/template clarified before timestamp construction.
+No persistent field/version/serializer/migration change.
+
+`PublishQuarterlyPlan` manual/automatic modes share Scheduling's existing issued
+prepare/apply boundary. Exact UTC month-three automatic target; eligible future
+manual target/derived advancement. Existing committed automatic targets skip with
+no mutation/index/unsaved change. Current selected revisions preserve edits/removals,
+including empty intent; absent targets inherit the latest preceding published
+snapshot excluding retired services. One required Schema 9 full-slot revision is
+constructed; services/slots/numbers remain stable and histories unchanged.
+
+Actual publication retains prepare/live/candidate/detached full gates and both world
+copies, plus verified Stage 2D delta/rebind and final exact source comparison. All
+selected aircraft are checked even when slots are unchanged. Stage 2C chronology
+and 3A literal positioning/confirmed lease horizon rules reject nonexecutable intent.
+No prior readiness certificate, automatic movement, dated supply/inventory/event,
+finance/history/GUI, legacy scheduling or simulation UTC change. Results are detached;
+`skipped` and `planning_quarter_id` are unsaved command response values. New/Load/rebind
+issuance rules and retries retain existing owner safeguards. AT-051 indexes the scope.
+
+Self-review found that first create/continue edits of missing targets needed to seed
+the same published baseline; otherwise unchanged services would be omitted before
+publication. Those commands now construct one full snapshot with explicit edits and
+observe baseline dependencies. No inherited/removed flags or new persistence are
+needed; later complete revisions retain explicit removals. The initial combined/full
+runs were intentionally stopped before source correction and are not passing final
+verification. Final first-edit/publication coverage: **41 PASS in 85.654s**.
+Final combined regressions and full discovery restarted against frozen corrected
+source. Scoped application compilation passes on that source. Corrected command/
+feasibility/index regressions: **104 PASS in 90.068s**. Final-source performance:
+existing/carry candidate size 321145..381463 bytes, prepare+apply 0.354378..0.472331s,
+four full gates 0.188046..0.282027s, two world copies 0.028180..0.038797s on selected
+two-slot / total 1,11,26 aircraft fixtures. Cold existing/warm carry index, concurrent
+tests and instrumentation; no scalability or runtime-capacity claim.
+
+Final combined `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_publication
+ tests.test_quarterly_occurrences tests.test_quarterly_readiness tests.test_quarterly_indexes
+ tests.test_quarterly_feasibility tests.test_quarterly_commands tests.test_quarterly_reads
+ tests.test_quarterly_transactions tests.test_quarterly_foundation tests.test_service_number_reuse
+ tests.test_planning_reposition tests.test_scheduling_continuity tests.test_scheduling_recurrence
+ tests.test_stage1_booking_checkpoint tests.test_stage1_runtime tests.test_step7_save_load
+ tests.test_stage1_aircraft_marketplace -q`: **396 PASS in 673.335s** on frozen corrected
+source. Final `.venv/Scripts/python.exe -B -m unittest discover -s tests -v`:
+**1,437 PASS in 2,156.201s** (baseline 1,396 + 41). All 310 source/test SHA-256
+witnesses match before/after discovery. Scoped `.venv/Scripts/python.exe -m compileall
+ -q app game tests main.py make_snapshot.py settings.py test.py` PASS.
+
+Initial 27-case run: 52.198s, three frozen-fact comparison failures and two fixture
+errors (session dirty-state name and date-specific lease offer); corrected.
+Corrected **27 PASS in 51.362s**. Expanded 35-case iteration: 71.320s, one stale-loaded
+test mutation expectation error and one cold-boundary active-plan preparation-time
+failure; corrected without weakening chronology. Final `.venv/Scripts/python.exe -B
+ -m unittest tests.test_quarterly_publication -q`: **35 PASS in 85.083s**. Earlier
+command/occurrence regressions: **59 PASS in 15.413s**. Subsequent corrected-source
+verification is recorded above. Scoped application compilation and `git diff --check`
+PASS. Final full discovery uses frozen source with before/after SHA-256 witnesses.
+Documentation validation: **375 local links / 63 heading targets / 9 documents PASS**,
+tracked casing and balanced code fences; whitespace PASS. Performance is recorded
+above and in the shared workflow record. Final scope review PASS: five source/test
+files and ten documentation/template files; no operational supply/consumer, event,
+economic policy, persistent shape/version or transaction-copy optimization changes.
+Verification artifacts are temporary and excluded. This implementation snapshot
+precedes its authorized commit/push; Git history and the completion report establish
+the resulting revision and remote outcome.
+
+Quarterly operational gameplay remains dormant. Stage 3D owns runtime boundary events,
+Booking ordering, visible pause/correction/failure persistence/fences/recovery; Booking
+policy/migration, operational Departure/Completion/Finance/save integration, GUI and
+activation remain 3E–3G prerequisites. No new delivery/configuration-history mechanics,
+automatic positioning, transaction-copy optimization or 3G-C. `.venv/` preserved.
+
 ## Stage 3B - operational lineage foundation (2026-10-10 working tree)
 
 Starting baseline **5d33a62c20c81a165297fef53d3b46470f90e982** matched HEAD,

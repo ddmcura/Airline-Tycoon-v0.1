@@ -541,7 +541,8 @@ class Stage1Session:
                                         _indexes=self._quarterly_indexes)
         if result.succeeded:
             self._quarterly_preparations.pop(id(prepared), None)
-            self._management_changed(preserve_quarterly_indexes=True)
+            if not result.skipped:
+                self._management_changed(preserve_quarterly_indexes=True)
         return result
 
     def delivery_locations(self):

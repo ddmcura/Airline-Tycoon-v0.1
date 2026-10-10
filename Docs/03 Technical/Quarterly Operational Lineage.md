@@ -1,5 +1,10 @@
 # Quarterly Operational Lineage and Occurrence Contracts — Stage 3B
 
+Stage 3C successor: [shared publication](Quarterly%20Shared%20Publication.md) fixes
+the existing revision timestamp or creates one ordinary carry-forward snapshot,
+preserving service/slot/date and published-version lineage. Descriptors remain
+derived; no dated operational row or consumer migration is added.
+
 **IMPLEMENTED: FINALIZED CONTRACT AND DORMANT FOUNDATION**, 2026-10-10.
 Starting baseline: `5d33a62c20c81a165297fef53d3b46470f90e982`.
 Implementation and verification evidence belongs in
