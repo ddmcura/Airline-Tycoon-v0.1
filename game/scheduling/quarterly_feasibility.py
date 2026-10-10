@@ -153,6 +153,8 @@ def certify_quarterly_feasibility(envelope, aircraft_ids, *, through_utc=None, i
         # and virtual active definitions through the entire proof, not just 90 days.
         flight_ids = index.ids('aircraft_flights', aid) if index is not None else state['dated_flights']
         flights = [state['dated_flights'][fid] for fid in flight_ids if state['dated_flights'][fid]['planned_aircraft_id'] == aid
+                   and ('quarterly_lineage' not in state['dated_flights'][fid]
+                        or state['dated_flights'][fid]['status'] in {'OPERATIONALLY_LOCKED', 'COMPLETED'})
                    and state['dated_flights'][fid]['status'] not in {'SUPERSEDED', 'CANCELLED'}]
         known = {f['occurrence_key'] for f in flights}
         schedule_ids = index.ids('aircraft_schedules', aid) if index is not None else sorted(state['schedule_definitions'])
@@ -178,6 +180,15 @@ def certify_quarterly_feasibility(envelope, aircraft_ids, *, through_utc=None, i
         draft = SimpleNamespace(_base=envelope, aircraft_id=aid,
             _snapshot=lambda origin, destination: planning_snapshot(state, aid, origin, destination, _references=references))
         proof = PlanningFeasibility(draft); previous = None
+        from game.world_state.quarterly_consumers import quarterly_mode
+        if quarterly_mode(envelope):
+            # Existing commitments may already be inside their preparation block.
+            # Actual completed/active work, rather than a new edit at `now`, owns
+            # their aircraft readiness. No hypothetical movement is executed.
+            completed = [parse_canonical_utc(r['actual_arrival_utc'])
+                         for r in state['flight_results'].values()
+                         if r['actual_aircraft_id'] == aid]
+            proof.now = max(completed, default=parse_canonical_utc(envelope['metadata']['world_created_at_utc']))
         if aircraft['status'] == 'IN_FLIGHT' and not any(r[2] <= now < r[1] for r in rows):
             raise ValueError('AIRCRAFT_UNAVAILABLE: active arrival reservation is missing')
         for row in sorted(rows):

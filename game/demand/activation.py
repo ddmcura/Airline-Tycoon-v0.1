@@ -416,6 +416,10 @@ class DirectPublishedServiceActivationProvider:
         dated_flight_indexes: DatedFlightIndexes | None = None,
     ):
         flights = envelope.get("world_state", {}).get("dated_flights", {})
+        from game.world_state.quarterly_consumers import quarterly_mode
+        if quarterly_mode(envelope):
+            from game.scheduling.quarterly_supply import QuarterlyActivationProvider
+            return QuarterlyActivationProvider().active_market_ids(envelope, window)
         if not isinstance(flights, Mapping):
             return ()
         try:

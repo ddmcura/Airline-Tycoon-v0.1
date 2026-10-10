@@ -65,6 +65,16 @@ class ShoppingScheduleLineage:
 
 
 @dataclass(frozen=True)
+class ShoppingQuarterlyLineage:
+    weekly_plan_id: str
+    revision: int
+    service_id: str
+    slot_number: int
+    operating_date: str
+    published_at_utc: str
+
+
+@dataclass(frozen=True)
 class DirectShoppingOffer:
     contract: str
     market_id: str
@@ -79,10 +89,11 @@ class DirectShoppingOffer:
     journey_duration_seconds: int
     cabin: str
     fare_snapshot: FareSnapshot
-    schedule_lineage: ShoppingScheduleLineage
+    schedule_lineage: ShoppingScheduleLineage | None
     flight_status: str
     published_capacity: int
     observed_inventory_revision: int
+    quarterly_lineage: ShoppingQuarterlyLineage | None = None
 
 
 @dataclass(frozen=True)
@@ -139,12 +150,13 @@ class DirectFlightShoppingIndexEntry:
     journey_duration_seconds: int
     fare_currency: str
     fare_amount_minor: int
-    schedule_id: str
-    schedule_revision: int
+    schedule_id: str | None
+    schedule_revision: int | None
     occurrence_key: str
     flight_status: str
     published_capacity: int
     observed_inventory_revision: int
+    quarterly_lineage: ShoppingQuarterlyLineage | None = None
 
 
 @dataclass(frozen=True)
@@ -432,6 +444,10 @@ def rebuild_direct_flight_shopping_indexes(
             raise ValueError(validation.errors[0].message)
     if envelope["metadata"]["save_schema_version"] not in (3, 4, 5, 6, 7, 8, 9):
         raise ValueError("Booking shopping requires save schema version 3")
+    from game.world_state.quarterly_consumers import quarterly_mode
+    if quarterly_mode(envelope):
+        from game.scheduling.quarterly_supply import QuarterlyShoppingIndexes
+        return QuarterlyShoppingIndexes(envelope)
     configuration = envelope["simulation"]["configuration"]["booking"]
     now_text = envelope["simulation"]["time_utc"]
     now = parse_canonical_utc(now_text)
@@ -525,7 +541,7 @@ def _offer(indexed, desired_date):
         indexed.journey_duration_seconds,
         "ECONOMY",
         FareSnapshot(indexed.fare_currency, indexed.fare_amount_minor),
-        ShoppingScheduleLineage(
+        None if indexed.quarterly_lineage is not None else ShoppingScheduleLineage(
             indexed.schedule_id,
             indexed.schedule_revision,
             indexed.occurrence_key,
@@ -533,6 +549,7 @@ def _offer(indexed, desired_date):
         indexed.flight_status,
         indexed.published_capacity,
         indexed.observed_inventory_revision,
+        indexed.quarterly_lineage,
     )
 
 
@@ -769,7 +786,13 @@ def prepare_daily_booking_shopping(
         final_date, time.max, tzinfo=timezone.utc
     ).replace(microsecond=0)
     try:
-        if (
+        from game.world_state.quarterly_consumers import quarterly_mode
+        if quarterly_mode(candidate):
+            from game.scheduling.quarterly_supply import QuarterlyActivationProvider
+            if activation_providers is not None:
+                raise ValueError('quarterly careers require exclusive published activation')
+            isolated_providers = (_IsolatedActivationProvider(QuarterlyActivationProvider()),)
+        elif (
             activation_providers is None
             and candidate["simulation"]["configuration"]["demand"][
                 "model_version"

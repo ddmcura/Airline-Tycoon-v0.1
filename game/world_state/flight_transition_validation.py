@@ -30,6 +30,8 @@ def _exact(actual, expected, label):
 
 
 def supports_departure(envelope, event):
+    if 'operational_authority' in envelope['simulation']:
+        return False
     try:
         world=envelope['world_state']; flight=world['dated_flights'][event['owner_id']]
         aircraft=world['aircraft'][flight['planned_aircraft_id']]
@@ -200,6 +202,8 @@ def departure_execution_contract(handler):
 
 
 def supports_completion(envelope,event):
+    if 'operational_authority' in envelope['simulation']:
+        return False
     try:
         world=envelope['world_state']; flight=world['dated_flights'][event['owner_id']]
         operation=world['active_aircraft_operations'][flight['dated_flight_id']]

@@ -3,7 +3,11 @@ from game.utils.geo_distance import distance_km
 from game.world_state.maintenance_reference import class_for_model
 
 def departure_distance(world, flight):
-    revision = world["schedule_definitions"][flight["schedule_id"]]["revisions"][str(flight["schedule_revision"])]
+    if 'quarterly_lineage' in flight:
+        from game.world_state.quarterly_consumers import committed_slot
+        _, revision = committed_slot(world, flight['quarterly_lineage'])
+    else:
+        revision = world["schedule_definitions"][flight["schedule_id"]]["revisions"][str(flight["schedule_revision"])]
     snapshot = revision.get("planning_timing")
     if snapshot is not None:
         source = snapshot["contract"]

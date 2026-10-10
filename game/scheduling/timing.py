@@ -33,8 +33,12 @@ def timing_bounds(snapshot):
 
 
 def flight_reservation(world, flight):
-    revision = world['schedule_definitions'][flight['schedule_id']]['revisions'][
-        str(flight['schedule_revision'])]
+    if 'quarterly_lineage' in flight:
+        from game.world_state.quarterly_consumers import committed_slot
+        _, revision = committed_slot(world, flight['quarterly_lineage'])
+    else:
+        revision = world['schedule_definitions'][flight['schedule_id']]['revisions'][
+            str(flight['schedule_revision'])]
     snapshot = revision.get('planning_timing')
     pre, _, post = timing_bounds(snapshot)[1] if snapshot else (0, 0, 0)
     return (parse_canonical_utc(flight['scheduled_off_block_utc']) - timedelta(seconds=pre),
@@ -42,6 +46,10 @@ def flight_reservation(world, flight):
 
 
 def timed_deadhead(world, flight):
+    if type(flight) is dict and 'quarterly_lineage' in flight:
+        from game.world_state.quarterly_consumers import committed_slot
+        _, slot = committed_slot(world, flight['quarterly_lineage'])
+        return slot['service_type'] == 'DEADHEAD'
     if (type(flight) is not dict or type(flight.get('schedule_id')) is not str
             or type(flight.get('schedule_revision')) is not int):
         return False

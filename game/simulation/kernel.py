@@ -190,6 +190,8 @@ def build_event_queue_index(envelope):
 
 
 def _reconcile_quarterly(envelope):
+    from game.scheduling.quarterly_backend import reconcile as reconcile_backend
+    reconcile_backend(envelope)
     if envelope['simulation'].get('quarterly_publication'):
         from game.scheduling.quarterly_boundary import reconcile, initialize_quarterly_handler
         initialize_quarterly_handler()
@@ -375,6 +377,8 @@ def _handler_contract_error(original, candidate, due_at_utc, *, quarterly_owner=
         return "handlers cannot change the event timestamp selected by the kernel"
     if candidate_simulation.get("configuration") != original_simulation.get("configuration"):
         return "handlers cannot change clock configuration"
+    if candidate_simulation.get('operational_authority') != original_simulation.get('operational_authority'):
+        return 'handlers cannot change career operational authority'
     old_obligations = original_simulation.get('quarterly_publication')
     expected_obligations = deepcopy(old_obligations)
     if quarterly_owner is not None:
@@ -446,6 +450,11 @@ def _execute_event(envelope, event_id, registry):
             failure = EventFailure('HANDLER_CONTRACT_VIOLATION',
                 'mandatory quarterly publication requires its certified strict domain handler', event_id)
             return None, _quarterly_failure_fence(envelope, event, failure), ()
+    if event['event_type'] == 'QUARTERLY_DISPATCH' and handler is not None:
+        from game.scheduling.quarterly_backend import _dispatch
+        if handler is not _dispatch:
+            return None, EventFailure('HANDLER_CONTRACT_VIOLATION',
+                'quarterly dispatch requires its strict domain handler', event_id), ()
     if handler is None:
         failure = EventFailure(
             "UNKNOWN_EVENT_TYPE",

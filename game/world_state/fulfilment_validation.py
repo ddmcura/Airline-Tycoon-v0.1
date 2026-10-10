@@ -95,11 +95,12 @@ def _validate_manifest_witnesses(validator, record, path, world, flight):
             != flight.get("scheduled_off_block_utc")
             or itinerary.get("scheduled_arrival_utc")
             != flight.get("scheduled_in_block_utc")
-            or itinerary.get("schedule_lineage") != {
+            or itinerary.get("schedule_lineage") != (None if 'quarterly_lineage' in flight else {
                 "schedule_id": flight.get("schedule_id"),
                 "schedule_revision": flight.get("schedule_revision"),
                 "occurrence_key": flight.get("occurrence_key"),
-            }
+            })
+            or ('quarterly_lineage' in flight and itinerary.get('quarterly_lineage') != flight['quarterly_lineage'])
         ):
             _add(validator, "invalid_booking_authority", f"{path}.source_booking_ids",
                  "source Booking and itinerary must match the exact fulfilled flight")
@@ -119,6 +120,8 @@ def _validate_manifest_witnesses(validator, record, path, world, flight):
             "finance_transaction_id": booking.get("finance_transaction_id"),
             "schedule_lineage": itinerary.get("schedule_lineage"),
         }
+        if 'quarterly_lineage' in flight:
+            source['quarterly_lineage'] = itinerary.get('quarterly_lineage')
         witness = dict(source)
         witness["authority_fingerprint"] = _canonical_hash(source)
         expected_witnesses.append(witness)
@@ -289,13 +292,18 @@ RESULT_FIELDS = {
 
 
 def _event_payload(flight, contract):
-    return {
+    payload = {
         "contract": contract,
         "dated_flight_id": flight.get("dated_flight_id"),
         "schedule_id": flight.get("schedule_id"),
         "schedule_revision": flight.get("schedule_revision"),
         "occurrence_key": flight.get("occurrence_key"),
     }
+
+    if "quarterly_lineage" in flight:
+        from copy import deepcopy
+        payload["quarterly_lineage"] = deepcopy(flight["quarterly_lineage"])
+    return payload
 
 
 def _valid_flight_event(
@@ -430,12 +438,12 @@ def _validate_schema4_fulfilment_authority(validator):
               and flight.get("passenger_service_classification") == "ECONOMY"
               and type(flight.get("connection_id")) is str)
              or timed_deadhead(world, flight))
-            and type(world.get("schedule_definitions", {}).get(
+            and ("quarterly_lineage" in flight or (type(world.get("schedule_definitions", {}).get(
                 flight.get("schedule_id")
             )) is dict
             and world["schedule_definitions"][flight["schedule_id"]].get(
                 "status"
-            ) == "ACTIVE"
+            ) == "ACTIVE"))
         )
         if eligible and status == "PLANNED" and flight.get("scheduled_off_block_utc", "") >= current_time:
             current = [event for event in departure_events
@@ -491,6 +499,8 @@ def _validate_schema4_fulfilment_authority(validator):
             flight = flights.get(flight_id, {})
             has_maintenance = type(operation) is dict and "maintenance_distance_m" in operation
             allowed_fields = OPERATION_FIELDS | (MAINTENANCE_WITNESS_FIELDS if has_maintenance and validator.schema_version in (7, 8, 9) else set())
+            if 'quarterly_lineage' in flight:
+                allowed_fields.add('quarterly_lineage')
             if type(operation) is not dict or set(operation) != allowed_fields:
                 _add(validator, "result_validation_failed", path,
                      "active operation must contain exactly the canonical fields")
@@ -608,6 +618,8 @@ def _validate_schema4_fulfilment_authority(validator):
         allowed_fields = RESULT_FIELDS | (MAINTENANCE_WITNESS_FIELDS | {
             "base_operating_cost_minor", "maintenance_expense_minor"
         } if has_maintenance and validator.schema_version in (7, 8, 9) else set())
+        if 'quarterly_lineage' in flight:
+            allowed_fields.add('quarterly_lineage')
         if type(result) is not dict or set(result) != allowed_fields:
             _add(validator, "result_validation_failed", path,
                  "flight result must contain exactly the canonical immutable fields")

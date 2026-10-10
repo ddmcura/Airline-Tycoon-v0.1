@@ -1,5 +1,54 @@
 # Stage 1 State Schema
 
+## Quarterly Stage 3E isolated operational authority
+
+Schema 9 gains an explicit optional `simulation.operational_authority` value
+`QUARTERLY_BACKEND_V1`. Absence retains all legacy meanings and writers. The
+marker is created only for an isolated new career before any legacy schedule,
+dated flight, itinerary, Booking or flight result exists. The untouched bootstrap
+may retain its initial empty checkpoint/successor event: no market outcomes,
+processed demand, ticket transactions or elapsed simulation time may exist.
+Existing saves are never converted. Ordinary New Game does not set it.
+
+In that mode each materialized `dated_flights` row retains its standard allocated
+ID as a bijective alias of the canonical service/date/slot `occurrence_key`.
+`schedule_id`, `schedule_revision` and `superseded_by_schedule_revision` are
+explicitly null, never references to a fabricated legacy schedule. A required
+`quarterly_lineage` dictionary contains exactly `weekly_plan_id`, `revision`,
+`service_id`, `slot_number`, `operating_date` and `published_at_utc`. It references
+the current immutable published revision, selected slot and UTC-quarter date.
+Commercial, aircraft and timing facts must match that commitment. Inventory
+revision and existing Booking quantities remain the sole inventory witnesses;
+remaining/booked capacity and derived unsold descriptors are not persisted.
+
+Quarterly itineraries retain existing direct Economy accounting fields, with
+`schedule_lineage` null and the same required `quarterly_lineage`. Existing
+aggregate Booking records point to those itineraries. Departure/completion
+payloads, frozen operations and finalized results also carry that exact lineage
+and null legacy schedule references. Finance retains existing source Booking,
+checkpoint and result IDs, connecting to publication through these records.
+Each quarterly manifest Booking witness also includes `quarterly_lineage` in
+its existing authority fingerprint source; its legacy `schedule_lineage` is null.
+Old field meanings and old records remain unchanged when the marker is absent.
+
+Only selected sold occurrences and imminent operational work become allocated
+dated rows. Unsold future supply remains derived. A strict aircraft-owned
+`QUARTERLY_DISPATCH` event selects the next published occurrence, priority 90,
+payload exactly `{contract: QUARTERLY_DISPATCH_V1, quarterly_lineage}`. It
+materializes that occurrence at its scheduled departure and schedules the next
+dispatch. Publication reconciles upcoming dispatch work before same-UTC Booking;
+flight execution retains priority 100 and existing actual-location checks.
+Retired committed services remain executable but cannot receive new sales.
+No inferred positioning executes. Missing/stale dispatch work is reconstructed
+from published authority before event selection; no history is regenerated.
+
+Full source/candidate validation and detached commit boundaries remain required.
+Quarterly flight handlers use strict validation, without inheriting legacy shared
+certification. Saves preserve mode, sold obligations, events, operations and
+results, and load into a separate validated paused candidate. The approved
+[booking policy](Quarterly%20Backend%20Consumer%20Cutover.md#approved-ph-10-booking-policy)
+governs this isolated mode. Stage 3F/3G and ordinary activation are excluded.
+
 ## Quarterly Stage 3D dormant boundary authority
 
 Schema 9 optionally stores `simulation.quarterly_publication`, an airline-ID map
@@ -41,8 +90,8 @@ Schema 9 supersedes Schema 8's permanent airline/number uniqueness, retaining
 exactly the same record fields and allocator namespaces. New Game constructs
 Schema 9; disk Load accepts only Schema 9, with no development-save conversion.
 Earlier versions remain validatable as historical fixtures under their own rules.
-Quarterly workflows remain dormant; legacy scheduling, Booking365 and runtime
-remain the operational consumers.
+Ordinary quarterly gameplay remains dormant; legacy scheduling, Booking365 and
+runtime retain their authority when the explicit isolated mode above is absent.
 
 Service IDs and slot identities are never reused. Retained services may share
 an airline's player-facing numeric suffix across distinct lifetimes. A service

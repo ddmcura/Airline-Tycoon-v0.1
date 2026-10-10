@@ -302,6 +302,7 @@ class _Validator:
         self._json_checked = False
         self._aliases_checked = False
         self._quarterly_events_seen = False
+        self._quarterly_dispatch_seen = False
 
     def add(self, code, path, message, entity_type=None, entity_id=None):
         self.errors.append(ValidationIssue(code, path, message, entity_type, entity_id))
@@ -2164,6 +2165,13 @@ class _Validator:
         occurrence_keys = {}
         for flight_id, record in flights.items():
             path = f"$.world_state.dated_flights.{flight_id}"
+            if 'quarterly_lineage' in record:
+                from .quarterly_consumers import validate_quarterly_flight
+                try:
+                    validate_quarterly_flight(self.envelope, record, occurrence_keys)
+                except (ValueError, KeyError, TypeError, OverflowError) as exc:
+                    self.add('invalid_quarterly_flight', path, str(exc), 'dated_flight', flight_id)
+                continue
             reject_unknown_fields(
                 record,
                 {
@@ -2359,6 +2367,10 @@ class _Validator:
             )
             future_by_aircraft = {aircraft_id: [] for aircraft_id in aircraft}
             for record in flights.values():
+                if 'quarterly_lineage' in record:
+                    # Sparse sold rows omit valid unsold intermediate commitments.
+                    # Quarterly publication chronology and actual departure own continuity.
+                    continue
                 aircraft_id = record.get("planned_aircraft_id")
                 if (
                     isinstance(aircraft_id, str)
@@ -2587,6 +2599,8 @@ class _Validator:
         seen_sequences = {}
 
         def validate_event(event_id, record, path, pending):
+            if record.get('event_type') == 'QUARTERLY_DISPATCH':
+                self._quarterly_dispatch_seen = True
             if record.get('event_type') == 'QUARTERLY_PUBLICATION':
                 self._quarterly_events_seen = True
             self.require_text(record, "event_type", path, "event", event_id)
@@ -3210,6 +3224,13 @@ class _Validator:
             except (ValueError, TypeError, KeyError, OverflowError):
                 self.add('invalid_quarterly_boundary', '$.simulation.quarterly_publication',
                          'invalid quarterly obligation, failure fence or publication event')
+        if not self.errors and ('operational_authority' in self.envelope.get('simulation', {})
+                                or self._quarterly_dispatch_seen):
+            from .quarterly_consumers import validate_mode
+            try:
+                validate_mode(self.envelope)
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                self.add('invalid_operational_authority', '$.simulation.operational_authority', str(exc))
         return ValidationResult(tuple(self.errors))
 
 

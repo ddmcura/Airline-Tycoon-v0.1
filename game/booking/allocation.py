@@ -609,12 +609,14 @@ def prepare_daily_booking_allocation(
             for group in plan.desired_date_groups
             for offer in group.offers
         }
-        relevant = {
-            flight_id: candidate["world_state"]["dated_flights"][flight_id][
-                "inventory_revision"
-            ]
-            for flight_id in sorted(shopping_revisions)
-        }
+        from game.world_state.quarterly_consumers import quarterly_mode
+        if quarterly_mode(candidate):
+            from game.scheduling.quarterly_supply import QuarterlySupply
+            supply = QuarterlySupply(candidate)
+            flight_rows = {key: supply.get(key) for key in shopping_revisions}
+        else:
+            flight_rows = candidate['world_state']['dated_flights']
+        relevant = {key: flight_rows[key]['inventory_revision'] for key in sorted(shopping_revisions)}
         changed_after_shopping = sorted(
             flight_id
             for flight_id in relevant
@@ -643,8 +645,8 @@ def prepare_daily_booking_allocation(
         booking_indexes = rebuild_booking_indexes(candidate)
         remaining = {}
         for flight_id in sorted(relevant):
-            flight = candidate["world_state"]["dated_flights"][flight_id]
-            consumed = booking_indexes.booked_passenger_count_by_dated_flight_id.get(flight_id, 0)
+            flight = flight_rows[flight_id]
+            consumed = booking_indexes.booked_passenger_count_by_dated_flight_id.get(flight['dated_flight_id'], 0)
             value = flight["capacity"] - consumed
             if value < 0:
                 raise ValueError(f"negative remaining capacity for {flight_id}")

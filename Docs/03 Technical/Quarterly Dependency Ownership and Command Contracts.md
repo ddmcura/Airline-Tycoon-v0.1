@@ -641,7 +641,7 @@ prerequisite; number eligibility itself is settled.
 
 | SAFE TO DEFER | Required before | Remaining scope, already constrained by authority |
 | --- | --- | --- |
-| Exact desired-date/lead weighting within published periods | Booking consumer migration | Current Booking365 remains; no silent desired-date movement to compensate for unpublished supply. Approved commercial boundary cannot be replaced by rolling 365 or always-two-quarter supply. Remaining balancing policy must be explicit then. |
+| Exact desired-date/lead weighting within published periods | Resolved for PH 1.0 Stage 3E | [Approved policy](Quarterly%20Backend%20Consumer%20Cutover.md#approved-ph-10-booking-policy) preserves absolute 0..365 weights, ±3-day shopping within published eligible supply and terminal unavailable intent without renormalization. Publication can exceed that preference horizon. Legacy Booking365 remains unchanged. |
 | Configuration/cabin history representation | Reconfiguration/future configurations | AT-026 already requires preserved historical meaning; actual versioned configuration policy/contract is later scope. |
 | Delivery time/location/provenance representation | Delayed acquisition/future availability | Minimum authoritative future availability is approved; concrete acquisition/Fleet persistence and validation is later scope. |
 | Costly amendments/refunds/disruption policy | Future mechanics beyond PH 1.0 free-planning edits | Published strategy remains locked; actual outcomes and existing financial obligations remain distinct. |

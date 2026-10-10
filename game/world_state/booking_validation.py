@@ -273,6 +273,9 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
         "scheduled_departure_utc", "scheduled_arrival_utc", "cabin",
         "fare_offer_snapshot", "schedule_lineage", "status",
     }
+    quarterly = 'quarterly_lineage' in record
+    if quarterly:
+        fields.add('quarterly_lineage')
     if not _exact(validator, record, fields, path, "invalid_itinerary", "must contain exactly the direct Economy V1 fields"):
         return
     market_id = record.get("market_id")
@@ -316,12 +319,12 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
     if not _currency(snapshot.get("currency")) or not is_minor_amount(snapshot.get("amount_minor")) or snapshot.get("amount_minor", -1) < 0:
         validator.add("invalid_itinerary", f"{path}.fare_offer_snapshot", "fare snapshot must contain currency and non-negative integer amount_minor")
     lineage = record.get("schedule_lineage")
-    if type(lineage) is not dict or set(lineage) != {
+    if not quarterly and (type(lineage) is not dict or set(lineage) != {
         "schedule_id", "schedule_revision", "occurrence_key"
-    }:
+    }):
         validator.add("invalid_itinerary", f"{path}.schedule_lineage", "schedule lineage fields are invalid")
         lineage = {}
-    if not isinstance(lineage.get("schedule_id"), str) or not _positive_integer(lineage.get("schedule_revision")):
+    if not quarterly and (not isinstance(lineage.get("schedule_id"), str) or not _positive_integer(lineage.get("schedule_revision"))):
         validator.add("invalid_itinerary", f"{path}.schedule_lineage", "must identify a retained schedule revision")
     if flight is not None:
         if (
@@ -357,8 +360,15 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
                 f"{path}.fare_offer_snapshot",
                 "fare snapshot currency must match the dated flight",
             )
-        expected_lineage = {"schedule_id": flight.get("schedule_id"), "schedule_revision": flight.get("schedule_revision")}
-        if "occurrence_key" in lineage:
+        if quarterly:
+            from .quarterly_consumers import quarterly_mode
+            if (not quarterly_mode(validator.envelope) or lineage is not None
+                    or record['quarterly_lineage'] != flight.get('quarterly_lineage')):
+                validator.add('invalid_itinerary', path, 'quarterly publication lineage mismatch')
+            expected_lineage = None
+        else:
+            expected_lineage = {"schedule_id": flight.get("schedule_id"), "schedule_revision": flight.get("schedule_revision")}
+        if not quarterly and "occurrence_key" in lineage:
             expected_lineage["occurrence_key"] = flight.get("occurrence_key")
         if lineage != expected_lineage:
             validator.add("invalid_itinerary", f"{path}.schedule_lineage", "must match dated-flight schedule lineage")

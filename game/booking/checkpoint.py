@@ -254,7 +254,13 @@ def _account_ids(world, airline_id):
     return accounts["cash"], accounts["unflown_tickets"]
 
 
-def _canonical_batches(plan, world):
+def _canonical_batches(plan, world, envelope=None):
+    from game.world_state.quarterly_consumers import quarterly_mode
+    if envelope is not None and quarterly_mode(envelope):
+        from game.scheduling.quarterly_supply import QuarterlySupply
+        lookup = QuarterlySupply(envelope).get
+    else:
+        lookup = world['dated_flights'].__getitem__
     rows = []
     for market in plan.market_results:
         for group in market.desired_date_results:
@@ -265,7 +271,7 @@ def _canonical_batches(plan, world):
                     selected.selected_passengers, market.cohort_key,
                 ))
     return tuple(sorted(rows, key=lambda row: (
-        row[0], row[1], world["dated_flights"][row[2]]["scheduled_off_block_utc"],
+        row[0], row[1], lookup(row[2])['scheduled_off_block_utc'],
         row[2], row[3]
     )))
 
@@ -328,14 +334,18 @@ def prepare_daily_booking_checkpoint(
             observation.dated_flight_id: observation.observed_inventory_revision
             for observation in plan.observed_inventory_revisions
         }
+        from game.world_state.quarterly_consumers import quarterly_mode
+        if quarterly_mode(envelope):
+            from game.scheduling.quarterly_supply import QuarterlySupply
+            offer_lookup = QuarterlySupply(envelope).get
+        else:
+            offer_lookup = world['dated_flights'].__getitem__
         paid_airline_ids = {
             selected.airline_id
             for market in plan.market_results
             for group in market.desired_date_results
             for selected in group.selected_offer_allocations
-            if world["dated_flights"][selected.dated_flight_id]["fare_offer"][
-                "amount_minor"
-            ]
+            if offer_lookup(selected.dated_flight_id)['fare_offer']['amount_minor']
         }
         arguments = {
             "expected_booking_revision": booking_revision,
@@ -415,6 +425,10 @@ def process_daily_booking_checkpoint(
         inventory_expectations = _exact_revision_map(expected_inventory_revisions, "expected_inventory_revisions")
         finance_expectations = _exact_revision_map(expected_finance_revisions, "expected_finance_revisions")
         candidate = envelope if _event_transaction is _EVENT_TRANSACTION_TOKEN else deepcopy(envelope)
+        from game.world_state.quarterly_consumers import quarterly_mode
+        quarterly_sources = (deepcopy({name: candidate['world_state'][name] for name in
+            ('services', 'weekly_plans', 'aircraft', 'connections', 'airports')})
+            if quarterly_mode(candidate) else None)
         checkpoint_id = allocate_id(candidate, "booking_checkpoint")
         candidate["world_state"]["booking_state"]["booking_checkpoints"][checkpoint_id] = {
             "booking_checkpoint_id": checkpoint_id, "checkpoint_date": checkpoint_date,
@@ -454,9 +468,27 @@ def process_daily_booking_checkpoint(
         if world["booking_state"]["booking_revision"] != expected_booking_revision:
             raise RuntimeError("late Booking revision change")
         observed_inventory = {item.dated_flight_id: item.observed_inventory_revision for item in plan.observed_inventory_revisions}
+        if quarterly_sources is not None and any(candidate['world_state'][name] != value
+                                                 for name, value in quarterly_sources.items()):
+            raise RuntimeError('late quarterly publication/dependency change')
         if observed_inventory != inventory_expectations:
             raise RuntimeError("allocation inventory witness changed")
-        rows = _canonical_batches(plan, world)
+        rows = _canonical_batches(plan, world, candidate)
+        supply_event_count = 0
+        from game.world_state.quarterly_consumers import quarterly_mode
+        if quarterly_mode(candidate):
+            from game.scheduling.quarterly_supply import QuarterlySupply
+            from game.scheduling.quarterly_backend import materialize_candidate
+            supply = QuarterlySupply(candidate)
+            if candidate['simulation']['event_order_cursor'] != expected_event_order_cursor:
+                raise RuntimeError('late event authority change before supply commit')
+            existing_keys = {f['occurrence_key'] for f in world['dated_flights'].values()}
+            supply_event_count = len({r[2] for r in rows} - existing_keys)
+            committed_aliases = {f['occurrence_key']: f['dated_flight_id'] for f in world['dated_flights'].values()}
+            aliases = {key: materialize_candidate(candidate, supply.get(key), _aliases=committed_aliases)
+                       for key in sorted({row[2] for row in rows})}
+            inventory_expectations.update({aliases[key]: inventory_expectations[key] for key in aliases})
+            rows = tuple((r[0], r[1], aliases[r[2]], *r[3:]) for r in rows)
         identifiers = []
         for row in rows:
             flight = world["dated_flights"][row[2]]
@@ -512,7 +544,8 @@ def process_daily_booking_checkpoint(
                 "scheduled_departure_utc": flight["scheduled_off_block_utc"],
                 "scheduled_arrival_utc": flight["scheduled_in_block_utc"],
                 "cabin": "ECONOMY", "fare_offer_snapshot": fare,
-                "schedule_lineage": {"schedule_id": flight["schedule_id"], "schedule_revision": flight["schedule_revision"], "occurrence_key": flight["occurrence_key"]},
+                "schedule_lineage": (None if 'quarterly_lineage' in flight else {"schedule_id": flight["schedule_id"], "schedule_revision": flight["schedule_revision"], "occurrence_key": flight["occurrence_key"]}),
+                **({'quarterly_lineage': deepcopy(flight['quarterly_lineage'])} if 'quarterly_lineage' in flight else {}),
                 "status": "CONFIRMED",
             }
             total = passengers * fare["amount_minor"]
@@ -595,7 +628,7 @@ def process_daily_booking_checkpoint(
                            "booking_revision": resulting_revision, "market_results": persisted_markets,
                            "financial_transaction_ids": sorted(transaction_ids)})
         candidate["simulation"]["operation_revisions"][checkpoint_id] = resulting_revision
-        if candidate["simulation"]["event_order_cursor"] != expected_event_order_cursor:
+        if candidate["simulation"]["event_order_cursor"] != expected_event_order_cursor + supply_event_count:
             raise RuntimeError("late event authority change")
         due = _next_due(checkpoint_date)
         existing_next = _matching_next_events(candidate, checkpoint_id, due)
@@ -624,6 +657,9 @@ def process_daily_booking_checkpoint(
         )
         if result.requested_passengers != result.booked_passengers + result.unsuccessful_passengers:
             raise ValueError("checkpoint result conservation failed")
+        if quarterly_sources is not None and any(candidate['world_state'][name] != value
+                                                 for name, value in quarterly_sources.items()):
+            raise RuntimeError('late quarterly publication/dependency change')
         if candidate is not envelope:
             _replace(envelope, candidate)
         return deepcopy(result)

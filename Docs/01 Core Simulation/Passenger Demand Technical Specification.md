@@ -1501,3 +1501,20 @@ Model 3 does not use it. USD remains authority; PHP/EUR remain display-only.
 The PH 1.0 deferrals are enumerated in the canonical schema; this batch adds
 no geography exceptions, additional access classes, tourism-origin balancing,
 long-haul decline, new latent category, curve UI or later roadmap behavior.
+
+## Quarterly PH 1.0 consumer policy (2026-10-11)
+
+The [approved Stage 3E contract](../03%20Technical/Quarterly%20Backend%20Consumer%20Cutover.md#approved-ph-10-booking-policy)
+retains the existing absolute calendar lead distribution: day 0 5%, days 1–6 15%,
+days 7–29 35%, days 30–89 30%, days 90–365 15%. No passenger intent targets
+departures beyond day 365, even if an earlier quarterly publication establishes
+supply farther ahead. Preserve ±3 UTC-date shopping across publication boundaries
+only for valid published offers inside that horizon, and retain the original desired
+date. Missing supply is terminal unsuccessful demand, without renormalization,
+redistribution, backlog or later recovery.
+
+One directional market pool remains authoritative. Frequency changes offers/capture
+under the existing Balanced scores and outside option; it never multiplies generated
+demand. Quarterly-mode careers use one exclusive quarterly supply/booking/execution
+pipeline. Legacy careers keep their existing authority. The slice introduces no new
+potential-demand formula, fare sensitivity, willingness-to-pay or quality signal.

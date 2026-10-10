@@ -9,7 +9,12 @@ JSON snapshot. Existing Schema 9 saves omit that field without migration. Load
 validates a separate candidate and remains paused; processing reconstructs missing
 current work by the versioned rule, never historical Booking. A saved frontier before
 UTC rejects. Ordinary PH remains unenrolled; quarterly operational consumers remain
-unimplemented.
+unimplemented at that checkpoint. The [Stage 3E isolated backend](Quarterly%20Backend%20Consumer%20Cutover.md)
+adds explicit optional Schema 9 career mode and fixed publication lineage in dated
+rows, itineraries, events, operations, manifest witnesses and results. Complete
+snapshots retain sold obligations/inventory and actual history. Missing future work
+is reconstructed; missing past commitments reject. Existing legacy saves retain
+their authority with no conversion, and ordinary New Game still omits the mode.
 
 Stage 1 supplies dormant identity/plan authority; Schema 9 now provides protected
 historical display-number reuse and new-save-only

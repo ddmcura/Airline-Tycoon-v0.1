@@ -123,6 +123,8 @@ Existing documentation outside this hierarchy should remain in place until it is
 
 - [Quarterly Transaction Certification](03%20Technical/Quarterly%20Transaction%20Certification.md) - Stage 2E certified: adversarial command and independent reference coverage; all gates/copies retained, quarterly gameplay dormant.
 
+- [Quarterly Backend Consumer Cutover](03%20Technical/Quarterly%20Backend%20Consumer%20Cutover.md) — Stage 3E approved booking policy, explicit isolated consumer authority, lineage, persistence and certification; ordinary activation and GUI integration remain deferred.
+
 - [Quarterly Publication Readiness](03%20Technical/Quarterly%20Publication%20Readiness.md) - Stage 3A diagnostic query: separate publication eligibility, planning feasibility and literal execution readiness; no publication, supply, events or gameplay activation.
 
 - [Quarterly Operational Lineage](03%20Technical/Quarterly%20Operational%20Lineage.md) - Stage 3B contract and dormant bounded occurrence-reference resolution; existing Schema 9 authority, no materialized supply or consumer cutover.

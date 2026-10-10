@@ -313,6 +313,10 @@ def create_schedule_definition(
     publication_policy=None,
 ):
     """Create one structurally valid repeating plan without publishing it."""
+    from game.world_state.quarterly_consumers import quarterly_mode
+    if quarterly_mode(envelope):
+        return ScheduleDefinitionResult('REJECTED', conflicts=(SchedulingConflict(
+            'OPERATIONAL_AUTHORITY', 'quarterly career rejects legacy scheduling writers'),))
     validation = validate_world(envelope)
     if not validation.is_valid:
         return ScheduleDefinitionResult('REJECTED', conflicts=_conflicts_from_validation(validation))
@@ -727,6 +731,10 @@ def publish_occurrences_through(
     envelope, target_horizon_utc, *, expected_schedule_revisions=None, schedule_ids=None
 ):
     """Atomically publish selected (default all) active plans through a UTC horizon."""
+    from game.world_state.quarterly_consumers import quarterly_mode
+    if quarterly_mode(envelope):
+        return PublicationResult('REJECTED', str(target_horizon_utc), conflicts=(SchedulingConflict(
+            'OPERATIONAL_AUTHORITY', 'quarterly career rejects legacy publication writers'),))
     try:
         target = parse_canonical_utc(target_horizon_utc, "target_horizon_utc")
     except ValueError as exc:

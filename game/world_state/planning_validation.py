@@ -114,6 +114,8 @@ def validate_planning(envelope):
                     raise ValueError('planning timing model mismatch')
     by_aircraft = {}
     for flight in world['dated_flights'].values():
+        if 'quarterly_lineage' in flight:
+            continue  # Explicit published trace is validated by quarterly_consumers.
         revision = world['schedule_definitions'][flight['schedule_id']]['revisions'][
             str(flight['schedule_revision'])]
         if not revision['recurrence'].get('enabled', True):

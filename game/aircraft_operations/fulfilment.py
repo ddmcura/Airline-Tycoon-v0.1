@@ -253,11 +253,12 @@ def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids
             and itinerary.get("scheduled_arrival_utc")
             == flight["scheduled_in_block_utc"]
             and itinerary.get("cabin") == "ECONOMY"
-            and itinerary.get("schedule_lineage") == {
+            and itinerary.get("schedule_lineage") == (None if "quarterly_lineage" in flight else {
                 "schedule_id": flight["schedule_id"],
                 "schedule_revision": flight["schedule_revision"],
                 "occurrence_key": flight["occurrence_key"],
-            }
+            })
+            and ('quarterly_lineage' not in flight or itinerary.get('quarterly_lineage') == flight['quarterly_lineage'])
             and booking.get("currency") == airline["base_currency"]
             and booking.get("inventory_revision_at_commit", -1)
             <= flight["inventory_revision"]
@@ -286,6 +287,8 @@ def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids
             "finance_transaction_id": booking["finance_transaction_id"],
             "schedule_lineage": deepcopy(itinerary["schedule_lineage"]),
         }
+        if 'quarterly_lineage' in flight:
+            witness_source['quarterly_lineage'] = deepcopy(itinerary['quarterly_lineage'])
         witness = deepcopy(witness_source)
         witness["authority_fingerprint"] = _canonical_hash(witness_source)
         rows.append((booking, witness))
@@ -338,6 +341,8 @@ def _matching_event(envelope, flight, event_type, contract, due, *, _selection=N
         "schedule_revision": flight["schedule_revision"],
         "occurrence_key": flight["occurrence_key"],
     }
+    if 'quarterly_lineage' in flight:
+        expected_payload['quarterly_lineage'] = deepcopy(flight['quarterly_lineage'])
     if _selection is not None:
         from game.simulation.kernel import _selected_event
         event = _selected_event(_selection, envelope)
@@ -499,6 +504,8 @@ def departure_operation(envelope, flight, aircraft_id, manifest, event_id):
         "departure_event_id": event_id,
         "completion_event_id": None,
     }
+    if 'quarterly_lineage' in flight:
+        operation['quarterly_lineage'] = deepcopy(flight['quarterly_lineage'])
     if envelope["metadata"]["save_schema_version"] in (7, 8, 9):
         operation.update(departure_witness(
             world, flight, world["aircraft"][aircraft_id],
@@ -553,6 +560,9 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
     if actual_aircraft_id is not None and envelope["metadata"]["save_schema_version"] not in (7, 8, 9):
         return _reject(envelope, flight_id, "INVALID_WORLD_STATE", "substitution requires schema 7")
     aircraft = world["aircraft"].get(chosen_aircraft_id)
+    if 'quarterly_lineage' in flight and chosen_aircraft_id != flight['planned_aircraft_id']:
+        return _reject(envelope, flight_id, 'AIRCRAFT_ASSIGNMENT_MISMATCH',
+                       'quarterly execution requires the published aircraft assignment')
     if type(aircraft) is not dict:
         return _reject(envelope, flight_id, "AIRCRAFT_UNAVAILABLE", "actual aircraft does not exist")
     if aircraft["airline_id"] != flight["airline_id"]:
@@ -586,7 +596,9 @@ def _departure(envelope, flight_id, *, resolve_event, actual_aircraft_id=None, e
             payload={"contract": FLIGHT_COMPLETION_EVENT_CONTRACT,
                      "dated_flight_id": flight_id, "schedule_id": cflight["schedule_id"],
                      "schedule_revision": cflight["schedule_revision"],
-                     "occurrence_key": cflight["occurrence_key"]},
+                     "occurrence_key": cflight["occurrence_key"],
+                     **({'quarterly_lineage': deepcopy(cflight['quarterly_lineage'])}
+                        if 'quarterly_lineage' in cflight else {})},
         )
         operation["completion_event_id"] = completion_id
         if resolve_event:
@@ -748,6 +760,8 @@ def settlement_records(envelope, flight, operation, manifest, transaction_id, co
             "maintenance_classification_version", "maintenance_class",
             "maintenance_factor_minor_per_km", "maintenance_configuration_fingerprint",
         )})
+    if 'quarterly_lineage' in flight:
+        result['quarterly_lineage'] = deepcopy(flight['quarterly_lineage'])
     return transaction, result
 
 

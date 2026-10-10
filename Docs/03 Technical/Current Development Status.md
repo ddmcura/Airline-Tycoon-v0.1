@@ -1,6 +1,84 @@
 # Current Development Status
 
-Last updated: **2026-10-10**. Current snapshot, not operational authorization.
+Last updated: **2026-10-11**. Current snapshot, not operational authorization.
+
+## Stage 3E — isolated quarterly backend (2026-10-11 working tree)
+
+Approved starting baseline **7726fb32496c65c83baa32658bbed2644fd8f3a0** matched
+HEAD, upstream, fetched origin/master and live remote master. Tracked tree/index
+were clean; only `.venv/` was untracked. Serena activation, `core` and
+`scheduling/stage2_context` memories and symbolic consumer/validator navigation
+were used. Repository evidence supersedes stale Stage 2 memory checkpoints.
+
+The user approved AT-053's absolute calendar lead profile, 365-day preference cap,
+±3-day published shopping, terminal unavailable intent without renormalization,
+one directional demand pool and exclusive quarterly consumers. Those decisions
+were recorded canonically before consumer implementation. AT-054 defers saved
+long-term non-authoritative scheduling blueprints; editing/application behavior
+remains future design. No blueprint implementation or additional policy decision.
+
+[Backend contract](Quarterly%20Backend%20Consumer%20Cutover.md), AT-055 and the
+schema/template define the explicit optional Schema 9 isolated mode. Unsold supply
+remains derived from published service/date/slot references. Sold/imminent rows
+have one allocated dated alias; exact publication lineage flows through Booking,
+manifest fingerprints, events, active operations, results and finance/history.
+Daily Booking preserves existing Model 4/choice/capacity equations and terminal
+outcomes. Strict dispatch/fulfilment enforce actual assignment/location and complete
+published chronology, with stale/missing future recovery and past-work rejection.
+Four Stage 2 gates, both copies and maintained-index safeguards remain intact.
+
+Persistence retains complete snapshots, separate paused Load and exactly-once
+effects. Legacy Schema 9 saves keep their authority without conversion. Ordinary
+New/Load/GUI do not enroll quarterly mode. Stage 3F, Stage 3G, automatic positioning,
+airport queues, new demand/economics and unrelated marketplace fixes are excluded.
+The next quarterly development step remains Stage 3F integration, requiring its
+own approved scope; general activation and 3G-C capacity certification remain deferred.
+
+Verification on the working-tree scope, not a future commit:
+
+- `.venv/Scripts/python.exe -m unittest tests.test_quarterly_backend -v`:
+  **50 PASS, 153.436s**. Includes real 91-day operating-quarter continuity with
+  a versioned zero-demand fixture, separate positive/zero-fare sales, boundary
+  publication/Booking, correction fences, retirement, retries and save/rebind.
+- `.venv/Scripts/python.exe -m unittest tests.test_quarterly_backend tests.test_quarterly_occurrences -v`:
+  **76 PASS, 78.636s** on the then-final candidate (48 new cases plus 28 3B cases);
+  the two later continuity/zero-fare cases are included in the final 50 above.
+- `.venv/Scripts/python.exe -m unittest tests.test_stage1_booking_shopping tests.test_stage1_booking_allocation tests.test_stage1_booking_checkpoint tests.test_runtime_startup -v`:
+  **79 PASS, 17.123s** on the earlier integration candidate.
+- `.venv/Scripts/python.exe -m unittest tests.test_simulation_resolver tests.test_quarterly_boundaries tests.test_quarterly_transactions tests.test_quarterly_indexes -v`:
+  **128 PASS, 409.909s**. Changed fence expectations include the dormant dispatcher
+  and retain explicit absence assertions in ordinary legacy worlds.
+- `.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`:
+  **PASS, exit 0**, after correcting an import-cleanup indentation error. Protected
+  metadata/runtime directories were excluded.
+- `.venv/Scripts/python.exe -m unittest discover -s tests -v`:
+  **1,526 PASS, 2,013.471s**, exit 0: prior 1,476 plus 50 Stage 3E cases.
+  All **317 source/test SHA-256 witnesses** match before/after discovery; zero
+  source changes during the run. Full discovery covers Stage 3A–3D, Stage 2,
+  Booking365/legacy scheduling, runtime/safety, acquisition/finance, GUI and saves.
+
+Early integration failures identified the legacy activation gate, legitimate
+sale-created event cursors, committed preparation readiness and manifest lineage
+fingerprints; each was corrected. Boundary fixtures now use real future drafts,
+respecting publication no later than quarter start. No production formula was
+weakened to satisfy a fixture. Generated saves/logs/probes are isolated temporary
+artifacts, excluded from staging; `.venv/` remains preserved.
+
+Three-sample performance observations, concurrent with full discovery, are in the
+backend contract. Medians: published day lookup 0.000665s (inner derived operation),
+public occurrence query 0.100147s, inventory rebuild/access 0.003045s, daily Booking
+1.174940s, two movements 0.453636s, publication plus Booking 1.563442s, Save/Load
+0.874433s, two-day advancement 4.130801s. A sold Q1 can have all 180 rows; publication
+alone retains zero. These fixtures do not certify fleet scalability; history gates,
+copies, complete chronology and Booking/journal validation remain material costs.
+
+Final scoped compilation, local documentation/heading validation, whitespace and
+self-review pass. The temporary lexical validator checked **429 local links and
+71 heading targets across 10 changed Markdown documents**, using tracked/new paths
+and canonical heading slugs. The exact 36-file scope is listed in the backend contract.
+Implementation evidence identifies this frozen working tree against the starting
+baseline; the resulting commit/push and four-ref verification are reported with
+the actual revision at completion, rather than inventing a pending commit hash.
 
 ## Stage 3D - quarterly boundary orchestration (2026-10-10 working tree)
 

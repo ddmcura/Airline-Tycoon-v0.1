@@ -1,5 +1,11 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 3E implements the [isolated quarterly backend](../03%20Technical/Quarterly%20Backend%20Consumer%20Cutover.md)
+with explicit Schema 9 career authority, published-only supply, preserved PH 1.0
+booking economics and fixed Booking/operation/finance/save lineage. Ordinary New
+Game and legacy saves retain their existing pipeline. GUI integration and general
+quarterly activation remain Stage 3F/3G; earlier checkpoint scopes below are historical.
+
 Stage 3D implements [isolated boundary orchestration and recovery](../03%20Technical/Quarterly%20Boundary%20Orchestration.md):
 UTC automatic events, the explicit equal-time publication barrier, durable failure
 obligations, certified correction eligibility, fresh retry and queue/Load recovery.
@@ -320,14 +326,18 @@ The future horizon is bounded by the operating dates of published quarterly supp
 not an arbitrary rolling 365-day supply window. Sequential early commitments can change
 the set of published periods; do not impose the superseded always-active-plus-next rule.
 Daily demand is not silently moved to another desired date merely because its supply
-is unpublished. Exact future lead mechanics require a later Booking migration contract;
-current Booking365 remains unchanged.
+is unpublished. The [approved Stage 3E policy](../03%20Technical/Quarterly%20Backend%20Consumer%20Cutover.md#approved-ph-10-booking-policy)
+preserves absolute calendar lead weights through day 365 and ±3-day shopping
+inside that horizon. Unavailable intent is terminal, without renormalization or
+backlog. Published supply beyond day 365 does not extend booking preferences.
+Legacy careers retain Booking365 unchanged; quarterly careers require exclusive
+quarterly consumers before isolated activation.
 
 Preserve progressive daily accumulation. Published flights months ahead gradually
 fill as daily directional demand arrives; no static quarterly passenger allocation.
-Capacity does not create base demand. Booking inventory and lead-time distribution
-within the publication-dependent horizon still need implementation contracts before
-changing the current 365-day Booking configuration/equations.
+Capacity does not create base demand. Stage 3E's isolated inventory/lineage contract
+preserves the current absolute 365-day configuration and choice equations.
+Published periods define supply; the approved calendar horizon defines preferences.
 
 ## Approved future direction: delivery and advance cash
 

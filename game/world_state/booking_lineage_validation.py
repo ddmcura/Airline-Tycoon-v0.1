@@ -253,6 +253,8 @@ def valid_booking_relationships(world, *, valid_date=_date):
         value = airline.get('finance_revision')
         if type(value) is not int or value < 0: return False
     for flight in world['dated_flights'].values():
+        if 'quarterly_lineage' in flight:
+            return False  # Quarterly contracts use the complete detailed validator.
         value = flight.get('inventory_revision')
         if (type(value) is not int or value < 0
                 or 'remaining_capacity' in flight or 'booked_capacity' in flight):

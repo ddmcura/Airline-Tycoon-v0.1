@@ -206,6 +206,7 @@ def _sources(envelope, owner, intent, index=None):
         for pid, p in plans if p['airline_id'] == owner}
     facts = {'time_utc': envelope['simulation']['time_utc'], 'records': records,
         'plans': owner_plans}
+    facts['operational_authority'] = envelope['simulation'].get('operational_authority')
     aircraft_ids = {identity for table, identity in refs if table == 'aircraft'}
     facts['temporal'] = temporal_sources(envelope, aircraft_ids, index=index)
     if intent['kind'] == 'CONTINUE':

@@ -332,3 +332,22 @@ The curated scenario may carry the same optional air_suitability_configuration
 at its root and the airport inputs in active airport_pack.records.
 Absence preserves legacy contracts. Calibration values belong in versioned
 reference data, not production airport-code branches.
+# Quarterly Stage 3E isolated operational extension (Schema 9)
+# Canonical: Docs/03 Technical/Stage 1 State Schema.md
+# Optional simulation.operational_authority = QUARTERLY_BACKEND_V1; absent is legacy.
+# Only isolated untouched new careers, before legacy scheduling/bookings/operations;
+# initial empty bootstrap checkpoint/successor allowed, no demand/outcomes/elapsed time.
+# Never auto-convert saves.
+# Quarterly dated_flights use allocated IDs bijective to service/date/slot occurrence_key.
+# Legacy schedule_id/schedule_revision/superseded_by_schedule_revision are null.
+# Required quarterly_lineage = {weekly_plan_id, revision, service_id, slot_number,
+# operating_date, published_at_utc}; exact current published version/slot/time trace.
+# Itinerary schedule_lineage is null; quarterly_lineage propagates to itinerary,
+# lifecycle event payload, active operation and finalized result. Booking/finance IDs unchanged.
+# Quarterly manifest Booking witnesses fingerprint quarterly_lineage with null schedule_lineage.
+# No persisted remaining/booked capacity, unsold descriptor cache or whole-quarter materialization.
+# QUARTERLY_DISPATCH aircraft event: priority 90, exact payload
+# {contract: QUARTERLY_DISPATCH_V1, quarterly_lineage}; derived next committed departure.
+# Publication reconciles dispatch before Booking; actual movement uses existing strict fulfilment.
+# Retired commitments execute, exclude new sales. Legacy shared certificates do not cover quarterly.
+# Save/Load preserve explicit mode and obligations; ordinary New/GUI stay dormant.

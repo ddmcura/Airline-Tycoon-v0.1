@@ -1,5 +1,10 @@
 # Quarterly Operational Lineage and Occurrence Contracts — Stage 3B
 
+Stage 3E successor: [isolated backend cutover](Quarterly%20Backend%20Consumer%20Cutover.md)
+resolves the PH 1.0 booking policy and adds explicit Schema 9 mode/consumer lineage.
+Unsold descriptors remain derived; sold/imminent rows use bijective dated aliases.
+The Stage 3B scope recorded below remains historical; ordinary gameplay stays dormant.
+
 Stage 3C successor: [shared publication](Quarterly%20Shared%20Publication.md) fixes
 the existing revision timestamp or creates one ordinary carry-forward snapshot,
 preserving service/slot/date and published-version lineage. Descriptors remain

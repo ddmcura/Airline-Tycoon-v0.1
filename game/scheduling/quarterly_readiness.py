@@ -92,6 +92,7 @@ def _observations(envelope, owner, selected, plans, baseline, aircraft_ids, inde
     # Current owned versions determine targeting/baselines. Retained history is
     # not copied wholesale; the selected versions/dependency reads remain exact.
     facts = {'time_utc': envelope['simulation']['time_utc'], 'airline': state['airlines'][owner],
+             'operational_authority': envelope['simulation'].get('operational_authority'),
              'plans': {pid: {'quarter_id': p['quarter_id'], 'current_revision': p['current_revision'],
                             'revision': p['revisions'][str(p['current_revision'])]}
                        for pid, p in plans.items()},

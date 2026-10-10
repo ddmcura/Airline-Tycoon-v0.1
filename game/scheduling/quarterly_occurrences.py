@@ -17,6 +17,16 @@ from .timing import timing_bounds
 MAX_OCCURRENCE_REFERENCES = 128
 
 
+def _project_times(world, facts, operating_date):
+    """Shared pure dated projection; callers retain their own complete gates."""
+    departure = local_departure(world, facts['origin_airport_id'], operating_date,
+        facts['departure_local_time'], fold=facts['departure_local_fold'])
+    pre, block, post = timing_bounds(facts['planning_timing'])[1]
+    arrival = departure + timedelta(seconds=block)
+    return (departure, arrival, departure - timedelta(seconds=pre),
+            arrival + timedelta(seconds=post))
+
+
 @dataclass(frozen=True)
 class QuarterlyOccurrenceReference:
     weekly_plan_id: str
@@ -135,16 +145,14 @@ def resolve_quarterly_occurrences(envelope, *, airline_id, requests,
             facts = slot.facts
             if date.fromisoformat(ref.operating_date).weekday() not in facts['weekdays']:
                 raise _ReadFailure('INVALID_REFERENCE', 'operating_date', 'date not in selected frequency')
-            departure = local_departure(envelope['world_state'], facts['origin_airport_id'],
-                ref.operating_date, facts['departure_local_time'], fold=facts['departure_local_fold'])
+            departure, arrival, reservation_start, reservation_end = _project_times(
+                envelope['world_state'], facts, ref.operating_date)
             quarter = parse_quarter_id(plan.quarter_id)
             if not quarter.start_utc <= departure < quarter.end_exclusive_utc:
                 raise _ReadFailure('INVALID_REFERENCE', 'operating_date', 'departure outside selected UTC quarter')
-            pre, block, post = timing_bounds(facts['planning_timing'])[1]
-            arrival = departure + timedelta(seconds=block)
             output.append(QuarterlyOccurrence(ref, airline_id, plan.quarter_id, plan.published_at_utc,
                 slot.flight_number, slot.market_id, facts, format_utc(departure), format_utc(arrival),
-                format_utc(departure - timedelta(seconds=pre)), format_utc(arrival + timedelta(seconds=post))))
+                format_utc(reservation_start), format_utc(reservation_end)))
         _entry(envelope)
         final = resolve_quarterly_reads(envelope, airline_id=airline_id, selections=plan_requests)
         if final != read or _sources(envelope, final) != sources:
