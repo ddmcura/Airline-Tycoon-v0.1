@@ -1,6 +1,6 @@
 # Decision Register
 
-Last updated: **2026-10-08**. This is an index of durable decisions, not a second
+Last updated: **2026-10-10**. This is an index of durable decisions, not a second
 specification. IDs are stable and never recycled. Use Approved, Deferred,
 Rejected, or Superseded; link replacements when superseding. Proposed release
 choices remain in the [roadmap](Stage%201%20Implementation%20Roadmap.md), not here
@@ -8,6 +8,7 @@ as approved facts. Test links identify evidence locations, not a fresh test run.
 
 | ID | Title | Status | Decision and reason | Canonical source | Implementation / tests |
 | --- | --- | --- | --- | --- | --- |
+| AT-052 | Dormant quarterly boundary orchestration and recovery | Approved | Explicit isolated enrollment stores the outstanding owner/quarter obligation and failure diagnostic in optional Schema 9 JSON. Strict publication precedes equal-UTC consumers independently of priority-0 enqueue order. Certified correction is restricted to the genuinely failed unpublished quarter; fresh retry/committed skip alone advances the obligation. Stale/missing/duplicate events preserve mandatory work and existing runtime budgets. No ordinary gameplay or operational consumer activation. | [Boundary contract](Quarterly%20Boundary%20Orchestration.md), [schema](Stage%201%20State%20Schema.md) | [Domain handler](../../game/scheduling/quarterly_boundary.py), [kernel](../../game/simulation/kernel.py), [tests](../../tests/test_quarterly_boundaries.py) |
 | AT-001 | Whole-world authority | Approved | Immutable IDs and validated whole-world state own simulation; UI focus and display labels cannot select ownership or save scope. Prevents partial worlds and mutable foreign keys. | [Save architecture](Game%20State%20%26%20Save%20Architecture.md), [schema](Stage%201%20State%20Schema.md) | [World state](../../game/world_state/validation.py), [tests](../../tests/test_stage1_world_state.py) |
 | AT-002 | Deterministic clock | Approved | Exact UTC seconds, persisted event order and deterministic inputs; no offline progress. Speed affects pacing, not outcomes. | [Roadmap: Milestone 2](Stage%201%20Implementation%20Roadmap.md#milestone-2--continuous-clock-and-event-kernel) | [Kernel](../../game/simulation/kernel.py), [tests](../../tests/test_stage1_event_kernel.py) |
 | AT-003 | USD accounting | Approved | PH scenario uses integer USD minor units; PHP/EUR are display-only. Display conversion cannot alter demand, finance or fingerprints. Other supported currency cost profiles do not change PH scenario authority. | [Terminal currency boundary](Stage%201%20Terminal%20Harness%20Technical%20Specification.md#currency-boundary) | [Session](../../app/session.py), [tests](../../tests/test_stage1_terminal_harness.py) |

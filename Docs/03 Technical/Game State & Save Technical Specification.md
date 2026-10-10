@@ -2,7 +2,14 @@
 
 ## Quarterly authority and approved future workflows
 
-Schema 9 foundation is implemented; the future quarterly workflows remain unimplemented.
+Schema 9 foundation and dormant strategic publication are implemented. The isolated
+[Stage 3D boundary workflow](Quarterly%20Boundary%20Orchestration.md) persists optional
+`simulation.quarterly_publication` obligations/failures through the existing complete
+JSON snapshot. Existing Schema 9 saves omit that field without migration. Load
+validates a separate candidate and remains paused; processing reconstructs missing
+current work by the versioned rule, never historical Booking. A saved frontier before
+UTC rejects. Ordinary PH remains unenrolled; quarterly operational consumers remain
+unimplemented.
 
 Stage 1 supplies dormant identity/plan authority; Schema 9 now provides protected
 historical display-number reuse and new-save-only

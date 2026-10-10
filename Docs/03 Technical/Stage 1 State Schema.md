@@ -1,5 +1,40 @@
 # Stage 1 State Schema
 
+## Quarterly Stage 3D dormant boundary authority
+
+Schema 9 optionally stores `simulation.quarterly_publication`, an airline-ID map
+to exactly `{next_quarter_id, failure}`. Absence preserves ordinary PH gameplay.
+Only the explicitly isolated test activation path creates entries. The next quarter
+is the outstanding mandatory publication obligation; its due time is derived from
+the UTC month-three calendar. It advances by one quarter only in the same complete
+event transaction as successful Stage 3C publication or a validated committed skip.
+`failure` is null or exactly `{code, message, details}`, with details a JSON list of
+structured diagnostics. A failure requires simulation UTC to equal that obligation's
+boundary. No runtime preparation, index, iterator, pacing credit or readiness is saved.
+
+`QUARTERLY_PUBLICATION` is an airline-owned strict event, priority 0, current owner
+operation revision, payload exactly `{contract: QUARTERLY_BOUNDARY_V1, quarter_id}`.
+The derived queue has an explicit publication barrier at equal UTC: these events
+precede all other events; unrelated events retain priority/sequence/ID order. This
+is an ordering amendment, not negative priority or enqueue-order dependence.
+
+The versioned recovery rule reconstructs only each enrolled owner's outstanding
+event from the persisted obligation. Duplicate or obsolete publication events resolve
+as budgeted lifecycle-only work without changing unrelated events. Stale resolution cannot discharge
+an obligation. No arbitrary historical event replay is authorized. A frontier before
+saved UTC is invalid, rather than silently repaired. Saves preserve failures and
+obligations; Load stays paused and processing reconciles before selecting work.
+Retained quarterly publication history also requires that owner's enrollment entry;
+omitting continuation authority is invalid, not a dormant-world conversion.
+
+Failure commits only the boundary clock/pause and deterministic diagnostic while
+the failed event and dependent work stay pending. A certified command may correct
+only that genuinely fenced unpublished quarter, including initialization from its
+existing published baseline; published revisions remain immutable. Retry uses fresh
+Stage 3C preparation, all four full gates and both world copies. Existing Schema 9
+saves omit this optional field and require no migration. No ordinary activation,
+quarterly operational supply, Booking migration or GUI integration is introduced.
+
 ## Schema 9 — reusable flight-number authority
 
 Schema 9 supersedes Schema 8's permanent airline/number uniqueness, retaining
@@ -1468,6 +1503,9 @@ not be serialized. See the [runtime contract](Continuous%20Runtime%20Technical%2
   the persisted cursor. Sequence values are never reused in the save lineage.
 - Queue order is `(due_at_utc, priority, sequence, event_id)`. Dictionary order
   is irrelevant. A heap or other queue index is derived and rebuildable.
+  The isolated quarterly Stage 3D foundation adds the explicit equal-UTC publication
+  barrier described above; all unrelated events retain this relative order. See
+  [Quarterly Boundary Orchestration](Quarterly%20Boundary%20Orchestration.md).
 - Pending events have `PENDING` status. Resolution moves the immutable event ID
   to `event_history` with one terminal status and `resolved_at_utc`; an event ID
   cannot exist in both collections.

@@ -2,6 +2,90 @@
 
 Last updated: **2026-10-10**. Current snapshot, not operational authorization.
 
+## Stage 3D - quarterly boundary orchestration (2026-10-10 working tree)
+
+Approved baseline **7c3fb6110bb3aa1550e3a919ce8a4ec8a4effae4** matched HEAD,
+upstream, fetched origin/master and live remote; tracked tree/index clean, only
+`.venv/` untracked. Serena project/memories and symbolic transaction/kernel/resolver
+navigation used; repository contracts supersede stale memories. Canonical Schema 9
+and subordinate template were amended before construction/validation implementation.
+[Boundary contract](Quarterly%20Boundary%20Orchestration.md), indexed by AT-052,
+defines the bounded isolated behavior; ordinary quarterly gameplay stays dormant.
+
+Scheduling's exact strict handler reuses Stage 3C's fresh automatic prepare/apply
+transaction. Simulation's equal-UTC publication rank precedes Booking priority 0
+regardless of enqueue sequence, preserving all unrelated relative event order.
+Optional authoritative `simulation.quarterly_publication` stores owner obligations
+and durable failure diagnostics, with no schema version change or migration of
+existing Schema 9 worlds. Failed publication discards its private candidate, then
+validates/detaches only boundary-clock/pause/diagnostic changes; pending consumers
+and all plan/domain authority remain unchanged. Certified corrections may address
+only the genuinely fenced unpublished target outside the normal planning window.
+Fresh retry/actual committed skip alone clears the fence and advances the obligation.
+
+Versioned bounded reconciliation reconstructs missing current work; STALE cannot
+erase the obligation. Duplicates/obsolete events remain budgeted lifecycle work.
+Save/Load preserves the optional state and pauses; rebind revokes preparations.
+Only explicit isolated test-world enrollment creates the policy; ordinary New/Load,
+legacy Scheduling/Booking365, operational flights/finance/GUI and pacing are preserved.
+No supply/inventory migration, automatic positioning or runtime 3G-C work.
+
+Initial focused run: **27 tests in 52.559s, four fixture errors** (unittest helper
+name collision and pre-existing date-specific marketplace bootstrap witness failures).
+Corrected without production marketplace changes: **27 PASS in 49.762s**.
+Expanded intermediate **34 PASS in 80.163s**. Subsequent defensive checks protect
+obligation changes from unrelated handlers and verify actual commitment before
+frontier advancement. Further self-review found missing enrollment with retained
+publication history; validation now rejects lost required continuation authority,
+using the existing event traversal rather than another ordinary history scan.
+Earlier regression/full runs were stopped for this correction and are not passing
+final evidence. Intermediate runtime run: **164 tests in 529.379s, two failures**
+from stale protected-fence enumeration expectations. Updated assertions include
+the isolated fence while explicitly requiring no quarterly event/policy in ordinary
+gameplay. Final coverage is 39 new boundary cases. Source/tests were frozen
+before restarted full discovery with before/after SHA-256 witnesses.
+**Final verification passes**. This implementation snapshot precedes the authorized
+commit/push; Git history and the completion report establish revision/remote outcomes.
+
+Final-source focused `.venv/Scripts/python.exe -B -m unittest
+ tests.test_quarterly_boundaries -q`: **39 PASS in 99.242s**. Two corrected resolver
+witnesses: **2 PASS in 20.801s**. Scoped `.venv/Scripts/python.exe -m compileall
+ -q app game tests main.py make_snapshot.py settings.py test.py`: **exit 0**.
+Final documentation check: **10 documents / 418 local links /
+67 heading targets PASS**, tracked casing and balanced fences; whitespace PASS.
+Final `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_boundaries
+ tests.test_stage1_event_kernel tests.test_shared_candidate tests.test_simulation_resolver
+ tests.test_causal_generation tests.test_runtime_startup -q`: **166 PASS in 563.904s**.
+Final `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_publication
+ tests.test_quarterly_occurrences tests.test_quarterly_readiness tests.test_quarterly_indexes
+ tests.test_quarterly_feasibility tests.test_quarterly_commands tests.test_quarterly_reads
+ tests.test_quarterly_transactions tests.test_quarterly_foundation tests.test_service_number_reuse
+ tests.test_planning_reposition tests.test_scheduling_continuity tests.test_scheduling_recurrence
+ tests.test_stage1_booking_checkpoint tests.test_stage1_runtime tests.test_step7_save_load
+ tests.test_stage1_aircraft_marketplace -q`: **396 PASS in 751.659s**.
+Final `.venv/Scripts/python.exe -B -m unittest discover -s tests -v`:
+**1,476 PASS in 2,226.264s** (baseline 1,437 + 39). All **313 source/test SHA-256
+witnesses match** before/after discovery. No changed source escaped final testing.
+Final scope/self-review passes: **22 files**, eleven source/tests and eleven
+documentation/template files, listed in the [boundary implementation record](Quarterly%20Boundary%20Orchestration.md#exact-changed-file-scope).
+No protected metadata, `.venv/`, reference scenario or operational consumer changes.
+Verification scratch files are excluded and removed before staging.
+
+Final-source representative three-run median strict boundary/retry costs on one aircraft and
+selected two-slot/empty fixtures: existing publication **0.574298s**, unchanged
+failed retry **0.397819s**, corrected empty retry **0.392059s**. Source compact JSON
+sizes **321571 / 321165 / 321219 bytes**; min/max **0.496610..0.595455 /
+0.367782..0.415815 / 0.368600..0.415570s** respectively. Concurrent verification;
+these include outer event isolation/validation/detachment and retained Scheduling
+gates/proofs/copies. They certify no fleet scale or runtime capacity. Patch 1.2B
+100 same-time generations/10,000 processed events and later-child retention remain.
+
+Stage 3E consumer migration/policy, 3F GUI/session flows and 3G coherent activation
+remain later scope. Some date-specific pre-existing marketplace bootstrap witnesses
+still reject (e.g. 2027-05-31 and 2027-11-30 starts); those unrelated failures were
+not changed. Boundary tests use validated exact-boundary scenarios, with March also
+checking the preceding exact second. `.venv/` and protected local metadata preserved.
+
 ## Stage 3C - shared quarterly publication (2026-10-10 working tree)
 
 Starting baseline **13a01deeaa978a003e9103ec4a5554538fc49b7e** matched HEAD,

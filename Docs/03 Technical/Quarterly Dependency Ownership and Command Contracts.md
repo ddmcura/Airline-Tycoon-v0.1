@@ -1,5 +1,11 @@
 # Quarterly Dependency, Ownership and Validated-Command Contracts
 
+Stage 3D successor: [boundary orchestration](Quarterly%20Boundary%20Orchestration.md)
+provides isolated automatic events, a publication-before-Booking barrier, persisted
+failure obligations, narrowly certified corrections and fresh retry/reconciliation.
+It preserves Stage 2 gates/copies, identity/chronology and existing consumers. Normal
+PH/quarterly operational activation remains deferred; older checkpoint scopes follow.
+
 Stage 3C successor: [shared publication workflow](Quarterly%20Shared%20Publication.md)
 uses the existing four-gate/two-copy command path for dormant strategic commitments,
 with staged index publication and fresh execution proof. Automatic runtime events,

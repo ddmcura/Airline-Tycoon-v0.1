@@ -301,6 +301,7 @@ class _Validator:
         self._graph_checked = False
         self._json_checked = False
         self._aliases_checked = False
+        self._quarterly_events_seen = False
 
     def add(self, code, path, message, entity_type=None, entity_id=None):
         self.errors.append(ValidationIssue(code, path, message, entity_type, entity_id))
@@ -2586,6 +2587,8 @@ class _Validator:
         seen_sequences = {}
 
         def validate_event(event_id, record, path, pending):
+            if record.get('event_type') == 'QUARTERLY_PUBLICATION':
+                self._quarterly_events_seen = True
             self.require_text(record, "event_type", path, "event", event_id)
             due = self.require_timestamp(record, "due_at_utc", path, "event", event_id)
             if pending and due and _canonical_utc(simulation_time) and due < simulation_time:
@@ -3199,6 +3202,14 @@ class _Validator:
                 validate_quarterly(self.envelope)
             except (ValueError, TypeError, KeyError, OverflowError, OSError) as exc:
                 self.add('invalid_quarterly_authority', '$.world_state', str(exc))
+        if not self.errors and ('quarterly_publication' in self.envelope.get('simulation', {})
+                or self._quarterly_events_seen):
+            from .quarterly_boundary import validate_boundaries
+            try:
+                validate_boundaries(self.envelope)
+            except (ValueError, TypeError, KeyError, OverflowError):
+                self.add('invalid_quarterly_boundary', '$.simulation.quarterly_publication',
+                         'invalid quarterly obligation, failure fence or publication event')
         return ValidationResult(tuple(self.errors))
 
 

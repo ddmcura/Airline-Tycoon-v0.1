@@ -300,7 +300,8 @@ class ResolverBoundaryTests(unittest.TestCase):
 
     def test_protected_fences_recorded_and_kernel_transaction_counts_unchanged(self):
         self.assertEqual(PROTECTED_CAUSAL_FENCES, {
-            "DAILY_BOOKING_CHECKPOINT", "STAGE1_WEEKLY_PUBLICATION", "AIRCRAFT_CONTRACT_EXPIRY"})
+            "DAILY_BOOKING_CHECKPOINT", "STAGE1_WEEKLY_PUBLICATION", "AIRCRAFT_CONTRACT_EXPIRY",
+            "QUARTERLY_PUBLICATION"})
         registry = recording_registry()
         due = "2026-08-20T05:00:00Z"
         for label in ("a", "b"):
@@ -362,7 +363,9 @@ class ResolverGameplayEquivalenceTests(unittest.TestCase):
         self.assertEqual(len(state["flight_results"]), 2)
         self.assertTrue(state["bookings"])
         types = {event["event_type"] for event in state["event_history"].values()}
-        self.assertTrue(PROTECTED_CAUSAL_FENCES - {"AIRCRAFT_CONTRACT_EXPIRY"} <= types)
+        self.assertTrue(PROTECTED_CAUSAL_FENCES - {"AIRCRAFT_CONTRACT_EXPIRY", "QUARTERLY_PUBLICATION"} <= types)
+        self.assertNotIn('QUARTERLY_PUBLICATION', types)
+        self.assertNotIn('quarterly_publication', expected['simulation'])
         self.assertIn("STAGE1_FLIGHT_DEPARTURE", types)
         self.assertIn("STAGE1_FLIGHT_COMPLETION", types)
 

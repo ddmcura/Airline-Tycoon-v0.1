@@ -33,12 +33,14 @@ def _project_next_pending_event_owned(envelope):
         return None
     event = min(
         pending.values(),
-        key=lambda item: (
-            item["due_at_utc"], item["order_key"][0],
-            item["order_key"][1], item["event_id"],
-        ),
+        key=_kernel_event_key,
     )
     return deepcopy(_event_row(event))
+
+
+def _kernel_event_key(event):
+    from .kernel import _event_key
+    return _event_key(event)
 
 
 def project_event_records(envelope, event_ids, *, limit=100):

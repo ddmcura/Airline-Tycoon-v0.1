@@ -141,7 +141,9 @@ def _resolve(envelope, owner, intent, index=None):
             selections=(PlanReadRequest(pid, expected),))
         if not old.succeeded:
             raise _ReadFailure(old.issues[0].code, old.issues[0].path, old.issues[0].message)
-    if quarter != _target(state, owner, envelope['simulation']['time_utc'], index):
+    from game.world_state.quarterly_boundary import correction_target
+    if (quarter != _target(state, owner, envelope['simulation']['time_utc'], index)
+            and not correction_target(envelope, owner, quarter)):
         _fail('CLOSED_TARGET', 'quarter_id', 'use the eligible unpublished future quarter')
     if intent['kind'] == 'FARE':
         sid = intent['service_id']; service = _lookup(state, 'services', sid, 'service')

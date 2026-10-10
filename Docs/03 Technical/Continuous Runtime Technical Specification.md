@@ -1,5 +1,16 @@
 # PH 1.0 Step 4 — Continuous Runtime
 
+## Quarterly Stage 3D isolated ordering successor
+
+[Quarterly boundary orchestration](Quarterly%20Boundary%20Orchestration.md) adds
+an explicit publication rank before persisted priority at equal UTC for enrolled
+test worlds. Booking priority 0 and all unrelated relative event order remain.
+The strict/shared kernel handles mandatory publication, durable failed-boundary
+pause/correction/retry and versioned obligation reconciliation. Patch 1.2B budgets,
+complete boundaries, pacing and ordinary PH authority remain unchanged. Optional
+Schema 9 JSON obligations persist only in explicitly enrolled worlds; there is no
+ordinary quarterly activation or new operational consumer.
+
 ## Approved future direction (2026-10-07; not implemented)
 
 The next architecture audit examines quarterly/weekly planning before further optimization of current publication machinery. Stage 3G-C is not implemented. No runtime boundary, pacing, concurrency or measured capacity claim changes here.

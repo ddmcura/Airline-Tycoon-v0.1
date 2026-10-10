@@ -1,5 +1,12 @@
 # Shared Quarterly Publication Workflow — Stage 3C
 
+Stage 3D successor: [boundary orchestration and recovery](Quarterly%20Boundary%20Orchestration.md)
+invokes this unchanged transaction from isolated strict boundary events. Optional
+Schema 9 obligations/fences, the publication ordering barrier, certified correction
+eligibility and deterministic queue recovery are implemented there. Ordinary PH
+and quarterly operational consumers remain dormant; earlier 3C statements are its
+checkpoint scope.
+
 **IMPLEMENTED: DORMANT SHARED TRANSACTION**, 2026-10-10. Starting baseline:
 `13a01deeaa978a003e9103ec4a5554538fc49b7e`.
 Authority: [Schema 9](Stage%201%20State%20Schema.md#schema-9--reusable-flight-number-authority),

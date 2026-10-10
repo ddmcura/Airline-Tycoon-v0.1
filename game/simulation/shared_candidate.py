@@ -284,6 +284,7 @@ class SharedResolutionRequest(ResolutionRequest):
             failure = kernel._valid_world_failure(self._world)
             if failure:
                 return self._finish('BLOCKED', failure)
+            kernel._reconcile_quarterly(self._world)
             self._heap = kernel.build_event_queue_index(self._world)
         was_started = self._started
         self._started = True

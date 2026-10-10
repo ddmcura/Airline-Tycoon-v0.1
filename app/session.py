@@ -504,6 +504,17 @@ class Stage1Session:
         return resolve_quarterly_occurrences(self.world, airline_id=self.airline_id,
             requests=requests, require_published=require_published, expected_time_utc=expected_time_utc)
 
+    def quarterly_boundary_status(self):
+        """Detached durable obligation/failure diagnostics; never an edit capability."""
+        from copy import deepcopy
+        from game.world_state.quarterly_boundary import obligations, boundary
+        if not self.active or not validate_world(self.world).is_valid:
+            return None
+        entry = obligations(self.world).get(self.airline_id)
+        if entry is None:
+            return None
+        return dict(deepcopy(entry), due_at_utc=boundary(entry['next_quarter_id']))
+
     def _quarterly_command_boundary(self):
         from game.scheduling.quarterly_commands import rejected
         if not self.active:
@@ -733,7 +744,7 @@ class Stage1Session:
         rows = _project_event_records_owned(self.world, ids) if result.succeeded else (project_event_records(self.world, ids) or [])
         if result.completed_event_ids or result.skipped_event_ids or (
             result.ended_at_utc != result.started_at_utc
-        ):
+        ) or (result.failure is not None and self.quarterly_boundary_status() is not None):
             self._mark_progress()
         return AdvancementReport(result, tuple(rows))
 

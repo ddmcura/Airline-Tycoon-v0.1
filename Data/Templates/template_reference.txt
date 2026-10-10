@@ -1,5 +1,16 @@
 # Schema 9 reusable flight-number authority (2026-10-08).
 # Canonical authority: Docs/03 Technical/Stage 1 State Schema.md.
+# Stage 3D optional isolated enrollment; absent in ordinary PH worlds, Schema 9 unchanged.
+simulation.quarterly_publication (optional): airline_id -> {next_quarter_id, failure}
+# failure: null or {code, message, details: [JSON diagnostic objects]}; fenced at exact due UTC.
+# QUARTERLY_PUBLICATION: airline owner, current operation revision, priority 0,
+# payload exactly {contract: QUARTERLY_BOUNDARY_V1, quarter_id}.
+# Derived equal-UTC publication barrier precedes other events; unrelated ordering unchanged.
+# Persisted obligation advances only with complete successful publication/committed skip.
+# Versioned recovery reconstructs missing current work, resolves duplicate/obsolete work as budgeted lifecycle,
+# and cannot discharge mandatory obligations via STALE or replay historical Booking.
+# Retained quarterly publication history requires its owner's enrollment entry.
+# Certified correction restricted to failed unpublished target; fresh Stage 3C retry.
 # Dormant foundation; legacy operational scheduling remains the current consumer.
 world_state.services: service_id -> {service_id, airline_id, flight_number_number, next_slot_number, retired_at_utc}
 world_state.service_numbering: airline_id -> {flight_number_prefix, next_number}

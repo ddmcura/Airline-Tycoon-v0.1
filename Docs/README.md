@@ -37,6 +37,8 @@ domain contracts. Neither historical code nor a template overrides the schema.
   schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
   current 30/210/900/1800x pacing, management while running, exclusive world ownership and performance gates.
+- [Quarterly boundary orchestration](03%20Technical/Quarterly%20Boundary%20Orchestration.md):
+  isolated Stage 3D automatic publication barrier, durable fences, certified correction/retry and queue/save recovery.
 - [Production cooperative runtime](03%20Technical/Production%20Cooperative%20Runtime.md):
   Stage 3E bounded shared pumping, exact pacing credit, pause/catch-up barriers and production measurements.
 - [Atomic boundary cost optimization](03%20Technical/Atomic%20Boundary%20Cost%20Optimization.md):

@@ -43,6 +43,13 @@ class EventFailure:
     validation_errors: tuple[dict, ...] = ()
 
 
+class HandlerFailure(Exception):
+    """A strict handler's deterministic structured rejection, never saved as an object."""
+    def __init__(self, failure):
+        self.failure = failure
+        super().__init__(failure.message)
+
+
 @dataclass(frozen=True)
 class ProcessingResult:
     status: str
@@ -151,7 +158,7 @@ def _event_key(event):
     priority, sequence = event["order_key"]
     return (
         parse_canonical_utc(event["due_at_utc"], "due_at_utc"),
-        priority,
+        (0 if event['event_type'] == 'QUARTERLY_PUBLICATION' else 1, priority),
         sequence,
         event["event_id"],
     )
@@ -180,6 +187,13 @@ def build_event_queue_index(envelope):
     heap = [_event_key(event) for event in envelope["world_state"]["pending_events"].values()]
     heapq.heapify(heap)
     return _CanonicalQueue(heap, _token=_QUEUE_TOKEN, _source_identity=id(envelope))
+
+
+def _reconcile_quarterly(envelope):
+    if envelope['simulation'].get('quarterly_publication'):
+        from game.scheduling.quarterly_boundary import reconcile, initialize_quarterly_handler
+        initialize_quarterly_handler()
+        reconcile(envelope)
 
 
 def configure_clock_ratios(envelope, *, normal=None, fast=None):
@@ -354,13 +368,22 @@ def _replace_envelope(target, candidate):
     target.update(committed)
 
 
-def _handler_contract_error(original, candidate, due_at_utc):
+def _handler_contract_error(original, candidate, due_at_utc, *, quarterly_owner=None):
     original_simulation = original["simulation"]
     candidate_simulation = candidate["simulation"]
     if candidate_simulation.get("time_utc") != due_at_utc:
         return "handlers cannot change the event timestamp selected by the kernel"
     if candidate_simulation.get("configuration") != original_simulation.get("configuration"):
         return "handlers cannot change clock configuration"
+    old_obligations = original_simulation.get('quarterly_publication')
+    expected_obligations = deepcopy(old_obligations)
+    if quarterly_owner is not None:
+        from game.utils.quarters import parse_quarter_id
+        entry = expected_obligations[quarterly_owner]
+        entry['next_quarter_id'] = parse_quarter_id(entry['next_quarter_id']).shift().quarter_id
+        entry['failure'] = None
+    if candidate_simulation.get('quarterly_publication') != expected_obligations:
+        return 'only the mandatory publication transaction may advance quarterly obligations'
     original_mode = original_simulation.get("clock_state")
     candidate_mode = candidate_simulation.get("clock_state")
     original_target = original_simulation.get("fast_forward", {}).get("target_time_utc")
@@ -410,15 +433,26 @@ def _execute_event(envelope, event_id, registry):
     if event["operation_revision"] < current_revision:
         envelope["simulation"]["time_utc"] = due
         _resolve_without_handler(envelope, event_id, "STALE", due)
-        return "STALE", None, ()
+        generated = ()
+        if event['event_type'] == 'QUARTERLY_PUBLICATION':
+            from game.scheduling.quarterly_boundary import reconcile
+            generated = reconcile(envelope)
+        return "STALE", None, generated
 
     handler = registry.handler_for(event["event_type"])
+    if event['event_type'] == 'QUARTERLY_PUBLICATION' and handler is not None:
+        from game.scheduling.quarterly_boundary import _publication_handler
+        if handler is not _publication_handler:
+            failure = EventFailure('HANDLER_CONTRACT_VIOLATION',
+                'mandatory quarterly publication requires its certified strict domain handler', event_id)
+            return None, _quarterly_failure_fence(envelope, event, failure), ()
     if handler is None:
-        return None, EventFailure(
+        failure = EventFailure(
             "UNKNOWN_EVENT_TYPE",
             f"no handler registered for {event['event_type']}",
             event_id,
-        ), ()
+        )
+        return None, _quarterly_failure_fence(envelope, event, failure), ()
 
     # The built-in no-op lifecycle has no handler mutation to isolate.  This
     # O(1) path makes queue throughput independent of total world size.
@@ -431,17 +465,34 @@ def _execute_event(envelope, event_id, registry):
     outcome, failure, new_event_ids = _apply_handler_candidate(
         envelope, candidate, event_id, handler)
     if failure:
-        return outcome, failure, new_event_ids
+        return outcome, _quarterly_failure_fence(envelope, event, failure), new_event_ids
     validation = validate_world(candidate)
     if not validation.is_valid:
-        return None, EventFailure(
+        failure = EventFailure(
             "RESULT_VALIDATION_FAILED",
             "handler result did not satisfy authoritative validation",
             event_id,
             tuple(issue.as_dict() for issue in validation.errors),
-        ), ()
+        )
+        return None, _quarterly_failure_fence(envelope, event, failure), ()
     _replace_envelope(envelope, candidate)
     return outcome, None, new_event_ids
+
+
+def _quarterly_failure_fence(envelope, event, failure):
+    if event['event_type'] != 'QUARTERLY_PUBLICATION':
+        return failure
+    from game.world_state.quarterly_boundary import obligations, record_failure_candidate
+    entry = obligations(envelope).get(event['owner_id'])
+    if not entry or entry['next_quarter_id'] != event['payload']['quarter_id']:
+        return failure
+    candidate = _clone_runtime_world(envelope)
+    record_failure_candidate(candidate, event, failure)
+    invalid = _valid_world_failure(candidate)
+    if invalid:
+        return invalid
+    _replace_envelope(envelope, candidate)
+    return failure
 
 
 def _event_contract_witness(candidate, *, ownership=None):
@@ -545,6 +596,8 @@ def _apply_handler_candidate(original, candidate, event_id, handler, *, read_cap
     try:
         handler_result = handler(EventContext(candidate, deepcopy(candidate_event),
                                              _EVENT_TRANSACTION_TOKEN, read_capability, selection))
+    except HandlerFailure as exc:
+        return None, exc.failure, ()
     except Exception as exc:  # handler boundary deliberately converts to data
         return None, EventFailure("HANDLER_FAILED", str(exc), event_id), ()
     finally:
@@ -557,7 +610,14 @@ def _apply_handler_candidate(original, candidate, event_id, handler, *, read_cap
         ), ()
 
     try:
-        contract_error = _handler_contract_error(original, candidate, due)
+        quarterly_owner = None
+        if candidate_event['event_type'] == 'QUARTERLY_PUBLICATION':
+            from game.world_state.quarterly_boundary import obligations
+            entry = obligations(original).get(candidate_event['owner_id'])
+            if entry and entry['next_quarter_id'] == candidate_event['payload']['quarter_id']:
+                quarterly_owner = candidate_event['owner_id']
+        extra = {} if quarterly_owner is None else {'quarterly_owner': quarterly_owner}
+        contract_error = _handler_contract_error(original, candidate, due, **extra)
     except Exception:
         contract_error = "handler damaged kernel-owned authoritative structure"
     if contract_error:
@@ -638,6 +698,7 @@ def iter_events_through(
     if failure:
         return _failure_result(started, envelope, failure)
 
+    _reconcile_quarterly(envelope)
     heap = build_event_queue_index(envelope)
     completed = []
     skipped = []
@@ -718,6 +779,7 @@ def iter_events_through(
             failure = _valid_world_failure(envelope)
             if failure:
                 return _failure_result(started, envelope, failure, completed, skipped)
+            _reconcile_quarterly(envelope)
             heap = build_event_queue_index(envelope)
         if started_mode != "PAUSED" and envelope["simulation"]["clock_state"] == "PAUSED":
             return ProcessingResult("STOPPED", started, envelope['simulation']['time_utc'],
@@ -765,6 +827,7 @@ def process_next_event(envelope, *, registry=DEFAULT_EVENT_HANDLERS):
     failure = _valid_world_failure(envelope)
     if failure:
         return _failure_result(started, envelope, failure)
+    _reconcile_quarterly(envelope)
     heap = build_event_queue_index(envelope)
     if not heap:
         return ProcessingResult("NO_EVENT", started, started)

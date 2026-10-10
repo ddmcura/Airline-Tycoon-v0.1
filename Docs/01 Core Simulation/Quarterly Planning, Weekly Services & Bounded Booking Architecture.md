@@ -1,5 +1,12 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 3D implements [isolated boundary orchestration and recovery](../03%20Technical/Quarterly%20Boundary%20Orchestration.md):
+UTC automatic events, the explicit equal-time publication barrier, durable failure
+obligations, certified correction eligibility, fresh retry and queue/Load recovery.
+Only explicitly enrolled test worlds use it. No quarterly dated supply, Booking365
+migration, Departure/Completion/Finance cutover, GUI integration or ordinary gameplay
+activation occurs. Earlier checkpoint scopes below remain historical.
+
 Stage 3C implements [shared dormant publication transactions](../03%20Technical/Quarterly%20Shared%20Publication.md):
 manual/automatic invocation, latest-baseline carry-forward, commitment skipping and
 atomic rejection/retry. This commits Schema 9 strategy only; runtime publication,
