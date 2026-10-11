@@ -1,4 +1,8 @@
 # Schema 9 reusable flight-number authority (2026-10-08).
+# Stage 3F development-only GUI uses the existing isolated new-career capability.
+# No new persistent fields/version/migration. Forms, selections, readiness,
+# confirmation preparations, occurrence pages and binding counters are runtime-only.
+# Ordinary New Game unchanged; general quarterly activation remains Stage 3G.
 # Canonical authority: Docs/03 Technical/Stage 1 State Schema.md.
 # Stage 3D optional isolated enrollment; absent in ordinary PH worlds, Schema 9 unchanged.
 simulation.quarterly_publication (optional): airline_id -> {next_quarter_id, failure}

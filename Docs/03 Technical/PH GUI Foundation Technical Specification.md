@@ -1,5 +1,11 @@
 # PH 1.0 Kivy GUI Foundation
 
+Stage 3F successor: [quarterly planning GUI](Quarterly%20Planning%20GUI.md)
+connects the certified backend through the same session in explicitly isolated
+careers. The development launch flag adds a separate new-career action; ordinary
+New Game and legacy pages remain unchanged. No new persistent state or general
+activation. Earlier future-direction/checkpoint statements below are historical.
+
 ## Approved future direction (2026-10-07; not implemented)
 
 Quarterly/weekly planning is a future direction whose effect on scheduling controls and effective-date presentation requires audit. Existing GUI scheduling behavior remains unchanged; no redesign is implemented.

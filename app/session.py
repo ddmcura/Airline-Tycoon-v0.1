@@ -85,6 +85,7 @@ class Stage1Session:
     @world.setter
     def world(self, value):
         self._world = value
+        self.binding_revision = getattr(self, 'binding_revision', 0) + 1
         self._read_views = None
         # Runtime-only owner-issued preparations die on New/Load/foreign rebind.
         from weakref import WeakValueDictionary
@@ -158,6 +159,111 @@ class Stage1Session:
 
         from game.scheduling.quarterly_indexes import QuarterlyIndexOwner
         self._quarterly_indexes = QuarterlyIndexOwner()
+
+    def new_quarterly_development_game(self, ceo_display_name, airline_display_name, base_code):
+        """Explicit development fixture, never the ordinary New Game path.
+
+        Establish PH route connections in the untouched private new-career
+        candidate using existing constructors, then enroll the certified isolated
+        backend. No service, plan, booking, flight or operational event is seeded.
+        """
+        from game.scheduling.rotation import _connection
+        from game.scheduling.quarterly_backend import enable_quarterly_backend_for_testing
+        candidate = create_stage1_new_game(scenario_id=STAGE1_SCENARIO_ID,
+            ceo_display_name=ceo_display_name, airline_display_name=airline_display_name,
+            base_airport_reference_code=base_code)
+        owner = candidate['world_state']['player']['primary_airline_id']
+        for market in sorted(candidate['world_state']['directional_markets'].values(),key=lambda m:m['market_id']):
+            _connection(candidate,owner,market['origin_airport_id'],market['destination_airport_id'])
+        enable_quarterly_backend_for_testing(candidate)
+        career_id = self.save_store.new_career_id()
+        if self.runtime is not None:
+            self.runtime.cancel_work(); self.runtime.closed = True
+        self.world = candidate
+        self.runtime = None
+        self.career_id = career_id
+        self.display_currency = 'USD'
+        self.progression_revision = 0
+        self.unsaved_progress = True
+        self.autosave_error = None
+        self._reset_autosave_clocks()
+        self.changed = True
+        self._ensure_runtime(); self._bind_owned_reads()
+        from game.scheduling.quarterly_indexes import QuarterlyIndexOwner
+        self._quarterly_indexes = QuarterlyIndexOwner()
+
+    @property
+    def quarterly_career(self):
+        from game.world_state.quarterly_consumers import quarterly_mode
+        return self.active and quarterly_mode(self.world)
+
+    @property
+    def simulation_time_utc(self):
+        return self.world['simulation']['time_utc'] if self.active else None
+
+    def quarterly_planning_page(self, plan_id=None, *, offset=0, limit=32):
+        from game.scheduling.quarterly_presentation import planning_page
+        views = self._owned_reads()
+        if views is None or not self.quarterly_career:
+            raise ValueError('quarterly planning requires an isolated quarterly career')
+        return views._page(('quarterly-planning',self.airline_id,plan_id,offset,limit),lambda:
+            planning_page(self.world,self.airline_id,plan_id=plan_id,offset=offset,limit=limit))
+
+    def quarterly_slot_input(self, **values):
+        from game.scheduling.quarterly_presentation import slot_input
+        if self._owned_reads() is None or not self.quarterly_career:
+            raise ValueError('select an isolated quarterly career')
+        return slot_input(self.world,self.airline_id,**values)
+
+    def quarterly_published_day(self, plan_id, operating_date, *, offset=0, limit=32):
+        """Bounded Stage 3B resolution, decorated with existing stored outcomes."""
+        from game.scheduling.quarterly_presentation import day_requests
+        views = self._owned_reads()
+        if views is None or not self.quarterly_career:
+            raise ValueError('select an isolated quarterly career')
+        requests,total = day_requests(self.world,self.airline_id,plan_id,operating_date,offset=offset,limit=limit)
+        if not requests:
+            return dict(rows=[],total=total,offset=offset)
+        result = self.quarterly_occurrences(requests)
+        if not result.succeeded:
+            raise ValueError('; '.join(i.code+': '+i.message for i in result.issues))
+        stored = {r['occurrence_key']:r for r in self.world['world_state']['dated_flights'].values()
+                  if r['airline_id'] == self.airline_id and r.get('quarterly_lineage')}
+        from game.aircraft_operations.fulfilment import _build_confirmed_carriage_manifest
+        lookup = views._operations()
+        rows=[]
+        for occurrence in result.occurrences:
+            facts=occurrence.slot_facts; flight=stored.get(occurrence.occurrence_key)
+            passengers=0; status='Published'; revenue=None
+            if flight:
+                status=flight['status']
+                finalized=self.world['world_state']['flight_results'].get(flight['dated_flight_id'])
+                if finalized:
+                    passengers=finalized['carried_passenger_count']; revenue=finalized['recognized_revenue_minor']
+                else:
+                    manifest=_build_confirmed_carriage_manifest(self.world,flight['dated_flight_id'],
+                        booking_ids=lookup.booking_ids_by_flight.get(flight['dated_flight_id'],()))
+                    if not manifest.succeeded: raise ValueError('invalid confirmed carriage projection')
+                    passengers=manifest.carried_passenger_count
+            world=self.world['world_state']
+            rows.append(dict(key=occurrence.occurrence_key,flight_number=occurrence.flight_number,
+                departure_utc=occurrence.departure_utc,arrival_utc=occurrence.planning_arrival_utc,
+                aircraft=world['aircraft'][facts['planned_aircraft_id']]['display_registration'],
+                origin=world['airports'][facts['origin_airport_id']]['reference_code'],
+                destination=world['airports'][facts['destination_airport_id']]['reference_code'],
+                published_at_utc=occurrence.published_at_utc,plan_id=occurrence.reference.weekly_plan_id,
+                revision=occurrence.reference.revision,status=status,passengers=passengers,
+                capacity=facts['capacity'],revenue_minor=revenue))
+        return dict(rows=rows,total=total,offset=offset)
+
+    def retry_quarterly_publication(self):
+        """Explicit single existing kernel event retry; never clear a fence here."""
+        failure=self._quarterly_command_boundary()
+        if failure is not None: raise ValueError(failure.issues[0].message)
+        status=self.quarterly_boundary_status()
+        if not self.quarterly_career or not status or not status['failure']:
+            raise ValueError('no failed quarterly publication to retry')
+        return self.advance_next_event()
 
     def _clock_ns(self):
         from game.simulation.pacing import active_monotonic_ns
@@ -302,6 +408,10 @@ class Stage1Session:
         self.runtime = RuntimeController(self.world, **options)
 
     def resume(self, speed=None):
+        if self.quarterly_career:
+            fence=self.quarterly_planning_page()['fence']
+            if fence and fence['failure']:
+                raise ValueError('Publication is blocked: correct the unpublished quarter and explicitly Retry publication before Resume')
         self._ensure_runtime()
         before = (self.world['simulation']['clock_state'],
                   self.world['simulation']['configuration']['clock_ratios']['NORMAL'])

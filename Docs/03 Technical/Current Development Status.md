@@ -2,6 +2,81 @@
 
 Last updated: **2026-10-11**. Current snapshot, not operational authorization.
 
+## Stage 3F — isolated quarterly GUI (2026-10-11 working tree)
+
+Approved baseline **fb2dd01b7031b34a9a49f8e23cadd65f329518e8** matched HEAD,
+upstream, freshly fetched origin/master and live remote master, divergence 0/0.
+Tracked tree/index were clean; `.venv/` was preserved. Serena activation, core and
+scheduling memories and symbolic session navigation were used; current repository
+contracts supersede their stale Stage 2 checkpoint.
+
+[GUI contract](Quarterly%20Planning%20GUI.md) and AT-056 document the development-only
+new-career entry and existing Operations/Scheduling host. Ordinary New Game remains
+legacy. Saved isolated careers retain mode; no existing-save conversion or general
+activation. Planning/editing uses certified service/frequency/fare/assignment,
+continuation/removal/replacement/retirement commands. Readiness stays informational;
+date browsing resolves at most 128 explicit references, default pages of 32.
+Manual confirmation preserves fresh prepare/apply gates and both copies. Durable
+publication failures select the correction target, block Resume and use one explicit
+existing kernel retry. Session-owned detached reads and runtime binding revocation
+preserve saved context, stale-object safety and sole operational authority.
+
+No persistent field/version, simulation formula, operational consumer, blueprint,
+automatic positioning, airport queue, marketplace fix or unrelated optimization.
+General activation remains Stage 3G; capacity work remains deferred separately.
+Latest 64 plan choices / 128 service choices and the bounded continuation-source
+list are documented UI limits; these small fixtures do not certify large-world UX.
+
+Final focused source: `.venv/Scripts/python.exe -m unittest tests.test_quarterly_gui -v`:
+**45 PASS, 45.799s**, including **7 native Windows Kivy cases**. Python 3.12.10,
+Kivy 2.3.1, SDL2, OpenGL 4.6, Intel UHD Graphics. Native widget navigation, form
+submission, explicit publication confirmation, stale-form closure and a 1000×720
+service viewport pass. Long confirmation diagnostics scroll with the irreversible
+warning first. A 1200×900 native render was visually checked; human
+layout/touch acceptance and fleet capacity are not inferred. Initial helper-import
+and test-expectation errors were corrected before this run. Certified preparation
+was correctly distinguished from publication acceptance; asymmetric weekday edits
+were corrected in the fixture rather than weakening aircraft continuity.
+
+`.venv/Scripts/python.exe -m tests.profile_quarterly_gui` measured seven operations,
+three samples each on final source, concurrently with full discovery/regressions.
+Median seconds: native open **0.023195**, cold service page **0.000382**,
+readiness **0.094502**, two-reference published day **0.111787**,
+fare edit/native refresh **0.291296**, manual prepare/apply **0.453747**,
+Load/controller refresh **0.192185**. One aircraft/one plan/two daily frequencies,
+zero flights/bookings, draft/published compact worlds **321476/321494 bytes**.
+Setup is excluded; required gates/copies are included. Ranges, boundaries and
+reproducible harness are in the GUI contract; no scalability improvement is claimed.
+
+Scoped compilation `.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Protected metadata/runtime directories are excluded. Source freeze
+contains **322 source/test SHA-256 witnesses**, including all five new Python files.
+The explicit quarterly/legacy GUI/runtime regression group was verified separately.
+`.venv/Scripts/python.exe -m unittest tests.test_quarterly_gui tests.test_quarterly_readiness tests.test_quarterly_occurrences tests.test_quarterly_publication tests.test_quarterly_boundaries tests.test_quarterly_backend tests.test_gui_foundation tests.test_gui_gameplay tests.test_management_gui tests.test_operations_gui tests.test_gui_cooperative_runtime -v`:
+**293 PASS, 866.772s** on the preceding presentation candidate. The final long-message
+confirmation change was then covered by the 45-case focused run above and a fresh
+`.venv/Scripts/python.exe -m unittest tests.test_gui_foundation tests.test_gui_gameplay tests.test_management_gui tests.test_operations_gui tests.test_gui_cooperative_runtime tests.test_gui_weekly_workspace tests.test_gui_schedule_polish -v`:
+**89 PASS, 243.434s**. The shared quarterly backend was unchanged by that last
+presentation-only correction. Superseded full runs were stopped for actual fence and
+native layout defects and are not completion evidence.
+
+Final `.venv/Scripts/python.exe -m unittest discover -s tests -v`:
+**1,571 PASS, 2,311.770s**, exit 0, no failures/skips; prior 1,526 plus 45 new cases.
+All **322 source/test SHA-256 witnesses** match before/after this final run, zero
+source changes. This covers Stage 2 certification, Stage 3A–3E, runtime/safety,
+session/save-load, legacy GUI/Booking365/finance and the new quarterly GUI.
+Staged whitespace checking subsequently found one extra blank line at the end of
+the new test file. Only that line ending was removed; its pre-cleanup bytes matched
+the verified freeze and the before/after test ASTs are identical. No executable
+change or gameplay rerun was needed for this whitespace-only preparation fix.
+Documentation validation passes **410 local links / 67 heading targets / 8 changed
+Markdown documents**, and exact **18-file** scope matches the GUI contract.
+Scoped compilation, whitespace and final self-review pass. Temporary logs, native
+renders, fixtures and caches are excluded from staging; `.venv/` is preserved.
+The final implementation checkpoint and verified commit/push are reported with the
+actual revision at completion, without inventing a pending hash. Ordinary quarterly
+gameplay remains dormant; Stage 3G requires its own authorized scope.
+
 ## Stage 3E — isolated quarterly backend (2026-10-11 working tree)
 
 Approved starting baseline **7726fb32496c65c83baa32658bbed2644fd8f3a0** matched

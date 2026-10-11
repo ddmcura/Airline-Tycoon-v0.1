@@ -1,5 +1,16 @@
 # Stage 1 State Schema
 
+## Quarterly Stage 3F presentation boundary
+
+Stage 3F authorizes a development-only Kivy entry to the existing isolated
+Stage 3E new-career capability. Ordinary New Game and legacy Load remain unchanged.
+Planning selections, form values, confirmation preparations, readiness results,
+occurrence pages and session binding counters are runtime-only. No new persistent
+fields, schema version, migration or operational writer is introduced. The shared
+session alone invokes certified commands and the existing boundary retry engine.
+General activation remains Stage 3G. The [GUI contract](Quarterly%20Planning%20GUI.md)
+defines presentation and isolation; stored authority below remains unchanged.
+
 ## Quarterly Stage 3E isolated operational authority
 
 Schema 9 gains an explicit optional `simulation.operational_authority` value

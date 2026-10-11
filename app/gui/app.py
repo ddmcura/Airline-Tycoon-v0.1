@@ -26,6 +26,8 @@ from app.gui.management_pages import FleetPage, ResearchPage, AircraftDetailsPag
 from app.gui.airport_selector import AirportSelector
 from app.gui.scrolling import AxisScrollView
 from app.gui.windowing import configure_startup_window
+from app.quarterly_planning import QuarterlyPlanningController
+from app.gui.quarterly_page import QuarterlyPage
 from app.inputs import parse_duration_seconds
 from game.world_state.timestamps import format_utc, parse_canonical_utc
 
@@ -61,9 +63,11 @@ def _column():
 class AirlineTycoonApp(GameplayViews, App):
     """One Kivy/UI owner calls one shared session at completed event boundaries."""
 
-    def __init__(self, *, session_factory=Stage1Session, **kwargs):
+    def __init__(self, *, session_factory=Stage1Session, quarterly_development=False, **kwargs):
         super().__init__(**kwargs)
         self.session = session_factory()
+        self.quarterly_development = quarterly_development
+        self.quarterly_controller = QuarterlyPlanningController(self.session)
         self.current_view = 'Overview'
         self.view_offset = 0
         self._last_revision = None
@@ -130,6 +134,9 @@ class AirlineTycoonApp(GameplayViews, App):
                              ('Load Game', self.show_load_game),
                              ('Exit', self.request_exit)]:
             root.add_widget(_button(text, action))
+        if self.quarterly_development:
+            root.add_widget(_button('New quarterly development career',
+                                    lambda:self.show_new_game(development=True)))
         root.add_widget(Label(size_hint_y=1))
         screen.add_widget(root)
         return screen
@@ -169,14 +176,23 @@ class AirlineTycoonApp(GameplayViews, App):
         scroll.add_widget(row)
         return scroll
 
-    def _dialog(self, title, message, actions):
+    def _dialog(self, title, message, actions, *, message_height=92, scroll_message=False):
         content = BoxLayout(orientation='vertical', spacing=dp(8), padding=dp(10))
-        content.add_widget(_label(message, height=92))
+        message_label=_label(message,height=message_height)
+        message_scroll=None
+        if scroll_message:
+            message_label.bind(texture_size=lambda w,n:setattr(w,'height',max(dp(30),n[1]+dp(12))))
+            message_scroll=AxisScrollView(do_scroll_x=False,size_hint_y=None,height=dp(message_height))
+            message_scroll.add_widget(message_label);content.add_widget(message_scroll)
+        else:
+            content.add_widget(message_label)
         for text, action in actions:
             content.add_widget(_button(text, lambda callback=action: (self._dismiss(), callback())))
         popup = Popup(title=title, content=content, size_hint=(.94, None),
-                      height=dp(min(570, 130 + len(actions) * 60)), auto_dismiss=False)
+                      height=dp(min(650, 130 + message_height - 92 + len(actions) * 60)), auto_dismiss=False)
         self._popup = popup
+        if message_scroll is not None:
+            popup.bind(on_dismiss=lambda *_:message_scroll.dispose())
         popup.open()
 
     def _dismiss(self):
@@ -208,7 +224,9 @@ class AirlineTycoonApp(GameplayViews, App):
         self._popup = popup
         popup.open()
 
-    def show_new_game(self):
+    def show_new_game(self, *, development=False):
+        if development and not self.quarterly_development:
+            raise ValueError('quarterly development entry is disabled')
         airports = self.session.available_airports()
         content = BoxLayout(orientation='vertical', spacing=dp(7), padding=dp(10))
         content.add_widget(_label('CEO name', height=28))
@@ -221,11 +239,13 @@ class AirlineTycoonApp(GameplayViews, App):
         base = AirportSelector(airports, selected_id=airports[0]['reference_code'])
         content.add_widget(base)
         def create():
-            self.create_new_game(ceo.text.strip(), airline.text.strip(),
-                                 base.selected_id)
+            if development:
+                self.create_quarterly_development_game(ceo.text.strip(),airline.text.strip(),base.selected_id)
+            else:
+                self.create_new_game(ceo.text.strip(), airline.text.strip(),base.selected_id)
         content.add_widget(_button('Create Game', create))
         content.add_widget(_button('Cancel', self._dismiss))
-        self._popup = Popup(title='New PH 1.0 Game', content=content,
+        self._popup = Popup(title='New quarterly DEVELOPMENT career' if development else 'New PH 1.0 Game', content=content,
                             size_hint=(.95, .9), auto_dismiss=False)
         self._popup.open()
 
@@ -236,6 +256,15 @@ class AirlineTycoonApp(GameplayViews, App):
             self._enter_game()
         except Exception as exc:
             self._error('New Game failed', exc)
+
+    def create_quarterly_development_game(self, ceo_name, airline_name, base_code):
+        if not self.quarterly_development:
+            raise ValueError('quarterly development entry is disabled')
+        try:
+            self.session.new_quarterly_development_game(ceo_name,airline_name,base_code)
+            self._dismiss();self._enter_game();self.show_view('Schedule')
+        except Exception as exc:
+            self._error('Quarterly development career failed',exc)
 
     def show_load_game(self):
         try:
@@ -304,6 +333,7 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def _enter_game(self):
         self._leave_page()
+        self.quarterly_controller = QuarterlyPlanningController(self.session)
         self._page_states.clear()
         self._section = None
         self.current_view = 'Overview'
@@ -359,8 +389,6 @@ class AirlineTycoonApp(GameplayViews, App):
     def refresh(self, *, force=False):
         if not self.session.active:
             return
-        world = self.session.world
-        sim = world['simulation']
         diagnostic = self.session.runtime.diagnostic if self.session.runtime else None
         autosave_error = self.session.autosave_error
         render_due = (not self.session.advancing
@@ -381,11 +409,15 @@ class AirlineTycoonApp(GameplayViews, App):
         mode = self.session.runtime_status
         if self.session.advancing:
             mode = 'ADVANCING (event boundaries)'
-        self.status.text = f"{self.session.local_clock()} hub local | {sim['time_utc']} UTC | {mode} | Cash {_money(self._cash)}"
+        self.status.text = f"{self.session.local_clock()} hub local | {self.session.simulation_time_utc} UTC | {mode} | Cash {_money(self._cash)}"
         if self.session.runtime.draining:
             self.status.text += f'\nEarned target: {self.session.runtime.earned_target_utc}; remaining {self.session.runtime.credit_ns // 1_000_000_000} game seconds'
         if diagnostic:
             self.status.text += f'\n{diagnostic}'
+        if self.session.quarterly_career:
+            fence=self.session.quarterly_planning_page()['fence']
+            if fence and fence['failure']:
+                self.status.text += f"\nBLOCKED: {fence['next_quarter_id']} publication — {fence['failure']['message']}. Open Scheduling to correct and retry."
 
     def _leave_page(self):
         if self._week_focus_event is not None:
@@ -429,10 +461,11 @@ class AirlineTycoonApp(GameplayViews, App):
                 actions += [('Return to Title',self.return_to_title),('Exit',self.request_exit)]
             self.subnavigation.add_widget(self._horizontal_buttons(actions))
             self._section = section
-        if view in {'Fleet','Research','Aircraft Details','Flights','Bookings'}:
+        quarterly_schedule = view == 'Schedule' and self.session.quarterly_career
+        if view in {'Fleet','Research','Aircraft Details','Flights','Bookings'} or quarterly_schedule:
             if self._active_page is None:
                 state = self._page_states.get(view)
-                factory = {'Fleet':FleetPage,'Research':ResearchPage,'Flights':FlightsPage,'Bookings':BookingsPage}.get(view)
+                factory = QuarterlyPage if quarterly_schedule else {'Fleet':FleetPage,'Research':ResearchPage,'Flights':FlightsPage,'Bookings':BookingsPage}.get(view)
                 page = factory(self,state) if factory else AircraftDetailsPage(self,self._details_aircraft_id,state)
                 page.refresh_data()  # Resolve before attaching to visible host.
                 self.page_host.add_widget(page);self._active_page=page
@@ -525,6 +558,13 @@ class AirlineTycoonApp(GameplayViews, App):
             for k in ids])
 
     def schedule_handoff(self, aircraft_id, origin_id=None, destination_id=None):
+        if self.session.quarterly_career:
+            def open_quarterly():
+                self.quarterly_controller.refresh()
+                self.quarterly_controller.aircraft_id=aircraft_id
+                self.show_view('Schedule')
+            self._after_runtime_pause(open_quarterly)
+            return
         def open_planner():
             self.show_view('Schedule')
             if self._draft is None or self._draft.aircraft_id != aircraft_id:
@@ -608,7 +648,7 @@ class AirlineTycoonApp(GameplayViews, App):
         self._begin_target(target)
 
     def _begin_seconds(self, seconds):
-        target = format_utc(parse_canonical_utc(self.session.world['simulation']['time_utc'])
+        target = format_utc(parse_canonical_utc(self.session.simulation_time_utc)
                             + timedelta(seconds=seconds))
         self._begin_target(target)
 
@@ -742,8 +782,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self._guard_unsaved(exit_app)
 
 
-def main():
-    AirlineTycoonApp().run()
+def main(*, quarterly_development=False):
+    AirlineTycoonApp(quarterly_development=quarterly_development).run()
     return 0
 
 

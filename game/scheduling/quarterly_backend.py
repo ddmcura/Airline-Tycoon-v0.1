@@ -147,7 +147,10 @@ def initialize_handler():
 
 
 def enable_quarterly_backend_for_testing(envelope):
-    """Explicit isolated NEW-career capability; never used by ordinary New/Load/GUI."""
+    """Isolated NEW-career capability; ordinary New/Load never enroll.
+
+    Stage 3F's explicit development GUI entry may enroll a private new candidate.
+    """
     report = validate_world(envelope)
     if not report.is_valid or envelope['simulation']['clock_state'] != 'PAUSED':
         raise ValueError('isolated new career requires valid paused source')

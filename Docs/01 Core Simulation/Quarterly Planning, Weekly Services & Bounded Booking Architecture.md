@@ -1,5 +1,11 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Stage 3F connects [isolated Kivy planning/publication controls](../03%20Technical/Quarterly%20Planning%20GUI.md)
+to the existing shared session, certified commands, readiness/occurrence queries
+and fence retry. Explicit development entry only; ordinary New Game and legacy
+saves remain unchanged. General activation is deferred to Stage 3G. Earlier
+checkpoint scopes and future-direction statements below remain historical.
+
 Stage 3E implements the [isolated quarterly backend](../03%20Technical/Quarterly%20Backend%20Consumer%20Cutover.md)
 with explicit Schema 9 career authority, published-only supply, preserved PH 1.0
 booking economics and fixed Booking/operation/finance/save lineage. Ordinary New

@@ -23,6 +23,10 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Quarterly Planning GUI](03%20Technical/Quarterly%20Planning%20GUI.md):
+  Stage 3F development-only Kivy entry, certified controls, readiness/commitment,
+  failure recovery, detached session ownership and saved-context reconstruction.
+
 - [Current Development Status](03%20Technical/Current%20Development%20Status.md):
   implemented capabilities, limitations, checkpoint, and recorded verification.
 - [Stage 1 roadmap](03%20Technical/Stage%201%20Implementation%20Roadmap.md):

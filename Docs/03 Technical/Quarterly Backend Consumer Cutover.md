@@ -1,5 +1,11 @@
 # Quarterly Backend Consumer Cutover — Stage 3E
 
+Stage 3F successor: [isolated quarterly GUI](Quarterly%20Planning%20GUI.md) exposes
+the existing new-career capability only through an explicit development entry,
+certified planning/publication controls and detached session reads. Ordinary New
+Game and legacy Load still do not enroll or migrate. General activation remains
+Stage 3G; earlier statements about missing GUI describe this Stage 3E checkpoint.
+
 ## Approved PH 1.0 booking policy
 
 User approval dated 2026-10-11 resolves the Stage 3E economics gate. This
