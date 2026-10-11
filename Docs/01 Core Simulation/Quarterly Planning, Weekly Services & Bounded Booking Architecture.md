@@ -1,5 +1,11 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+Quarterly Stage 3G-A adds [paid airport-pair establishment](../03%20Technical/Paid%20Bidirectional%20Route%20Establishment.md)
+before passenger planning: atomic bidirectional connection/expense, safe closure
+and paid reopening through the existing session/Research host. It removes the
+fresh-career route-establishment dependency without activating default quarterly
+gameplay or changing the required runtime-capacity gate. General Stage 3G remains blocked.
+
 Stage 3F connects [isolated Kivy planning/publication controls](../03%20Technical/Quarterly%20Planning%20GUI.md)
 to the existing shared session, certified commands, readiness/occurrence queries
 and fence retry. Explicit development entry only; ordinary New Game and legacy

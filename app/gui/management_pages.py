@@ -38,9 +38,15 @@ class FleetPage(ManagementTable):
 class ResearchPage(ManagementTable):
     def __init__(self, app, state=None):
         self.app = app
-        super().__init__('Research — directional markets', RESEARCH_COLUMNS,
+        columns = list(RESEARCH_COLUMNS)
+        actions = {'add':('Add Flight',lambda r:app.research_add_flight(r['origin_id'],r['destination_id']))}
+        if app.session.quarterly_career:
+            columns += [('route_status','ROUTE PAIR',150),('create_route','CREATE ROUTE',145),('close_route','CLOSE ROUTE',145)]
+            actions.update(create_route=('Create Route',lambda r:app.research_manage_route(r['origin_id'],r['destination_id'])),
+                           close_route=('Close Route',lambda r:app.research_manage_route(r['origin_id'],r['destination_id'],action='CLOSE')))
+        super().__init__('Research — directional markets', columns,
                          search_fields=('code','name'), state=state,
-                         actions={'add':('Add Flight',lambda r:app.research_add_flight(r['origin_id'],r['destination_id']))})
+                         actions=actions)
         ports = app.session.airports()
         if not app._research_origin: app._research_origin = app.session.header()['base_airports'][0]['airport_id']
         self.origin = AirportSelector(ports,selected_id=app._research_origin)
@@ -76,6 +82,9 @@ class ResearchPage(ManagementTable):
                          'fare_text':('Mixed fares' if fare is None else f"{fare/100:.2f}"+(' suggested' if suggested else '')),
                          'confirmed':r['current_confirmed_bookings'],
                          'origin_id':r['origin_airport_id'],'destination_id':r['destination_airport_id']})
+        if self.app.session.quarterly_career:
+            for row in rows:
+                row['route_status'] = self.app.session.route_pair_status(row['origin_id'],row['destination_id'])
         self.set_rows(rows)
         self.footer.text = f'{len(self.visible_rows)} of {len(self.rows)} records | Available = airport availability; seats/confirmed = remaining publication horizon'
 

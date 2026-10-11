@@ -91,6 +91,7 @@ class Stage1Session:
         from weakref import WeakValueDictionary
         self._quarterly_preparations = WeakValueDictionary()
         self._quarterly_readiness = WeakValueDictionary()
+        self._route_preparations = WeakValueDictionary()
         # Foreign borrowed dictionaries have no exclusive-writer provenance.
         # They retain authoritative source-scan fallback, including in-place edits.
         self._quarterly_indexes = None
@@ -506,6 +507,41 @@ class Stage1Session:
         return project_market_opportunities(
             self.world, origin_airport_id=origin_airport_id, limit=limit
         )
+
+    def route_pair_status(self, origin_airport_id, destination_airport_id):
+        if self._owned_reads() is None:
+            raise ValueError('no valid active career')
+        world = self.world['world_state']
+        pair = {origin_airport_id,destination_airport_id}
+        rows = [c for c in world['connections'].values() if c['airline_id']==self.airline_id
+                and {world['directional_markets'][c['market_id']]['origin_airport_id'],
+                     world['directional_markets'][c['market_id']]['destination_airport_id']}==pair]
+        return 'ACTIVE' if len(rows)==2 and all(c['status']=='ACTIVE' for c in rows) else 'CLOSED' if rows else 'NOT ESTABLISHED'
+
+    def quote_route(self, hub_airport_id, origin_airport_id, destination_airport_id, *, action='ESTABLISH'):
+        from game.route_management.establishment import quote_route
+        failure = self._quarterly_command_boundary()
+        if failure is not None:
+            raise ValueError('pause and finish runtime work before route management')
+        quote = quote_route(self.world,airline_id=self.airline_id,hub_airport_id=hub_airport_id,
+            origin_airport_id=origin_airport_id,destination_airport_id=destination_airport_id,action=action)
+        self._route_preparations[id(quote)] = quote
+        return quote
+
+    def apply_route(self, quote):
+        from game.route_management.establishment import apply_route
+        failure = self._quarterly_command_boundary()
+        if failure is not None:
+            raise ValueError('pause and finish runtime work before route management')
+        if self._route_preparations.get(id(quote)) is not quote:
+            raise ValueError('stale or foreign route confirmation; review again')
+        before = self.authoritative_bytes()
+        result = apply_route(self.world,quote)
+        self._route_preparations.pop(id(quote),None)
+        if before != self.authoritative_bytes():
+            self.changed = True
+            self._management_changed()
+        return result
 
     def suggested_economy_fare(self, origin_airport_id, destination_airport_id):
         from game.economy.fare_reference import suggested_economy_fare_minor

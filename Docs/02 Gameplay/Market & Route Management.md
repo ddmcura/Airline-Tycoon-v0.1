@@ -1,5 +1,11 @@
 # Airline Tycoon - Market & Route Management Architecture
 
+Quarterly Stage 3G-A implements [paid bidirectional establishment](../03%20Technical/Paid%20Bidirectional%20Route%20Establishment.md)
+through the shared session and Research page. The bounded approved fee, Base/Hub
+attribution, rounding, atomic expense, safe closure and reopening are defined there
+and in Schema 9. Country access remains separate. Default quarterly activation,
+legacy route migration and the future rights/progression systems below are excluded.
+
 > **Status:** Approved architecture. This document defines the player-facing ownership, access, competition, and lifecycle rules for airline markets and routes. It does not define passenger formulas, scheduling algorithms, or detailed hub internals.
 
 ## 1. Purpose and System Boundary

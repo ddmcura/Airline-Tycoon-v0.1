@@ -2,6 +2,80 @@
 
 Last updated: **2026-10-11**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-A — paid route establishment (2026-10-11 working tree)
+
+Approved baseline **668a646fd6deef0ecc15c20b3831f6ff32908c18** matched HEAD,
+upstream, freshly fetched origin/master and live remote master. Tracked tree/index
+were clean; `.venv/` and protected metadata/stashes are preserved. Serena was
+activated; canonical contracts supersede stale Stage 2 memories.
+
+AT-057 and the [route contract](Paid%20Bidirectional%20Route%20Establishment.md)
+record the approved formula, owned Operating Base/Hub attribution without Hub
+privileges and nearest-cent half-up rounding. Canonical Schema 9 was updated
+before implementation, then its subordinate template. Optional canonical-direction
+connection provenance retains paired immutable IDs, closure UTC and payment IDs.
+No schema bump, default enrollment, legacy migration or saved derived fee/count.
+Route Management owns quote/apply; World State owns construction/validation;
+Economy posts one expense/cash journal; Kivy uses Stage1Session only.
+
+The original blocker reproduces and now resolves in a normal-constructor isolated
+career without seeded connections: pay MNL–CEB, both directions ACTIVE, create
+quarterly passenger service successfully. Closure rejects draft/unexpired published
+and unfinished operational obligations; reopening retains IDs and pays again.
+Quote/apply preserves source/candidate/detached gates, two private world copies,
+deterministic command deduplication and final source comparison. Save/Load replay
+through the next daily Booking boundary compares exact authority and restores paused.
+
+Pre-change `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_gui -q`:
+**45 PASS, 150.563s**. Final focused
+`.venv/Scripts/python.exe -B -m unittest tests.test_route_establishment -v`:
+**41 PASS, 52.628s**, including one native Windows Kivy workflow covering normal
+loaded quarterly entry without the development flag, quoted confirmation, purchase,
+cancellation, closure and refreshed Research eligibility. Python 3.12.10 / Kivy
+2.3.1 / SDL2 / OpenGL 4.6 Intel UHD Graphics. Initial request-constructor error
+was corrected before the final focused run; no gate/formula was weakened.
+Review corrected free closure under negative cash and limited operational closure
+dependencies to the owning airline. Earlier full/regression runs were stopped for
+those real corrections; only the fresh final source freeze is completion evidence.
+A separate precision probe reproduced MNL–CEB drifting from 566982 metres /
+2783491 cents at precision 28 to 567000 metres / 2783500 cents at precision 4.
+Quotation and receipt validation now convert the existing quantized distance
+through its exact integer ratio; the new context test passes without changing the
+approved fee formula or normal amounts. Superseded runs are not completion evidence.
+Receipt validation also rejects a USD payment paired with an owning ledger changed
+to EUR; USD fee meaning cannot be silently reinterpreted on Load. Display currency
+remains runtime-only. The final source freeze includes this regression.
+
+Measured fee witnesses: MNL–CEB **566.982 km, N=0, USD 27,834.91**;
+MNL–DVO after that pair **963.773 km, N=1, USD 30,415.24**;
+international arithmetic **1000 km, N=0, USD 90,000.00**. Foreign-country access
+purchasing remains unimplemented; the route fee does not grant it. Existing
+development fixtures retain their pre-established connections without retroactive
+charges. Ordinary New Game remains legacy; saved quarterly contexts expose the
+new Research controls through ordinary launch.
+
+Final source freeze has **326 SHA-256 witnesses**; full discovery and the affected
+quarterly/session/legacy Research/finance/save regressions use that scope.
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_gui tests.test_quarterly_transactions tests.test_quarterly_backend tests.test_quarterly_publication tests.test_quarterly_boundaries tests.test_management_gui tests.test_stage1_aircraft_acquisition tests.test_step7_save_load -v`:
+**258 PASS, 846.140s**, exit 0.
+`.venv/Scripts/python.exe -B -m unittest discover -s tests -v`:
+**1,612 PASS, 2,339.511s**, exit 0; baseline 1,571 plus 41 new route cases,
+no failures/skips. All 326 source/test SHA-256 witnesses match before/after the
+final run, zero source changes. Full coverage includes quarterly Stages 2/3A–3F,
+Booking/execution/finance, runtime/safety, legacy GUI and save/load compatibility.
+Scoped compilation `.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0, excluding protected metadata/runtime directories. Documentation
+checks pass **417 local links / 71 heading targets / 9 changed Markdown files**;
+exact **18-file** scope and whitespace checks pass. Generated logs/fixtures are
+isolated and excluded from commits. Final source self-review and hash/diff checks
+pass. This records verified working-tree scope; actual commit/push revision and
+remote synchronization are reported at completion without inventing a pending hash.
+
+Stage 3G remains blocked by the separate AT-041 runtime capacity gate and pending
+combined activation certification. Ultra 1800× is unchanged; no runtime optimization,
+runway queue, automatic positioning, demand-economics change, long-term blueprint
+or unrelated marketplace work is included. Stop after this approved prerequisite.
+
 ## Stage 3F — isolated quarterly GUI (2026-10-11 working tree)
 
 Approved baseline **fb2dd01b7031b34a9a49f8e23cadd65f329518e8** matched HEAD,

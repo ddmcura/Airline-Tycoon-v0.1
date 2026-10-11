@@ -1,4 +1,15 @@
 # Schema 9 reusable flight-number authority (2026-10-08).
+# Stage 3G-A paid pair: canonical-direction connection.route_establishment (optional)
+# = {hub_airport_id, reverse_connection_id, payment_transaction_ids, closed_at_utc}.
+# Owned Operating Base or Hub attribution; no Hub privileges. Both statuses ACTIVE/CLOSED.
+# N counts active attributed pairs once. USD 25000/75000 * (1+km/5000) * (1+0.02*N),
+# no cap; nearest cent HALF_UP using canonical market distance, country-ID classification.
+# ROUTE_ESTABLISHMENT expense/cash journal retains canonical connection source_id,
+# Owning accounts remain USD; display currency cannot reinterpret payment history.
+# command_id/request_fingerprint, hub_airport_id, distance_m, base_fee_minor,
+# active_pair_count, amount_minor. Reopening pays anew; closure refunds nothing.
+# Pending planning/operational commitments block closure. Legacy connections untouched.
+# Country access is separate; no foreign permission inferred. No default quarterly activation.
 # Stage 3F development-only GUI uses the existing isolated new-career capability.
 # No new persistent fields/version/migration. Forms, selections, readiness,
 # confirmation preparations, occurrence pages and binding counters are runtime-only.

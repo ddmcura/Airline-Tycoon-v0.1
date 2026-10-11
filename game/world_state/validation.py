@@ -3181,6 +3181,12 @@ class _Validator:
             self.validate_structure()
             self.validate_no_name_references_or_float_money()
         if not self.errors:
+            from .route_establishment import validate_route_establishment
+            try:
+                validate_route_establishment(self.envelope)
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                self.add('invalid_route_establishment', '$.world_state.connections', str(exc))
+        if not self.errors:
             from .acquisition_validation import validate_acquisition
             try:
                 validate_acquisition(self.envelope)

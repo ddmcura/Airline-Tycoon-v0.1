@@ -1,5 +1,45 @@
 # Stage 1 State Schema
 
+## Paid bidirectional route establishment — Stage 3G-A
+
+Schema 9 optionally adds `route_establishment` to exactly one connection per
+airline/airport pair: the direction whose origin airport ID sorts first. Its exact
+fields are `hub_airport_id`, `reverse_connection_id`, `payment_transaction_ids`
+(ordered, nonempty allocated transaction IDs), and `closed_at_utc` (null while
+active, otherwise canonical UTC). Both connections retain their IDs and existing
+status authority; their statuses must agree and be ACTIVE or CLOSED. No pair ID,
+duplicate status, fee cache or demand authority is added. Existing connections
+without this field retain their meaning and are never migrated automatically.
+
+The user approved attribution to an owned Operating Base or Hub, without granting
+Hub privileges. N counts active established pairs with that attribution once.
+The USD fee is 25000 domestic / 75000 international, multiplied by
+`(1 + distance_km / 5000) * (1 + 0.02 * N)`, with no cap and final rounding to
+nearest cent, half up. Country IDs classify the pair; the existing shared market
+distance uses its canonical metre quantization. Quotes are runtime-only and bind
+complete source authority; acceptance revalidates them before atomic charging.
+
+Each payment is a balanced `ROUTE_ESTABLISHMENT` transaction exchanging cash for
+operating expense in USD owning accounts, not a resellable asset. Display currency
+cannot change the accounting currency or reinterpret existing receipts. In addition to existing transaction
+fields it stores `source_id` (the canonical connection ID), `command_id`,
+`request_fingerprint`, `hub_airport_id`, `distance_m`, `base_fee_minor`,
+`active_pair_count`, and `amount_minor`. Immutable journal witnesses retain every
+payment, including reopening. Closure refunds nothing and preserves history;
+pending drafts and unexpired published/operational obligations prevent closure.
+Reopening requires a fresh quote and payment. Failed or repeated commands charge
+nothing. No flight, Booking, demand, aircraft movement or default activation.
+
+Country access remains separate: the starting Base grants its country's domestic
+rights; foreign-country access purchasing has no production state/command yet and
+cannot be inferred from a route payment. International fee arithmetic is defined,
+but international purchases remain unavailable until that separate authority exists.
+
+Construction/validation and journal validation belong to `game/world_state`;
+route commands to `game/route_management`; expense posting to `game/economy`;
+all Kivy mutations pass through Stage1Session. Complete snapshots and separate
+paused Load retain receipts and pair status. Schema version remains 9.
+
 ## Quarterly Stage 3F presentation boundary
 
 Stage 3F authorizes a development-only Kivy entry to the existing isolated

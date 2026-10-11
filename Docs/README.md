@@ -23,6 +23,10 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Paid bidirectional route establishment](03%20Technical/Paid%20Bidirectional%20Route%20Establishment.md):
+  quarterly Stage 3G-A fee/attribution, atomic journal, Research purchase/closure,
+  persistence and the remaining activation blockers; no default activation.
+
 - [Quarterly Planning GUI](03%20Technical/Quarterly%20Planning%20GUI.md):
   Stage 3F development-only Kivy entry, certified controls, readiness/commitment,
   failure recovery, detached session ownership and saved-context reconstruction.

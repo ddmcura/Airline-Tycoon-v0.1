@@ -1,5 +1,11 @@
 # Quarterly Planning and Publication GUI — Stage 3F
 
+Stage 3G-A successor: [paid route establishment](Paid%20Bidirectional%20Route%20Establishment.md)
+adds Research Create/Close Route and fresh confirmation through Stage1Session.
+Saved quarterly careers use the ordinary launch entry; passenger planning requires
+both active directions. No default new-career activation or retroactive payment of
+development fixtures. Earlier Stage 3F statements below retain their checkpoint scope.
+
 Bounded implementation authorized 2026-10-11, starting from
 `fb2dd01b7031b34a9a49f8e23cadd65f329518e8`. HEAD, upstream, freshly fetched
 origin/master and live remote master matched; tracked tree/index were clean.

@@ -544,7 +544,46 @@ class AirlineTycoonApp(GameplayViews, App):
         self._details_aircraft_id = aircraft_id
         self.show_view('Aircraft Details')
 
+    def research_manage_route(self, origin_id, destination_id, *, action='ESTABLISH'):
+        def review(hub):
+            try:
+                quote = self.session.quote_route(hub,origin_id,destination_id,action=action)
+                ports = {p['airport_id']:p for p in self.session.airports()}
+                a,b = (ports[k]['reference_code'] for k in quote.airport_ids)
+                if action == 'ESTABLISH':
+                    message = (f'{a} → {b} and {b} → {a}\nOne payment unlocks both directions.\n'
+                        f'Fee: {_money(quote.amount_minor)}\nDistance: {quote.distance_m/1000:.3f} km\n'
+                        f'Attributed base / hub: {ports[hub]["reference_code"]}\nActive pairs: {quote.active_pair_count}\n'
+                        'This creates no flights, bookings or aircraft movement. No refund on closure.')
+                    label = 'Purchase route'
+                else:
+                    message = f'Close {a} ↔ {b}? No refund. Reopening requires a new payment.'
+                    label = 'Close route'
+                self._dialog('Create Route' if action=='ESTABLISH' else 'Close Route',message,
+                    [(label,lambda:self._confirm_route(quote)),('Cancel',lambda:None)],message_height=230,scroll_message=True)
+            except ValueError as exc:
+                self._dialog('Route unavailable',str(exc),[('OK',lambda:None)])
+        def choose():
+            bases = self.session.header()['base_airports']
+            if len(bases)==1: review(bases[0]['airport_id'])
+            else:
+                self._list_popup('Attribute route to an owned Operating Base / Hub',[
+                    (p['reference_code'],lambda k=p['airport_id']:(self._dismiss(),review(k))) for p in bases])
+        self._after_runtime_pause(choose)
+
+    def _confirm_route(self, quote):
+        try:
+            self.session.apply_route(quote)
+            self.quarterly_controller.refresh()
+            self.refresh(force=True)
+        except ValueError as exc:
+            self._dialog('Route unavailable',str(exc),[('OK',lambda:None)])
+
     def research_add_flight(self, origin_id, destination_id):
+        if self.session.quarterly_career and self.session.route_pair_status(origin_id,destination_id) != 'ACTIVE':
+            self._dialog('Establish the route first','Passenger services need an active airport pair.',
+                [('Create Route',lambda:self.research_manage_route(origin_id,destination_id)),('Cancel',lambda:None)])
+            return
         ids = self.session.compatible_aircraft(origin_id, destination_id)
         if not ids:
             self._dialog('No compatible aircraft', 'No owned aircraft meets current route planning eligibility.', [('OK', lambda:None)])

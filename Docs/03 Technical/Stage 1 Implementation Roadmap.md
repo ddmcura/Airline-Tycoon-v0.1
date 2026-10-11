@@ -1,5 +1,11 @@
 # Stage 1 Implementation Roadmap
 
+Quarterly Stage 3G-A is the approved bounded [paid route-establishment prerequisite](Paid%20Bidirectional%20Route%20Establishment.md)
+to general quarterly activation: bidirectional rights, Base/Hub fee attribution,
+Research confirmation, safe closure and paid reopening. It does not activate default
+gameplay, alter AT-041 or begin the separately deferred runtime optimization.
+Stage 3G activation still requires its own combined certification and passing gates.
+
 ## Purpose
 
 This roadmap converts the approved Airline Tycoon architecture into an implementation sequence. Its goal is a small but complete playable simulation rather than a collection of disconnected subsystems.
