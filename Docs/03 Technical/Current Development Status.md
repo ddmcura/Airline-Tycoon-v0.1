@@ -2,6 +2,51 @@
 
 Last updated: **2026-10-12**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B2 — bounded activation optimization working tree (2026-10-12)
+
+Approved baseline **916caff51774d78d1b711d9afb54de4b3f82b9ae** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; tracked tree/index
+clean, only `.venv/` untracked and no stashes. [Benchmark report](Quarterly%20Runtime%20Benchmarking.md)
+and the opt-in `tests/benchmark_quarterly_runtime.py` record real paid routes,
+purchases, private constructor-built drafts, actual certified publication and
+natural Booking/operation/finance warmup at 1/10/25/50 aircraft. Large warmups
+stopped at declared complete-boundary budgets without fabricating operating fixtures.
+Historical 375.151s is not directly comparable across hardware/calendar/consumers.
+
+Scheduling factors the existing lazy market-presence scan so activation avoids
+an unused cyclic shopping owner. An exact copy-helper prototype improved time but
+increased peak memory about 38%; it is rejected and both affected domain files are
+restored byte-for-byte. Retain every copy/guard and existing lazy supply/per-date
+shopping indexes; no new cross-event cache, rolling horizon, saved occurrence table
+or dynamic-state cache. Costs remain centered on copying and retained-history validation.
+Four publication gates, two world copies, strict quarterly flight behavior,
+100 same-time generation/10,000 processed limits, Schema 9, Booking economics,
+all named controls, paused Load and default quarterly dormancy remain unchanged.
+AT-058 policy is unchanged; B3 product decisions and combined C certification remain.
+
+Pre-change focused `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_backend -q`:
+**50 PASS, 252.004s**, exit 0. Baseline full discovery: **1,612 PASS, 2,746.015s**,
+exit 0, all 326 baseline Python witnesses unchanged. Final focused presence tests:
+**4 PASS, 14.628s**, exit 0. Final source is frozen at **327 Python witnesses**;
+final `.venv/Scripts/python.exe -B -m unittest discover -s tests -v`: **1,616 PASS,
+2,586.643s**, exit 0; all 327 source witnesses unchanged. Scoped compilation
+`.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Native Kivy quarterly controls and normal paid-route purchase
+regressions pass within the full suite; no separate manual visual certification.
+
+Three isolated completed one-day runs: baseline median **100.038s**
+(98.951–100.843) to final **94.819s** (93.302–95.256), **1.055× / 5.22% less wall
+time**. All six process identical 13-event workloads and match the full-world hash,
+including finance/history/cursors. Peak memory maxima **1,077.180 → 1,077.145 MiB**,
+effectively unchanged. Larger operating fixtures remain incomplete; 7/30/45/90-day
+30-second probes are censored, not completed timings. Save/load exact round trips
+pass; no speedup is attributed to those unchanged paths. Default quarterly gameplay,
+offline progression and all named speed controls remain unchanged. Four changed
+Markdown documents pass local-link/heading validation; exact seven-file scope and
+`git diff --check` pass. Actual commit/push synchronization is reported at completion.
+Next: separately authorize B3 design and resolve its open AT-058 provenance/recovery
+decisions; representative large-fleet advancement remains uncertified.
+
 ## Quarterly Stage 3G-B1 — runtime contract (2026-10-12)
 
 Verified baseline **34a50915ff21d77c5eeb1d277379c94e8ba4bc35** matches HEAD,

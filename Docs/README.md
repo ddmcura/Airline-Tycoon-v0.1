@@ -23,6 +23,11 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Quarterly runtime benchmarking](03%20Technical/Quarterly%20Runtime%20Benchmarking.md):
+  Stage 3G-B2 measured quarterly activation-presence/lifetime improvement, ranked
+  history costs and incomplete large-fleet evidence; existing lazy indexes remain,
+  with no offline feature, speed-control change or gameplay activation.
+
 - [Single speed, advancement and offline progression](03%20Technical/Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md):
   quarterly 3G-B1 / AT-058 approved future 90× pacing, primary Advance, capped
   offline provenance/recovery, cache principles and revised B2/B3/C activation gates;

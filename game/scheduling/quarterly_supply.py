@@ -134,7 +134,23 @@ class _DateLookup:
 class QuarterlyActivationProvider:
     def active_market_ids(self, envelope, window, *, dated_flight_indexes=None):
         # Activation selects market work only; Model 4 still owns one daily pool.
-        return tuple(sorted(QuarterlyShoppingIndexes(envelope).by_market))
+        # Activation needs presence only, not the cyclic shopping lookup owner.
+        return tuple(sorted(_published_market_presence(QuarterlySupply(envelope))))
+
+
+def _published_market_presence(supply):
+    """Existing lazy presence scan; no inventory index or retained world cycle."""
+    markets = {}
+    today = parse_canonical_utc(supply.envelope['simulation']['time_utc']).date()
+    for _, _, slot in supply.slots:
+        market = supply.world['connections'][slot['connection_id']]['market_id']
+        if market in markets:
+            continue
+        for lead in range(366):
+            if supply.on_date((today + timedelta(days=lead)).isoformat(), market_id=market):
+                markets[market] = (True,)
+                break
+    return markets
 
 
 class QuarterlyShoppingIndexes:
@@ -142,16 +158,7 @@ class QuarterlyShoppingIndexes:
         self.supply = QuarterlySupply(envelope)
         self.by_dated_flight_id = {}
         self.by_market_and_departure_date = _DateLookup(self)
-        self.by_market = {}
-        today = parse_canonical_utc(envelope['simulation']['time_utc']).date()
-        for _, _, slot in self.supply.slots:
-            market = self.supply.world['connections'][slot['connection_id']]['market_id']
-            if market in self.by_market:
-                continue
-            for lead in range(366):
-                if self.supply.on_date((today + timedelta(days=lead)).isoformat(), market_id=market):
-                    self.by_market[market] = (True,)
-                    break
+        self.by_market = _published_market_presence(self.supply)
     @property
     def indexed_flight_count(self):
         return len(self.by_dated_flight_id)
