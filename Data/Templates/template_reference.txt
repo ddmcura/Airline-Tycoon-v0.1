@@ -1,3 +1,7 @@
+# Stage 3G-B1 / AT-058 future policy only: 90x standard, capped 24h offline catch-up.
+# No Schema 9 structure, clock values or persistent metadata changed in B1.
+# Existing named ratios/no-offline notes below record implemented/historical scopes.
+# Canonical successor: Docs/03 Technical/Single Speed, Advancement & Offline Progression.md.
 # Schema 9 reusable flight-number authority (2026-10-08).
 # Stage 3G-A paid pair: canonical-direction connection.route_establishment (optional)
 # = {hub_airport_id, reverse_connection_id, payment_transaction_ids, closed_at_utc}.

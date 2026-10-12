@@ -23,6 +23,11 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Single speed, advancement and offline progression](03%20Technical/Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md):
+  quarterly 3G-B1 / AT-058 approved future 90× pacing, primary Advance, capped
+  offline provenance/recovery, cache principles and revised B2/B3/C activation gates;
+  documentation only, no current runtime change.
+
 - [Paid bidirectional route establishment](03%20Technical/Paid%20Bidirectional%20Route%20Establishment.md):
   quarterly Stage 3G-A fee/attribution, atomic journal, Research purchase/closure,
   persistence and the remaining activation blockers; no default activation.
@@ -44,7 +49,7 @@ domain contracts. Neither historical code nor a template overrides the schema.
 - [Routine maintenance specification](03%20Technical/Routine%20Maintenance%20Technical%20Specification.md):
   schema-7 aircraft-class expenses, direct settlement and V1 migration boundary.
 - [Continuous runtime specification](03%20Technical/Continuous%20Runtime%20Technical%20Specification.md):
-  current 30/210/900/1800x pacing, management while running, exclusive world ownership and performance gates.
+  implemented 30/210/900/1800x pacing and exclusive ownership; AT-058 supersedes future pacing/offline and the mandatory Ultra gate.
 - [Quarterly boundary orchestration](03%20Technical/Quarterly%20Boundary%20Orchestration.md):
   isolated Stage 3D automatic publication barrier, durable fences, certified correction/retry and queue/save recovery.
 - [Production cooperative runtime](03%20Technical/Production%20Cooperative%20Runtime.md):

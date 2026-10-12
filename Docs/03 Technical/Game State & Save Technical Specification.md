@@ -1,5 +1,18 @@
 # Game State & Save Technical Specification
 
+## Stage 3G-B1 future provenance contract (2026-10-12)
+
+[Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) / AT-058 supersedes the future no-offline policy only.
+Current Load remains exact and paused with zero offline progression. Future reopening
+first validates a separate snapshot, then claims a recorded absence once and resolves
+a fixed capped target through the same engine; publish failures and safety limits stop
+catch-up. Career-scoped claim receipts and complete-boundary recovery checkpoints
+must survive repeated Load, autosave rotation and crashes. Manual/bookmark files
+remain player-owned selections; loading them is not a fresh absence. Successful close
+persistence is a future amendment to the current no-exit-autosave rule, not permission
+to overwrite manual on exit. Schema/container/version design precedes B3 writers;
+older saves receive no unrecorded elapsed-time grant. B1 adds no persistent fields.
+
 ## Quarterly authority and approved future workflows
 
 Schema 9 foundation and dormant strategic publication are implemented. The isolated

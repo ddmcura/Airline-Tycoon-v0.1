@@ -1,5 +1,15 @@
 # Game State & Save Architecture
 
+## Approved future offline successor (2026-10-12; not implemented)
+
+AT-058 / [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) approves at most 24 real hours per absence at 90×,
+processed on reopening through the same engine. It supersedes the future blanket
+no-offline clause below, not exact snapshots, validated separate candidates or
+paused restoration. The implementation below still loads with zero offline time.
+Future close persistence and durable claims/recovery checkpoints must prevent
+double counting across loads, crashes and sessions without silently replacing
+manual saves/bookmarks. No fields or save behavior change in B1.
+
 ## Purpose
 
 The save system preserves one complete, internally consistent Airline Tycoon world at an exact simulation moment. Loading that save must restore the same world, not reconstruct an approximation around the currently selected airline.

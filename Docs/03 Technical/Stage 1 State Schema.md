@@ -1,5 +1,15 @@
 # Stage 1 State Schema
 
+## Stage 3G-B1 runtime policy successor — no structural change
+
+AT-058 / [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) approves future 90× single-speed pacing and bounded
+offline progression. The clock/event section below records implemented 30/210/900/1800×
+behavior and zero offline grant; those future policy clauses are superseded only by
+the linked contract. No field, value, schema version or template structure changes
+in B1. Anticipated absence provenance, fixed claims, checkpoint identity and recovery
+status are conceptual requirements, not authorized field names. B3 must finalize
+storage ownership/schema-first review before introducing any persistent writer.
+
 ## Paid bidirectional route establishment — Stage 3G-A
 
 Schema 9 optionally adds `route_establishment` to exactly one connection per

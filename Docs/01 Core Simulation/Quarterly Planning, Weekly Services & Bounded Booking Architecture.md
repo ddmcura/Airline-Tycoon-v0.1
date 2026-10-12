@@ -1,5 +1,19 @@
 # Quarterly Planning, Weekly Services & Bounded Booking Architecture
 
+## Quarterly Stage 3G-B1 activation successor (2026-10-12)
+
+[AT-058 runtime contract](../03%20Technical/Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md)
+approves future standard 90× pacing and capped 24-real-hour offline catch-up through
+the same engine, with explicit Advance as primary acceleration. It supersedes AT-041
+as a mandatory Ultra activation gate; historical measurements remain unchanged.
+B2 benchmarks and optimizes, B3 implements runtime/provenance/recovery/controls, and
+C performs combined certification before default quarterly activation. B1 changes
+no code, Schema 9 structure, booking economics, publication authority or event budgets.
+Successful automatic publication needs no additional confirmation; failures retain
+publication-before-Booking fences, fresh correction/retry, four gates and both copies.
+Default quarterly gameplay remains disabled pending those gates. Earlier checkpoint
+no-offline/pacing limitations below describe their original scopes.
+
 Quarterly Stage 3G-A adds [paid airport-pair establishment](../03%20Technical/Paid%20Bidirectional%20Route%20Establishment.md)
 before passenger planning: atomic bidirectional connection/expense, safe closure
 and paid reopening through the existing session/Research host. It removes the

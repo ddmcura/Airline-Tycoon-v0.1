@@ -1,5 +1,16 @@
 # PH 1.0 Step 4 — Continuous Runtime
 
+## Quarterly Stage 3G-B1 approved successor (2026-10-12)
+
+[Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) / AT-058 defines future standard 90× pacing, primary explicit Advance
+and capped 24-real-hour offline catch-up with provenance and recovery. It supersedes
+AT-041’s mandatory Ultra gate and conflicting future no-offline/named-ladder policy.
+Current code still uses 30/210/900/1800× and no offline progress; all controls remain.
+The dated contracts, thresholds and measurements below describe their implemented
+scopes. The Stage 3F gate below is historical, not current release acceptance.
+B2 benchmarks/optimizes, B3 implements runtime/save/GUI changes, and C certifies
+before default quarterly activation. Schema 9 structure and event safety remain.
+
 ## Quarterly Stage 3D isolated ordering successor
 
 [Quarterly boundary orchestration](Quarterly%20Boundary%20Orchestration.md) adds
@@ -27,14 +38,14 @@ Earlier dated descriptions below retain their original scopes and measurements.
 
 ## Stage 3F capacity gate and certification
 
-The approved final PH 1.0 capacity gate is **50 operational aircraft sustaining
+The historical AT-041 final PH 1.0 capacity gate was **50 operational aircraft sustaining
 Ultra at literal 1800x**, or one game day per 48 real seconds. Earned-but-unresolved
 credit is debt, not serviced game time. Backlog must remain bounded and temporary
 fence spikes must recover without ordinary repeated overload. Exact credit, UTC,
 events, validation, cap eight, deterministic outcomes and save safety remain.
 100 aircraft is optional stress/headroom, not a PH 1.0 pass requirement.
 
-This replaces the historical literal-7x capacity gate for the current named-speed
+At that decision this replaced the historical literal-7x capacity gate for the named-speed
 runtime; the dated evidence below remains historical. Throughput and atomic
 callback responsiveness are separate assessments. The final measurement-only
 [Stage 3F certification report](Runtime%20Capacity%20Certification.md) records

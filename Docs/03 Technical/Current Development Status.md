@@ -1,6 +1,44 @@
 # Current Development Status
 
-Last updated: **2026-10-11**. Current snapshot, not operational authorization.
+Last updated: **2026-10-12**. Current snapshot, not operational authorization.
+
+## Quarterly Stage 3G-B1 — runtime contract (2026-10-12)
+
+Verified baseline **34a50915ff21d77c5eeb1d277379c94e8ba4bc35** matches HEAD,
+upstream, freshly fetched origin/master and live remote master; tracked tree/index
+clean, only `.venv/` untracked and stashes empty. Serena activation/memories and
+targeted runtime/session inspection confirmed current active-uptime credit, shared
+explicit advancement, paused Load and Close without offline entitlement. Memories
+are older navigation aids; repository contracts prevail.
+
+AT-058 / [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) records approved future standard 90× pacing,
+primary Advance and maximum 24-real-hour offline catch-up through the same engine.
+Career-scoped durable claim/checkpoint receipts prevent double counting and preserve
+publication fences. No background service or server/account requirement. Remaining
+B3 choices include paused-close eligibility, older-branch/cancellation UX, crash exits,
+metadata/version/portability, duration precision and legacy rollout. No schema fields
+are introduced; those details require design before affected implementation.
+
+AT-041 is Superseded as a mandatory activation gate; its 375.151-second result,
+48-second Ultra target and original NOT CERTIFIED report remain historical evidence.
+Current code/controls still use 30/210/900/1800×, no offline progress, and default
+quarterly gameplay remains disabled. B2 benchmarking/measured caching and equivalent
+advancement, B3 runtime/save/recovery/Kivy implementation, then C combined activation
+certification remain future separately authorized tasks. Targets under 1/3/5 seconds
+for 7/45/90 days at 50 aircraft are aspirational and unmeasured.
+
+Verification: an inline `.venv/Scripts/python.exe -B -` documentation validator
+passes **451 local links / 76 heading targets / 13 Markdown documents plus one
+template-comment update**, exact **14-file** documentation scope. `git diff --check`
+passes. Byte/suffix comparisons with `git show HEAD:<path>` confirm unchanged
+Schema 9/template structures and unchanged historical capacity report after its
+successor annotation. Decision-register review confirms AT-058 is the sole new ID
+and AT-041 is Superseded; the pre-existing duplicate AT-023 entries are preserved
+and remain an unrelated register-cleanup issue. Final authority/scope self-review
+passes. No gameplay tests/compilation are required or run under AGENTS.md.
+Stage 3G-A’s 1,612-test evidence remains valid for unchanged production source at
+this baseline. Actual commit/push synchronization is reported at completion; no
+pending commit hash is invented here.
 
 ## Quarterly Stage 3G-A — paid route establishment (2026-10-11 working tree)
 

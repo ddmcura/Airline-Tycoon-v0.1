@@ -1,5 +1,13 @@
 # Paid Bidirectional Route Establishment — Quarterly Stage 3G-A
 
+## Stage 3G-B1 successor (2026-10-12)
+
+[Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) / AT-058 now supersedes AT-041’s mandatory Ultra gate.
+The route implementation and historical evidence below are unchanged; the stated
+AT-041 blocker is that checkpoint’s policy. Current remaining gates are B2 measured
+quarterly performance, B3 single-speed/offline/save integration and C combined
+certification. No route policy or default activation changes in B1.
+
 Approved 2026-10-11, baseline `668a646fd6deef0ecc15c20b3831f6ff32908c18`.
 HEAD, upstream, freshly fetched origin/master and live master matched; tracked
 tree/index were clean. `.venv/` and archival stashes are preserved.

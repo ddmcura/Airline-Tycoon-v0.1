@@ -1,5 +1,22 @@
 # Stage 1 Implementation Roadmap
 
+## Quarterly Stage 3G runtime sequence — approved 2026-10-12
+
+AT-058 / [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) replaces the AT-041 mandatory Ultra activation gate.
+This is a roadmap/contract update, not implementation permission.
+
+| Slice | Scope / exit |
+| --- | --- |
+| 3G-B1, current | Documentation only: standard 90× pacing, primary Advance, capped offline provenance/recovery, performance objectives and authority reconciliation. No code/schema structure changes or activation. |
+| 3G-B2, future | Benchmark representative quarterly careers; identify redundant work; separately approved measured caching and equivalent advancement optimizations; rebenchmark and deterministic correctness checks. |
+| 3G-B3, future | After B2 evidence and save/schema/provenance design, single-speed behavior, maximum 24-real-hour offline catch-up, recovery/session exclusion and Kivy controls. |
+| 3G-C, future | Combined certification: standard-speed performance, Advance/offline replay and failure fences, save/load compatibility; default quarterly activation only if every mandatory gate passes. |
+
+Seven/45/90-day targets under 1/3/5 seconds at 50 aircraft are aspirational
+optimization objectives pending measurement, not measured capabilities or hard
+release acceptance. Exact practical latency bounds and unresolved B3 decisions
+are tracked in the linked contract. Historical Ultra results stay unchanged.
+
 Quarterly Stage 3G-A is the approved bounded [paid route-establishment prerequisite](Paid%20Bidirectional%20Route%20Establishment.md)
 to general quarterly activation: bidirectional rights, Base/Hub fee attribution,
 Research confirmation, safe closure and paid reopening. It does not activate default
@@ -68,7 +85,7 @@ first minimum-playable checkpoint, but remain PH 1.0 requirements, not post-1.0 
 | 1 | Broader weekly scheduling | Bounded terminal increment implemented: one-way chains, Monday-week drafts, calculated maximum ground/flight reservations, explicit positioning/return, day copy, finite weekly repeat and atomic publication. See the [approved contract](../01%20Core%20Simulation/Flight%20Scheduling%20Architecture.md#approved-ph-weekly-planner-increment--2026-09-07) and [verification snapshot](Current%20Development%20Status.md). The Kivy successor now includes airport-local weekly pattern editing, bounded finite/continuous recurrence and protected future revisions; published cancellation remains deferred. |
 | 2 | Aircraft manufacturers and curated model catalog | Establish stable identities, versioned content and approved performance/capacity/pricing inputs. Legacy aircraft data is migration input. |
 | 3 | Basic new-aircraft acquisition | Atomic cash purchases, selected base/hub delivery, individual configuration, schema-5 migration, model capacity/range and versioned 30/45-minute turnaround. See the [acquisition contract](Aircraft%20Acquisition%20Technical%20Specification.md) and [verification snapshot](Current%20Development%20Status.md). |
-| 4 | Continuous deterministic runtime, manual pause/resume, and integration of existing multi-day advancement | Use the existing kernel and ordered whole-second commands with runtime-only wall-clock pacing. Current named speeds are literal 30/210/900/1800x. The [approved final capacity gate](Continuous%20Runtime%20Technical%20Specification.md#stage-3f-capacity-gate-and-certification) requires 50 operational aircraft sustaining Ultra, preserving event limits, suspension exclusion and exact authority. [Stage 3F](Runtime%20Capacity%20Certification.md) reports NOT CERTIFIED; the historical 7x gate does not establish current acceptance. See Current Development Status. |
+| 4 | Continuous deterministic runtime, manual pause/resume, and integration of existing multi-day advancement | Use the existing kernel and ordered whole-second commands with runtime-only wall-clock pacing. Current named speeds are literal 30/210/900/1800x. AT-058 / [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) supersedes the mandatory Ultra gate with representative 90× certification, correct efficient Advance, capped offline recovery and deterministic/save compatibility. Current named controls remain until B3. [Stage 3F](Runtime%20Capacity%20Certification.md) retains its historical NOT CERTIFIED result; neither it nor the historical 7× gate certifies the new quarterly path. See Current Development Status. |
 | 5 | Leasing, lease-to-own, and used aircraft | Implemented as schema 6: deterministic rotating lease offers, persistent used listings, automatic negative-cash-capable obligations, safe return/renewal, ownership transfer and contract-aware scheduling. See the [aircraft marketplace contract](Aircraft%20Marketplace%20Technical%20Specification.md) and Current Development Status. |
 | 6 | Simple versioned maintenance expenses | Add one class-and-distance routine cost to each completed flight's existing operating expense/cash journal, including deadheads, while preserving V1 history. See the [bounded specification](Routine%20Maintenance%20Technical%20Specification.md). No accrual or monthly maintenance settlement. |
 | 7 | Save/load (existing Milestone 8) | Integrate event-boundary snapshots, validated candidate loading, paused restoration, migrations and atomic replacement/recovery. The airline career has one current manual save, three rotating autosaves and player-named permanent bookmarks; see the save specification. |

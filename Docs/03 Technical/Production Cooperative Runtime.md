@@ -1,5 +1,14 @@
 # Production Cooperative Runtime — Stage 3E
 
+## Quarterly Stage 3G-B1 policy successor (2026-10-12)
+
+[Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) / AT-058 changes future pacing/activation policy only: standard 90×,
+primary explicit Advance and bounded offline catch-up through the same resolver.
+Current controls, credit, strict/shared/fence behavior and saves are unchanged.
+The earlier no-offline scopes and Ultra certification below remain historical.
+Exact ownership, complete-event boundaries, deterministic replay and existing
+processing budgets remain required in B2/B3/C.
+
 ## Patch 1.2B safety-accounting correction (2026-10-05)
 
 [Causal Generation Accounting](Runtime%20Causal%20Generation%20Accounting.md)

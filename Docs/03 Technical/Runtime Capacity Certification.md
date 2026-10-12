@@ -1,5 +1,13 @@
 # PH 1.0 Runtime Capacity Certification - Stage 3F
 
+## Historical evidence disposition (2026-10-12)
+
+AT-058 / [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) supersedes AT-041’s Ultra activation gate.
+The original 375.151-second measurement, 48-second Ultra target, workload,
+NOT CERTIFIED finding and report below remain unchanged historical evidence.
+They do not certify representative quarterly 90× performance or offline catch-up.
+No new benchmark or reinterpretation of those results is made in B1.
+
 Certification baseline **ebdfc1239cb88f2ccd12a481033f1ba236588b04** matched
 local HEAD, upstream and live origin/master before measurement. Evidence is on
 Windows/Python 3.12.10, Kivy 2.3.1/SDL2/Intel UHD 630, Intel Core i5-10400
