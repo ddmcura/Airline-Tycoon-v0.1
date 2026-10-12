@@ -15,6 +15,9 @@ _ITINERARY_FIELDS = frozenset((
     'destination_airport_id', 'dated_flight_ids', 'scheduled_departure_utc',
     'scheduled_arrival_utc', 'cabin', 'fare_offer_snapshot', 'schedule_lineage', 'status',
 ))
+_QUARTERLY_ITINERARY_FIELDS = _ITINERARY_FIELDS | {'quarterly_lineage'}
+_QUARTERLY_LINEAGE_KEYS = ('weekly_plan_id', 'revision', 'service_id',
+    'slot_number', 'operating_date', 'published_at_utc')
 _BOOKING_FIELDS = frozenset((
     'booking_id', 'contract', 'booking_checkpoint_id', 'cohort_key', 'desired_travel_date',
     'airline_id', 'itinerary_id', 'passenger_count', 'booked_at_utc', 'total_fare_minor',
@@ -64,7 +67,7 @@ class _ScalarRows:
         for key in self._offsets:
             yield self[key]
 
-def _itinerary_graph(world):
+def _itinerary_graph(world, *, quarterly=False):
     """Visit ALL itineraries. Exact direct lineage, no valid-looking filtering."""
     graph = _ScalarRows(5)
     flights = world['dated_flights']
@@ -72,8 +75,11 @@ def _itinerary_graph(world):
     markets = world['directional_markets']
     flight_facts = {}
     currencies = {}
+    fields = _QUARTERLY_ITINERARY_FIELDS if quarterly else _ITINERARY_FIELDS
+    if quarterly:
+        from .quarterly_consumers import LINEAGE_FIELDS
     for itinerary_id, r in world['itineraries'].items():
-        if (type(r) is not dict or r.keys() != _ITINERARY_FIELDS
+        if (type(r) is not dict or r.keys() != fields
                 or r['contract'] != DIRECT_ECONOMY_ITINERARY_CONTRACT):
             return None
         ids = r['dated_flight_ids']
@@ -95,8 +101,14 @@ def _itinerary_graph(world):
                 return None
             facts = (f.get('airline_id'), f.get('origin_airport_id'), f.get('destination_airport_id'),
                 f.get('scheduled_off_block_utc'), f.get('scheduled_in_block_utc'),
-                f['fare_offer'].get('currency'), f.get('schedule_id'),
-                f.get('schedule_revision'), f.get('occurrence_key'))
+                f['fare_offer'].get('currency'))
+            if quarterly:
+                lineage = f.get('quarterly_lineage')
+                if type(lineage) is not dict or lineage.keys() != LINEAGE_FIELDS:
+                    return None
+                facts += (tuple(lineage[key] for key in _QUARTERLY_LINEAGE_KEYS),)
+            else:
+                facts += (f.get('schedule_id'), f.get('schedule_revision'), f.get('occurrence_key'))
             flight_facts[flight_id] = facts
         snapshot = r['fare_offer_snapshot']
         lineage = r['schedule_lineage']
@@ -111,14 +123,25 @@ def _itinerary_graph(world):
                 or type(r['scheduled_departure_utc']) is not str
                 or type(r['scheduled_arrival_utc']) is not str
                 or not currencies[currency]
-                or type(snapshot['amount_minor']) is not int or snapshot['amount_minor'] < 0
-                or type(lineage) is not dict or lineage.keys() != _LINEAGE_FIELDS
-                or type(lineage['schedule_id']) is not str
-                or type(lineage['schedule_revision']) is not int or lineage['schedule_revision'] < 1):
+                or type(snapshot['amount_minor']) is not int or snapshot['amount_minor'] < 0):
             return None
-        if ((airline_id, r['origin_airport_id'], r['destination_airport_id'],
+        if quarterly:
+            quarterly_lineage = r['quarterly_lineage']
+            if (lineage is not None or type(quarterly_lineage) is not dict
+                    or quarterly_lineage.keys() != LINEAGE_FIELDS):
+                return None
+            row_facts = (airline_id, r['origin_airport_id'], r['destination_airport_id'],
                 r['scheduled_departure_utc'], r['scheduled_arrival_utc'], snapshot['currency'],
-                lineage['schedule_id'], lineage['schedule_revision'], lineage['occurrence_key']) != facts
+                tuple(quarterly_lineage[key] for key in _QUARTERLY_LINEAGE_KEYS))
+        else:
+            if (type(lineage) is not dict or lineage.keys() != _LINEAGE_FIELDS
+                    or type(lineage['schedule_id']) is not str
+                    or type(lineage['schedule_revision']) is not int or lineage['schedule_revision'] < 1):
+                return None
+            row_facts = (airline_id, r['origin_airport_id'], r['destination_airport_id'],
+                r['scheduled_departure_utc'], r['scheduled_arrival_utc'], snapshot['currency'],
+                lineage['schedule_id'], lineage['schedule_revision'], lineage['occurrence_key'])
+        if (row_facts != facts
                 or (r['origin_airport_id'], r['destination_airport_id']) !=
                 (market.get('origin_airport_id'), market.get('destination_airport_id'))):
             return None
@@ -247,19 +270,19 @@ def _result_lineage(world, bookings):
                         {'account_id': by_code.get('unflown_tickets'), 'amount_minor': -gross}]):
                 return False
     return len(owners) == len(bookings)
-def valid_booking_relationships(world, *, valid_date=_date):
+def valid_booking_relationships(world, *, valid_date=_date, quarterly=False):
     """No retained proof; False requests original diagnostics, never repair."""
     for airline in world['airlines'].values():
         value = airline.get('finance_revision')
         if type(value) is not int or value < 0: return False
     for flight in world['dated_flights'].values():
-        if 'quarterly_lineage' in flight:
+        if 'quarterly_lineage' in flight and not quarterly:
             return False  # Quarterly contracts use the complete detailed validator.
         value = flight.get('inventory_revision')
         if (type(value) is not int or value < 0
                 or 'remaining_capacity' in flight or 'booked_capacity' in flight):
             return False
-    itineraries = _itinerary_graph(world)
+    itineraries = _itinerary_graph(world, quarterly=quarterly)
     if itineraries is None: return False
     bookings = _booking_graph(world, itineraries, valid_date)
     return bookings is not None and _result_lineage(world, bookings)

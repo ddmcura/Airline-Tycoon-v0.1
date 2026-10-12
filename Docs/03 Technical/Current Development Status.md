@@ -1,6 +1,58 @@
 # Current Development Status
 
-Last updated: **2026-10-12**. Current snapshot, not operational authorization.
+Last updated: **2026-10-13**. Current snapshot, not operational authorization.
+
+
+## Quarterly Stage 3G-B2.1 — verified bounded Booking proof (2026-10-13)
+
+Approved baseline **b2db1c71f9dcc2356ff8eac303614c417d10929a** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; tracked tree/index
+clean, `.venv/` preserved and stashes empty. [Performance report](Quarterly%20Runtime%20Benchmarking.md)
+records exact fixture reproduction, full-day cProfile/exclusive attribution and
+one measured current-data predicate optimization. Schema 9/templates, four
+publication gates, both transaction copies, strict quarterly execution, money/
+Booking economics, all event budgets, named speeds and default dormancy remain.
+
+The committed B2 builder reproduces its exact audited source hash with 42,923
+Bookings/itineraries, 368 dated rows, 33 checkpoints and real flight/finance history.
+Construction/warmup are **595.657/586.522s**. Three isolated completed one-day samples
+have baseline median **98.452s** (97.317–102.874) and final **91.669s**
+(88.660–92.598): **1.074× / 6.89% less time**. All six reproduce the same complete
+world hash and exact 13-event vector. Peak maxima **1,085.203 → 1,085.754 MiB**
+are effectively unchanged. The old 94.819s is historical, not this comparison's baseline.
+
+The original mode deliberately excluded quarterly Bookings from E.2's call-local
+proof. World State now extends that same exact scalar relationship predicate to
+quarterly itinerary publication lineage; every current row/equation/coverage check
+remains, with unchanged ordered detailed fallback. No cross-gate/history cache or
+new authority is introduced. The profile identifies 15 full gates, 27 runtime clone
+calls and large provider/copy/retained-history work; event count alone is misleading.
+Copy/validation architecture is not weakened, and the B2 copy prototype stays rejected.
+
+Final focused `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_booking_validation tests.test_booking_lineage_optimization -v`:
+**35 PASS, 75.960s**, exit 0. Predecessor-equivalent True/1 itinerary lineage behavior
+is preserved; stronger typing is a separate correctness scope. Final source is
+frozen at **329 Python witnesses**. Affected backend/boundary/native command
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_backend tests.test_quarterly_boundaries tests.test_quarterly_gui.QuarterlyKivyTests tests.test_route_establishment.RouteKivyTests -v`:
+**97 PASS, 297.460s**, exit 0, including **eight native Kivy cases**. Optimized
+profile completes with the same world/event hash, identical copy/gate counts and
+21.316s exclusive relationship proof versus baseline 75.169s. The separate small
+validation-only scaling study preserves passenger/finance/event/flight totals.
+Scoped `.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0; protected Saves profiler guard rejects as expected. Final
+`.venv/Scripts/python.exe -B -m unittest discover -s tests -v`: **1,628 PASS,
+2,384.109s**, exit 0. All 329 source hashes remain unchanged. Three changed Markdown
+documents' **280 local links / 65 heading targets**, exact seven-file scope and
+`git diff --check` pass. This records verified source/working-tree evidence; actual
+commit/push synchronization is reported at completion without inventing a pending hash.
+
+An actual finite 10,001-event queue stops at the unchanged 10,000-event request limit,
+leaving one pending event and an unresolved same-UTC boundary; explicit retry finishes.
+Quarterly limited prefixes survive SaveStore round trips and explicit retry matches
+uninterrupted control. An additional inline temporary Session Advance/save/load/new-Advance
+diagnostic passes, exit 0, with exact prefix and complete-result hashes in the report. No automatic budget renewal, continuation UI or offline work
+is introduced. B3/C still need separate authorization and the open AT-058 recovery/
+provenance decisions; representative large-fleet advancement is not certified.
 
 ## Quarterly Stage 3G-B2 — bounded activation optimization working tree (2026-10-12)
 

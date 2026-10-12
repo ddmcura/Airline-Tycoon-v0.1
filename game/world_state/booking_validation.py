@@ -719,7 +719,9 @@ def validate_schema3_booking_authority(validator):
     # The graph proof is local to THIS invocation, never a session trust flag.
     if validator._graph_checked and not validator.errors:
         from .booking_lineage_validation import valid_booking_relationships
-        if valid_booking_relationships(world, valid_date=valid_date):
+        from .quarterly_consumers import quarterly_mode
+        if valid_booking_relationships(world, valid_date=valid_date,
+                quarterly=quarterly_mode(validator.envelope)):
             return
     _validate_booking_relationships_detailed(validator)
 

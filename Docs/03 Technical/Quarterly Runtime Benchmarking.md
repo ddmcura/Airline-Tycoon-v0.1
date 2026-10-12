@@ -1,4 +1,319 @@
-# Quarterly Runtime Benchmarking — Stage 3G-B2
+# Quarterly Runtime Benchmarking — Stage 3G-B2 / B2.1
+
+## Stage 3G-B2.1 — advancement investigation (2026-10-13)
+
+Approved baseline `b2db1c71f9dcc2356ff8eac303614c417d10929a` matched HEAD,
+upstream, freshly fetched origin/master and live remote master. Tracked tree/index
+were clean; only `.venv/` was untracked, and stashes were empty. Repository
+contracts and targeted Serena navigation governed this bounded successor.
+No Schema 9, template, economics, pacing, gameplay activation or safety-budget
+change is authorized or made. The B2 evidence below remains historical evidence.
+
+### Exact reproduction and workload
+
+Reuse the committed B2 harness and its original one-aircraft construction without
+changing schedule, aircraft, demand or retained history. The earlier fixture was
+temporary; rebuilding reproduces full source SHA-256
+`ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0` exactly.
+Construction takes **595.657s**, including **586.522s natural warmup**; publication
+prepare/apply are 0.051/0.217s. Warmup completes 50 events through the original
+2026-10-02T03:00:00Z target; peak process working set is **640.172 MiB**.
+Construction/warmup are excluded from one-day command timings.
+
+The audited source has **75,758,607 JSON file bytes**, 42,923 Bookings and matching
+itineraries, 368 dated flights, five completed flight results, 42 journals,
+50 historical events, 367 pending events, 33 retained checkpoints and 128 processed
+cohorts. It has one aircraft, four daily services, one published plan and ten paid
+directional connections. Runtime environment remains Windows 11 build 26200,
+Python 3.12.10, i5-1035G1 / eight logical processors / 8,361,132,032 bytes RAM.
+
+Three isolated baseline one-day commands take **102.874, 97.317, 98.452s**:
+median **98.452s**, range **97.317–102.874s**. All complete exactly 13 events:
+four dispatches, four departures, four completions and one daily Booking checkpoint.
+All match B2's full result hash
+`f2639799ac18443c62a85dcab3e613e12adbb5627df2051b19a4367df66091a2`.
+Output grows to 43,467 Bookings/itineraries, nine results, 47 journals,
+63 historical and 363 pending events. The small event count does not describe
+all internal record traversal, copying, preview/replay or proof work.
+
+### Complete-day profile and attribution
+
+A separate full-day cProfile plus test-only nested exclusive timers completes
+with that SAME complete-world hash and event vector. Instrumented command time is
+**342.229s**, not a latency sample. cProfile records **494,646,011 calls** and
+343.006s; its region additionally includes the benchmark helper's result assembly
+and final digest, outside the helper's command timer. Profile totals must not
+be substituted for the 98.452s quiet median. Instrumentation leaves handler
+identities/registrations and all copies, gates, budgets and event outcomes intact.
+
+| Baseline instrumented region | Calls | Inclusive seconds | Exclusive seconds |
+| --- | ---: | ---: | ---: |
+| Complete-world validation | 15 | 180.159 | 21.404 |
+| Plain authority JSON/alias/money/UTC traversal | 15 | 65.881 | 65.881 |
+| Booking validation, including retained relationships | 15 | 92.304 | 17.073 |
+| Detailed retained Booking relationships | 15 | 75.169 | 75.169 |
+| Imported deepcopy regions, including provider isolation/witnesses | 66,057 | 105.276 | 102.340 |
+| Runtime world clone regions | 27 | 37.896 | 35.862 |
+| Detached event publication | 13 | 17.470 | 0.001 |
+| Booking allocation preparation | 2 | 97.550 | 2.187 |
+| Booking shopping preparation | 2 | 94.849 | 1.330 |
+| Scheduling supply/presence lookups | 2,966 | 0.890 | 0.633 |
+| Quarterly backend reconciliation | 1 | 11.313 | 0.047 |
+| Handler execution and contract checks | 13 | 101.566 | 2.372 |
+| Garbage collection | 4,631 | — | 5.891 |
+
+Exclusive timer regions subtract complete instrumented children. They may be
+added within that partition; inclusive rows are nested and MUST NOT be summed.
+The remainder includes clock/queue/resolver/session/other uninstrumented work.
+The deepcopy region count includes small descriptor/result copies, not 66,057
+whole worlds. cProfile's actual recursive deepcopy count is **44,202,636**,
+57.834s self / 115.783s cumulative; it uses a different attribution boundary.
+
+Per-handler cProfile (self / cumulative seconds): quarterly dispatch four calls
+0.000 / 0.020; departure four 0.000 / 1.151; completion four 0.001 / 1.215.
+These bodies exclude the kernel's following full gate and detached publication,
+so they are not complete event-transaction latencies. Booking prepare/process
+run once each: 0.001 / 51.239 and 0.087 / 47.921, including their nested copies
+and derivations. Preview and fresh commit replay each call allocation/shopping.
+Identifiable finance settlement construction runs four times, 0.000 / 0.020s;
+Booking journal staging is integrated into process_daily_booking_checkpoint and
+is not claimed as a separately isolated complete finance subtotal.
+
+Fifteen complete validations are entry + thirteen strict quarterly events + final
+clock-gap gate. Twenty-seven runtime clones include their candidate/commit copies
+and the existing Booking preparation clone. Request startup also performs backend and
+publication reconciliation once, with their existing detached source copies.
+No gate is classified as redundant merely because its inputs look unchanged.
+
+Ranked remaining costs are current full-world predicates and copying; Booking's
+allocation equations and Scheduling lookups are small exclusive fractions.
+Validation/copy cost depends on retained graph size and transaction count, not
+only fleet or event count. This source's 42,923 retained relationships are visited
+again at each of fifteen gates. Published-flight validation runs 5,520 times
+(368 × 15); complete published chronology and mode checks also remain.
+Checkpoint/event topology includes C × E scans; overall relationships are not
+Booking × itinerary Cartesian scans. No aircraft-count scaling claim follows
+from this one-aircraft profile.
+
+### One retained candidate and contract audit
+
+B2 explicitly sends any quarterly flight to the detailed Booking suffix, leaving
+the already approved exact call-local E.2 relationship proof unused. Extend that
+existing proof to explicit quarterly mode, rather than add a cache or another
+Booking writer. World State owns both predicates. The caller still requires this
+invocation's completed plain authority/alias proof and clean structure/checkpoint
+prefix. Exact quarterly itinerary fields, null legacy schedule lineage and all six
+publication-lineage values are compared with current dated-flight facts.
+
+Every itinerary, Booking, owner, inventory revision/capacity equation, result ID,
+passenger total, paid journal and source coverage is checked. Distinct flight facts
+are reconstructed only within this synchronous call; flat scalar rows never escape
+it. No world identity, revision, session epoch or retained immutable segment acts
+as a validity token. Deep mutations are observed on the next call. Full published
+flight, fixed-fare/date-horizon, operations, chronology and mode gates still run.
+Unsupported or malformed facts return to the UNCHANGED ordered detailed suffix.
+Legacy mode continues its existing graph eligibility and diagnostics.
+
+A: all mandatory gates retained; no cross-gate validation reuse.
+B: all candidate/commit and provider-isolation copies retained; the rejected B2
+copy substitution is not revived.
+C: existing Booking scalar relationship proof reused; no published-supply or
+inventory authority changed.
+D: every retained record still checked; no immutable-history exemption or
+load-time corruption bypass.
+E: queue ordering, dispatch/reconciliation, chronology, callback ownership and
+all request/causal budgets unchanged.
+
+Differential lineage tests preserve the predecessor's existing True == 1 value
+equality in itinerary revision/slot comparisons; no stricter validation policy
+is introduced incidentally. Published flight lineage still has its original
+strict type checks. Stronger itinerary type enforcement would be a separate
+correctness scope, not an unexplained optimization difference.
+
+### Optimized measurement and verification
+
+Three isolated optimized runs take **92.598, 91.669, 88.660s**: median
+**91.669s**, range **88.660–92.598s**. Against the contemporaneous 98.452s
+baseline this is **1.074× / 6.89% less command time**. B2's earlier 94.819s
+is historical host variation, not the paired baseline for this new change.
+All six quiet runs have identical complete-world hashes and 13-event vectors;
+no envelope roots, history, journals, inventory, IDs, RNG or UI fields are excluded.
+
+Peak working-set maxima are **1,085.203 → 1,085.754 MiB**, a 0.551-MiB / 0.05%
+difference, effectively unchanged. Three-sample baseline peaks are
+1,084.289/1,084.637/1,085.203 MiB; final 1,084.199/1,085.754/1,085.754 MiB.
+Each process's peak is cumulative; this is not a per-graph allocation delta or
+long-run memory leak certification. The bounded current-data proof is retained:
+measurable time improvement without the substantial B2 copy-prototype memory penalty.
+
+Final focused command:
+`python -B -m unittest tests.test_quarterly_booking_validation tests.test_booking_lineage_optimization -v`
+passes **35 tests in 75.960s**, exit 0. The first run's two overly strict new
+True/1 expectations were corrected after both predicates agreed; that matrix alone
+then passed in 10.762s before the final 35-test run. No production rejection policy
+was changed. Final source is frozen at **329 Python SHA-256 witnesses**.
+
+The optimized full-day diagnostic completes in **258.176s** command time,
+258.877s cProfile region, with **405,546,091 calls**, the same complete world and
+13-event vector. Profiler overhead is reduced by the changed call structure;
+this is NOT a claimed 24.6% quiet speedup. Identical structural counters remain:
+15 full gates, 27 runtime clones, 13 detached event commits, 66,057 imported
+copy regions, 44,202,636 recursive deepcopy calls, two allocation/shopping
+preparations, 2,966 schedule lookups and 4,631 GC observations. No guard/copy
+or simulation work was removed.
+
+| Optimized instrumented region | Calls | Inclusive seconds | Exclusive seconds |
+| --- | ---: | ---: | ---: |
+| Complete-world validation | 15 | 115.156 | 19.523 |
+| Plain authority traversal | 15 | 58.485 | 58.485 |
+| Booking validation | 15 | 36.369 | 15.053 |
+| Current-data relationship graph proof | 15 | 21.316 | 21.316 |
+| Imported deepcopy regions | 66,057 | 96.409 | 93.518 |
+| Runtime world clone regions | 27 | 29.598 | 28.135 |
+| Detached event publication | 13 | 13.852 | 0.001 |
+| Booking allocation preparation | 2 | 89.645 | 2.178 |
+| Booking shopping preparation | 2 | 86.974 | 1.176 |
+| Scheduling supply/presence | 2,966 | 0.796 | 0.569 |
+| Backend reconciliation | 1 | 10.149 | 0.037 |
+| Handler/contract work | 13 | 93.135 | 2.113 |
+| Garbage collection | 4,631 | — | 5.410 |
+
+The old detailed suffix is not invoked on these valid inputs. cProfile's graph
+passes (self / cumulative seconds) are itinerary 6.268/9.566, Booking ownership/
+inventory 4.201/7.261 and result/journal coverage 1.862/4.264. Other pure graph
+predicates and current-record checks remain. The same partition shows copying
+is still about 121.653 exclusive diagnostic seconds; complete validation is
+115.156 inclusive. Unchanged regions vary between runs, so the paired quiet
+measurements, not individual unmodified-region deltas, establish speedup.
+
+Finance settlement construction remains four calls, 0.000/0.017s; departure
+four 0.000/1.047s; completion four 0.001/1.061s; dispatch four 0.000/0.011s.
+There is no gameplay serialization inside the Advance command. The diagnostic
+captures 18,903 json.dumps calls, 0.037s self / 1.706s cumulative: deterministic
+fingerprints and the helper's final result digest, not disk-save latency.
+Save/load is exercised for correctness; B2.1 does not claim a fresh save/load
+performance improvement. Profile peaks 1,084.254/1,085.527 MiB are comparable
+in magnitude to the quiet runs, not allocation-only measurements.
+
+A smaller synthetic validation-only control varies the inseparable Booking /
+itinerary / linked-result-ID counts by splitting unflown aggregate batches with
+existing test tooling. This does NOT change the main audited operating fixture.
+All three valid controls retain **2,996 passengers, 29,960,000 accepted fare minor
+units**, one aircraft, 180 dated flights, zero results, one journal, two history
+events and 184 pending events. Aircraft, published schedule, capacity/inventory,
+passenger demand, account balances, checkpoint outcomes and operational chronology
+remain fixed. Fresh IDs/cursors and their exact linked source-ID lists necessarily
+grow with the two coupled record counts. No historical manifest is rewritten.
+
+| Booking/itinerary count | Detailed reference full validation median [range], seconds | Optimized full validation median [range], seconds |
+| ---: | --- | --- |
+| 1,185 | 0.116 [0.114–0.128] | 0.108 [0.103–0.111] |
+| 1,896 | 0.144 [0.142–0.150] | 0.133 [0.122–0.140] |
+| 2,436 | 0.169 [0.160–0.179] | 0.152 [0.140–0.162] |
+
+Each row alternates three reference and three optimized validations on the exact
+same source and checks its complete hash remains unchanged. From 1,185 to 2,436
+linked records, full validation medians grow about 1.45× reference / 1.40× optimized
+for 2.06× record count; fixed structural/flight work remains. These few small
+points do not prove a general asymptotic exponent, isolate aircraft scaling or
+certify retained-operation/50-aircraft capacity.
+
+Affected command:
+`python -B -m unittest tests.test_quarterly_backend tests.test_quarterly_boundaries tests.test_quarterly_gui.QuarterlyKivyTests tests.test_route_establishment.RouteKivyTests -v`
+passes **97 tests in 297.460s**, exit 0, including **eight native Windows Kivy
+cases** for quarterly planning/publication controls and normal paid-route purchase.
+Python 3.12.10 / Kivy 2.3.1 / SDL2 / Intel UHD Graphics / OpenGL 4.6 remain the
+observed environment. These are actual native regression cases, not a separate
+manual visual survey or large-fleet GUI capacity certificate.
+
+Scoped compilation `python -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Profiler `--root Saves` rejects with expected exit 2 before access.
+Real Saves, protected local metadata, `.venv/` and stashes remain untouched.
+
+Final `.venv/Scripts/python.exe -B -m unittest discover -s tests -v` passes
+**1,628 tests in 2,384.109s**, exit 0. All **329 source witnesses** remain unchanged
+through performance and full verification. Stage 3A–3G-A, quarterly/legacy isolation,
+Booking/finance/history, publication fences/retries, save/load and event/runtime
+safety regressions all pass. Final exact seven-file scope, whitespace and three
+changed Markdown documents' **280 local links / 65 heading targets** pass.
+Generated fixtures, profiles, logs and runtime artifacts are excluded from commits.
+Actual commit/push synchronization is reported at completion, not invented here.
+
+### Legitimate work limit versus runaway and continuation
+
+The default processed/stale ceiling is 10,000 per REQUEST. A finite queue of
+10,001 already scheduled NO_OP events (no generated children) stops after exactly
+10,000 commits with EVENT_LIMIT_REACHED; the final event remains pending at the
+same UTC, and current_utc_fully_resolved is false. Explicit new resolution finishes
+that event in its original order. This is a synthetic safety test, not airline
+capacity evidence. Default same-UTC generated-child accounting remains 100;
+advancing chronology resets only that causal counter, not processed work.
+
+A quarterly two-event budget stop also preserves exact validated authority through
+real SaveStore save/load; a separately explicit retry to the unchanged target matches
+an uninterrupted strict control, including Bookings, finance, history and identities.
+An additional inline `.venv/Scripts/python.exe -B -` diagnostic exercises the
+actual Stage1Session begin_advance_to/advance_tick/save_manual/load_saved APIs.
+With a lowered test-only two-event budget, five events remain pending; saved
+prefix hash is `fe4d2a14fbd4f8cdb5d010b89dc2b36cf698134a31ce6970f0868e0531e59d37`.
+An explicitly new Advance to the original 2027-01-02T15:00:00Z target after Load
+completes and matches the uninterrupted full-world control hash
+`032fecfc122cfc3830acbbbcf900182d14787e4fc7c40b3b37957a21ba0610f7`.
+This smaller backend test fixture is separate from the primary performance
+fixture. No production constant, source file or automatic retry path changes.
+
+A suspended iterator/yield keeps its existing counters. A closed/terminal request
+or restored save does not contain the iterator; explicit continuation creates a
+new request under the existing boundary contract. No API or budget change is needed
+for that explicit retry. Automatic transparent partitioning, durable fixed-entitlement
+counter/target recovery or a new resume UI is not implemented or authorized here.
+A runaway same-UTC generator remains distinct and blocked under existing tests.
+
+At four sectors/aircraft/day, 50 aircraft require at least 400 departure/completion
+events/day; 30/45/90-day single requests exceed 10,000 before dispatch/Booking work.
+This is legitimate density, not proof of recursion or a wall-time bottleneck.
+Faster execution cannot change that bound. B3 may reuse the explicit command API,
+but any automatic bounded workflow needs its own authority/design decision and
+must not silently renew an exhausted request.
+
+### Exact B2.1 changed-file scope
+
+- [World State relationship proof](../../game/world_state/booking_lineage_validation.py).
+- [World State Booking proof eligibility](../../game/world_state/booking_validation.py).
+- [Opt-in profiling/scaling tool](../../tests/profile_quarterly_advancement.py).
+- [Differential and recovery tests](../../tests/test_quarterly_booking_validation.py).
+- [This performance report](Quarterly%20Runtime%20Benchmarking.md).
+- [Current Development Status](Current%20Development%20Status.md).
+- [Decision Register](Decision%20Register.md), AT-058 evidence only; policy unchanged.
+
+### Reproduction and B3 recommendation
+
+[Test-only profiler](../../tests/profile_quarterly_advancement.py) consumes the
+unchanged audited fixture from [the B2 harness](../../tests/benchmark_quarterly_runtime.py).
+[Quarterly proof tests](../../tests/test_quarterly_booking_validation.py) compare
+complete validation results, exact exceptions and source immutability with the
+retained predecessor path, and cover strict/shared/SaveStore/retry equivalence.
+Commands use the project virtual environment, caller-owned temporary outputs and
+no real Saves; profiling is separate from quiet latency controls:
+
+```text
+python -B -m tests.benchmark_quarterly_runtime --root <temporary> --build --fleets 1 --setup-budget 900
+python -B -m tests.profile_quarterly_advancement --root <temporary> --label baseline-day --repeats 3
+python -B -m tests.profile_quarterly_advancement --root <temporary> --label baseline-profile --repeats 1 --instrument --cprofile
+python -B -m tests.profile_quarterly_advancement --root <temporary> --label optimized-day --repeats 3
+python -B -m tests.profile_quarterly_advancement --root <temporary> --validation-study --repeats 3
+```
+
+B2.1 does not certify representative 50-aircraft 7/45/90-day targets, normal 90×
+continuous performance, offline recovery or default activation. Next investigate
+remaining measured copying/whole-graph predicates on fixed operating fixtures;
+any change to certified ownership, validation exemptions or copy architecture
+requires a separate bounded contract decision. AT-058 B3 provenance, paused-close,
+branch/cancellation/versioning and legacy rollout decisions remain open. B3/C need
+separate authorization; no future behavior starts in this slice.
+
+---
+
 
 Bounded implementation and measurement, 2026-10-12. Approved baseline
 `916caff51774d78d1b711d9afb54de4b3f82b9ae` matched HEAD, upstream, freshly fetched
@@ -376,6 +691,8 @@ deterministic advancement and durable recovery certification.
 
 
 ## Exact changed-file scope
+
+Historical **Stage 3G-B2** file scope follows; B2.1 scope is listed above.
 
 - [Scheduling presence/index ownership](../../game/scheduling/quarterly_supply.py).
 - [Focused presence and lifecycle tests](../../tests/test_quarterly_activation_presence.py).
