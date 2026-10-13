@@ -2,6 +2,74 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B3A — safe transaction feasibility (2026-10-13)
+
+Approved baseline **3df1eb125a934673378474c00fd760786b0e98eb** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; divergence 0/0,
+tracked tree/index clean, only `.venv/` untracked, stashes empty. Serena and current
+contracts were inspected. No production engine, Schema 9, template, save/history,
+economics, budgets, pacing/offline or general activation change is made.
+
+[Dedicated report](Safe%20Quarterly%20Transaction%20Architecture%20Feasibility.md)
+compares A: bounded event grouping, B: copy-on-write and C: transaction-local
+certification. Conditional C under enforced ownership and independent full-world
+reference has the strongest safety argument; later A can amortize copies only
+after precise quarterly certification. Arbitrary batching loses the strict
+successful prefix; uncertified replay can duplicate external effects; shallow
+copies alias mutable lineage. Existing legacy certificates still exclude quarterly.
+
+Eleven isolated tests use actual Schema 9 quarterly state with **1,176 Booking pairs**
+and a real pending Completion. Strict execution succeeds; unmodified protected
+reads fail exact plain-dict lineage checks. A lexical test-only detached lineage
+read bridge lets actual Completion produce the **exact strict complete world**, with
+independent full validation and no changed source/result after retained projections
+are mutated. It preserves malformed bool/type facts rather than repairing them.
+This is a positive interoperability proof, not a new transition certificate or
+production read API. Other tests cover protected publication/finance/Booking writes,
+foreign/expired capability and the insufficiency of JSON/alias checks for domain
+validity. Test handlers use a local registry; no production registration is added.
+
+Recommend separately authorized **test-only quarterly Completion shadow certification**
+with selected-ID-bound reads and complete dependency/output proof; all production
+gates/copies and independent reference remain. No production migration or future
+experiment is authorized by the report. A conditional four two-event-group example
+would change 27→19 runtime copies and 15→11 gates, but extra source gates restore
+15 validations and singleton/fence topology can erase gains. These are theoretical,
+not a measured event grouping or speedup. The retained quiet baseline **92.251s**
+and **1,083.984 MiB** remain historical. No expensive benchmark fixture is rebuilt
+and no 90-second advancement is rerun. Read-only source-head inspection uses the
+canonical kernel key; an initial ad-hoc priority-field assumption was corrected to
+the stored `order_key` through that helper. AT-063/059 remain Proposed; the 90-day
+aspiration is unchanged with certification deferred pending representative evidence.
+
+Standalone final bridge-inclusive command
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_transaction_feasibility -v`
+passes **11 / 7.785s**, exit 0. An earlier module import accidentally exposed the
+fixture TestCase to unittest, adding 50 passing backend regressions; that initial
+59-test run failed one new proof API call missing the explicit `shadow` keyword.
+Both test-harness issues were corrected. The first corrected nine-proof command
+passes **9 / 7.115s**, and its combined focused command passes **106 / 149.704s**.
+The bridge adds two tests after that evidence. Final combined command:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_transaction_feasibility tests.test_candidate_ownership tests.test_shared_candidate tests.test_quarterly_provider_isolation tests.test_quarterly_booking_validation -v`
+passes **108 / 146.659s**, exit 0, covering ownership, rollback/replay, scoped mock
+restoration, exact types, provider isolation, strict/shared and malformed Save/Load.
+Scoped `.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. `git diff --exit-code 3df1eb125a934673378474c00fd760786b0e98eb -- game app Data`
+passes, exit 0; app/game contain no reference to the new test module. No full
+gameplay suite is rerun for these documentation/test-only proofs with unchanged
+production behavior. Tests use workspace TEMP/TMP and never player Saves.
+World State initialization precedes utility imports, preserving the separately
+recorded cold import limitation rather than claiming a repair.
+
+Documentation verification passes **359 local links / 75 heading targets** across
+the four changed documents, using legacy CP1252 decoding only for an existing
+linked target; no encoding change is made. `git diff --check` passes. Read-only
+reinspection confirms retained benchmark source hash
+`ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0`.
+Exact retained scope is five files: dedicated report, this status, Decision Register,
+documentation index and the isolated proof test module. Commit/push synchronization
+is reported at completion, without inventing a pending hash.
+
 ## Quarterly Stage 3G-B2.6 — provider isolation trial rejected (2026-10-13)
 
 Verified baseline **e992fdf07995b05b1cd305fa1d7da3f242ed9c86** matched HEAD,

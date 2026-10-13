@@ -23,6 +23,11 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Safe quarterly transaction architecture feasibility](03%20Technical/Safe%20Quarterly%20Transaction%20Architecture%20Feasibility.md):
+  Stage 3G-B3A compares batching, copy-on-write and local certification, with isolated
+  quarterly ownership/read-projection proofs. Conditional C-first shadow experiment
+  proposed; no production architecture or AT-059 approval.
+
 - [Quarterly transaction copying and validation investigation](03%20Technical/Quarterly%20Transaction%20Copying%20and%20Validation%20Investigation.md):
   Stage 3G-B2.5 accounts for 27 runtime clones/15 full gates, nested provider
   isolation and reconciliation costs; proposes one bounded B2.6 experiment.
