@@ -2,6 +2,45 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B2.2 — architecture feasibility review (2026-10-13)
+
+Documentation-only review at verified baseline
+**db3010c47138f8d7c19e952d235b6d5a27f9d0b2**; HEAD, upstream, freshly fetched
+origin/master and live remote master matched, divergence 0/0. Tracked tree/index
+were clean, `.venv/` preserved and stashes empty. Serena context and canonical
+schema/runtime/save/quarterly contracts were consulted. The
+[feasibility report](Active%20State%20and%20Certified%20History%20Feasibility.md)
+maps actual transactions, record lifecycles, A/B/C alternatives, safety/schema/
+offline implications and a separately scoped itinerary type-validation concern.
+
+Recommendation: **continue incremental optimization (A)**; defer broad active/history
+redesign (B) and external storage (C) pending evidence. Read-only analysis of the
+exact retained B2.1 source confirms 42,785 of 42,923 Booking/itinerary pairs reference
+planned flights; only 138 reference the five completed flights. Immutable accepted
+facts remain live inventory/manifest/liability dependencies. Closed history alone
+does not explain the measured cost, and sharing contents does not remove current
+whole-graph scans. No new benchmark or achieved saving is claimed; 91.669s one-day
+median / 1,085.754 MiB peak and historical test evidence remain unchanged.
+
+The proposed smallest optional B experiment is test-only sealed terminal results/
+events, canonical materialization, full gates/copies and exact strict-reference
+comparison. It requires separate authorization; no production representation,
+certification, correction or persistence contract is approved. The existing True/1
+itinerary equality can accept malformed numeric lineage; generated retained fixture
+values are exact integers, external malformed-save reliance is unknown. No fix or
+silent repair is made; a separately scoped type fix needs save-handling decisions.
+
+Four-document scope only: report, this status, Decision Register and Docs index.
+Read-only `.venv/Scripts/python.exe -B -` JSON/source/link diagnostics pass, exit 0:
+**359 local links / 66 heading targets** across four documents, no errors; exact
+tracked scope and baseline runtime/test/Data comparisons pass. Schema 9/template
+Git blob hashes match the approved baseline; `git diff --check` passes.
+No gameplay tests or compilation are required/run for this documentation-only
+successor; B2.1's 1,628 PASS remains historical evidence. Commit/push outcomes and
+fresh remote synchronization are reported at delivery. AT-058 B3 recovery choices,
+realistic large-fleet throughput/latency certification and default activation remain
+open. No runtime, offline, speed, schema/template or gameplay activation change.
+
 
 ## Quarterly Stage 3G-B2.1 — verified bounded Booking proof (2026-10-13)
 

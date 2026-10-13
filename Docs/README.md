@@ -23,6 +23,11 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Active state and certified history feasibility](03%20Technical/Active%20State%20and%20Certified%20History%20Feasibility.md):
+  Stage 3G-B2.2 read-only architecture review; incremental optimization recommended,
+  immutable live obligations distinguished from closed history, conditional prototype
+  and itinerary type-validation concern. AT-059 is Proposed; no redesign implemented.
+
 - [Quarterly runtime benchmarking](03%20Technical/Quarterly%20Runtime%20Benchmarking.md):
   Stage 3G-B2 measured quarterly activation-presence/lifetime improvement, ranked
   history costs and incomplete large-fleet evidence; existing lazy indexes remain,
