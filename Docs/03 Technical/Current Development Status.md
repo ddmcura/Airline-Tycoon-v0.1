@@ -2,6 +2,69 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B2.3 — exact itinerary types and save safety (2026-10-13)
+
+Approved baseline **8282b7e5c8013d47f5363146138dbb464be4e935** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; divergence 0/0,
+tracked tree/index clean, `.venv/` preserved, no stashes. Targeted Serena inspection
+confirmed canonical positive integer revision/slot types and unchanged Schema 9.
+The [B2.3 follow-up](Active%20State%20and%20Certified%20History%20Feasibility.md#b23-follow-up--exact-itinerary-types-and-safe-rejection-2026-10-13)
+records this bounded correction; AT-060 indexes its approved malformed-save policy,
+while AT-059's architecture recommendation remains **Proposed**.
+
+Exact lineage shape/scalar checks now precede equality in detailed and optimized
+itinerary validation, manifest source checks, active/terminal Booking witnesses,
+operational/results lineage and pending/terminal flight payloads. Existing strict
+flight projection and all relational membership/date/quarter checks remain. No
+bool/float/string coercion, new field, arbitrary numeric cap, migration or repair.
+Valid later revision/slot 2 and zero inventory are covered alongside valid 1.
+Current copies/gates, Booking/finance outcomes, deterministic ordering, causal100/
+processed10000 budgets and existing explicit Advance exception remain unchanged.
+
+Malformed selected files cannot become active worlds, even with a correct wrapper
+digest. Existing valid `.previous` recovery is preserved and reports recovery metadata;
+otherwise `INVALID_WORLD` retains the selected itinerary/lineage diagnostic. Tests
+verify failed Load preserves the active root/contents and every save-file byte;
+valid recovery restores a separately validated paused candidate. Valid Schema 9
+and legacy-mode round trips remain supported; external malformed files now reject
+under the user-approved policy, with no survey or rewrite of real player Saves.
+
+Tests were written before the fix. The old itinerary matrix failed on revision=True
+and slot_number=True, and the direct manifest accepted boolean lineage. The initial
+terminal-witness fixture had no carried Bookings; after advancing to an actual
+booked flight, all four result/witness bool cases failed against pre-fix code.
+Additional pending-event numeric-equality tests found and closed the same defect
+in that related boundary. Valid-revision fixture enrollment was corrected to construct
+and publish the draft before real enrollment; no production rule was relaxed.
+
+Final focused command:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_booking_validation tests.test_booking_lineage_optimization -v`
+passes **44 tests, 145.169s**, exit 0. This includes optimized/detailed diagnostic
+parity, shape/type/relational mutations on either/both sides, active/terminal
+manifest witnesses, SaveStore/session rejection/recovery, valid/legacy paths and
+exact strict/shared rejection followed by explicit retry. Scoped compilation:
+`.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Full suite:
+`.venv/Scripts/python.exe -B -m unittest discover -s tests -v`
+passes **1,637 tests, 2,825.113s**, exit 0, including Kivy GUI, quarterly and legacy
+execution/finance, recovery, and save/load regressions. Kivy's profile-file logger
+reported a sandbox write denial and continued console logging; no unittest failures
+or skips occurred. Test TEMP/TMP point only to a workspace temporary
+directory after the platform default temporary directory denied fixture writes.
+The final source is frozen at 338 tracked Python SHA-256 witnesses.
+An additional inline `.venv/Scripts/python.exe -B -` diagnostic passes, exit 0:
+**108 malformed worlds / 216 optimized-reference calls** return matching structured
+validation errors with no unexpected exceptions, including malformed numeric and
+text/date/UTC lineage on itinerary-only, flight-only and both-side mutations.
+
+Scope is six production modules, one existing regression module and three documents.
+No Schema 9/template or runtime/pacing/offline/storage redesign. No performance
+improvement claimed. All 338 frozen Python files remain unchanged through the full
+run. Documentation checks cover **310 local links / 68 heading targets**, no errors;
+schema/template blob equality, exact ten-file scope and `git diff --check` pass.
+B3 and default quarterly activation remain blocked. Actual commit/push synchronization
+is reported at completion without inventing a pending commit hash.
+
 ## Quarterly Stage 3G-B2.2 — architecture feasibility review (2026-10-13)
 
 Documentation-only review at verified baseline

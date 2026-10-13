@@ -77,7 +77,7 @@ def _itinerary_graph(world, *, quarterly=False):
     currencies = {}
     fields = _QUARTERLY_ITINERARY_FIELDS if quarterly else _ITINERARY_FIELDS
     if quarterly:
-        from .quarterly_consumers import LINEAGE_FIELDS
+        from .quarterly_consumers import valid_quarterly_lineage
     for itinerary_id, r in world['itineraries'].items():
         if (type(r) is not dict or r.keys() != fields
                 or r['contract'] != DIRECT_ECONOMY_ITINERARY_CONTRACT):
@@ -104,7 +104,7 @@ def _itinerary_graph(world, *, quarterly=False):
                 f['fare_offer'].get('currency'))
             if quarterly:
                 lineage = f.get('quarterly_lineage')
-                if type(lineage) is not dict or lineage.keys() != LINEAGE_FIELDS:
+                if not valid_quarterly_lineage(lineage):
                     return None
                 facts += (tuple(lineage[key] for key in _QUARTERLY_LINEAGE_KEYS),)
             else:
@@ -127,8 +127,7 @@ def _itinerary_graph(world, *, quarterly=False):
             return None
         if quarterly:
             quarterly_lineage = r['quarterly_lineage']
-            if (lineage is not None or type(quarterly_lineage) is not dict
-                    or quarterly_lineage.keys() != LINEAGE_FIELDS):
+            if lineage is not None or not valid_quarterly_lineage(quarterly_lineage):
                 return None
             row_facts = (airline_id, r['origin_airport_id'], r['destination_airport_id'],
                 r['scheduled_departure_utc'], r['scheduled_arrival_utc'], snapshot['currency'],

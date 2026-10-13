@@ -361,7 +361,10 @@ def _validate_direct_itinerary(validator, record, itinerary_id, world):
                 "fare snapshot currency must match the dated flight",
             )
         if quarterly:
-            from .quarterly_consumers import quarterly_mode
+            from .quarterly_consumers import quarterly_mode, valid_quarterly_lineage
+            if not valid_quarterly_lineage(record['quarterly_lineage']):
+                validator.add('invalid_itinerary', f'{path}.quarterly_lineage',
+                    'must contain exact quarterly lineage fields; revision and slot_number must be positive integers, not booleans or floats')
             if (not quarterly_mode(validator.envelope) or lineage is not None
                     or record['quarterly_lineage'] != flight.get('quarterly_lineage')):
                 validator.add('invalid_itinerary', path, 'quarterly publication lineage mismatch')

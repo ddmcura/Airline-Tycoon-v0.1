@@ -26,6 +26,7 @@ from .schema import (
     FLIGHT_RESULT_VERSION,
 )
 from .timestamps import parse_canonical_utc
+from .quarterly_consumers import valid_quarterly_lineage
 
 
 def _integer(value, minimum=0):
@@ -65,6 +66,11 @@ def _validate_manifest_witnesses(validator, record, path, world, flight):
         _add(validator, "result_validation_failed", f"{path}.booking_witnesses",
              "must contain one witness per source Booking")
         return
+    if 'quarterly_lineage' in flight and any(
+            type(witness) is not dict or not valid_quarterly_lineage(witness.get('quarterly_lineage'))
+            for witness in witnesses):
+        _add(validator, 'result_validation_failed', f'{path}.booking_witnesses',
+             'quarterly_lineage must contain exact scalar types and positive integer revision/slot_number')
     expected_witnesses = []
     expected_sales = set()
     for booking_id in source_ids:
@@ -100,7 +106,9 @@ def _validate_manifest_witnesses(validator, record, path, world, flight):
                 "schedule_revision": flight.get("schedule_revision"),
                 "occurrence_key": flight.get("occurrence_key"),
             })
-            or ('quarterly_lineage' in flight and itinerary.get('quarterly_lineage') != flight['quarterly_lineage'])
+            or ('quarterly_lineage' in flight and (
+                not valid_quarterly_lineage(itinerary.get('quarterly_lineage'))
+                or itinerary['quarterly_lineage'] != flight['quarterly_lineage']))
         ):
             _add(validator, "invalid_booking_authority", f"{path}.source_booking_ids",
                  "source Booking and itinerary must match the exact fulfilled flight")
@@ -319,6 +327,9 @@ def _valid_flight_event(
         and event.get("operation_revision") == operation_revision
         and event.get("order_key", [None])[0] == FLIGHT_EVENT_PRIORITY
         and event.get("payload") == _event_payload(flight, contract)
+        and ('quarterly_lineage' not in flight or (
+            type(event.get('payload')) is dict
+            and valid_quarterly_lineage(event['payload'].get('quarterly_lineage'))))
         and event.get("status") == status
     )
 
@@ -486,6 +497,8 @@ def _validate_schema4_fulfilment_authority(validator):
                 or type(event.get("payload")) is not dict
                 or event["payload"].get("contract") != contract
                 or event["payload"].get("dated_flight_id") != flight_id
+                or ('quarterly_lineage' in flight and not valid_quarterly_lineage(
+                    event['payload'].get('quarterly_lineage')))
                 or (current_event and event.get("due_at_utc") != due)
                 or (current_event and event.get("payload")
                     != _event_payload(flight, contract))

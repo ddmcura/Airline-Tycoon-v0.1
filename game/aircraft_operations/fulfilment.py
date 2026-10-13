@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from game.world_state.quarterly_consumers import valid_quarterly_lineage
 from dataclasses import dataclass
 import hashlib
 import json
@@ -258,7 +259,10 @@ def _build_confirmed_carriage_manifest(envelope, dated_flight_id, *, booking_ids
                 "schedule_revision": flight["schedule_revision"],
                 "occurrence_key": flight["occurrence_key"],
             })
-            and ('quarterly_lineage' not in flight or itinerary.get('quarterly_lineage') == flight['quarterly_lineage'])
+            and ('quarterly_lineage' not in flight or (
+                valid_quarterly_lineage(itinerary.get('quarterly_lineage'))
+                and valid_quarterly_lineage(flight['quarterly_lineage'])
+                and itinerary['quarterly_lineage'] == flight['quarterly_lineage']))
             and booking.get("currency") == airline["base_currency"]
             and booking.get("inventory_revision_at_commit", -1)
             <= flight["inventory_revision"]

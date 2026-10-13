@@ -1,11 +1,17 @@
 """B2.1 current-data graph proof versus the retained ordered diagnostic path."""
 from copy import deepcopy
 import pickle
+import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
 from game.world_state import validation
 from game.world_state import booking_validation, booking_lineage_validation as graph
+from game.world_state.persistence import SaveStore, SaveError, _digest
+from game.aircraft_operations.fulfilment import _build_confirmed_carriage_manifest
+from app.session import Stage1Session
 from game.simulation.resolver import begin_resolution, resolve_until
 from tests import test_quarterly_backend as fixtures
 from tests.resolution_oracle import save_reload, canonical_world
@@ -80,10 +86,171 @@ class QuarterlyBookingValidationTests(unittest.TestCase):
                 with self.subTest(key=key, value=value):
                     world = deepcopy(self.base)
                     next(iter(world['world_state']['itineraries'].values()))['quarterly_lineage'][key] = value
-                    # The predecessor compares itinerary lineage by value; its
-                    # True == 1 behavior is not strengthened by a performance fix.
-                    equal_to_source = value == source[key]
-                    self.compare(world, invalid=not equal_to_source)
+                    self.compare(world)
+
+    def test_exact_integer_lineage_on_itinerary_flight_and_both(self):
+        for field in ('revision', 'slot_number'):
+            for value in (True, False, 0, -1, 10**30, 1.0, '1', None):
+                for side in ('itinerary', 'flight', 'both'):
+                    with self.subTest(field=field, value=value, side=side):
+                        world = deepcopy(self.base)
+                        row = next(iter(world['world_state']['itineraries'].values()))
+                        flight = world['world_state']['dated_flights'][row['dated_flight_ids'][0]]
+                        if side != 'flight':
+                            row['quarterly_lineage'][field] = value
+                        if side != 'itinerary':
+                            flight['quarterly_lineage'][field] = value
+                        self.compare(world)
+        self.compare(deepcopy(self.base), invalid=False)
+
+    def test_exact_lineage_shape_and_text_fields_on_both_sides(self):
+        for side in ('itinerary', 'flight', 'both'):
+            for field in next(iter(self.base['world_state']['itineraries'].values()))['quarterly_lineage']:
+                for value in ('missing', None, False, ''):
+                    with self.subTest(side=side, field=field, value=value):
+                        world = deepcopy(self.base)
+                        row = next(iter(world['world_state']['itineraries'].values()))
+                        flight = world['world_state']['dated_flights'][row['dated_flight_ids'][0]]
+                        for owner in ([row] if side == 'itinerary' else [flight] if side == 'flight' else [row, flight]):
+                            if value == 'missing':
+                                del owner['quarterly_lineage'][field]
+                            else:
+                                owner['quarterly_lineage'][field] = value
+                        self.compare(world)
+            world = deepcopy(self.base)
+            row = next(iter(world['world_state']['itineraries'].values()))
+            flight = world['world_state']['dated_flights'][row['dated_flight_ids'][0]]
+            for owner in ([row] if side == 'itinerary' else [flight] if side == 'flight' else [row, flight]):
+                owner['quarterly_lineage']['extra'] = 1
+            self.compare(world)
+
+    def test_manifest_does_not_accept_boolean_itinerary_lineage(self):
+        for field in ('revision', 'slot_number'):
+            world = deepcopy(self.base)
+            row = next(iter(world['world_state']['itineraries'].values()))
+            row['quarterly_lineage'][field] = True
+            before = pickle.dumps(world, protocol=5)
+            manifest = _build_confirmed_carriage_manifest(world, row['dated_flight_ids'][0])
+            self.assertFalse(manifest.succeeded)
+            self.assertEqual(manifest.issues[0].code, 'INVALID_BOOKING_AUTHORITY')
+            self.assertEqual(before, pickle.dumps(world, protocol=5))
+
+    def test_terminal_result_and_booking_witness_lineage_are_typed(self):
+        completed = deepcopy(self.base)
+        arrival = min(r['scheduled_arrival_utc'] for r in completed['world_state']['itineraries'].values())
+        self.assertTrue(resolve_until(completed, arrival, shared=False).succeeded)
+        for field in ('revision', 'slot_number'):
+            for target in ('result', 'witness'):
+                with self.subTest(field=field, target=target):
+                    world = deepcopy(completed)
+                    result = next(r for r in world['world_state']['flight_results'].values() if r['booking_witnesses'])
+                    owner = result if target == 'result' else result['booking_witnesses'][0]
+                    # Retain the original fingerprint: dict equality alone can
+                    # otherwise accept this boolean witness as integer 1.
+                    owner['quarterly_lineage'][field] = True
+                    self.compare(world)
+
+    def test_flight_event_lineage_cannot_use_numeric_lookalikes(self):
+        for table in ('pending_events', 'event_history'):
+            for field in ('revision', 'slot_number'):
+                for value in (True, False, 1.0, '1', 0, -1, 10**30, None):
+                    with self.subTest(table=table, field=field, value=value):
+                        world = deepcopy(self.base)
+                        event = next(e for e in world['world_state'][table].values()
+                            if e['event_type'] in ('STAGE1_FLIGHT_DEPARTURE', 'STAGE1_FLIGHT_COMPLETION'))
+                        event['payload']['quarterly_lineage'][field] = value
+                        self.compare(world)
+
+    def test_active_operation_and_booking_witness_lineage_are_typed(self):
+        active = deepcopy(self.base)
+        departure = min(i['scheduled_departure_utc'] for i in active['world_state']['itineraries'].values())
+        self.assertTrue(resolve_until(active, departure, shared=False).succeeded)
+        for field in ('revision', 'slot_number'):
+            for target in ('operation', 'witness'):
+                with self.subTest(field=field, target=target):
+                    world = deepcopy(active)
+                    operation = next(o for o in world['world_state']['active_aircraft_operations'].values()
+                        if o['booking_witnesses'])
+                    owner = operation if target == 'operation' else operation['booking_witnesses'][0]
+                    owner['quarterly_lineage'][field] = True
+                    self.compare(world)
+
+    def test_valid_later_revision_slot_and_zero_inventory_are_preserved(self):
+        from game.world_state.quarterly_construction import append_weekly_plan_revision, commit_weekly_plan_publication
+        # Build the draft first, then enroll through the real boundary after
+        # publishing revision 2; current-quarter unpublished enrollment rejects.
+        with patch.object(fixtures, 'enable_quarterly_backend_for_testing'):
+            world, pid, sid, *_ = fixtures.QuarterlyBackendTests.fixture(published=False)
+        state = world['world_state']
+        slots = deepcopy(state['weekly_plans'][pid]['revisions']['1']['slots'])
+        slots[0]['slot_number'] = 2
+        state['services'][sid]['next_slot_number'] = 3
+        append_weekly_plan_revision(world, pid, expected_revision=1, slots=slots)
+        commit_weekly_plan_publication(world, pid, expected_revision=2)
+        fixtures.enable_quarterly_backend_for_testing(world)
+        self.assertTrue(validation.validate_world(world).is_valid)
+        self.assertTrue(resolve_until(world, '2027-01-02T00:00:00Z', shared=False).succeeded)
+        self.compare(world, invalid=False)
+        # Rebind after resolver detached commits; never assert against stale rows.
+        state = world['world_state']
+        self.assertTrue(all(i['quarterly_lineage']['revision'] == 2 for i in state['itineraries'].values()))
+        self.assertTrue(any(i['quarterly_lineage']['service_id'] == sid
+            and i['quarterly_lineage']['slot_number'] == 2 for i in state['itineraries'].values()))
+        self.assertTrue(all(type(f['inventory_revision']) is int and f['inventory_revision'] >= 0
+            for f in state['dated_flights'].values()))
+        self.assertTrue(any(f['inventory_revision'] == 0 for f in state['dated_flights'].values()))
+
+    def test_malformed_load_diagnostic_preserves_active_world_and_files(self):
+        for previous in ('absent', 'malformed', 'valid'):
+            with self.subTest(previous=previous), tempfile.TemporaryDirectory() as directory:
+                store = SaveStore(directory)
+                career = store.new_career_id()
+                store.save(career, 'manual', self.base)
+                if previous != 'absent':
+                    store.save(career, 'manual', self.base)
+                path = store._path(career, 'manual')
+                def corrupt(p):
+                    data = json.loads(p.read_text(encoding='utf-8'))
+                    next(iter(data['world']['world_state']['itineraries'].values()))['quarterly_lineage']['revision'] = True
+                    data['integrity_sha256'] = _digest({k: v for k, v in data.items() if k != 'integrity_sha256'})
+                    p.write_text(json.dumps(data), encoding='utf-8')
+                corrupt(path)
+                if previous == 'malformed':
+                    corrupt(path.with_suffix('.previous'))
+                snapshots = {p: p.read_bytes() for p in Path(directory).rglob('*') if p.is_file()}
+                session = Stage1Session(save_root=directory)
+                session.world = deepcopy(self.base)
+                active = session.world
+                before = canonical_world(active)
+                if previous == 'valid':
+                    data = session.load_saved(career)
+                    self.assertTrue(data['_recovered_from_previous'])
+                    self.assertEqual(canonical_world(session.world), before)
+                    self.assertEqual(session.world['simulation']['clock_state'], 'PAUSED')
+                else:
+                    with self.assertRaises(SaveError) as caught:
+                        session.load_saved(career)
+                    self.assertEqual(caught.exception.code, 'INVALID_WORLD')
+                    self.assertIn('quarterly_lineage', str(caught.exception))
+                    self.assertIs(session.world, active)
+                    self.assertEqual(canonical_world(active), before)
+                self.assertEqual(snapshots, {p: p.read_bytes() for p in snapshots})
+
+    def test_rejected_source_then_explicit_strict_shared_retry_is_exact(self):
+        target = '2027-01-02T15:00:00Z'
+        expected = deepcopy(self.base)
+        self.assertTrue(resolve_until(expected, target, shared=False).succeeded)
+        for shared in (False, True):
+            world = deepcopy(self.base)
+            row = next(iter(world['world_state']['itineraries'].values()))
+            original = row['quarterly_lineage']['slot_number']
+            row['quarterly_lineage']['slot_number'] = True
+            before = canonical_world(world)
+            self.assertFalse(resolve_until(world, target, shared=shared).succeeded)
+            self.assertEqual(canonical_world(world), before)
+            row['quarterly_lineage']['slot_number'] = original
+            self.assertTrue(resolve_until(world, target, shared=shared).succeeded)
+            self.assertEqual(canonical_world(world), canonical_world(expected))
 
     def test_legacy_lineage_and_missing_career_marker_are_rejected(self):
         world = deepcopy(self.base)

@@ -274,8 +274,13 @@ class SaveStore:
         except SaveError as exc:
             if exc.code != 'INVALID_WORLD' or data.get('_recovered_from_previous'):
                 raise
-            recovered = self._read(path.with_suffix('.previous'), expected_career=career_id)
-            candidate = _migrated(recovered['world'], foundation_snapshot=foundation_snapshot)
+            try:
+                recovered = self._read(path.with_suffix('.previous'), expected_career=career_id)
+                candidate = _migrated(recovered['world'], foundation_snapshot=foundation_snapshot)
+            except SaveError:
+                # Preserve the selected world's domain diagnostic when no valid
+                # recovery candidate exists; never replace active authority.
+                raise exc
             recovered['_recovered_from_previous'] = True
             data = recovered
         return candidate, data

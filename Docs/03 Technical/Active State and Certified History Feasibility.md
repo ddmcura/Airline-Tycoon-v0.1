@@ -20,6 +20,57 @@ validations and 27 runtime clones. No speedup, memory saving, 50-aircraft capaci
 for PH 1.0 by the present CPU profile. Neither runtime copies nor validation gates
 may be removed under this review. Quarterly default activation and B3 remain blocked.
 
+## B2.3 follow-up — exact itinerary types and safe rejection (2026-10-13)
+
+Bounded correctness implementation authorized at baseline
+`8282b7e5c8013d47f5363146138dbb464be4e935`. The comparison concern below describes
+that historical baseline; B2.3 fixes it without changing Schema 9 or approving
+the broader architecture proposal. The user explicitly selected **reject with
+a clear diagnostic**, without coercion, normalization or migration, for previously
+accepted malformed lineage.
+
+[Quarterly lineage validation](../../game/world_state/quarterly_consumers.py)
+now requires an exact dictionary with the six canonical fields, exact positive
+integer `revision` and `slot_number`, and exact nonempty string identity/date/UTC
+fields before equality. Zero is not a valid lineage revision/slot. There is no new
+arbitrary upper bound: existing selected published revision, allocated slot,
+service membership, canonical local date/UTC and quarter projection establish
+the relational bounds. Legitimate revision/slot 1 and later values remain valid;
+zero inventory and existing 0/1 fold semantics are unchanged.
+
+The owning World State helper is used by detailed itinerary validation, the optimized
+current-data graph, flight projection and operational/result lineage checks.
+Detailed and optimized validation still retain their separate relationship proofs;
+invalid fast-path facts fall through to ordered diagnostics. Aircraft Operations
+checks typed source lineage before constructing a manifest. Fulfilment validation
+also checks typed Booking witnesses and pending/terminal flight event lineage before
+value comparison: these shared the same numeric-equality defect. Legacy itinerary
+schedule revisions and command witness arguments already reject booleans with
+their existing checks; no general equality rewrite is made. Quarterly handlers
+remain strict even in shared resolver requests.
+
+SaveStore still parses and validates separate candidates before session rebind.
+Malformed lineage is never accepted as active authority, even with a correct file
+integrity digest. If a previous file is valid, the existing recovery path may load
+that separately validated, paused world with `_recovered_from_previous` metadata.
+If neither selected nor previous candidate is valid, `INVALID_WORLD` retains the
+selected world's itinerary/quarterly-lineage diagnostic instead of masking it with
+a missing/corrupt recovery-file error. Active session root/contents and all save
+files remain unchanged on rejection. A recovery success is distinct from accepting
+or repairing the malformed selected world. Existing supported Schema 9 legacy
+careers retain their authority; no silent migration or player-save rewrite occurs.
+
+Regression evidence is recorded in [Current Development Status](Current%20Development%20Status.md).
+Tests mutate itinerary only, flight only and both; exercise bool/float/string/null,
+zero/negative/unallocated numbers, missing/extra/text fields, manifest and active/
+terminal witnesses, pending/history event payloads, valid later revisions/slots,
+SaveStore/session failure and validated previous-file recovery, valid/legacy round
+trips and exact strict/shared retry. Pre-fix tests reproduced acceptance of boolean
+itinerary/manifest/result/witness facts. No performance improvement is claimed.
+All transaction gates/copies, publication barriers, Booking/finance equations,
+causal/processed limits, pacing and activation remain unchanged. AT-059 remains
+**Proposed**; the optional storage experiment and B3 are not started.
+
 ## Authority and investigation method
 
 [Schema 9](Stage%201%20State%20Schema.md) prevails over the subordinate
@@ -390,6 +441,9 @@ aspirational 7<1s, 45<3s, 90<5s targets remain unverified.
 
 ## Itinerary comparison concern
 
+The following records the B2.2 baseline finding. The B2.3 follow-up above supersedes
+its unresolved-fix/save-policy status; historical diagnosis and evidence remain.
+
 **Confirmed validation gap against the exact-integer contract; not an identity change
 or a B2.1 regression.** Python value equality equates `True` and `1` in tuples/dicts.
 
@@ -497,7 +551,7 @@ copy/gate mechanics. Offline product choices remain the separate AT-058 list abo
 No current approval is inferred from this recommendation or from an architecture
 diagram. Proposed B feasibility is not permission to reduce validation.
 
-Documentation scope: this report, Current Development Status, Decision Register
+B2.2 historical verification scope: this report, Current Development Status, Decision Register
 and documentation index. Schema 9, template and all runtime/test files remain
 unchanged. Verification uses local-link/heading checks, exact tracked-file scope,
 baseline blob comparisons for protected contracts, and `git diff --check`.

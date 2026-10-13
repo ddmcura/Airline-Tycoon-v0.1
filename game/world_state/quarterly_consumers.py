@@ -22,12 +22,22 @@ def quarterly_mode(envelope):
     return envelope.get('simulation', {}).get('operational_authority') == MODE
 
 
+def valid_quarterly_lineage(lineage):
+    """Check canonical scalar types before any value-equality lineage join.
+
+    Membership/ranges relative to the published plan remain the caller's proof;
+    Python equality alone cannot distinguish bool/float from integer identity.
+    """
+    return (type(lineage) is dict and lineage.keys() == LINEAGE_FIELDS
+        and type(lineage['revision']) is int and lineage['revision'] >= 1
+        and type(lineage['slot_number']) is int and lineage['slot_number'] >= 1
+        and all(type(lineage[key]) is str and lineage[key] for key in
+            ('weekly_plan_id', 'service_id', 'operating_date', 'published_at_utc')))
+
+
 def committed_slot(world, lineage):
-    if type(lineage) is not dict or lineage.keys() != LINEAGE_FIELDS:
-        raise ValueError('exact quarterly publication lineage required')
-    if (type(lineage['revision']) is not int or lineage['revision'] < 1
-            or type(lineage['slot_number']) is not int or lineage['slot_number'] < 1):
-        raise ValueError('invalid quarterly lineage numbers')
+    if not valid_quarterly_lineage(lineage):
+        raise ValueError('exact quarterly publication lineage types required; revision and slot_number must be positive integers')
     plan = world['weekly_plans'][lineage['weekly_plan_id']]
     revision = plan['revisions'][str(lineage['revision'])]
     if (lineage['revision'] != plan['current_revision']
@@ -130,7 +140,8 @@ def validate_mode(envelope):
     for table in ('active_aircraft_operations', 'flight_results'):
         for row in world[table].values():
             flight = world['dated_flights'][row['dated_flight_id']]
-            if row.get('quarterly_lineage') != flight['quarterly_lineage']:
+            if (not valid_quarterly_lineage(row.get('quarterly_lineage'))
+                    or row['quarterly_lineage'] != flight['quarterly_lineage']):
                 raise ValueError('operational publication lineage mismatch')
     if any(e['event_type'] == 'STAGE1_WEEKLY_PUBLICATION'
            for e in world['pending_events'].values()):
