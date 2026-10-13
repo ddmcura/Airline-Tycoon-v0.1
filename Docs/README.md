@@ -23,6 +23,9 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Quarterly runtime architecture review](03%20Technical/Quarterly%20Runtime%20Architecture%20Review.md):
+  B3C proposes hybrid owned local transactions and strict callback fences; compares
+  scaling, validation, recovery and a future whole-command test-only experiment.
 - [Quarterly Completion certification feasibility](03%20Technical/Quarterly%20Completion%20Certification%20Feasibility.md):
   B3B test-only exact binding, mutations, strict reference and component costs;
   partially proven with global scans and shared-constructor gaps, no production change.

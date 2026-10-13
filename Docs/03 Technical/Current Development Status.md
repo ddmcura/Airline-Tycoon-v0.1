@@ -2,6 +2,62 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B3C — runtime architecture review (2026-10-13)
+
+Approved baseline **8a0a7658c1416fe48c7048ad840935c30f2245fc** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; divergence 0/0,
+tracked tree/index clean, `.venv/` preserved and stashes empty. Serena inspected
+actual kernel dispatch, provider adapter and domain/session ownership. Current
+schema/mirrors, AT-058/059, B2.2/B2.5/B3A/B3B, benchmark, recovery and save contracts
+were reviewed. No engine/test/schema/template or authoritative state change is made.
+
+[Dedicated B3C review](Quarterly%20Runtime%20Architecture%20Review.md) recommends
+**D: hybrid execution**, combining independently proved local built-in transactions
+with a bounded exclusively owned working world and strict complex/callback fences.
+Current strict/shared remains production/reference/fallback. Repeated events × whole
+retained world is a poor long-term scaling law; no alternative is production-proven.
+Whole-copy physical mechanisms are potentially replaceable, but existing canonical
+detached commit/fence/gate clauses remain mandatory pending explicit future approval
+and contract amendment. No periodic-scan-only corruption policy, provider trust
+shortcut, general activation, history redesign, pacing/offline or rewrite is approved.
+
+Different evidence scopes remain separate: 92.251s/1,083.984 MiB/13-event Booking-heavy
+day, B3B's small 0.206/0.054/0.118s components, and a historical different-host/revision
+50-aircraft operational control. No combined timing model, fresh throughput benchmark,
+percentage improvement or 50-aircraft/90-day certification is claimed.
+Conditional Completion-only arithmetic is 19+2g runtime copies / 11+g+a full gates,
+versus 27/15, with unchanged eight provider and two reconciliation deepcopies.
+Additional source gates a cannot be assumed zero across raw-world exposure/returns.
+At four singleton segments there is no count saving before those extra gates.
+Actual dispatch fences and
+quarterly input exclusions prevent assuming favourable groups.
+
+The proposed future **test-only owned-segment Completion experiment** must independently
+derive closure/equations, audit all mutable source access, preserve full strict paths
+for other events, test actual boundary/fence placement, compare every intermediate
+complete world/diagnostic/prefix and measure whole-command paired costs on retained
+Booking-heavy and natural operational workloads. Stop for any unsafe ownership,
+incomplete proof, reference mismatch or no end-to-end benefit. No POC is implemented
+or authorized by this review. AT-059 and the new architecture proposal AT-064 remain
+Proposed. Future automatic continuation beyond 10,000 events and raw-world lifetime
+changes remain unresolved; current explicit fresh retry and 100 same-UTC budget stay.
+
+Lightweight fresh-process command
+`.venv/Scripts/python.exe -B .review-tmp-stage3gb3c/inventory.py` passes, exit 0:
+ten built-ins, four SHARED metadata entries, five FENCE, one STRICT, three domain
+local proofs. Schema support alone does not certify quarterly flight inputs.
+It constructs no world and processes no events. The initial scratch invocation
+needed a repository-root sys.path entry; corrected inspection is successful.
+No expensive fixture reconstruction, gameplay suite or production experiment is
+run. Compilation is not applicable to the documentation-only retained scope.
+Documentation checks pass **362 local links / 77 heading targets**, zero errors.
+`git diff --exit-code 8a0a7658c1416fe48c7048ad840935c30f2245fc -- game app tests Data AGENTS.md`
+and `git diff --check` pass, exit 0. Exact retained scope is four documentation
+files. Commit/push outcomes are reported at completion without inventing a pending hash.
+Four diagnostic scripts/logs were SHA-verified into local temporary archive
+`airline-tycoon-b3c-8a0a765-5067fb2449db4b3b8ae5776de6e67c6a`; the path-checked
+task scratch directory was removed. No generated evidence is committed.
+
 ## Quarterly Stage 3G-B3B — isolated Completion witness (2026-10-13)
 
 Approved baseline **5db55d05d46c694b89b0b00a4b05c4d35b049429** matched HEAD,
