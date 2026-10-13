@@ -23,6 +23,9 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Quarterly Completion certification feasibility](03%20Technical/Quarterly%20Completion%20Certification%20Feasibility.md):
+  B3B test-only exact binding, mutations, strict reference and component costs;
+  partially proven with global scans and shared-constructor gaps, no production change.
 - [Safe quarterly transaction architecture feasibility](03%20Technical/Safe%20Quarterly%20Transaction%20Architecture%20Feasibility.md):
   Stage 3G-B3A compares batching, copy-on-write and local certification, with isolated
   quarterly ownership/read-projection proofs. Conditional C-first shadow experiment

@@ -2,6 +2,79 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B3B — isolated Completion witness (2026-10-13)
+
+Approved baseline **5db55d05d46c694b89b0b00a4b05c4d35b049429** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; divergence 0/0,
+tracked tree/index clean, `.venv/` preserved and stashes empty. Serena and the
+schema, mirrors, B3A/B2.5/B2.2/runtime, ownership and save authorities were inspected.
+Scope is two isolated test files and four documentation files. No production,
+Schema 9, template, copying/gate, economics, event limit, history, pacing/offline
+or general activation change is retained.
+
+[Dedicated B3B report](Quarterly%20Completion%20Certification%20Feasibility.md)
+classifies the result **partially proven, with named gaps**. A one-attempt exact
+typed witness binds the actual source/event/flight/aircraft and Booking/itinerary
+IDs, full modeled Completion world, result, finance and queue. Actual B3A protected
+shadow Completion equals the independent strict complete world, with full/detailed
+reference validation. Equal-value mutable aliases require a separate whole-graph
+scan. Source mutation, retained projections, expiry, failure/retry, paused Save/Load
+and unchanged legacy exclusion are covered.
+
+All **31 output mutations** reject. Independent full/detailed validation rejects
+27; four remain structurally valid alternative outputs (unrelated account balance,
+queue order key, dictionary insertion order, valid UI selection). Exact transition
+comparison still rejects them; dictionary order rejection is conservative. Shared
+manifest/cost/result constructors, global source proof, full source/candidate/alias
+traversals, generalized chronology, mixed same-UTC behavior and local failure-fence
+certification remain gaps. **Do not begin production gate removal.** AT-059 and
+AT-063 remain Proposed; AT-058 future policy and historical benchmarks are unchanged.
+
+Focused command, with workspace TEMP/TMP and `AT_B3B_MEASURE=1`:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_completion_certificate -v`
+passes **42 / 32.877s**, exit 0, after adding source and cross-world alias rejection
+and explicit public-kernel retry coverage. Three final component samples have median
+capture **0.206349s**, verification **0.054453s**, full result validation **0.117614s**.
+Capture + verify therefore exceeds one full gate. The source has **4,632 keyed
+records**, only four selected Booking rows, and 1,176 Booking/itinerary pairs.
+Two typed snapshots retain **4,606,801 bytes**; construction tracemalloc retained
+**4,751,651 bytes**, peak **7,861,695 bytes**, excluding already allocated source.
+This is small-fixture component evidence, not quiet advancement, process RSS,
+fleet capacity or 90-day certification. No expensive advancement is repeated.
+
+Initial 36-test run rejected the alias correctly but failed the harness's incorrect
+assumption that mutable aliasing must change value bytes; the test now proves
+equal bytes plus alias rejection. An alternate shell run failed before any test
+because sandbox TEMP was not propagated. The corrected 37-test run passes, then
+four additional witness/flight/journal cases and valid UI mutation complete the
+41-test earlier scope (**75.455s**, passing). Review then found that checking only
+candidate aliases missed equal-value source aliases and mutable sharing between
+source/candidate. The final witness scans both graphs together, and one additional
+test covers both ownership mutations. Both worlds can be individually valid while
+sharing a mutable row. Four task-owned readers stalled rendering the original large
+assertion log were verified by exact command line and stopped; the final component
+measurements follow that cleanup and the completed broader tests. Earlier timing
+samples are retained diagnostic evidence, not the final cost estimates.
+Tests use temporary roots, never player Saves. The existing
+utilities-first cold import limitation is preserved, not repaired or certified.
+
+Scoped `.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. `git diff --exit-code 5db55d05d46c694b89b0b00a4b05c4d35b049429 -- game app Data AGENTS.md`
+passes, exit 0. The affected command
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_completion_certificate tests.test_quarterly_transaction_feasibility tests.test_quarterly_backend tests.test_quarterly_booking_validation tests.test_flight_certification tests.test_candidate_ownership -v`
+passes **198 / 937.741s**, exit 0. It includes the earlier 41-proof scope and 157
+unchanged affected tests: quarter rollover, publication/Booking failures, save/load,
+exact types, budgets, legacy/shared certificates and ownership. After the localized
+source/cross-world alias strengthening, the final 42-test command above verifies
+all changed helper behavior; affected production/test modules are unchanged.
+No full gameplay suite is repeated for the isolated test-only task. Documentation
+checks pass **351 local links / 75 heading targets**, zero errors; `git diff --check`
+passes. Final scope is six files, no app/game reference to the test helpers.
+Commit/push outcomes are reported at completion; no pending hash is invented.
+Eight raw logs/diagnostic scripts are preserved with SHA-verified copies in the
+local temporary archive `airline-tycoon-b3b-5db55d0-f89c89a5b74741e88d2ce36bec764e5b`.
+The path-checked task scratch directory was removed; no generated evidence is staged.
+
 ## Quarterly Stage 3G-B3A — safe transaction feasibility (2026-10-13)
 
 Approved baseline **3df1eb125a934673378474c00fd760786b0e98eb** matched HEAD,
