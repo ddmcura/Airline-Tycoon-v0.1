@@ -2,6 +2,65 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B2.6 — provider isolation trial rejected (2026-10-13)
+
+Verified baseline **e992fdf07995b05b1cd305fa1d7da3f242ed9c86** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; divergence 0/0,
+tracked tree clean, `.venv/` preserved, stashes empty. The single scoped trial
+retained the inner provider copies and removed the outer pair only for exact
+quarterly mode/adapter/provider/original methods through a one-use capability.
+It failed the safety gate: the adapter's direct-service check invokes the provider
+again on its input, which then becomes the discovery caller. A secondary mutation
+was accepted without the original diagnostic; mutation followed by exception changed
+the caller. Production was immediately restored byte-for-byte in shopping, Demand
+activation and quarterly supply. No second optimization was attempted.
+
+[B2.6 report](Quarterly%20Runtime%20Benchmarking.md#stage-3g-b26--provider-isolation-trial-rejected-on-safety-2026-10-13)
+and [B2.5 follow-up](Quarterly%20Transaction%20Copying%20and%20Validation%20Investigation.md#b26-follow-up--isolation-trial-rejected)
+record the different callback scopes, initial test/probe corrections, original
+versus outer-pair-bypass diagnostics and rejection. A small-fixture test-only
+eight-case comparison proves unchanged complete source under original isolation
+and changed caller under all three adversarial bypass cases. Its normal discovery
+copy count is **4 versus 2**. This is an identity/mutation probe, not a latency
+benchmark or a safe candidate. The retained new eight tests assert primary/secondary
+detachment, mutation diagnostics, exceptions, retained references, invalid/mutable
+output and unchanged caller/retry. AT-062 records rejection; AT-059/061 remain Proposed.
+
+Final restored focused command:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_provider_isolation tests.test_quarterly_booking_validation tests.test_booking_lineage_optimization -v`
+passes **53 tests / 145.214s**, exit 0. Affected command:
+`.venv/Scripts/python.exe -B -c "import game.world_state; import unittest; unittest.main(module=None)" tests.test_quarterly_backend tests.test_quarterly_boundaries tests.test_step7_save_load tests.test_stage1_booking_shopping tests.test_stage1_booking_checkpoint -v`
+passes **144 tests / 384.058s**, exit 0, covering strict/shared full-world equality,
+same-UTC publication/Booking, generated events, reconciliation failure, deterministic
+retry, aircraft/finance lineage, paused Save/Load/rebind, legacy/custom provider
+isolation and Booking persistence. World State preload preserves the separately
+recorded cold utilities-first import limitation rather than repairing it. Workspace
+TEMP/TMP is used; an initial standalone diagnostic without that override hit a
+sandbox temporary-file permission error, and the corrected diagnostic passed.
+
+Scoped `.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. No full suite is required for this rejected experiment: all
+production code is restored, with new regressions/documentation only. All **27 core
+runtime clones, 15 full gates, eight provider world deepcopies and two reconciliation
+copies** remain for the equivalent historical workload. No unsafe candidate quiet
+benchmark, engine hash equivalence, memory result or speedup is claimed. Historical
+quiet baseline median **92.251s [89.620–93.369]**, peak **1,083.984 MiB**, 13 events
+remain historical evidence. One safe baseline provider-only measurement on the
+retained Booking-heavy fixture confirms four whole-world copies **7.918470s**, two
+small copies **0.000110s**, residual **0.261209s**, total **8.179789s**, lifetime process
+peak **552.750 MiB** including parsing/validation, four market IDs and zero events.
+The complete source hash remains unchanged. This is one sample, not an advancement
+benchmark or performance improvement; it ran after the tests without overlap.
+Documentation checker passes **342 local links / 75 heading targets** across the
+four changed documents, with existing legacy CP1252 target handling. Whitespace
+and `git diff --exit-code e992fdf07995b05b1cd305fa1d7da3f242ed9c86 -- game app Data`
+pass; direct byte comparisons confirm all three trial production files exactly
+match the baseline. Retained scope is five files: one new regression module and
+four documentation updates. Actual commit/push synchronization is reported at
+completion, without inventing a pending hash. No Schema 9/template,
+economics, transaction architecture, budgets, reconciliation, pacing/offline, B3
+or general quarterly activation change is retained.
+
 ## Quarterly Stage 3G-B2.5 — transaction overhead investigation (2026-10-13)
 
 Verified baseline **bcaf3efe55289f658e1e272c8341ad0e46c3f48f** matched HEAD,

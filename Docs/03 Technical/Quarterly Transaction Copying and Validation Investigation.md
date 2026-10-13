@@ -1,5 +1,44 @@
 # Quarterly Transaction Copying and Validation Investigation
 
+## B2.6 follow-up — isolation trial rejected
+
+The B2.5 recommendation below was a hypothesis. The separately authorized B2.6
+experiment at `e992fdf07995b05b1cd305fa1d7da3f242ed9c86` disproves **removing the
+outer pair while keeping the adapter unchanged**, not every possible future
+single-isolation design. See [B2.6 evidence](Quarterly%20Runtime%20Benchmarking.md#stage-3g-b26--provider-isolation-trial-rejected-on-safety-2026-10-13).
+
+The adapter's primary provider invocation uses an inner detached world, but its
+direct-service qualification invokes the quarterly provider again on its input
+envelope. The outer Demand copies protect that secondary invocation. An exact
+adapter/provider/callable-bound, one-use capability does not itself prevent writes
+or retained references through this secondary callback.
+
+The trial accepted a secondary mutation without the original diagnostic and left
+the discovery caller changed when that callback mutated then raised. Production
+was immediately restored. A test-only outer-pair bypass subsequently reproduces
+the original/reduced-boundary behavior: original preserves complete encoded source
+under mutation, exception and retained-reference cases; bypass does not. Primary
+mutation checks alone therefore cannot certify the complete adapter operation.
+
+No final engine gate can substitute for the missing provider boundary: a later
+gate may reject changed candidate state, but it cannot recreate the original
+exception classification/diagnostic timing or stop a retained provider reference
+from changing the caller after return. Discovery itself must preserve its input.
+Successful value equality with a pure provider is insufficient.
+
+The successful path also has a later Demand pack-eligibility provider read. The
+retained regression probes explicitly distinguish the primary/secondary inputs
+and permit this additional read. Any revised isolation proof needs a complete
+callback footprint, including direct-service and pack qualification, before
+attempting new copy removal. Existing trusted read-only eligibility behavior is
+not redesigned by this stage.
+
+**Retained result:** all production files unchanged; no copy/gate elimination,
+no candidate speed or memory evidence, eight new provider isolation regressions
+and documentation only. The original 27 runtime clones, 15 gates and ten additional
+whole-world deepcopies remain. AT-059 and AT-061 remain Proposed. No further
+optimization or implementation experiment is authorized by this follow-up.
+
 ## Executive summary
 
 Stage **3G-B2.5**, investigation only, **2026-10-13**. Verified baseline:

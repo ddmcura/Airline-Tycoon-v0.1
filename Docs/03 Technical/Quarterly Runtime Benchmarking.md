@@ -1,4 +1,122 @@
-# Quarterly Runtime Benchmarking — Stage 3G-B2 through B2.4
+# Quarterly Runtime Benchmarking — Stage 3G-B2 through B2.6
+
+## Stage 3G-B2.6 — provider isolation trial rejected on safety (2026-10-13)
+
+Approved baseline `e992fdf07995b05b1cd305fa1d7da3f242ed9c86` matched HEAD,
+upstream, freshly fetched origin/master and live remote master, divergence 0/0;
+tracked tree clean, only `.venv/` untracked, stashes empty. This was one bounded
+provider-isolation experiment. **No production optimization is retained.**
+
+### Target and ownership finding
+
+The proposed four removals were Demand discovery's detached provider envelope and
+before-image in each of Booking's preview/replay passes. The inner adapter's two
+copies would remain. A trial made the isolation adapter Demand-owned (with its
+Booking import alias), admitted only the exact quarterly mode/adapter/provider and
+original methods, and minted a synchronous one-use private invocation capability.
+The three changed production files were shopping, Demand activation and quarterly
+supply. They have all been restored byte-for-byte to the approved Git baseline.
+
+Identity-bound admission proved insufficient. `_IsolatedActivationProvider` calls
+the provider on an inner detached world, checks that world, detaches output and
+then checks qualifying direct service through
+`DirectPublishedServiceActivationProvider.active_market_ids(envelope, ...)`.
+Quarterly direct-service checking calls the quarterly provider again. That second
+invocation receives the adapter's input: the **outer detached envelope**, not the
+inner protected world. Removing outer isolation makes it the discovery caller.
+The copies protect different callback scopes despite containing equal values.
+Demand's subsequent pack eligibility check can perform a third provider read;
+the initial test probe's assumption of only two successful reads was corrected.
+
+Mutation sentinels in `_published_market_presence` exercise unchanged exact provider
+methods while targeting the secondary callback. Thus the defect does not require
+forging the private capability or replacing the admitted adapter method.
+
+| Targeted in-memory comparison | Original four-copy boundary | Outer pair bypassed, two copies |
+| --- | --- | --- |
+| Normal invocation | Caller unchanged; secondary input detached | Caller unchanged with pure callbacks; secondary input is caller |
+| Secondary nested mutation | Reject `activation provider mutated its detached state`; caller unchanged | No rejection; caller changed |
+| Secondary mutation then exception | `invalid activation provider result: secondary interrupted`; caller unchanged | Same exception classification/text, but caller changed |
+| Retain secondary reference and mutate after return | Caller unchanged | Caller changed |
+
+The trial's initial eight-test run reported **four failures / 1.795s**. Two directly
+proved the safety violation (missing mutation diagnostic and changed caller on
+exception). One measured the intended 4→2 copy reduction against an initially
+fixed count, and one exposed the test probe's too-narrow successful-read count.
+The retained tests remove the implementation-count assertion and allow the extra
+pack-eligibility read while asserting primary/secondary identity separation.
+They cover primary and secondary mutation, exceptions, retained references, invalid
+and mutable outputs, unchanged worlds and retry. Restored standalone tests pass
+**8 / 1.683s**; focused regressions pass **53 / 145.214s**.
+
+After immediate production rollback, a test-only mock on a fresh small quarterly
+fixture independently bypasses only the outer two deepcopy calls, leaving inner
+copies and all existing validator code intact. Eight comparisons (four fault modes
+× original/bypass) reproduce the table above. This is a local isolation diagnostic,
+not an engine optimization or benchmark. Complete source SHA for that distinct
+small fixture is `87b4b116d4c748e6041e0d826c9362a47c95af29b66b9c5fdeea35fba54ce919`.
+Its full encoded caller remains identical in all four original cases; all three
+adversarial bypass cases change it. No real player save is used.
+
+### Performance accounting and acceptance decision
+
+**Safety acceptance failed before performance acceptance. Reject immediately.**
+No unsafe candidate is advanced on the Booking-heavy benchmark, so there are no
+candidate quiet median/range, peak memory, targeted exclusive latency, processed
+event vector or complete engine-world equality results. Those measurements are
+not invented or inferred from the successful pure-provider diagnostic. The raw
+diagnostic measures copy count/identity/failure behavior, not operation latency.
+
+The retained B2.4/B2.5 control remains: quiet fresh-process baseline median
+**92.251s**, range **89.620–93.369s**, maximum peak **1,083.984 MiB**, 13 events,
+complete result hash `f2639799ac18443c62a85dcab3e613e12adbb5627df2051b19a4367df66091a2`.
+Those are historical results, not fresh B2.6 measurements. Runtime clones **27**,
+full gates **15**, provider whole-world deepcopies **8**, reconciliation deepcopies
+**2** remain unchanged by byte-for-byte production restoration. No copies are
+eliminated in the retained result. Other hooked deepcopy regions remain the historical
+**66,057**, including partial structures; late-import publication copying is not
+fully included in that hook count. Do not sum overlapping inclusive categories.
+
+After the restored regression commands completed, a single isolated **baseline**
+discovery was measured on the actual retained 75,758,607-byte Booking-heavy fixture.
+Full source validation/hash occurred outside the measurement; source SHA remains
+`ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0`.
+Two module-local deepcopy aliases were instrumented without replacing provider
+methods. Results: **four whole-world copies / 7.918470s**, two small window/output
+copies / **0.000110s**, residual lookup/equality/eligibility work **0.261209s**;
+discovery wall time **8.179789s**. Copy intervals are non-overlapping and include
+their GC; the residual subtracts those child intervals. Four market IDs were
+returned, no event was processed, and complete source hash stayed identical.
+Lifetime process peak **579,600,384 bytes / 552.750 MiB** includes parse/validation;
+it is not an advancement peak or isolated allocation measurement. No tests or
+other diagnostics were running concurrently. This one baseline sample confirms
+copy scope, not a median, performance improvement or candidate memory comparison.
+
+Neither 50-aircraft/90-day targets nor any speed or memory benefit is claimed.
+Copies/global graph scans remain dominant historical costs. A future consolidation
+would need to protect **every** callback/eligibility read, preserve error precedence
+and text, detach retained references/output and independently compare rollback,
+not merely recognize exact provider identity. That requires a revised safety design
+and separate implementation scope; no second trial is attempted here.
+AT-059 remains Proposed; no transaction architecture, reconciliation, schema,
+economics, save, pacing/offline, B3 or activation change is retained.
+
+Verification commands and affected regression results are recorded in
+[Current Development Status](Current%20Development%20Status.md). The cold
+utilities-first import limitation remains separately documented; World State is
+explicitly initialized first for affected test modules. Compilation is scoped to
+`app game tests main.py make_snapshot.py settings.py test.py`. No full gameplay
+suite is required for this rejected production experiment; source restoration,
+focused/affected regressions and retained test compilation verify the final scope.
+
+Six raw logs/JSON files are preserved in the local temporary evidence archive
+`airline-tycoon-b26-e992fdf-bd737d92a0374f5082d840026bc4d38f`:
+`trial-isolation.log`, `restored-isolation.log`, `focused.log`, `affected.log`,
+`isolation-comparison.json` and `baseline-provider.json`. Every copy was SHA-checked
+before removing the verified task-only scratch directory. They are not tracked
+or player saves. Git checkout normalization restored the original production
+working-tree line endings as well as canonical file contents.
+
 
 ## Stage 3G-B2.4 — measured typed-fact trial rejected (2026-10-13)
 
