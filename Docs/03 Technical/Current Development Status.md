@@ -1,6 +1,80 @@
 # Current Development Status
 
-Last updated: **2026-10-13**. Current snapshot, not operational authorization.
+Last updated: **2026-10-14**. Current snapshot, not operational authorization.
+
+## Quarterly Stage 3G-B3D — local Completion boundary rejected (2026-10-13–14)
+
+Baseline **24535b5b6f8eca51d27b2bf785d66445be50cf9e** matched HEAD, upstream,
+freshly fetched origin/master and live remote master; divergence 0/0, tracked tree/
+index clean, `.venv/` preserved and stashes empty. Serena verified actual Completion
+and current authorities. No production, schema/template, economics, budgets,
+history, pacing/offline, batching, legacy authority or activation change is made.
+
+[B3D report](Hybrid%20Quarterly%20Completion%20Feasibility.md): **NO-GO for bounded
+production integration of the tested standalone local boundary**. Three concrete
+bad-source cases (unselected bool lineage, out-of-scope equal-value alias, unselected
+flight association) leave exact selected inputs unchanged while strict/detailed
+validation rejects. A fourth case starts with two valid worlds: removing a
+reconstructible future dispatch leaves selected inputs unchanged, but the strict
+command produces different queue/allocator/cursor outcomes. The selected frame is
+not complete command authority. Manifest membership still requires retained Booking
+discovery or an independently verified owned index; UTC/unchanged authority and
+borrowed source validity are not proved by selected rows or cached flags.
+
+Per the task's unsafe-boundary stop instruction, local execution construction stops
+at admission. Retained code is a detached selected-input probe and fail-closed shell,
+**not an independent local Completion executor**. It never admits local writes and
+uses the complete strict fallback for supported inputs. Custom providers/registries,
+other events and legacy execution are refused. Matching fallback worlds/diagnostics
+are compatibility evidence, not a local proof. Retain the current engine and revisit
+ownership/validation and target assumptions; no automatic next certification series.
+AT-059/064 remain Proposed; AT-065 records rejection of this tested boundary only.
+
+Three alternating fresh-process pairs per workload plus separate instrumented
+controls use existing public setup and the retained 75,758,607-byte Booking-heavy
+fixture. No expensive scenario/warmup reconstruction or parallel measurement is
+performed. Medians (strict / refused attempt + full strict fallback): **0 Bookings:
+0.111619 / 0.101694s; 1,176: 0.344074 / 0.376557s; 42,923: 9.909159 / 10.027956s**.
+All 18 quiet and six instrumented outputs equal their complete strict reference.
+Every instrumented successful command has **2 runtime copies + 2 reconciliation
+world deepcopies + 2 full gates**. Minimum keyed-entry gate exposure is
+3,850 / 9,264 / 177,228; selected records 18 / 28 / 142 and selected Bookings
+0 / 4 / 54. These are distinct selected counts/lower bounds, not exact nested
+predicate visits. Complete ranges, memory, setup/oracle/instrumentation/persistence
+and failure/retry costs are in the dedicated report. No speedup/scalability claim
+is made; the minimal control's favourable noisy median removes no work.
+
+Heavy preparation initially failed its 12-event guard when repeated Next Event
+reconciliation reintroduced dispatch before same-UTC departure. The harness now
+uses an ordinary through-boundary request, two preparatory strict events, then
+stops before Completion; production behaviour remains untouched. The first new
+test setup referenced checkpoints at the wrong nesting level; canonical lookup
+was corrected to booking_state.booking_checkpoints. An early handler-failure
+mock intercepted unrelated registry lookups; injection is now event-specific.
+Corrected earlier focused runs pass 22 / 19.396s and 23 / 21.104s.
+Final standalone B3D command
+`.venv/Scripts/python.exe -B -m unittest tests.test_hybrid_completion_boundary -v`
+passes **26 / 22.755s**, exit 0. Tests cover source indistinguishability, exact
+types, aliases, mutation/exception refusal, strict rollback/retry, save/rebind,
+shared-request compatibility and valid reconciliation. Tests use workspace TEMP/TMP
+and temporary persistence roots, never player Saves. The affected command
+`.venv/Scripts/python.exe -B -m unittest tests.test_hybrid_completion_boundary tests.test_quarterly_transaction_feasibility tests.test_quarterly_completion_certificate tests.test_quarterly_booking_validation tests.test_quarterly_backend.QuarterlyBackendTests.test_first_operational_departure_completion_and_finance tests.test_quarterly_backend.QuarterlyBackendTests.test_save_load_locked_operation_and_exact_replay tests.test_quarterly_backend.QuarterlyBackendTests.test_save_load_bookings_and_completed_finance tests.test_quarterly_backend.QuarterlyBackendTests.test_identical_replay -v`
+passes **105 / 168.890s**, exit 0: 104 executed tests pass, one optional B3B
+component measurement skips. The B3D measurement controls above ran separately,
+not concurrently with tests. Scoped
+`.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Documentation checks pass **365 local links / 78 heading targets**,
+zero errors. `git diff --check` and production/schema/template diff checks against
+baseline pass. No full gameplay suite is repeated for the test-only task; app/game
+contain no reference to the new helpers. Current host CPU/Python were verified:
+Intel i5-1035G1, eight logical processors, Python 3.12.10. No pending commit hash
+is invented. Retained scope is three isolated test/diagnostic files and four
+documentation files.
+Forty diagnostic/test/measurement files were preserved with SHA-verified copies
+in local temporary archive `airline-tycoon-b3d-24535b5-644b62cd5b7848a580fd54d0adffb6a7`.
+The verified task scratch directory was removed; original retained fixtures and
+player Saves were untouched. Final verification/completion crossed Manila midnight;
+historical milestone dates above/below remain unchanged.
 
 ## Quarterly Stage 3G-B3C — runtime architecture review (2026-10-13)
 

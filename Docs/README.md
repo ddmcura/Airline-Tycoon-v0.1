@@ -23,6 +23,9 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Hybrid quarterly Completion feasibility](03%20Technical/Hybrid%20Quarterly%20Completion%20Feasibility.md):
+  B3D NO-GO for the tested standalone local admission; concrete missing-read/alias/
+  reconciliation proofs and whole-command strict-fallback controls, no production change.
 - [Quarterly runtime architecture review](03%20Technical/Quarterly%20Runtime%20Architecture%20Review.md):
   B3C proposes hybrid owned local transactions and strict callback fences; compares
   scaling, validation, recovery and a future whole-command test-only experiment.
