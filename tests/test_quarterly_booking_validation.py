@@ -62,6 +62,26 @@ class QuarterlyBookingValidationTests(unittest.TestCase):
                 for v in row) for row in lookup.values()))
         self.compare(self.base, invalid=False)
 
+    def test_direct_graph_rejects_equal_values_with_noncanonical_types(self):
+        class IntegerSubclass(int):
+            pass
+        class StringSubclass(str):
+            pass
+        original = next(iter(self.base['world_state']['itineraries'].values()))['quarterly_lineage']
+        for key, value in original.items():
+            alternatives = (True, 1.0, IntegerSubclass(value)) if type(value) is int else (StringSubclass(value),)
+            for replacement in alternatives:
+                for side in ('itinerary', 'flight', 'both'):
+                    with self.subTest(key=key, replacement=replacement, side=side):
+                        world = deepcopy(self.base)
+                        row = next(iter(world['world_state']['itineraries'].values()))
+                        flight = world['world_state']['dated_flights'][row['dated_flight_ids'][0]]
+                        if side != 'flight':
+                            row['quarterly_lineage'][key] = replacement
+                        if side != 'itinerary':
+                            flight['quarterly_lineage'][key] = replacement
+                        self.assertIsNone(graph._itinerary_graph(world['world_state'], quarterly=True))
+
     def test_every_booking_and_itinerary_field_matches_original_diagnostics(self):
         for collection in ('bookings', 'itineraries'):
             original = next(iter(self.base['world_state'][collection].values()))

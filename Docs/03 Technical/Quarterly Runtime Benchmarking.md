@@ -1,4 +1,231 @@
-# Quarterly Runtime Benchmarking — Stage 3G-B2 / B2.1
+# Quarterly Runtime Benchmarking — Stage 3G-B2 through B2.4
+
+## Stage 3G-B2.4 — measured typed-fact trial rejected (2026-10-13)
+
+Approved baseline `03d6cafe652738d180d1cef289ffdd53803102ea` matched HEAD,
+upstream, freshly fetched origin/master and live remote master, divergence 0/0.
+Tracked tree/index were clean; only `.venv/` was untracked, stashes empty.
+Schema 9/template, B2.3 exact-type and malformed-save rules, all transaction
+copies/full gates, strict/shared fallback, publication ordering/fences, legacy
+isolation, Booking economics and safety budgets remain authoritative. AT-059
+remains Proposed; no history architecture, pacing, offline or activation work.
+
+### Post-B2.3 fixture and measurement protocol
+
+Reuse the retained B2.1 operating fixture rather than rebuilding it. Raw file
+size is **75,758,607 bytes**, canonical source hash
+`ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0`.
+Current B2.3 full validation accepts it without normalization: all itinerary
+revision/slot values are genuine integers. Source counts remain 42,923 Bookings/
+itineraries, 368 dated rows, five results, 42 journals, 50 historical/367 pending
+events, 33 checkpoints, one aircraft/four services/one published Q4 plan.
+
+A separate reuse diagnostic records file read **0.038s**, JSON parse **0.928s**,
+post-B2.3 source validation **2.955s**; it is not an advancement latency sample
+and was not run concurrently with quiet comparisons. No reconstruction/warmup
+was needed. Historical exact reconstruction **595.657s / 586.522s warmup** below
+is unchanged evidence, not a fresh B2.4 setup measurement. Session construction,
+input copying/validation and final audit/hash checks remain outside command timing.
+
+Initial quiet runs in one process are **90.896 / 115.418 / 126.713s**, median
+115.418s. All complete the same 13 events and full world. Their large variation
+does not establish a regression from historical B2.1 or a candidate improvement;
+do not use the historical 91.669s as the paired post-B2.3 comparator.
+
+Final comparisons use three **fresh-process pairs** in orders baseline/candidate,
+candidate/baseline, baseline/candidate, the same source/target/budget/hardware and
+real Stage1Session Advance. Baseline freezes only `_itinerary_graph` from the
+approved B2.3 Git revision through test-only AST extraction; all other predicates,
+handler identities, transaction machinery and B2.3 type rules are unchanged.
+The control is not a production switch or a cached validation result. No profile
+or regression suite runs concurrently with these quiet samples.
+
+### Measured bottlenecks and repeated-work audit
+
+One baseline cProfile/exclusive diagnostic completes in **263.729s command time**,
+264.188s profiler region / **410,320,376 calls**. Instrumented totals are not quiet
+latencies. The existing opt-in profiler now separates Booking indexes, manifests,
+fulfilment validation and quarterly consumer validation. Function self/cumulative
+timers and nested exclusive instrumentation have different attribution boundaries.
+
+| Baseline diagnostic region | Calls | Exclusive seconds | Inclusive seconds |
+| --- | ---: | ---: | ---: |
+| Full world validation | 15 | 13.377 | 115.501 |
+| Plain authority traversal | 15 | 57.163 | 57.163 |
+| Booking prefix validation | 15 | 14.373 | 37.829 |
+| Booking relationship graph | 15 | 23.455 | 23.456 |
+| Fulfilment validation | 15 | 0.633 | 0.636 |
+| Quarterly consumer validation | 15 | 5.624 | 5.635 |
+| Imported deepcopy regions | 66,057 | 95.860 | 99.046 |
+| Runtime clone regions | 27 | 29.557 | 31.708 |
+| Manifest construction | 8 | 1.935 | 2.024 |
+| Booking indexes | 2 | 1.632 | 1.637 |
+| Shopping | 2 | 1.493 | 90.414 |
+| Allocation | 2 | 0.998 | 93.585 |
+| Handler/contract machinery | 13 | 0.224 | 97.210 |
+| Detached publication | 13 | 0.001 | 14.706 |
+| Scheduling lookups | 2,966 | 0.724 | 0.991 |
+| Backend reconciliation | 1 | 0.037 | 9.651 |
+| Garbage collection | 4,641 | 6.082 | — |
+
+Exclusive copy regions sum to **125.417s**. Full validation's inclusive 115.501s
+contains the domain children above: do not add those inclusive rows or treat
+66,057 copy regions as whole-world copies. Entry + 13 event results + final clock
+gap still give 15 full gates; 13 candidate + 13 detached commit + Booking preview
+still give 27 runtime clones. Four publication command gates/two copies are unchanged.
+
+Concrete ownership/call paths:
+
+- [Booking graph](../../game/world_state/booking_lineage_validation.py): each gate
+  rebuilds itinerary, Booking ownership/inventory and checkpoint/journal relations
+  from current rows. Itinerary builder cProfile is **6.098s self / 12.304s cumulative**;
+  all-context `valid_quarterly_lineage` is **679,219 calls, 1.261s self / 3.138s cumulative**.
+  The existing local flight-facts dictionary already reuses owner/timing/currency/
+  publication values. Type/range checks repeat on every itinerary sharing a flight.
+- [Booking indexes](../../game/booking/indexes.py) run only twice in
+  [allocation](../../game/booking/allocation.py), once for detached preview and once
+  for fresh commit replay. These are different transaction observations, not an
+  equivalent redundant build inside one unchanged call. No second reservation or
+  capacity authority is justified.
+- [Shopping](../../game/booking/shopping.py) and
+  [quarterly supply](../../game/scheduling/quarterly_supply.py) already use per-call
+  market/date/alias lookup ownership. Remaining inventory must remain current.
+- [Manifest](../../game/aircraft_operations/fulfilment.py) scans/selects current
+  bookings eight times over departure/completion. Each lifecycle has its own current
+  source/checkpoint/sale witnesses; this is not permission for a cross-event manifest.
+- [Mode validation](../../game/world_state/quarterly_consumers.py) still independently
+  checks fixed fares, Booking dates/horizon, actual/past published work and chronology.
+  [Kernel](../../game/simulation/kernel.py) and
+  [serialization](../../game/world_state/serialization.py) retain isolated staging
+  and detached publication. Provider before-images/copies protect mutation/alias
+  boundaries; none is labeled redundant by this experiment.
+
+### Single candidate and correctness boundary
+
+Test only one candidate: within `_itinerary_graph`, cache each selected flight's
+genuinely checked immutable scalar **types and values** in its existing local facts.
+For every itinerary, still require exact dict/key shape and compare all six lineage
+types and values to that actual selected flight. Matching types prevents True/1,
+float/int and subclass equality; matching values inherits the already checked
+positive ranges/nonempty values. Relationship, owner, fare, inventory, journal and
+every subsequent full-world predicate still execute. No field, persisted cache,
+reservation count, capacity ledger or unvalidated boolean/revision/hash is added.
+
+Owner: World State Booking graph. Lifetime: one synchronous builder invocation,
+with a fresh dictionary on every call. No facts survive return, another validation,
+transaction, publication, failure, load or rebind. The independent detailed validator
+keeps its direct B2.3 type checks. Legacy graph behavior is unchanged. Typed tuples
+are temporary proof data and cannot escape the five-field primitive scalar rows.
+
+Five alternating quiet builder measurements on the 42,923-row source:
+
+| Builder | Median seconds | Observed range |
+| --- | ---: | --- |
+| B2.3 baseline | 0.239147 | 0.231187–0.272116 |
+| Candidate | 0.203342 | 0.194203–0.211991 |
+
+All scalar rows agree exactly and source hash is unchanged. Target median decreases
+about **15.0% / 0.035805s per call**. Multiplying by 15 is only a rough **0.537s**
+scale estimate on this source, not measured command savings: later row counts and
+GC/copy/handler interaction differ. Do not extrapolate it to 50-aircraft throughput.
+
+### Quiet end-to-end acceptance — rejected
+
+Every sample reaches 2026-10-03T03:00:00Z with 13 events: four dispatches, four
+departures, four completions, one daily Booking. All complete-world output hashes
+are `f2639799ac18443c62a85dcab3e613e12adbb5627df2051b19a4367df66091a2`;
+no IDs, history, journals, inventory, RNG, UI or other envelope fields are omitted.
+
+| Fresh-process pair | Baseline seconds | Candidate seconds | Candidate minus baseline |
+| --- | ---: | ---: | ---: |
+| 0: baseline then candidate | 89.620 | 91.975 | +2.355 |
+| 1: candidate then baseline | 92.251 | 90.024 | -2.227 |
+| 2: baseline then candidate | 93.369 | 95.863 | +2.494 |
+| Median | **92.251** | **91.975** | Median difference **-0.276** |
+| Range | 89.620–93.369 | 90.024–95.863 | Overlap; inconsistent pair direction |
+| Maximum peak working set, MiB | **1,083.984** | **1,083.973** | Effectively unchanged |
+
+The approximately 0.30% median difference is not a reproducible meaningful command
+improvement. Two pairs regress by about 2.4s; mean command time also regresses.
+The targeted gain is real in these builder samples but too small to establish
+whole-day acceptance under observed variation. No mandatory percentage is invented.
+Peak working set is cumulative per process, not isolated allocation or long-run
+memory certification. **Reject and restore the production module to baseline.**
+
+The one candidate cProfile/exclusive run confirms the same 15 validations, 27
+runtime clones, 66,057 imported copy regions, 13 detached commits, eight manifests,
+two index builds and two allocation/shopping passes. It completes the same world
+in **255.372s instrumented command time**, 255.812s profiler region /
+**405,801,837 calls**, peak 1,083.035 MiB. Baseline diagnostic peak is 1,083.586 MiB.
+These are not quiet speedup/memory measurements. Candidate itinerary-builder
+exclusive/inclusive nested timers are **9.934 / 9.938s**; cProfile self/cumulative
+is **6.658 / 9.936s**, versus baseline 6.098 / 12.304s. The new itinerary child
+timer splits the graph parent: candidate parent exclusive 11.161s plus child
+9.934s, parent inclusive 21.099s; baseline's unsplit parent exclusive is 23.455s.
+Do not mistake that attribution split for halving relationship work.
+
+Candidate `valid_quarterly_lineage` calls are **32,654**, cProfile 0.075s self /
+0.179s cumulative. The 646,565 omitted duplicate helper invocations are replaced
+by exact type/value checks against each locally validated flight; they are not
+omitted itinerary checks. Full validation inclusive remains 114.626s. Candidate
+exclusive copy regions sum to 119.166s; their implementation is unchanged and
+timing variation is not attributed to the candidate. GC observations are 4,654
+versus 4,641. Flight body cProfile cumulative: four departures 0.881s, four
+completions 0.943s, four dispatches 0.016s, four settlement constructions 0.013s.
+Those exclude outer validation/publication and are not complete event latencies.
+
+The only retained changes are useful opt-in profiling/control tooling, an exact
+direct-builder type regression and this investigation/status/evidence documentation.
+No second optimization is attempted. Remaining costs are copying, complete authority/
+Booking graph traversal and request-wide event budgets; the same-time default100,
+processed10000 and existing explicit-Advance generated10000 exception are unchanged.
+Save/load format and detached validation remain; any component timings below are
+separate temporary-storage diagnostics, not engine or serialization improvements.
+
+One sequential temporary SaveStore component pair (no concurrent benchmark/tests):
+baseline save/load **10.466 / 8.285s**, candidate **13.315 / 12.682s**. Each file is
+71,694,009 bytes under the existing save wrapper/encoding, distinct from fixture
+file formatting; both detached loads are PAUSED and preserve canonical source hash
+`ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0`.
+These single component samples are not a controlled speed comparison or a new
+save/load certification. They show no basis for claiming a persistence benefit.
+Only temporary career directories are used; real player Saves remain untouched.
+
+### B2.4 verification and continuation
+
+Candidate focused tests pass **45 / 136.953s**. An initial affected command with
+`tests.test_quarterly_backend` first completes 51 real tests but reports one module
+import error (52 counted including the failed loader). A separate fresh process
+`python -B -c "import game.utils.quarters"` reproduces the cold circular import:
+quarters → World State initialization → fulfilment validation → quarterly consumers
+→ partially initialized quarters. All four files in that cycle match the approved
+baseline; the candidate builder is not in the import chain. The affected rerun
+explicitly initializes World State first, then runs the requested modules. This
+is an import-order limitation, not a repaired startup path or unrestricted cold-
+import certification. It is recorded for separately scoped correctness follow-up;
+no unrelated production import repair is included in this one-optimization stage.
+Cold `import app.session` passes. The explicit preloaded affected command
+`python -B -c "import game.world_state; import unittest; unittest.main(module=None)" tests.test_quarterly_backend tests.test_quarterly_boundaries tests.test_step7_save_load -v`
+passes **101 tests / 301.764s**, exit 0, covering quarterly operations, publication
+barriers/failure/retry, strict/shared equivalence, SaveStore and legacy careers.
+Production restoration is verified by `git diff --exit-code -- game app Data`,
+exit 0. The final restored focused command passes **45 / 152.128s**. Compilation
+of only `app game tests main.py make_snapshot.py settings.py test.py` passes,
+exit 0; real-Saves profiler guard rejects with expected exit 2. Retained scope is
+five files: this report, Current Development Status, Decision Register, the
+opt-in advancement profiler and one existing quarterly Booking regression module.
+
+Commands use `.venv/Scripts/python.exe -B` and workspace TEMP/TMP; the opt-in
+`tests.profile_quarterly_advancement` uses `--root .test-tmp-stage3gb24` and refuses
+real Saves. Quiet pairs use `--repeats 1`; baseline additionally supplies
+`--itinerary-revision 03d6cafe652738d180d1cef289ffdd53803102ea`.
+The two instrumented runs have a distinct purpose: before-selection attribution,
+then confirmation of target behavior and unchanged gates/copies on the sole trial.
+Historical reports and benchmark witnesses below remain unchanged. Final test,
+restoration, compilation, links/scope and Git evidence belong in Current Development
+Status. Full-suite execution is required for a retained production optimization;
+none is retained here. No performance target or default quarterly activation is
+certified. Stop after B2.4; later work requires a separately bounded authorization.
 
 ## Stage 3G-B2.1 — advancement investigation (2026-10-13)
 

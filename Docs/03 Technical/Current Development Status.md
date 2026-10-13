@@ -2,6 +2,65 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B2.4 — one measured trial rejected (2026-10-13)
+
+Verified baseline **03d6cafe652738d180d1cef289ffdd53803102ea** matched HEAD,
+upstream, freshly fetched origin/master and live remote master, divergence 0/0;
+tracked tree/index clean, only `.venv/` untracked and stashes empty.
+[Benchmark report](Quarterly%20Runtime%20Benchmarking.md#stage-3g-b24--measured-typed-fact-trial-rejected-2026-10-13)
+records post-B2.3 source validation, attribution and the sole tested candidate.
+The retained exact B2.1 fixture is reused without its historical 595.657s rebuild.
+Read/parse/current validation are measured separately; the source and complete
+one-day result hashes match the original witnesses.
+
+The proposed call-local typed flight-fact reuse keeps every itinerary's shape,
+type and value comparisons, preserving B2.3 exact typing and independent detailed
+validation. Five alternating builder runs improve median **0.239147 → 0.203342s**.
+Three fresh-process whole-day pairs are inconclusive/regressive: baseline median
+**92.251s [89.620–93.369]**, candidate **91.975s [90.024–95.863]**. Two pairs regress
+about 2.4s and mean command time regresses. Peak maxima **1,083.984 / 1,083.973 MiB**
+are effectively unchanged. Every sample completes 13 events and the exact full
+world. The experiment is **rejected**, with no second optimization or performance
+target certification. The rejected production module is restored byte-for-byte;
+`git diff --exit-code -- game app Data` passes, exit 0.
+
+Diagnostic profiles are 263.729s baseline / 255.372s candidate, not quiet speedups.
+Both retain 15 full validations, 27 runtime clones, 13 detached event commits,
+66,057 imported deepcopy regions, two Booking index builds and eight manifests.
+Copies/full authority checks dominate; index builds belong to separate preview/
+fresh commit replay observations. No second inventory/reservation authority,
+persisted cache, history partition, schema/template, save format, economics,
+publication barrier, safety-budget, pacing/offline or gameplay change is retained.
+
+Candidate focused command:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_booking_validation tests.test_booking_lineage_optimization -v`
+passes **45 tests, 136.953s**, exit 0, including the new direct-builder bool/float/
+subclass regression and existing adversarial/freshness/retry/load/legacy checks.
+The initial affected command counted 52 tests and failed one loader import while
+51 real boundary/save tests passed. Cold `import game.utils.quarters` independently
+reproduces a baseline circular dependency through World State/fulfilment validation/
+quarterly consumers; those files are unchanged by the trial. Cold `import app.session`
+passes. The affected rerun initializes World State first; this does not repair or
+certify every cold import order. Record the utility-first import limitation for
+separately scoped correctness work, without including an unrelated production fix.
+Candidate affected command with explicit World State preload:
+`.venv/Scripts/python.exe -B -c "import game.world_state; import unittest; unittest.main(module=None)" tests.test_quarterly_backend tests.test_quarterly_boundaries tests.test_step7_save_load -v`
+passes **101 tests, 301.764s**, exit 0.
+Single temporary SaveStore baseline/candidate component round trips preserve the
+complete source hash and paused state; timings are separately reported, with no
+performance inference. Scoped
+`.venv/Scripts/python.exe -B -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Profiler `--root Saves --itinerary-revision ...` guard rejects before
+access, expected exit 2. Final restored focused command (same two modules) passes
+**45 tests, 152.128s**, exit 0. No full suite is rerun because no production change is
+retained; B2.3's 1,637 PASS is historical unchanged evidence, not a fresh B2.4 run.
+AT-059 remains Proposed; B3 and default quarterly activation
+remain blocked. Retained scope is justified profiling/reference-control tooling,
+one useful type regression and investigation documentation only.
+Exact five-file scope, **299 local links / 69 heading targets**, schema/template
+blob equality and whitespace checks pass. Actual commit/push
+synchronization is reported at completion without inventing a pending hash.
+
 ## Quarterly Stage 3G-B2.3 — exact itinerary types and save safety (2026-10-13)
 
 Approved baseline **8282b7e5c8013d47f5363146138dbb464be4e935** matched HEAD,

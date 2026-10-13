@@ -1,9 +1,10 @@
-"""B2.1 opt-in profiling of the unchanged B2 operating fixture and session API.
+"""Opt-in B2.1/B2.4 profiling of the B2 operating fixture and session API.
 
 Use --root with the temporary directory built by benchmark_quarterly_runtime.
 Instrumentation is diagnostic; quiet repetitions establish command latency.
 """
 import argparse
+import ast
 from contextlib import ExitStack
 from datetime import timedelta
 import cProfile
@@ -13,6 +14,7 @@ from pathlib import Path
 import platform
 import pstats
 import statistics
+import subprocess
 import sys
 import tempfile
 from time import perf_counter
@@ -30,13 +32,21 @@ from game.scheduling import quarterly_backend, quarterly_supply
 def hooks(profile, stack):
     """Patch existing aliases, never handler registrations or recursive deepcopy."""
     from copy import deepcopy
+    from game.booking import indexes as booking_indexes
+    from game.aircraft_operations import fulfilment
+    from game.world_state import fulfilment_validation, quarterly_consumers
     targets = [
         (validation.validate_world, 'world_validation'),
         (serialization._clone_runtime_world, 'world_clone'),
         (deepcopy, 'deepcopy'),
         (booking_validation._validate_booking_relationships_detailed, 'booking_relationships'),
         (booking_lineage_validation.valid_booking_relationships, 'booking_graph_proof'),
+        (booking_lineage_validation._itinerary_graph, 'itinerary_graph'),
         (booking_validation.validate_schema3_booking_authority, 'booking_validation'),
+        (booking_indexes.rebuild_booking_indexes, 'booking_indexes'),
+        (fulfilment.build_confirmed_carriage_manifest, 'manifest'),
+        (fulfilment_validation._validate_schema4_fulfilment_authority, 'fulfilment_validation'),
+        (quarterly_consumers.validate_mode, 'quarterly_consumer_validation'),
         (validation._plain_authority_tree, 'authority_graph'),
         (allocation.prepare_daily_booking_allocation, 'booking_allocation'),
         (shopping.prepare_daily_booking_shopping, 'booking_shopping'),
@@ -76,11 +86,31 @@ def hooks(profile, stack):
     stack.callback(gc.callbacks.remove, observe_gc)
 
 
-def measure(base, target, budget, *, instrument=False, cprofile_path=None, reference=False):
+def itinerary_reference(revision):
+    """Compile only the recorded builder from a trusted repository revision.
+
+    Test-only performance control, not a second production path or save reader.
+    Other predicates/types remain current; no handler registration is changed.
+    """
+    path = 'game/world_state/booking_lineage_validation.py'
+    source = subprocess.check_output(['git', 'show', f'{revision}:{path}'], text=True)
+    definition = next(node for node in ast.parse(source).body
+        if isinstance(node, ast.FunctionDef) and node.name == '_itinerary_graph')
+    namespace = dict(vars(booking_lineage_validation))
+    exec(compile(ast.Module(body=[definition], type_ignores=[]),
+        f'{revision}:{path}', 'exec'), namespace)
+    return namespace['_itinerary_graph']
+
+
+def measure(base, target, budget, *, instrument=False, cprofile_path=None, reference=False,
+            itinerary_builder=None):
     profile = ExclusiveProfile()
     with tempfile.TemporaryDirectory(prefix='at-quarterly-profile-') as temporary:
         session = benchmark.session_for(base, temporary)
         with ExitStack() as stack:
+            if itinerary_builder is not None:
+                stack.enter_context(patch.object(booking_lineage_validation,
+                    '_itinerary_graph', itinerary_builder))
             if reference:
                 stack.enter_context(patch.object(booking_lineage_validation,
                     'valid_booking_relationships', return_value=False))
@@ -163,6 +193,7 @@ def main():
     parser.add_argument('--instrument', action='store_true')
     parser.add_argument('--cprofile', action='store_true')
     parser.add_argument('--reference-booking', action='store_true')
+    parser.add_argument('--itinerary-revision', help='trusted Git revision for the test-only itinerary builder control')
     parser.add_argument('--validation-study', action='store_true')
     args = parser.parse_args()
     root = args.root.resolve()
@@ -183,11 +214,13 @@ def main():
         parser.error('requires a ready B2 operating fixture')
     assert benchmark.digest(base) == audit['audit']['hash']
     benchmark.valid(base)
+    builder = itinerary_reference(args.itinerary_revision) if args.itinerary_revision else None
     target = benchmark.format_utc(benchmark.parse_canonical_utc(base['simulation']['time_utc'])
         + timedelta(days=args.days))
     result = dict(label=args.label, environment=platform.platform(), python=platform.python_version(),
         source=benchmark.audit(base), days=args.days, instrument=args.instrument,
-        cprofile=args.cprofile, reference_booking=args.reference_booking, samples=[])
+        cprofile=args.cprofile, reference_booking=args.reference_booking,
+        itinerary_revision=args.itinerary_revision, samples=[])
     result['source_file_bytes'] = (root / 'fleet-1.json').stat().st_size
     result['source_record_counts'] = {key: len(value) for key, value in base['world_state'].items()
         if type(value) in (dict, list)}
@@ -196,7 +229,7 @@ def main():
     for index in range(args.repeats):
         cpath = root / f'{args.label}-{index}.prof' if args.cprofile else None
         sample = measure(base, target, args.budget, instrument=args.instrument,
-            cprofile_path=cpath, reference=args.reference_booking)
+            cprofile_path=cpath, reference=args.reference_booking, itinerary_builder=builder)
         result['samples'].append(sample)
         print(json.dumps(dict(label=args.label, sample=index, **sample)), flush=True)
     values = [sample['wall_s'] for sample in result['samples']]
