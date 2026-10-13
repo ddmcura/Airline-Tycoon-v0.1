@@ -2,6 +2,52 @@
 
 Last updated: **2026-10-13**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-B2.5 — transaction overhead investigation (2026-10-13)
+
+Verified baseline **bcaf3efe55289f658e1e272c8341ad0e46c3f48f** matched HEAD,
+upstream, freshly fetched origin/master and live remote master; divergence 0/0,
+tracked tree/index clean, only `.venv/` untracked, stashes empty. Serena and current
+contracts were consulted; older memory checkpoints did not supersede current code.
+[Dedicated investigation](Quarterly%20Transaction%20Copying%20and%20Validation%20Investigation.md)
+reconciles **27 runtime clones = 13 staging + 13 detached commits + 1 Booking
+preview**, and **15 full validations = entry + 13 results + final clock gap**.
+All 13 quarterly events remain strict even through the shared request facade;
+legacy flight certificates explicitly exclude quarterly mode.
+
+Retained B2.4 JSON/cProfile caller records were inspected using
+`.venv/Scripts/python.exe -B -` and `pstats.Stats(...).stats`. No new benchmark,
+fixture construction, Save write, gameplay test or production invocation occurred.
+The trace also accounts for eight provider-isolation whole-world deepcopies across
+preview/replay and two unchanged reconciliation copies, separate from 27 runtime
+clones. Instrumented hooked copy regions total **125.417s exclusive**; full-world
+validation is **115.501s inclusive**, with nested children not added again.
+Publication reconciliation is imported after hooks are installed: cProfile records
+its **9.328s cumulative deepcopy**, absent from hooked copy totals. The measured
+command residual is **10.561s**; complete per-allocation exclusive attribution is
+not claimed. Quiet baseline median remains historical **92.251s**, not a B2.5 run.
+
+Recommend a separately authorized B2.6 experiment consolidating isolation only
+for the exact built-in quarterly activation adapter. It could avoid four additional
+whole-world deepcopies while keeping the provider's detached input/before-image,
+typed detached output, independent original reference, **all 27 runtime clones and
+15 gates**, fresh preview/replay, finance, publication and budgets. Actual benefit
+must be measured; no speedup, 50-aircraft or 90-day target is certified. Quarterly
+flight certification requires new proofs; arbitrary batching, mutable cross-world
+sharing and final-only validation are unsafe under current contracts.
+
+AT-061 is Proposed; AT-059 remains Proposed. B2.4's cold utilities-first import
+limitation remains for separately scoped correctness work. No production, test,
+diagnostic, Schema 9 or template change; B3/offline/pacing/default activation stay
+unimplemented. Four documentation files only: dedicated report, this status,
+Decision Register and documentation index. Link/heading verification through
+`.venv/Scripts/python.exe -B -` passes **357 local links / 70 heading targets**, with
+one existing linked document read using its legacy CP1252 encoding after the first
+UTF-8-only checker rejected that encoding. No document encoding was changed.
+`git diff --check` and `git diff --exit-code bcaf3efe55289f658e1e272c8341ad0e46c3f48f -- game app Data tests AGENTS.md`
+pass, exit 0. No full gameplay suite or compilation is required for this scope.
+Actual commit/push synchronization is reported on completion, without inventing
+a pending commit hash.
+
 ## Quarterly Stage 3G-B2.4 — one measured trial rejected (2026-10-13)
 
 Verified baseline **03d6cafe652738d180d1cef289ffdd53803102ea** matched HEAD,

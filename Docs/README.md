@@ -23,6 +23,11 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Quarterly transaction copying and validation investigation](03%20Technical/Quarterly%20Transaction%20Copying%20and%20Validation%20Investigation.md):
+  Stage 3G-B2.5 accounts for 27 runtime clones/15 full gates, nested provider
+  isolation and reconciliation costs; proposes one bounded B2.6 experiment.
+  Documentation only; no engine or history redesign approval.
+
 - [Active state and certified history feasibility](03%20Technical/Active%20State%20and%20Certified%20History%20Feasibility.md):
   Stage 3G-B2.2 read-only architecture review; incremental optimization recommended,
   immutable live obligations distinguished from closed history, conditional prototype
