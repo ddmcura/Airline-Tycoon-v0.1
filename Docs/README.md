@@ -23,6 +23,11 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [PH 1.0 architecture simplification audit](03%20Technical/PH%201.0%20Architecture%20Simplification%20Audit.md):
+  retains current engine safety; proposes a bounded quarter-helper import cleanup
+  next and defers transaction consolidation and scheduling-era retirement.
+  Documentation only; no simplification or further experiment is implemented.
+
 - [Hybrid quarterly Completion feasibility](03%20Technical/Hybrid%20Quarterly%20Completion%20Feasibility.md):
   B3D NO-GO for the tested standalone local admission; concrete missing-read/alias/
   reconciliation proofs and whole-command strict-fallback controls, no production change.
