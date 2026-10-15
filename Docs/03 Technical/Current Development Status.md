@@ -2,6 +2,50 @@
 
 Last updated: **2026-10-15**. Current snapshot, not operational authorization.
 
+## PH 1.0 simplification Fix 1 — quarter import cycle (2026-10-15)
+
+Bounded implementation explicitly approved against
+**ce3069703f6ecabf7a286388081f654b1dd95169**. Preflight HEAD, upstream,
+freshly fetched origin/master and live remote master matched; divergence 0/0,
+tracked tree clean, only untracked `.venv/`, no stashes. Fetch required sandbox
+escalation for FETCH_HEAD access; unrelated local content is preserved.
+
+Confirmed the audit's cold-import failure with
+`python -c "import game.utils.quarters"`: World State initialization reaches
+quarterly consumers before `parse_quarter_id` exists. The sole production change
+moves the existing `parse_canonical_utc` import into `_utc_date`'s timestamp-string
+branch. Canonical parsing remains owned by World State. No signatures, quarter
+formulas, timestamp semantics, Schema 9 or template changes. Runtime event execution,
+Booking allocation, settlement, aircraft operations, save/load and quarterly
+publication behavior are unchanged.
+
+`tests/test_quarter_imports.py` starts separate interpreters with quarters, World
+State and Session first, then exercises date/timestamp helpers, all four quarter
+boundaries, leap day/year carry, UTC offset conversion, invalid quarter IDs and
+exact ValueError types/messages for malformed timestamps and naive/subsecond
+datetimes. Before the fix, only the quarters-first subtest failed with the original
+circular ImportError; the other orders passed the same helper checks.
+
+Verification applies to this working-tree fix over the baseline above:
+
+- `.venv/Scripts/python.exe -B -m unittest tests.test_quarter_imports tests.test_quarterly_foundation tests.test_quarterly_commands tests.test_quarterly_occurrences tests.test_quarterly_publication tests.test_quarterly_boundaries tests.test_stage1_world_state`
+  — passed: **199 tests in 296.064s**, exit 0, outside the sandbox.
+- `.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+  — passed, exit 0 (system Python compilation also passed).
+- Initial system-Python tests lacked IANA timezone data; the existing virtual
+  environment resolves that dependency. Sandbox runs then encountered temporary
+  directory access/cleanup errors; the same tests were rerun outside the sandbox.
+- Status scope, referenced file paths, heading and code-fence checks passed;
+  no documentation links were added or changed. `git diff --check` passed.
+  Diff review confirms only this status, the quarter utility and its new test
+  changed; protected behavior/schema/template paths match the baseline.
+
+No long-horizon benchmark or transaction experiment is run. The earlier audit
+remains historical evidence; its recommended import cleanup is now implemented
+under this separate approval. AT-066's wider proposal is not promoted. No new
+decision or roadmap scope/order change is needed. Stop after Fix 1; all further
+simplification, integration, pacing and gameplay work needs separate approval.
+
 ## PH 1.0 architecture simplification audit (2026-10-15)
 
 [Audit](PH%201.0%20Architecture%20Simplification%20Audit.md) completed against

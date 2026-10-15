@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 import re
 
-from game.world_state.timestamps import parse_canonical_utc
-
 
 @dataclass(frozen=True, order=True)
 class Quarter:
@@ -55,6 +53,8 @@ def _utc_date(value):
             raise ValueError('date must be canonical YYYY-MM-DD')
         return result
     if type(value) is str:
+        from game.world_state.timestamps import parse_canonical_utc
+
         return parse_canonical_utc(value).date()
     raise ValueError('quarter input must be a UTC timestamp or calendar date')
 
