@@ -2,6 +2,47 @@
 
 Last updated: **2026-10-15**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-C — integration readiness assessment (2026-10-15)
+
+[Readiness report](Quarterly%20Gameplay%20Integration%20Readiness.md) assessed
+**67e5e3855219ad99123d29f47e448a7738369fce**. HEAD, upstream, freshly fetched
+origin/master, FETCH_HEAD and live remote master matched, divergence 0/0; tracked
+tree/index clean, only untracked `.venv/`, stashes empty. Sandbox fetch initially
+could not write FETCH_HEAD; escalated `git fetch origin master` succeeded.
+Serena activated the repository/Python server and its installed symbol overview
+and lookup tools inspected production code; no REPL assumption or protected
+tooling inspection. Unrelated local content is preserved.
+
+Quarterly planning, manual/automatic publication, weekly services, paid routes,
+published-only Booking, explicit deadhead/fulfilment and complete saved-career
+recovery already exist. Saved quarterly careers expose their controls in the
+ordinary app; normal New Game remains legacy. The guarded quarterly development
+entry seeds free PH connections and cannot become the paid-route player start
+unchanged. Default activation remains **not ready**: AT-058 single-speed/offline
+implementation, unresolved provenance/lifecycle choices, representative performance
+and combined certification remain. No new correctness defect or 90×/large-fleet
+certification is claimed. Historical Ultra rejection is not the current gate.
+
+Recommended next bounded slice, **Proposed** in AT-067: replace free-route seeding
+in the existing guarded development entry with a route-free quarterly start and
+certify existing purchase → planning → publication → operation → save/load behavior.
+Ordinary New Game, legacy/saved quarterly meaning and current runtime stay intact.
+This prepares the activation seam; it does not waive AT-058 or complete 3G-C.
+Separate implementation approval is required. No roadmap scope/order change.
+
+Verification scope is documentation and source/test inspection at the baseline;
+no fresh gameplay suite, benchmark, compile or native GUI run. Earlier dated
+implementation evidence remains unchanged. Read-only here-string
+`.venv/Scripts/python.exe -B -` documentation validation passed: **4 documents,
+393 local links, 80 heading targets, zero errors**, single H1 and balanced code
+fences; report 1,832 whitespace-delimited words. `git diff --check` and
+`git diff --exit-code 67e5e3855219ad99123d29f47e448a7738369fce -- app game tests Data AGENTS.md`
+passed, exit 0. Diff/authority review confirms the proposed slice grants no
+implementation permission and preserves mandatory activation gates. Final Git
+outcomes are reported at delivery. Only report/status/Decision Register/
+Docs index change; no production, tests, schema or template changes are authorized
+or made. Stop after this assessment.
+
 ## PH 1.0 simplification Fix 1 — quarter import cycle (2026-10-15)
 
 Bounded implementation explicitly approved against

@@ -23,6 +23,12 @@ domain contracts. Neither historical code nor a template overrides the schema.
 
 ## Find the relevant context
 
+- [Quarterly gameplay integration readiness](03%20Technical/Quarterly%20Gameplay%20Integration%20Readiness.md):
+  Stage 3G-C assessment of actual New Game/GUI/backend paths; default activation
+  remains blocked by AT-058 runtime/offline and certification gates. Proposes a
+  guarded route-free development start using existing paid-route gameplay, under
+  separate approval; no production change or completed activation certification.
+
 - [PH 1.0 architecture simplification audit](03%20Technical/PH%201.0%20Architecture%20Simplification%20Audit.md):
   retains current engine safety; proposes a bounded quarter-helper import cleanup
   next and defers transaction consolidation and scheduling-era retirement.
