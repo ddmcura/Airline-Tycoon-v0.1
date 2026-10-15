@@ -57,7 +57,8 @@ class QuarterlyGuiTests(unittest.TestCase):
         state=self.session.world['world_state']
         for name in ('weekly_plans','services','dated_flights','bookings','schedule_definitions'):
             self.assertFalse(state[name],name)
-        self.assertTrue(state['connections'])
+        self.assertFalse(state['connections'])
+        self.assertEqual(self.session.world['simulation']['clock_state'],'PAUSED')
         self.assertFalse(any(e['event_type'] in ('QUARTERLY_DISPATCH','STAGE1_WEEKLY_PUBLICATION') for e in state['pending_events'].values()))
 
     def test_literal_planning_status(self):
@@ -341,7 +342,10 @@ class QuarterlyKivyTests(unittest.TestCase):
     def test_native_form_saves_only_planning_and_rebind_closes_form(self):
         from kivy.uix.button import Button
         self.app.create_quarterly_development_game('CEO','Quarterly','MNL')
+        ports={p['reference_code']:p['airport_id'] for p in self.app.session.airports()}
+        self.app.session.apply_route(self.app.session.quote_route(ports['MNL'],ports['MNL'],ports['CEB']))
         page=self.app._active_page;page._service_form('create')
+        page._selectors[1].select(ports['CEB'])
         next(w for w in page._form_popup.content.walk() if isinstance(w,Button)
              and w.text=='Save planning edit').dispatch('on_release')
         self.assertEqual(page.controller.page['total'],1)

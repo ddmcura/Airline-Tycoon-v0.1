@@ -162,20 +162,16 @@ class Stage1Session:
         self._quarterly_indexes = QuarterlyIndexOwner()
 
     def new_quarterly_development_game(self, ceo_display_name, airline_display_name, base_code):
-        """Explicit development fixture, never the ordinary New Game path.
+        """Explicit paid-route development start, never ordinary New Game.
 
-        Establish PH route connections in the untouched private new-career
-        candidate using existing constructors, then enroll the certified isolated
-        backend. No service, plan, booking, flight or operational event is seeded.
+        Enroll the untouched private PH candidate in the certified isolated
+        backend. Route rights must be purchased through the existing commands.
+        No service, plan, booking, flight or operational event is seeded.
         """
-        from game.scheduling.rotation import _connection
         from game.scheduling.quarterly_backend import enable_quarterly_backend_for_testing
         candidate = create_stage1_new_game(scenario_id=STAGE1_SCENARIO_ID,
             ceo_display_name=ceo_display_name, airline_display_name=airline_display_name,
             base_airport_reference_code=base_code)
-        owner = candidate['world_state']['player']['primary_airline_id']
-        for market in sorted(candidate['world_state']['directional_markets'].values(),key=lambda m:m['market_id']):
-            _connection(candidate,owner,market['origin_airport_id'],market['destination_airport_id'])
         enable_quarterly_backend_for_testing(candidate)
         career_id = self.save_store.new_career_id()
         if self.runtime is not None:

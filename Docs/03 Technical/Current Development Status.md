@@ -2,6 +2,99 @@
 
 Last updated: **2026-10-15**. Current snapshot, not operational authorization.
 
+## Quarterly Stage 3G-D — paid development start (2026-10-15)
+
+Approved bounded implementation against **9129c0cc0fa7b80ccdc49552997d358d843730ff**.
+Preflight HEAD, upstream, freshly fetched origin/master, FETCH_HEAD and live remote
+master matched; divergence 0/0, tracked tree/index clean, only untracked `.venv/`,
+stashes empty. Sandbox fetch could not write FETCH_HEAD; escalated `git fetch origin`
+succeeded. Protected tooling, runtime content and real player Saves are untouched.
+Serena symbol navigation inspected construction/enrollment, Session, planning and
+load/rebind; no architecture audit or performance investigation was started.
+
+The sole production change removes the automatic PH directional-connection loop
+and its import from `Stage1Session.new_quarterly_development_game`. The detached
+PH candidate retains USD 300 million, starter aircraft, selected home base,
+paused Schema 9 and existing validated quarterly enrollment. New development
+careers buy route rights with existing Research commands. No new state, schema,
+template, pricing, purchase rule, scheduling or runtime contract is introduced.
+Explicit seeded test fixtures remain. Ordinary New Game stays legacy even with
+`--quarterly-dev`; the separate action still requires that flag. Saved quarterly
+careers select quarterly controls without the flag; existing free/paid rights
+retain meaning and incur no retroactive charge. No conversion or mode switching.
+
+[First-service tests](../../tests/test_quarterly_development_start.py) use the real
+development Session entry and temporary save roots. They cover scenario/base
+preservation, failed detached enrollment preserving active world/runtime/quote,
+paid bidirectional purchase and journal/cash, stale and failed payment rollback,
+historical free-route save compatibility, draft-only sale exclusion, physical
+chronology, rejected hypothetical positioning, explicit DEADHEAD, Manual Publish
+locking, published-only Booking, lineage/capacity, Departure/Completion, destination
+positioning, financial conservation and exactly-once replay. Actual default-scenario
+construction is checked at MNL and CEB, and its real September start exercises
+paid purchase, draft exclusion, publication, passenger sales and paused Load.
+Flight lifecycle and boundary-failure cases use a
+temporary PH reference changing only creation UTC to November 30, shortening the
+calendar wait while exercising the actual entry, publication and flight engine.
+Paused exact-byte save/load points cover draft, sold publication, active departure,
+Completion and failed/corrected/retried publication. Existing GUI assertions now
+expect no rights; its form test explicitly purchases/selects its route. Native
+Research coverage starts through the changed entry, loads without the flag and
+tests purchase cancellation/confirmation and closure.
+
+Verification applies to this working-tree implementation over the baseline above,
+on 2026-10-15, using the existing Python environment outside the sandbox.
+Pre-change baseline: `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_gui.QuarterlyGuiTests.test_development_new_game_is_explicit_and_empty tests.test_quarterly_gui.QuarterlyKivyTests.test_native_form_saves_only_planning_and_rebind_closes_form -v`
+passed **2 tests / 17.728s**, including native Kivy, outside the sandbox.
+
+New focused `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_development_start -v`
+passed **7 tests / 150.191s**, exit 0. An earlier exploratory unchanged-start
+122-day lifecycle run was stopped for calendar cost and is excluded from passing
+evidence; repeatable lifecycle coverage uses the dated temporary reference above.
+No runtime optimization or capacity claim follows from these tests.
+
+The final real-scenario draft/publication/sales extension passed separately:
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_development_start.QuarterlyDevelopmentStartTests.test_real_scenario_draft_exclusion_then_publication_opens_sales -v`
+— **1 test / 5.048s**, exit 0. Affected regression command
+`.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_gui tests.test_route_establishment tests.test_quarterly_backend tests.test_quarterly_boundaries -v`
+passed **175 tests / 453.166s**, exit 0, including native Kivy. Final scoped
+`.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passed, exit 0. Full `.venv/Scripts/python.exe -B -m unittest discover -s tests -v`
+passed: **1,733 tests / 3,953.024s**, exit 0; **1,732 passed, one skipped**.
+The sole skip is the existing opt-in component diagnostic measurement in
+`test_quarterly_completion_certificate`, not gameplay coverage. No standalone
+B-series experiment or performance certification was run. The frozen source/test scope
+was unchanged before/after full discovery:
+**339 files**, combined SHA-256
+`d7fa9608b0e849c9c28e438c0ce5761731ed4526c0b1fecf4c04179861308382`.
+Read-only documentation validation passed: **six documents, 471 local links,
+88 heading targets, zero errors**, single H1 and balanced code fences. No links or
+headings changed in the final result update. Baseline comparison confirms `game`,
+`Data` (including schema mirrors/reference data) and `AGENTS.md` are unchanged;
+the canonical schema is also unchanged. Diff/whitespace and exact ten-file scope
+checks pass. Fresh precommit remote verification still matches the baseline at
+HEAD/upstream/origin/master/FETCH_HEAD/live master, divergence 0/0. Actual commit
+and push outcomes are reported at delivery; no pending hash is recorded here.
+
+Remaining release blockers are unchanged: AT-058's 90× runtime/primary Advance and
+capped offline implementation, unresolved lifecycle/provenance/storage choices,
+representative aged-career performance and combined Advance/offline/save/failure
+certification. The [roadmap](Stage%201%20Implementation%20Roadmap.md#quarterly-stage-3g-runtime-sequence--approved-2026-10-12)
+keeps these gates visible. Stage 3G-C combined certification/default activation is
+not complete. Human UX acceptance is not established by native automation.
+AT-068 records this bounded approval; AT-067's broader readiness recommendation
+and all unrelated proposal statuses are preserved. Stop after Stage 3G-D.
+
+Changed files: [Session](../../app/session.py),
+[new integration tests](../../tests/test_quarterly_development_start.py),
+[GUI tests](../../tests/test_quarterly_gui.py),
+[route tests](../../tests/test_route_establishment.py), this status,
+[Decision Register](Decision%20Register.md),
+[GUI contract](Quarterly%20Planning%20GUI.md),
+[route contract](Paid%20Bidirectional%20Route%20Establishment.md),
+[readiness successor annotation](Quarterly%20Gameplay%20Integration%20Readiness.md),
+and [Docs index](../README.md). No roadmap scope/order or protected contract change.
+
 ## Quarterly Stage 3G-C — integration readiness assessment (2026-10-15)
 
 [Readiness report](Quarterly%20Gameplay%20Integration%20Readiness.md) assessed

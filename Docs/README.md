@@ -26,8 +26,9 @@ domain contracts. Neither historical code nor a template overrides the schema.
 - [Quarterly gameplay integration readiness](03%20Technical/Quarterly%20Gameplay%20Integration%20Readiness.md):
   Stage 3G-C assessment of actual New Game/GUI/backend paths; default activation
   remains blocked by AT-058 runtime/offline and certification gates. Proposes a
-  guarded route-free development start using existing paid-route gameplay, under
-  separate approval; no production change or completed activation certification.
+  guarded route-free development start using existing paid-route gameplay.
+  Stage 3G-D separately implements that development entry and integration coverage;
+  current verification is in Status. Default activation remains uncertified.
 
 - [PH 1.0 architecture simplification audit](03%20Technical/PH%201.0%20Architecture%20Simplification%20Audit.md):
   retains current engine safety; proposes a bounded quarter-helper import cleanup

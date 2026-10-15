@@ -1,5 +1,11 @@
 # Quarterly Gameplay Integration Readiness — Stage 3G-C Assessment
 
+Stage 3G-D successor (2026-10-15): the separately approved guarded paid-route
+development start is implemented; [status and verification](Current%20Development%20Status.md#quarterly-stage-3g-d--paid-development-start-2026-10-15)
+record the resulting integration coverage. Free-route entry descriptions and
+approval requests below describe the assessed baseline. Default activation and
+AT-058 runtime/offline/combined certification remain outstanding.
+
 Assessed **2026-10-15** against `67e5e3855219ad99123d29f47e448a7738369fce`.
 **Default activation: not ready.** Most quarterly gameplay already exists. The
 remaining release gates are runtime/offline integration and combined certification,

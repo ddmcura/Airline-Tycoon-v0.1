@@ -1,5 +1,10 @@
 # Paid Bidirectional Route Establishment — Quarterly Stage 3G-A
 
+Stage 3G-D successor (2026-10-15): new guarded development careers now begin
+without free connections and use this existing paid purchase workflow. Existing
+seeded fixtures and saved rights retain their meaning without retroactive charges.
+See [integration evidence](Current%20Development%20Status.md#quarterly-stage-3g-d--paid-development-start-2026-10-15).
+
 ## Stage 3G-B1 successor (2026-10-12)
 
 [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) / AT-058 now supersedes AT-041’s mandatory Ultra gate.

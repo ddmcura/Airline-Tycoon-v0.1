@@ -354,9 +354,8 @@ class RouteKivyTests(unittest.TestCase):
             app=AirlineTycoonApp(session_factory=lambda:Stage1Session(save_root=temp,runtime_clock=lambda:0))
             app.build()
             try:
-                app.session.new_game('CEO','Route GUI','MNL')
-                enable_quarterly_backend_for_testing(app.session.world)
-                app.session.world=deepcopy(app.session.world);app.session.runtime=None;app.session._ensure_runtime()
+                app.session.new_quarterly_development_game('CEO','Route GUI','MNL')
+                self.assertFalse(app.session.world['world_state']['connections'])
                 app.session.save_manual();career=app.session.career_id;app.session.load_saved(career)
                 app._enter_game();app.show_view('Research')
                 ports={p['reference_code']:p['airport_id'] for p in app.session.airports()}
@@ -365,6 +364,9 @@ class RouteKivyTests(unittest.TestCase):
                 before=app.session.authoritative_bytes()
                 app.research_manage_route(ports['MNL'],ports['CEB'])
                 self.assertEqual(before,app.session.authoritative_bytes())
+                next(w for w in app._popup.content.walk() if isinstance(w,Button) and w.text=='Cancel').dispatch('on_release')
+                self.assertEqual(before,app.session.authoritative_bytes())
+                app.research_manage_route(ports['MNL'],ports['CEB'])
                 popup=app._popup
                 self.assertIsNotNone(popup)
                 next(w for w in popup.content.walk() if isinstance(w,Button) and w.text=='Purchase route').dispatch('on_release')

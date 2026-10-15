@@ -1,5 +1,10 @@
 # Quarterly Planning and Publication GUI — Stage 3F
 
+Stage 3G-D successor (2026-10-15): the guarded development entry now starts with
+no route rights. Research purchase is required before passenger planning. Existing
+explicit seeded test fixtures and saved quarterly rights remain valid without
+retroactive payment. [Current evidence](Current%20Development%20Status.md#quarterly-stage-3g-d--paid-development-start-2026-10-15).
+
 Stage 3G-A successor: [paid route establishment](Paid%20Bidirectional%20Route%20Establishment.md)
 adds Research Create/Close Route and fresh confirmation through Stage1Session.
 Saved quarterly careers use the ordinary launch entry; passenger planning requires
@@ -29,11 +34,11 @@ No new persistent field, schema version, save migration or simulation rule.
 Ordinary `python -m app.gui` retains its New Game and legacy Scheduling controls.
 Explicit `python -m app.gui --quarterly-dev` adds a separate **New quarterly
 development career** action. Ordinary New Game remains legacy even in that process.
-The session creates a private untouched new-career candidate, establishes PH
-directional connections with the existing construction primitives, then invokes
-Stage 3E's existing isolated enrollment. Those pre-established routes are a
-development fixture, not a new player route-creation command or general activation
-policy. It seeds no service, plan, booking, flight or operational occurrence.
+The session creates a private untouched PH new-career candidate, then invokes
+Stage 3E's existing isolated enrollment. Stage 3G-D removes the earlier free-route
+fixture loop from this entry alone. Starting cash, starter aircraft and selected
+base remain the PH scenario's values; existing Research commands purchase rights.
+It seeds no service, plan, booking, flight or operational occurrence.
 Enrollment failure exposes no partial active world. Existing saves are not converted.
 
 An explicitly saved quarterly career retains its existing authority after Load,
