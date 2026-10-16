@@ -77,7 +77,8 @@ def advance(session, target, budget):
         diagnostic=str(report) if status == 'BLOCKED' else None)
 
 
-def build(size, root, budget):
+def build(size, root, budget, *, source_only=False,
+          start_time='2026-08-31T00:00:00Z'):
     """Private constructor-built draft, real paid routes/acquisition/publication/events."""
     from game.world_state.stage1_scenario import create_stage1_new_game
     from game.aircraft_market.acquisition import preview_purchase, purchase_aircraft
@@ -96,7 +97,7 @@ def build(size, root, budget):
     start = perf_counter()
     with tempfile.TemporaryDirectory() as temporary:
         scenario = json.loads(Path('Data/Stage1/philippines_v1.json').read_text(encoding='utf-8'))
-        scenario['start_time_utc'] = '2026-08-31T00:00:00Z'
+        scenario['start_time_utc'] = start_time
         path = Path(temporary) / 'scenario.json'
         path.write_text(json.dumps(scenario), encoding='utf-8')
         world = create_stage1_new_game(scenario_id='stage1-philippines-v1', ceo_display_name='Benchmark',
@@ -147,6 +148,11 @@ def build(size, root, budget):
     t = perf_counter(); result = apply_quarterly_command(world, airline_id=owner, prepared=prepared.prepared)
     apply_s = perf_counter() - t
     assert result.succeeded, result.issues
+    if source_only:
+        valid(world)
+        return world, dict(fleet=size, setup_s=perf_counter()-start,
+            publication_prepare_s=prepare_s, publication_apply_s=apply_s,
+            audit=audit(world))
     with tempfile.TemporaryDirectory() as temporary:
         session = session_for(world, temporary)
         warm = advance(session, '2026-10-02T03:00:00Z', budget)

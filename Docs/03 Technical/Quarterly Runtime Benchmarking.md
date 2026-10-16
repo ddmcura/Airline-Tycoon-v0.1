@@ -1,5 +1,11 @@
 # Quarterly Runtime Benchmarking — Stage 3G-B2 through B2.6
 
+AT-058 successor measurement: [full 90-day catch-up baseline](90-Day%20Quarterly%20Catch-Up%20Baseline.md).
+One aircraft completed 90 days in **8,312.608s** across thirteen bounded requests.
+The user stopped further work: 10/25/50-aircraft runs, repetitions and new profiling
+were not started. The report records the late stop handling, correctness checks,
+memory and separate forced-cap recovery finding. Engine and prior decisions remain.
+
 ## Stage 3G-B2.6 — provider isolation trial rejected on safety (2026-10-13)
 
 Approved baseline `e992fdf07995b05b1cd305fa1d7da3f242ed9c86` matched HEAD,

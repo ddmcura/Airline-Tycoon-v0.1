@@ -1,6 +1,77 @@
 # Current Development Status
 
-Last updated: **2026-10-15**. Current snapshot, not operational authorization.
+Last updated: **2026-10-16**. Current snapshot, not operational authorization.
+
+## AT-058 — one-aircraft 90-day baseline; larger fleets stopped (2026-10-16)
+
+Bounded measurement-only work against
+`5f70abd51a822bc99295011cee1d5abc35756569`. Master HEAD/upstream, freshly
+fetched origin/master and live remote matched, divergence 0/0. Existing `.venv/`
+and the pre-existing unfinished-Stage-2 stash are preserved. Serena was unavailable
+among the session tools; targeted source inspection was used without accessing
+protected tooling metadata. Production, Data, schema, templates and instructions
+remain byte-for-byte at the baseline.
+
+The [measurement report](90-Day%20Quarterly%20Catch-Up%20Baseline.md) records exact
+fixture construction, all thirteen request times, hardware and raw evidence paths.
+One aircraft completed **90 game days**, October 2 03:00Z through December 31
+03:00Z, in **8,312.608s / 2h 18m 32.608s** combined request time. Thirteen fully
+resolved requests processed **1,173 events**: 360 dispatches, 360 departures,
+360 Completions, 90 daily Booking checkpoints, two marketplace rotations and the
+December 1 Q1 publication. No engine failure, safety stop or retry occurred.
+Every request retained 100 same-time / 10,000 processed-event limits, full
+validation, copying and chronological domain processing.
+
+Construction was **1.711s**, natural warmup **356.179s**, separately timed.
+The operating source contains paid rights, four daily passenger sectors in two return cycles,
+42,923 Bookings and five completed/settled flights. Source SHA
+`ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0` matches the
+historical deterministic fixture. Catch-up adds 46,659 Bookings and 360 settlements.
+Final world validation, physical positioning/chronology, passenger/lineage and
+unique balanced settlement checks passed. Exact full-world paused save/load passed
+in **54.599s** including its validation/hash checks; the evidence checkpoint write
+brings that separate cost to **56.044s**. Final world SHA:
+`a5f579d32d08d136a0ada4d0e2d04aae68c485a3fbfe865a442620530e74218e`.
+
+Native process peak working set was **1,946.008 MiB**. Current working set just
+after the final boundary during audit was **770.352 MiB**; the last live sample was
+**1,258.102 MiB**. The process has exited. An auxiliary exit-time query failed,
+so only an observed process-duration lower bound of **8,738.248s** is reported
+for setup/advancement/audits together; monotonic request timing remains exact.
+Windows 10 build 19045, Python 3.12.10, i5-10400 six cores/twelve logical processors,
+17,018,118,144 bytes physical memory. No fresh profiler or timing repetition ran.
+
+The user's later stop instruction superseded unrestricted duration. A long agent
+monitoring call delayed handling the stop during request 11; requests 12 and 13
+began before control returned. Actual stop was the completed request-13 boundary,
+not the originally requested earlier boundary. This measurement-control failure is
+documented. **10/25/50-aircraft benchmarks were not started**; no larger timings or
+certified completion estimates are extrapolated. Raw measurements/checkpoints are
+preserved in the temporary evidence directory named in the report, outside the repo.
+
+Harness/causal/quarterly-validation verification passed **40 tests / 162.760s**
+before the final bounded-request test additions. Final `.venv/Scripts/python.exe -B -m unittest tests.test_quarterly_catchup_benchmark -v`
+passed **9 tests / 20.613s**, exit 0, including genuine Q2 publication before equal-UTC
+Booking. Final scoped `.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+and CLI `--help` passed, exit 0. Independent evidence decoding reproduced the final
+canonical hash and all 1,223 COMPLETED / zero STALE history rows. Twelve raw files
+have temporary size/SHA-256 manifest entries. Documentation validation passed:
+**3 documents, 123 local links, 9 heading targets, zero errors**, single H1 and
+balanced code fences. Baseline production/reference/schema/template/instruction
+comparison and `git diff --check` passed. A forced two-event cap with repeated save/load
+showed a full-world event-ID/history difference; exact hashes and limitations are
+in the report. No production fix or weakened oracle is made. An earlier new-career
+probe is excluded from qualified results and overlaps harness verification.
+
+Next step is user review of latency/memory, responsive measurement stop control,
+acceptance bounds and the separate exhausted-cap recovery finding. Larger fleets,
+repeats, profiling and any implementation require new approval after review.
+This single sample does not establish timing variability, aged-career/large-fleet
+capacity or release certification. Historical profiling identifies copying and
+validation costs; no new causal attribution or memory-leak diagnosis is claimed.
+No optimization/B-series experiment, offline entitlement, speed, schema/template
+or activation change was made. Only verified harness/report/status changes are
+eligible for the authorized commit/push; actual outcomes are reported at delivery.
 
 ## Quarterly Stage 3G-D — paid development start (2026-10-15)
 
