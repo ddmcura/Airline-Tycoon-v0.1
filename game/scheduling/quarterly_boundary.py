@@ -4,7 +4,7 @@ from copy import deepcopy
 from game.utils.quarters import parse_quarter_id
 from game.world_state.quarterly_boundary import (
     EVENT_TYPE, CONTRACT, boundary, obligations, enroll_candidate)
-from game.world_state.validation import validate_world
+from game.world_state.validation import validate_world, _plain_authority_tree
 
 
 def _schedule(envelope, owner, quarter_id):
@@ -45,6 +45,30 @@ def reconcile(envelope):
         from game.simulation.kernel import _replace_envelope
         _replace_envelope(envelope, candidate)
     return generated
+
+
+def _publication_reconciliation_needed(envelope):
+    """Read-only no-op proof for the kernel's freshly validated entry world.
+
+    Keep the matching rule identical to reconcile_candidate. No IDs, callbacks,
+    repair plans or cached results escape this synchronous check. Missing or
+    uncertain input leaves the unchanged copying transaction responsible. Valid
+    compatibility keys also retain their original deepcopy callback behavior.
+    """
+    try:
+        if not _plain_authority_tree(envelope):
+            return True
+        pending = envelope['world_state']['pending_events']
+        for owner, entry in sorted(obligations(envelope).items()):
+            quarter = entry['next_quarter_id']
+            revision = envelope['simulation']['operation_revisions'].get(owner, 0)
+            if not any(e['event_type'] == EVENT_TYPE and e['owner_id'] == owner
+                    and e['payload']['quarter_id'] == quarter and e['operation_revision'] == revision
+                    for e in pending.values()):
+                return True
+    except (KeyError, TypeError, AttributeError):
+        return True
+    return False
 
 
 def enable_quarterly_boundaries_for_testing(envelope, *, airline_id):

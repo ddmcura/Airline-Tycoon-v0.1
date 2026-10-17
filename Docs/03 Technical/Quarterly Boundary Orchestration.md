@@ -11,6 +11,21 @@ and live remote matched. Authority: [Schema 9](Stage%201%20State%20Schema.md),
 
 ## Ownership and isolated enrollment
 
+Phase 2B adds a bounded no-op check at the common validated processing entry,
+after backend reconciliation and handler initialization. Scheduling's private
+`_publication_reconciliation_needed` first requires the existing exact plain-tree
+predicate. Valid compatibility string keys retain their original deepcopy
+callbacks by falling back to public reconciliation. This is an additional
+read-only full-tree admission pass, not a replacement for full validation.
+It then reads current obligations and pending events using the exact existing reconstruction matcher: event type, owner ID,
+quarter and operation revision. Complete coverage skips only the publication
+reconciler's discarded candidate copy. Missing/stale-only coverage or uncertain
+input invokes the unchanged public `reconcile` transaction. No answer is cached.
+Duplicate/current-plus-stale events remain queued for ordinary lifecycle handling.
+Public reconciliation, real repair validation/detachment, event handlers, failure
+fences, ordering, Booking and save/load contracts are unchanged. Measurement and
+verification are recorded in the [Phase 2B report](Publication%20Reconciliation%20No-Op%20Optimization.md).
+
 Scheduling owns the strict `QUARTERLY_PUBLICATION` handler and fresh Stage 3C
 prepare/apply work. Simulation owns queue selection, complete-event transactions,
 strict/shared fences, time and failure pause. World State owns optional obligation

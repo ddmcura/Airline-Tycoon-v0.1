@@ -193,9 +193,11 @@ def _reconcile_quarterly(envelope):
     from game.scheduling.quarterly_backend import reconcile as reconcile_backend
     reconcile_backend(envelope)
     if envelope['simulation'].get('quarterly_publication'):
-        from game.scheduling.quarterly_boundary import reconcile, initialize_quarterly_handler
+        from game.scheduling.quarterly_boundary import (
+            reconcile, initialize_quarterly_handler, _publication_reconciliation_needed)
         initialize_quarterly_handler()
-        reconcile(envelope)
+        if _publication_reconciliation_needed(envelope):
+            reconcile(envelope)
 
 
 def configure_clock_ratios(envelope, *, normal=None, fast=None):
@@ -428,7 +430,7 @@ def _handler_contract_error(original, candidate, due_at_utc, *, quarterly_owner=
     return None
 
 
-def _execute_event(envelope, event_id, registry):
+def _execute_event(envelope, event_id, registry, *, _owned_event=None):
     event = envelope["world_state"]["pending_events"].get(event_id)
     if event is None:
         return None, EventFailure("EVENT_NOT_PENDING", "event is no longer pending", event_id), ()
@@ -470,6 +472,23 @@ def _execute_event(envelope, event_id, registry):
         _resolve_without_handler(envelope, event_id, "COMPLETED", due)
         return "COMPLETED", None, ()
 
+    scoped_failed = False
+    if _owned_event is not None:
+        from .owned_event import _OwnedCompletionAuthority
+        if type(_owned_event) is not _OwnedCompletionAuthority:
+            raise ValueError('invalid private event authority')
+        try:
+            receipt = _owned_event.try_execute(envelope, event_id, registry)
+        except BaseException as exc:
+            receipt = _owned_event.recover_receipt(envelope, event_id,
+                'post-commit ' + type(exc).__name__ + ': ' + str(exc))
+            if receipt is None or not receipt.committed:
+                raise
+        if receipt is not None:
+            if receipt.committed:
+                return 'COMPLETED', None, ()
+            scoped_failed = True
+
     candidate = _clone_runtime_world(envelope)
     outcome, failure, new_event_ids = _apply_handler_candidate(
         envelope, candidate, event_id, handler)
@@ -485,6 +504,8 @@ def _execute_event(envelope, event_id, registry):
         )
         return None, _quarterly_failure_fence(envelope, event, failure), ()
     _replace_envelope(envelope, candidate)
+    if scoped_failed:
+        _owned_event.recovered_strict()
     return outcome, None, new_event_ids
 
 
@@ -686,6 +707,7 @@ def iter_events_through(
     stop_condition: StopCondition | None = None,
     max_events=DEFAULT_MAX_EVENTS_PER_ADVANCE,
     max_generated_events=DEFAULT_MAX_GENERATED_EVENTS_PER_ADVANCE,
+    _owned_event=None,
 ):
     """Yield committed event IDs; return the original processing result.
 
@@ -730,7 +752,8 @@ def iter_events_through(
         _due, _priority, _sequence, event_id = heapq.heappop(heap)
         if event_id not in envelope["world_state"]["pending_events"]:
             continue
-        outcome, failure, new_event_ids = _execute_event(envelope, event_id, registry)
+        options = {} if _owned_event is None or stop_condition is not None else {'_owned_event': _owned_event}
+        outcome, failure, new_event_ids = _execute_event(envelope, event_id, registry, **options)
         if failure:
             return _failure_result(started, envelope, failure, completed, skipped)
         (skipped if outcome == "STALE" else completed).append(event_id)
@@ -751,6 +774,9 @@ def iter_events_through(
                 completed,
                 skipped,
             )
+        divergence = _owned_event.pop_divergence() if options else None
+        if divergence:
+            return _failure_result(started, envelope, divergence, completed, skipped)
         if started_mode != "PAUSED" and envelope["simulation"]["clock_state"] == "PAUSED":
             return ProcessingResult(
                 "STOPPED",
@@ -831,7 +857,7 @@ def process_events_through(envelope, target_time_utc, **kwargs):
             return done.value
 
 
-def process_next_event(envelope, *, registry=DEFAULT_EVENT_HANDLERS):
+def process_next_event(envelope, *, registry=DEFAULT_EVENT_HANDLERS, _owned_event=None):
     started = envelope["simulation"]["time_utc"]
     failure = _valid_world_failure(envelope)
     if failure:
@@ -841,11 +867,15 @@ def process_next_event(envelope, *, registry=DEFAULT_EVENT_HANDLERS):
     if not heap:
         return ProcessingResult("NO_EVENT", started, started)
     _due, _priority, _sequence, event_id = heap[0]
-    outcome, failure, _new_event_ids = _execute_event(envelope, event_id, registry)
+    options = {} if _owned_event is None else {'_owned_event': _owned_event}
+    outcome, failure, _new_event_ids = _execute_event(envelope, event_id, registry, **options)
     if failure:
         return _failure_result(started, envelope, failure)
     completed = () if outcome == "STALE" else (event_id,)
     skipped = (event_id,) if outcome == "STALE" else ()
+    divergence = _owned_event.pop_divergence() if _owned_event is not None else None
+    if divergence:
+        return _failure_result(started, envelope, divergence, completed, skipped)
     return ProcessingResult(
         "COMPLETED", started, envelope["simulation"]["time_utc"], completed, skipped
     )

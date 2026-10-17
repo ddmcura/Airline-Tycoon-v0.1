@@ -1,6 +1,262 @@
 # Current Development Status
 
-Last updated: **2026-10-16**. Current snapshot, not operational authorization.
+Last updated: **2026-10-18**. Current snapshot, not operational authorization.
+
+## Phase 3G — opt-in production scoped Completion pilot (2026-10-18)
+
+[Implementation and evidence](Scoped%20Completion%20Production%20Pilot%20Phase%203G.md):
+`Stage1Session(closed_owner=True, scoped_completion=True)` and GUI
+`--closed-owner --scoped-completion` explicitly activate only built-in Schema 9
+quarterly passenger Completion. Defaults remain off; unsupported/legacy execution
+is strict. Confined outputs, unchanged manifest/full gates, stable outer root and
+recoverable receipts preserve retained requests and normal event/runtime accounting.
+Precommit failure retries the existing strict path; strict success reports optimizer
+divergence and disables the shared latch. Installed events are counted once despite
+postcommit faults. New/Load/rebind/close revoke prior capabilities. No schema, save,
+gameplay, pacing, Booking/demand or reconciliation optimization is introduced.
+
+Final pilot/GUI/foundation run passes **33 / 72.258s**. Affected owner/runtime/
+resolver/shared/ownership run passes 119 / 51.657s; existing quarterly GUI/closed GUI/
+cooperative GUI/publication regression run passes 73 / 66.120s. Earlier overlapping
+pilot runs and exact commands are in the report. Scoped application compilation and
+whitespace checks pass. Bounded full discovery stops after 240.031s with 158 passing
+rows and no reported failure/error: **incomplete**, before the final test additions
+and GUI flag wiring. Full-suite certification remains outstanding.
+
+Ordinary, 1,176-Booking quarterly and bounded 42,923-Booking retained comparisons
+have exact complete typed-world/canonical-byte/report equality. Eligible pilot
+Completion has **zero candidate/commit world clones**, versus one each in control;
+copies nine existing records, detaches ten outputs and shallow-copies nine tables.
+No per-event ownership reacquisition or automatic world export. Backend copies
+remain one; full validations are three versus two (fresh source admission retained).
+Measured command+selected-read times control/pilot: small quarterly 0.271613/0.377000s;
+retained 8.306342/9.945917s. These single instrumented samples show slower execution;
+no speedup or memory reduction is claimed. No 90-day benchmark was run.
+
+Recommendation: **READY FOR EXTENDED VALIDATION** within the Phase 3F serialized,
+non-reentrant, single-fault recovery model. Next work is complete discovery, broader
+manual GUI validation and isolated measurements before any default activation.
+All earlier uncommitted work is preserved; no staging, commit or push.
+The pre-edit source inventory confirms all 344 existing source files outside the
+seven intended existing-file edits are unchanged. Final links/whitespace checks pass.
+
+## Phase 3F — test-only stable-root publication proof (2026-10-18)
+
+[Proof report](Stable%20Root%20Publication%20Proof%20Phase%203F.md): a test-only
+adapter uses unchanged Phase 3B scoped preparation on the existing Phase 3D
+private session world. It preserves the outer envelope, runtime and retained
+request references. A shallow five-root before-image restores partial installation;
+fully installed roots establish COMMITTED even if the success marker/return fails.
+Idempotent receipts and status recovery prevent post-commit faults becoming retries.
+No production file or existing test file changes; no scoped gameplay activation,
+schema/save/pacing change, staging, commit or push. All earlier work is preserved.
+
+Initial combined proof/Phase 3B run passes 30 / 73.285s. Focused proof/session/
+read-boundary/shared recovery run passes 73 / 57.642s. Strengthened proof runs pass
+16 / 27.975s and 17 / 30.992s; final proof run passes **18 / 29.413s**, including
+silent partial installation detection. Compilation, links and whitespace checks
+pass; all 348 pre-existing application/test source witnesses are unchanged.
+Tests include a real
+retained paced request with a post-install fault, exact world/ProcessingResult
+comparison, multiple Completions/strict interleaving, root identity, nested aliases,
+broken detachment, stale preparations, repair prefix/retry and temporary save/load.
+
+One small 1,176-Booking accounting run observes zero event candidate/commit world
+clones, no ownership reacquisition/automatic world export, one backend copy and two
+full validations. Publication plus selected reads adds zero world copies or full
+validations. Preparation copies nine existing records, detaches ten outputs and
+copies nine collection tables shallowly; bridge rollback retains five root refs.
+Exact typed complete-world and ProcessingResult equality pass. No speed or memory
+gain is claimed; reconciliation, validation and historical table costs remain.
+
+Recommendation: **READY FOR PHASE 3G PRODUCTION PILOT** within the tested serialized,
+non-reentrant, single-fault/recovery model. Production must integrate receipt
+classification with existing request accounting and preserve strict fallback.
+Concurrent observers, repeated asynchronous interruption during recovery and
+process failure are not certified. Full gameplay discovery is not required for
+this isolated test-only scope and was not run. Existing production-integration
+verification limitations remain.
+
+## Phase 3D — opt-in private session ownership (2026-10-18)
+
+[Implementation and verification](Private%20Session%20Ownership%20Phase%203D.md):
+`Stage1Session(closed_owner=True)` encapsulates world, runtime/controller and storage;
+foreign binding validates/detaches once, internal New/Load transfers add no owner
+copy. GUI `--closed-owner` uses named planner operations and detached runtime
+status; deferred actions bind career/runtime identity independently of read epochs.
+Default sessions and the terminal retain explicit legacy compatibility. No engine,
+schema, save-format, pacing or scoped Completion activation change. Candidate 1,
+Phase 3B and all previous work remain preserved; no staging, commit or push.
+
+Bounded legacy and quarterly two-request comparisons have exact complete-world
+and report equality. Closed mode acquires once, exports zero complete worlds during
+advancement/selected reads, and never reacquires on successive requests. Event
+copies/gates match legacy: ordinary fixture 4 kernel clones/4 gates; quarterly
+fixture 6 kernel clones/2 backend copies/1 publication copy/6 gates. New Game plus
+Load requires two ownership acquisitions and zero extra owner copies. Explicit
+diagnostic exports are counted separately. No speed or memory gain is claimed.
+
+Focused affected legacy runs pass 71 / 120.449s, 40 / 94.239s (overlapping),
+and 139 / 90.160s. Combined ownership/GUI/terminal run passes 34 / 29.424s,
+including cooperative shared complete-world equality. Both measurement commands
+and scoped compilation exit zero. Final ownership/GUI run passes **17 / 13.887s**.
+Strengthened complete canonical-byte equality passes in both measurement commands
+and the final headless ownership rerun (**14 / 9.456s**).
+Fixed 180-second full discovery stops at 180.016s with 152 passing test rows and
+no reported failures/errors; it is incomplete and no worker remains. The report
+records exact commands and corrected draft-test failures. Full discovery
+completion remains a verification limitation; existing full-suite runtime is about
+40 minutes and this task has an approximately 20-minute budget.
+
+Recommendation: **READY FOR SCOPED TRANSACTION INTEGRATION DESIGN** within this
+closed application boundary. This is not production scoped-execution certification;
+full-suite completion, broader manual screen coverage, unchanged global copying/
+validation costs and third-party/private-attribute/concurrency access remain limits.
+
+## Phase 3B — test-only scoped Completion experiment (2026-10-17)
+
+[Experiment report](Scoped%20Completion%20Transaction%20Experiment%20Phase%203B.md):
+test-only detached private owner executes quarterly passenger Completion through
+confined writable records and protected reads. Full source/successor validation,
+actual reconciliation and unchanged strict fallback remain. No production, schema,
+save-format, gameplay or pacing change; Candidate 1 and earlier evidence preserved.
+
+Seventeen focused tests pass / 48.019s, including reached intermediate-write
+faults, rollback/retry, full-world equality, independent financial/lifecycle
+assertions, retained references and two Completions on one ownership clone.
+Subsequent explicit shared/save-load plus eight existing read-boundary tests pass
+9 / 5.469s; strengthened equal-valued output alias test passes 1 / 2.783s.
+All 26 existing hybrid counterexample tests passed in an earlier combined run
+whose one new equal-UTC test error was subsequently corrected and verified.
+Scoped application compilation passes. Full gameplay discovery was not run for
+this isolated test-only experiment; exact commands and draft failures are in report.
+
+One retained small 1,176-Booking instrumented pair: strict/scoped 0.300920/0.281640s,
+two full gates each; event candidate/commit world clones 2/0; backend world copies
+1/1. Scoped copies nine existing records, detaches ten output records and makes
+19 detached lineage read copies. Initial ownership clone and complete export are
+separate full copies outside command timing. No reliable speed or memory gain
+claimed. Existing reconciliation, global gates, Booking scan and table/revision-map
+work remain history-dependent costs. No 90-day or large-fleet measurement.
+
+Recommendation: **CONTINUE TEST-ONLY INVESTIGATION**. Closed private ownership can
+be reused in the tested two-Completion sequence; this does not certify a borrowed
+session world, quarterly local transition proof or production integration. No
+commits or pushes. Production integration requires separate approval.
+
+## Phase 2B — final safeguarded performance verification (2026-10-17)
+
+[Final performance report](Publication%20Reconciliation%20Final%20Performance%20Verification.md)
+supersedes the previously unmeasured final-scan limitation below; earlier evidence
+is preserved. Six fresh-process one-day runs reuse the exact Phase 1 fixture.
+Original/final profiled means: **102.108004 / 101.533377s**; quiet pair:
+**97.261355 / 94.337071s**. Reversed profiled pairs disagree in sign; whole-day
+speedup remains **inconclusive**. Final compatibility scan averages **0.823073s**
+(0.766561–0.879584s); original publication reconciliation averages **2.078141s**.
+Whole-world copies **37→36**, full validation gates **15→15**, all six complete-world
+hashes match Phase 1. All conservation/ordering audits pass and all **344 source
+hashes remain unchanged**. No production/test changes or new optimization.
+
+External diagnostic launcher: `.venv/Scripts/python.exe -B` with
+`%TEMP%/at-final-publication-20261017/verify.py`; it imports the retained benchmark
+harnesses. Six workers exit zero; global hard budget **720s**, actual **670.682697s**;
+no workers remain. Prior final-source focused/full-suite evidence below remains
+unchanged; no gameplay rerun for this measurement/documentation-only task.
+Documentation local links and `git diff --check` pass. Recommend keeping Candidate 1
+provisionally for its measured component/copy reduction, without claiming an
+overall speedup. Smallest further measurement, if authorized: one quiet reverse-order
+one-day pair. No commits or pushes; stop after verification report.
+
+## Phase 2B — publication reconciliation no-op (2026-10-16/17)
+
+Candidate 1 only, working tree over `120aa5f5c8d1047750cd29f4c14a5212231945de`;
+see the [implementation report](Publication%20Reconciliation%20No-Op%20Optimization.md).
+Scheduling adds a private read-only predicate at the existing validated common
+kernel entry, after unchanged backend reconciliation and handler initialization.
+Exact obligation/event matching skips only a discarded publication-reconciliation
+copy when all obligations are covered. Missing/stale-only/uncertain inputs keep
+the unchanged public repair transaction. No result is cached. No Booking, flight,
+provider, backend, schema, save-format, ordering or failure-fence change is made.
+
+Final safety admission uses the existing exact plain-tree predicate. Full validation
+can accept compatibility string-key subclasses whose deepcopy callbacks must remain
+observable; these inputs fall back unchanged. This adds a full-tree read-only scan,
+without removing any full validation. A new regression reproduced the initial
+callback/exception bypass and passes after the correction. Final focused
+`.venv/Scripts/python.exe -B -m unittest tests.test_publication_reconciliation_noop -v`
+passes **18 / 30.578s**, exit 0, including full-world equivalence against forced
+unchanged reconciliation, copies, repairs, IDs/cursors, multiple owners, duplicates,
+stale/wrong-quarter events, backend-before-probe, rollback, retries and paused loads.
+Initial boundary baseline passed 39 / 78.379s; pre-correction affected verification
+passed 63 / 168.553s plus one explicit ordering case / 1.915s.
+
+Scoped compilation passes, exit 0. Final
+`.venv/Scripts/python.exe -B -m unittest discover -s tests -v`
+passes **1,763 tests / 2,423.424s**, exit 0: 1,762 passed and the existing opt-in
+component diagnostic skipped. All **344 application/test source hashes** match
+before/after discovery; audit-launcher wall time is 2,437.896s.
+An earlier full attempt was stopped for the compatibility correction after 493
+completed rows / zero reported failures / 1,072.015s, with 344 source witnesses
+unchanged; it is not a full pass. Its raw evidence is archived separately.
+
+The exact Phase 1 source was reused under an original 480-second benchmark deadline.
+The initial two-day plan was shortened to a completed one-day pair; baseline day two
+was stopped/discarded, and the candidate finished before the original deadline.
+Pre-safeguard timings are **135.699 / 109.764s**, 13 events, identical complete-world
+hash `f2639799ac18443c62a85dcab3e613e12adbb5627df2051b19a4367df66091a2`.
+Target publication copies are 1→0, runtime clones 27→27 and full validations 15→15.
+Those timings **do not measure the final admission scan** and do not establish a
+stable speedup. No benchmark budget was renewed after the correctness fix. A
+correctness-only check confirms the final predicate admits the exact Phase 1
+source without changing its hash. Final performance acceptance remains open.
+
+Phase 1 report/instrumentation/evidence and pre-existing untracked `.venv/` remain
+preserved. No benchmark worker remains running. No staging, commit or push.
+Final scope, original-function/evidence hashes, local links and whitespace checks
+pass. Next step is review of the bounded patch and its open performance acceptance;
+further performance measurement or optimization requires separate follow-up scope.
+
+## Engine performance profiling — Phase 1 (2026-10-16)
+
+Measurement-only working tree over `120aa5f5c8d1047750cd29f4c14a5212231945de`;
+see the [full report](Engine%20Performance%20Profiling%20Phase%201.md). Production,
+Data, schema, templates and existing harnesses remain unchanged. Reused the exact
+42,923-Booking one-aircraft operating source from the 90-day baseline (canonical
+SHA `ddddfcba13fa020a69a857b21ca07f637ae9a3dc268164a9567c61768589efe0`).
+
+Fresh sequential two-day baseline/instrumented runs take **146.727 / 145.832s**,
+26 events each, adding 1,012 Bookings. Daily complete-world hashes and financial/
+event totals match exactly; the -0.610% observed difference cannot distinguish
+profiler overhead from noise. Early/later baseline windows are 74.005/72.722s;
+instrumented windows 72.212/73.620s. A strict-only first-day comparison takes
+72.088s and matches the same exact world. Shared entry uses 26 strict fences,
+zero shared batches/transitions; no shared-execution speed benefit is established.
+
+Instrumented inclusive families: 30 full validations **53.859s**, 54 runtime
+candidate/preview/commit clones **50.507s**, 19 captured whole-world deepcopies
+**32.898s**. Nested/exclusive accounting is in the report. One late-imported
+publication-reconciliation copy is missed on the first shared day; day two and
+the strict run capture it. The final removable diagnostic preloads that module.
+No repeat filled the gap. Copying is the recommended first future design target;
+the earlier rejected provider-copy removal remains unsafe and is not retried.
+
+Separate real temporary SaveStore save/load is **8.480 / 7.043s**, exact and
+paused. Native lifetime peaks are **1,094.098 / 1,093.523 / 1,082.594 MiB** for
+baseline/instrumented/strict, including setup/audits. All workers exit 0 within
+the shared strict **540s** deadline, worker lifetimes summing **411.478s**.
+No benchmark remains running; no new 90-day run or larger fleet is attempted.
+This short sample does not establish long-run scaling or a memory leak.
+
+Verification on this working tree:
+`.venv/Scripts/python.exe -B -m unittest tests.test_engine_phase1_profile tests.test_quarterly_catchup_benchmark -v`
+passes **12 / 20.772s**, exit 0; scoped
+`.venv/Scripts/python.exe -m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Source/reference comparison against HEAD and `git diff --check`
+pass. Complete-world source preservation, chronology, passenger/lineage and balanced
+unique settlement checks pass. Only the removable diagnostic, three accounting
+tests, report and this snapshot are added/changed. Pre-existing untracked `.venv/`
+is preserved. No staging, commit or push. Next step is user review and explicit
+Phase 2 scope approval; no optimization or later roadmap behavior is implemented.
 
 ## AT-058 — one-aircraft 90-day baseline; larger fleets stopped (2026-10-16)
 

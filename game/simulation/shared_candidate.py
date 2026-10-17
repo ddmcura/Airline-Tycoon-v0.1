@@ -71,10 +71,11 @@ class SharedResolutionRequest(ResolutionRequest):
                  registry=kernel.DEFAULT_EVENT_HANDLERS,
                  max_events=kernel.DEFAULT_MAX_EVENTS_PER_ADVANCE,
                  max_generated_events=kernel.DEFAULT_MAX_GENERATED_EVENTS_PER_ADVANCE,
-                 stop_condition=None):
+                 stop_condition=None, _owned_event=None):
         if stop_condition is not None:
             raise ValueError('stop callbacks require strict resolution')
         self._world = envelope
+        self._owned_event = _owned_event
         self.target_time_utc = target_time_utc
         self._target = parse_canonical_utc(target_time_utc, 'target_time_utc')
         self.registry = registry
@@ -82,7 +83,7 @@ class SharedResolutionRequest(ResolutionRequest):
         self.max_batch_events = kernel._positive_int(max_batch_events, 'max_batch_events')
         self.max_events = kernel._positive_int(max_events, 'max_events')
         self.max_generated = kernel._positive_int(max_generated_events, 'max_generated_events')
-        self.execution_state = execution_state or SharedExecutionState()
+        self.execution_state = execution_state or (_owned_event.execution_state if _owned_event is not None else SharedExecutionState())
         self._started = False
         self.finished = False
         self.result = None
@@ -154,7 +155,8 @@ class SharedResolutionRequest(ResolutionRequest):
         failure = self._limit_before(self._heap)
         if failure:
             return self._finish('BLOCKED', failure)
-        outcome, failure, generated = kernel._execute_event(self._world, event_id, self.registry)
+        options = {} if self._owned_event is None else {'_owned_event': self._owned_event}
+        outcome, failure, generated = kernel._execute_event(self._world, event_id, self.registry, **options)
         if failure:
             return self._finish('BLOCKED', failure)
         heapq.heappop(self._heap)
@@ -163,6 +165,9 @@ class SharedResolutionRequest(ResolutionRequest):
         failure = self._limit_after(self._heap, self._generation_boundary, self._generated)
         if failure:
             return self._finish('BLOCKED', failure)
+        divergence = self._owned_event.pop_divergence() if self._owned_event is not None else None
+        if divergence:
+            return self._finish('BLOCKED', divergence)
         if self._paused_by_event(self._world):
             return self._finish('STOPPED')
         return self._progress('YIELDED', event_id=event_id)

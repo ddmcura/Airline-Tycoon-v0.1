@@ -63,9 +63,15 @@ def _column():
 class AirlineTycoonApp(GameplayViews, App):
     """One Kivy/UI owner calls one shared session at completed event boundaries."""
 
-    def __init__(self, *, session_factory=Stage1Session, quarterly_development=False, **kwargs):
+    def __init__(self, *, session_factory=Stage1Session, quarterly_development=False,
+                 closed_owner=False, scoped_completion=False, **kwargs):
+        if scoped_completion and not closed_owner:
+            raise ValueError('scoped Completion requires --closed-owner')
         super().__init__(**kwargs)
-        self.session = session_factory()
+        options = {'closed_owner': True} if closed_owner else {}
+        if scoped_completion:
+            options['scoped_completion'] = True
+        self.session = session_factory(**options)
         self.quarterly_development = quarterly_development
         self.quarterly_controller = QuarterlyPlanningController(self.session)
         self.current_view = 'Overview'
@@ -370,13 +376,13 @@ class AirlineTycoonApp(GameplayViews, App):
                     self._error('Advancement stopped', report.result.failure.message)
             else:
                 self.session.pump()
-            if self._pending_runtime_action is not None and not self.session.runtime.draining:
+            if self._pending_runtime_action is not None and not self.session.runtime_view().draining:
                 owner, action = self._pending_runtime_action
                 self._pending_runtime_action = None
-                if owner is not self.session.runtime:
+                if owner != self.session.runtime_binding or self.session.runtime_view().closed:
                     pass  # Session replacement revokes a deferred old-world action.
-                elif owner.blocked:
-                    self._error('Runtime stopped', owner.diagnostic)
+                elif self.session.runtime_view().blocked:
+                    self._error('Runtime stopped', self.session.runtime_view().diagnostic)
                 else:
                     action()
             self.refresh(force=finished_advance)
@@ -389,7 +395,7 @@ class AirlineTycoonApp(GameplayViews, App):
     def refresh(self, *, force=False):
         if not self.session.active:
             return
-        diagnostic = self.session.runtime.diagnostic if self.session.runtime else None
+        diagnostic = self.session.runtime_view().diagnostic if self.session.runtime_view() else None
         autosave_error = self.session.autosave_error
         render_due = (not self.session.advancing
                       and self._last_revision != self.session.progression_revision
@@ -410,8 +416,8 @@ class AirlineTycoonApp(GameplayViews, App):
         if self.session.advancing:
             mode = 'ADVANCING (event boundaries)'
         self.status.text = f"{self.session.local_clock()} hub local | {self.session.simulation_time_utc} UTC | {mode} | Cash {_money(self._cash)}"
-        if self.session.runtime.draining:
-            self.status.text += f'\nEarned target: {self.session.runtime.earned_target_utc}; remaining {self.session.runtime.credit_ns // 1_000_000_000} game seconds'
+        if self.session.runtime_view().draining:
+            self.status.text += f'\nEarned target: {self.session.runtime_view().earned_target_utc}; remaining {self.session.runtime_view().credit_ns // 1_000_000_000} game seconds'
         if diagnostic:
             self.status.text += f'\n{diagnostic}'
         if self.session.quarterly_career:
@@ -503,8 +509,8 @@ class AirlineTycoonApp(GameplayViews, App):
             next_event = self.session.next_event_for_display()
             if next_event:
                 self.content.add_widget(_label(f"Next: {next_event['event_type']} at {next_event['due_at_utc']}", height=65))
-            if self.session.runtime and self.session.runtime.diagnostic:
-                self.content.add_widget(_label(self.session.runtime.diagnostic, height=70))
+            if self.session.runtime_view() and self.session.runtime_view().diagnostic:
+                self.content.add_widget(_label(self.session.runtime_view().diagnostic, height=70))
             if self.session.autosave_error:
                 self.content.add_widget(_label('Autosave failed: ' + self.session.autosave_error, height=70))
         elif view == 'Acquire':
@@ -706,11 +712,11 @@ class AirlineTycoonApp(GameplayViews, App):
 
     def _after_runtime_pause(self, action):
         self.session.pause()
-        if self.session.runtime.draining:
+        if self.session.runtime_view().draining:
             if self._pending_runtime_action is not None:
                 self._error('Pausing', 'An action is already waiting for earned time to drain.')
                 return
-            self._pending_runtime_action = (self.session.runtime, action)
+            self._pending_runtime_action = (self.session.runtime_binding, action)
             self.refresh(force=True)
         else:
             action()
@@ -764,7 +770,7 @@ class AirlineTycoonApp(GameplayViews, App):
     def _guard_unsaved(self, action):
         if self._schedule_publication_pending is not None:
             return
-        if self.session.active and self.session.runtime.processing:
+        if self.session.active and self.session.runtime_view().processing:
             self._after_runtime_pause(lambda: self._guard_unsaved(action))
             return
         if self._schedule_publication_pending is not None:
@@ -821,8 +827,9 @@ class AirlineTycoonApp(GameplayViews, App):
         self._guard_unsaved(exit_app)
 
 
-def main(*, quarterly_development=False):
-    AirlineTycoonApp(quarterly_development=quarterly_development).run()
+def main(*, quarterly_development=False, closed_owner=False, scoped_completion=False):
+    AirlineTycoonApp(quarterly_development=quarterly_development, closed_owner=closed_owner,
+                    scoped_completion=scoped_completion).run()
     return 0
 
 

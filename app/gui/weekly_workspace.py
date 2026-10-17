@@ -14,7 +14,7 @@ from kivy.uix.relativelayout import RelativeLayout
 
 from app.inputs import parse_usd_fare
 from app.gui.scrolling import AxisScrollView
-from game.scheduling.weekly import local_departure, monday
+from game.scheduling.weekly import monday
 from game.world_state.timestamps import format_utc
 from app.gui.schedule_builder import ScheduleBuilder
 from app.gui.drag_block import DraftFlightBlock
@@ -240,7 +240,7 @@ class WeeklyWorkspace(ScheduleBuilder):
             working = deepcopy(self._draft)
             moved = working.reschedule_in_context(index, departure.date().isoformat(),
                                        f'{proposed // 60:02d}:{proposed % 60:02d}')
-            working.validate_current(self.session.world)
+            self.session.validate_scheduling(working)
             self._draft = working
             self._schedule_selected.clear()
             self.refresh(force=True)
@@ -366,7 +366,7 @@ class WeeklyWorkspace(ScheduleBuilder):
         targets = values['targets'] if 'targets' in values else (values['target'],)
         count = working.paste_weekdays(self._schedule_clipboard,
                                        targets, values['time'])
-        working.validate_current(self.session.world)
+        self.session.validate_scheduling(working)
         self._draft = working
         self._schedule_day = targets[0]
         self._schedule_selected.clear()
@@ -381,7 +381,7 @@ class WeeklyWorkspace(ScheduleBuilder):
         try:
             working = deepcopy(self._draft)
             count = working.delete_selection(sorted(self._schedule_selected))
-            working.validate_current(self.session.world)
+            self.session.validate_scheduling(working)
             self._draft = working
             self._schedule_selected.clear()
             self.refresh(force=True)
@@ -452,8 +452,7 @@ class WeeklyWorkspace(ScheduleBuilder):
 
         def selected(values):
             origin, dest = values['origin'], values['destination']
-            floor = format_utc(local_departure(self.session.world['world_state'],
-                                               origin, values['date'], values['time']))
+            floor = format_utc(self.session.planning_departure(origin, values['date'], values['time']))
             working = deepcopy(self._draft)
             if origin != working.last_stop and values['position'] == 'Add explicit positioning flight':
                 positioning = working.earliest(working.last_stop, origin, not_before=floor)

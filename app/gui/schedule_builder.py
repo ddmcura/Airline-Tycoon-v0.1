@@ -153,7 +153,7 @@ class ScheduleBuilder:
                 self._builder_origin, self._builder_destination, dates,
                 self._builder_time, earliest=self._builder_earliest,
                 return_flight=self._builder_return, fare_minor=fare)
-            working.validate_current(self.session.world)
+            self.session.validate_scheduling(working)
             self._draft = working
             if target_dates is not None:
                 self._schedule_day = dates[0]

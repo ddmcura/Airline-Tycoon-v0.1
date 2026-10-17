@@ -135,11 +135,13 @@ class ResolutionRequest:
 
 
 def begin_resolution(envelope, target_time_utc, *, shared=False, shadow=False,
-                     max_batch_events=8, execution_state=None, **kernel_options):
+                     max_batch_events=8, execution_state=None, _owned_event=None, **kernel_options):
     """Strict by default for compatibility/oracles; production opts into shared.
 
     Arbitrary stop callbacks require the original per-event strict boundaries.
     """
+    if _owned_event is not None and kernel_options.get('stop_condition') is None:
+        kernel_options['_owned_event'] = _owned_event
     if shared and kernel_options.get('stop_condition') is None:
         from .shared_candidate import SharedResolutionRequest
         return SharedResolutionRequest(envelope, target_time_utc,
@@ -159,6 +161,7 @@ def resolve_until(envelope, target_time_utc, **kernel_options):
         request.close()
 
 
-def resolve_next_event(envelope, *, registry=kernel.DEFAULT_EVENT_HANDLERS):
+def resolve_next_event(envelope, *, registry=kernel.DEFAULT_EVENT_HANDLERS, _owned_event=None):
     """Preserve Next Event: exactly one event, including equal-time queues."""
-    return kernel.process_next_event(envelope, registry=registry)
+    options = {} if _owned_event is None else {'_owned_event': _owned_event}
+    return kernel.process_next_event(envelope, registry=registry, **options)
