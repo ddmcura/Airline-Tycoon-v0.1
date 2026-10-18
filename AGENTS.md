@@ -36,6 +36,16 @@ legacy template rules, and legacy code are migration evidence, not authority for
 new simulation behavior. Use repository and working-tree evidence for implemented
 facts; user authorization defines requested changes, not completed work.
 
+## Architectural simplicity
+
+Build sophisticated gameplay using the simplest implementation that reliably
+satisfies actual requirements. Follow the [simplicity principles](Docs/01%20Core%20Simulation/Project%20Foundation.md#architectural-simplicity)
+within existing architecture and correctness contracts. Justify additional
+machinery with a concrete requirement and a simpler alternative considered;
+performance-specific mechanisms also need measured evidence. Briefly assess
+unnecessary complexity during ordinary self-review, proportionately to the change.
+This adds no separate review stage or approval gate and authorizes no redesign.
+
 ## Authorization and completion
 
 Read-only requests permit no repository changes. A request to fix or implement

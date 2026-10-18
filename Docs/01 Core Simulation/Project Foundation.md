@@ -129,6 +129,49 @@ A simple, complete, usable version of a system is preferable to an ambitious sys
 
 Advanced realism and additional depth can be layered onto a functioning foundation later.
 
+### Architectural simplicity
+
+**Build sophisticated gameplay using the simplest implementation that reliably
+satisfies the game's actual requirements. Simplify implementation, not gameplay
+depth or essential correctness.** These principles guide ordinary implementation
+and review under the authority and scope rules in [AGENTS.md](../../AGENTS.md).
+
+- **Simplicity is the default.** Prefer one understandable execution path,
+  existing modules and functions, direct readable Python, removal of redundant
+  code, and small focused changes over frameworks or speculative generalization.
+  Keep package-specific helpers local; reserve `game/utils` for genuinely
+  domain-independent shared functionality, as described below.
+- **Preserve correctness.** Retain passenger demand and Booking correctness,
+  scheduling and quarterly publication, aircraft dispatch, Departure, Completion
+  and positioning, operational restrictions and capacity, accounting and
+  settlement, deterministic chronological events, save/load compatibility and
+  required recovery, canonical schema/template contracts, and established
+  gameplay formulas and behavior.
+- **Require evidence for complexity.** Before adding machinery, identify the
+  actual gameplay or correctness requirement, why the straightforward existing
+  path cannot satisfy it, whether the abstraction is genuinely shared, and the
+  simpler alternative considered. Flags, compatibility shims, fallback chains,
+  capability systems, certificates, experimental execution layers and duplicated
+  state need concrete justification; they are not categorically forbidden.
+  Performance-specific mechanisms require measured evidence. Ordinary small
+  features need no benchmarks; performance speculation does not justify extra
+  execution paths.
+- **Keep safeguards proportional.** Preserve appropriate validation, transaction
+  boundaries, deterministic ordering and failure recovery. Challenge routine
+  whole-world copying, repeated historical scans, duplicated validation and
+  defensive layers without a demonstrated requirement. Prefer checks scoped to
+  the involved data when equivalent correctness is demonstrated. Apparent cost
+  alone is no reason to remove a safeguard.
+- **Limit architectural expansion.** Start within existing architecture; add
+  abstractions only when requirements warrant them. Do not substitute optional
+  execution paths for simplifying the normal path, retain obsolete infrastructure
+  solely because it exists, or expand a requested change into unrelated redesign.
+- **Use ordinary self-review.** Briefly ask whether the change adds unnecessary
+  complexity, whether fewer moving parts meet the same requirement, whether new
+  modes, flags, abstractions or duplicated state are justified, and whether
+  correctness contracts remain intact. A concise assessment suffices for routine
+  changes; this is part of existing self-review, not a separate mandatory stage.
+
 ### Stable playable stages
 
 Airline Tycoon is developed through stable playable stages. Each stage introduces the smallest complete addition to the existing gameplay loop, connects it to the systems already in use, and is tested and stabilized before the next layer begins.
