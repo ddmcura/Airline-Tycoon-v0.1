@@ -47,7 +47,7 @@ def _shared_transition(candidate, event_id, handler, contract=None, *, ownership
             return None, kernel.EventFailure('TRANSITION_PROOF_FAILED',
                 f'certified transition proof failed: {exc}', event_id), ()
         return outcome, None, generated
-    # NO_OP and synthetic shadow probes retain full per-event validation.
+    # Synthetic shadow probes retain full per-event validation.
     validation = kernel.validate_world(candidate)
     if not validation.is_valid:
         return None, kernel.EventFailure('RESULT_VALIDATION_FAILED',
@@ -144,7 +144,7 @@ class SharedResolutionRequest(ResolutionRequest):
             certified = is_payment_certificate(contract) or is_flight_certificate(contract)
             if not certified:
                 return False
-        if handler is not kernel._no_op and not certified and not (self.shadow and contract.shadow_only):
+        if not certified and not (self.shadow and contract.shadow_only):
             return False
         return (contract.permits_shared(handler, world['metadata']['save_schema_version'], shadow=self.shadow)
                 and (contract.supports_input is None or contract.supports_input(world, event)))

@@ -1,5 +1,19 @@
 # Runtime Shared Candidate Infrastructure — Stage 3A
 
+## Simplification Stage 5B successor (2026-10-18)
+
+The exact built-in `NO_OP` now has the default strict contract and no special
+shared admission. Even shared/shadow requests use the existing clone-free kernel
+lifecycle and yield after one event. A NO_OP therefore flushes preceding certified
+work. Payment/Departure/Completion certificates and synthetic shadow probes retain
+their existing candidate validation, detached commit and strict recovery.
+Custom handlers named NO_OP and callable aliases retain their existing behavior.
+No flag, execution mode, proof or saved state is added. The
+[canonical event contract](Stage%201%20State%20Schema.md#clock-and-event-contract)
+governs current routing; dated classifications and measurements below are historical.
+Current verification and bounded mixed-workload evidence are in
+[Current Development Status](Current%20Development%20Status.md).
+
 ## Stage 3E production successor
 
 [Production Cooperative Runtime](Production%20Cooperative%20Runtime.md) activates

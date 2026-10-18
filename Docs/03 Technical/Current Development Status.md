@@ -2,6 +2,121 @@
 
 Last updated: **2026-10-18**. Current snapshot, not operational authorization.
 
+## Simplification Stage 5B — built-in NO_OP strict lifecycle (2026-10-18)
+
+Implemented on `codex/simplify-engine-stage1` above verified starting revision
+`0de151d55c9a5f120b04d78b6494225af38559d2`, initially clean tracked tree/index
+with only pre-existing untracked `.venv/`. Commit identity belongs to Git history.
+No push or later-stage work is authorized by this snapshot.
+
+The registry no longer manufactures `kernel-no-op-v1`, and shared admission no
+longer exempts the exact `_no_op` callable. The existing strict lifecycle handles
+built-in NO_OP in all resolver modes without invoking a handler or creating a
+candidate. Shared requests yield after one such event, flushing any preceding
+certified work. The unused kernel execution-mode import and obsolete comments
+are removed. There is no new routing flag, framework, cache, certificate, field,
+schema version or save interpretation. Custom handlers/aliases, gameplay handlers,
+provider fences, full gameplay transaction gates/detached commits, strict replay,
+request limits and save/load remain unchanged. See [canonical routing](Stage%201%20State%20Schema.md#clock-and-event-contract)
+and [AT-072](Decision%20Register.md).
+
+Existing fault/replay, batch pause/close and visibility tests now use synthetic
+shadow probes or actual certified payments instead of assuming NO_OP speculation.
+Injected final gates assert they were reached; the strict-failure replay fixture
+keeps the shadow reference healthy so the final-gate fault reaches recovery.
+New deterministic checks prove clone-free/no-handler/no-batch NO_OP execution,
+equal-time ordering, stale/limit/refresh prefixes, and interleaved certified
+payments with NO_OP across caps 1/2/8, irregular steps and paused save/reload.
+Existing synthetic probe schema admission is unchanged.
+
+### Bounded measurements
+
+Artifacts are outside the repository in `%TEMP%/airline-stage5b-20261018`:
+`measure.py`, frozen `noop.json`/`mixed.json`, `before.json`/`after.json`,
+`paired.py` and `paired.json`. Windows / `.venv` Python 3.12.10. The 64-NO_OP
+fixture reuses the historical infrastructure workload. The mixed fixture uses
+`payment_world(8, near=True)`, with one NO_OP immediately after each payment at
+its exact due UTC. Both use cap eight. All setup, source loading, input copying,
+hashing and independent validation are outside quiet timing. Instrumented counts
+are separate and include kernel runtime-world clones for detached commits.
+
+Five quiet samples per strict/shared/shadow mode were followed by seven alternating
+shared before/after pairs, one warmup per variant, with no concurrent test commands.
+The paired comparison loads only the two original methods from the verified Git
+revision into the measurement process, without changing files or refs. Production
+handler initialization is explicit; instrumentation confirms all eight payments
+take certified shared transitions on both sides.
+
+| Paired shared workload | Before median (range), s | After median (range), s | Runtime clones | Kernel full validations |
+| --- | --- | --- | --- | --- |
+| 64 NO_OP | .105166 (.103151–.114307) | .002246 (.002195–.002431) | 16 -> 0 | 74 -> 2 |
+| 8 payments interleaved with 8 NO_OP | .273980 (.267987–.275828) | .269114 (.266640–.273212) | 4 -> 16 | 12 -> 10 |
+
+Mixed copying increases because NO_OP now interrupts each certified batch; fewer
+full gates and no NO_OP speculation offset this on the small fixture. Overlapping
+mixed timing ranges support no material regression, not a claimed gameplay speedup.
+No workaround or alternative execution path was added. This does not establish
+large-fleet/history performance or bounded frontend latency for arbitrary workloads.
+
+Separate five-sample shadow medians: NO_OP .166548 -> .002104 s, clones 24 -> 0,
+gates 138 -> 2; mixed .871291 -> .724670 s, clones 22 -> 40, gates 36 -> 26.
+Strict control counts are unchanged (NO_OP 0 clones/2 gates, mixed 16/10).
+Strict/shared/shadow results, exact completed-event ordering and complete-envelope
+hashes agree before/after and with the strict reference:
+
+- NO_OP: `a1e00bdeda5c26dcc500ff06ee19ceadf40d3d0522dabbbb40b2126e0c1d7c85`.
+- Mixed: `e6d4d192b1ed99a44db0172236a9995835457244f809c6584dbab9894bc2391b`.
+
+Reproduce from repository root with `.venv/Scripts/python.exe -B`, the external
+`measure.py` path, its artifact directory and `after`; `paired.py` takes the
+artifact directory only. The frozen inputs are reused. No 90-day benchmark or
+full-suite discovery ran.
+
+### Verification and scope
+
+Verification uses `.venv/Scripts/python.exe -B` on 2026-10-18, working tree above
+the starting revision. Pre-edit baseline:
+`-m unittest tests.test_shared_candidate tests.test_cooperative_runtime.CooperativeRuntimeTests -q`
+— **53 pass / 15.530 s**. After implementation and regression adaptation, its
+final run has **56 pass / 32.227 s**, zero failures/errors/skips. Fresh runtime
+startup: `-m unittest tests.test_runtime_startup -q` — **4 pass / 6.788 s**.
+
+Final affected integration command:
+
+```text
+-m unittest tests.test_payment_certification tests.test_flight_certification tests.test_cooperative_runtime.ProductionFlightTests tests.test_simulation_resolver tests.test_stage1_event_kernel tests.test_closed_session tests.test_step7_save_load tests.test_gui_cooperative_runtime -q
+```
+
+**188 pass / 382.382 s**, zero failures/errors/skips. Together these are **248
+distinct affected tests**. They retain real Payment/Departure/Completion batching,
+proof/final-gate failure recovery, retained-reference isolation, complete-world
+equivalence, session ownership, saved successful prefixes, paused restoration and
+GUI save/pause/drain/deferred-action behavior. No full-suite claim is made.
+
+Explicit-scope compilation:
+`-m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passes, exit 0. Added/changed local documentation links and anchors pass (**10**),
+as do `git diff --check` and final source/test/contract diff review. Source lookup
+confirms the removed shared NO_OP contract has no remaining application caller;
+the strict lifecycle, certified transition/recovery machinery and provider code
+are unchanged. No verification is repeated merely to stage or commit.
+
+Exact tracked scope (11 files): `game/simulation/kernel.py`,
+`game/simulation/shared_candidate.py`, `game/simulation/execution_contracts.py`,
+`tests/test_shared_candidate.py`, `tests/test_cooperative_runtime.py`,
+`Data/Templates/template_reference.txt`, and under `Docs/03 Technical/`:
+`Stage 1 State Schema.md`, `Runtime Shared Candidate Infrastructure.md`,
+`Production Cooperative Runtime.md`, `Decision Register.md`, and this status file.
+Commit scope is only these files; `.venv/` and unrelated runtime/tooling artifacts
+are excluded. The authorized conditional commit message is
+`refactor: route built-in no-op events through strict lifecycle`; its resulting
+hash is reported from Git at completion. No push is authorized or performed.
+
+Simplicity review: two eligibility special cases disappear; lifecycle authority
+uses its existing owner. Generic shadow validation remains because probes still
+need it. Certified batching and exceptional recovery were not relocated or
+replaced. Stop after Stage 5B; no Stage 6 implementation is started.
+
 ## Simplification Stage 3B — single-pass Booking allocation (2026-10-18)
 
 Implemented and verified in the working tree on `codex/simplify-engine-stage1`,

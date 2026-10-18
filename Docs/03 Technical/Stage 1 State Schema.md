@@ -1591,6 +1591,16 @@ minimal account foundation contains exactly one each of `cash`,
 
 ## Clock and event contract
 
+Simplification Stage 5B (2026-10-18) removes the exact built-in `NO_OP` shared
+classification. All resolver modes use its existing strict lifecycle shortcut:
+no handler invocation, event candidate or detached publication is needed for this
+validated, lifecycle-only transition. Shared requests yield after that event.
+Entry/final validation, ordering, stale handling and request-wide limits remain.
+Custom handlers named `NO_OP` and callable aliases retain their existing strict
+behavior. Certified gameplay batching, shadow-only probes, rollback/replay and
+save boundaries are unchanged. This supersedes only the NO_OP routing in the dated
+Stage 3A descriptions below; no persistent field, schema version or save meaning changes.
+
 Stage 3E (2026-10-04) activates the existing exact three certificates in production
 session pacing and explicit Advance. One bounded shared resolver step per frontend
 callback retains full final validation, detached commit, strict/fence/custom fallback

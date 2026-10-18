@@ -16,6 +16,7 @@ from tests.test_stage1_event_kernel import make_world, schedule
 from tests.test_stage1_runtime import Clock
 from tests.flight_fixtures import flight_world, window
 from tests.resolution_oracle import world_digest
+from tests.payment_fixtures import payment_world
 
 
 def settle(runtime, limit=2000):
@@ -42,8 +43,8 @@ class CooperativeRuntimeTests(unittest.TestCase):
     def test_one_safe_unit_per_callback_and_no_private_candidate(self):
         self.events(); self.earn()
         self.runtime.pump(); request=self.runtime.work
-        self.assertEqual(self.runtime.last_pump['events'],2)
-        self.assertEqual(len(self.world['world_state']['pending_events']),3)
+        self.assertEqual(self.runtime.last_pump['events'],1)
+        self.assertEqual(len(self.world['world_state']['pending_events']),4)
         self.assertNotIn('candidate',vars(request)); self.assertNotIn('ownership',vars(request))
         self.assertTrue(validate_world(self.world).is_valid)
     def test_player_pause_freezes_accrual_and_drains_exact_target(self):
@@ -108,14 +109,18 @@ class CooperativeRuntimeTests(unittest.TestCase):
         self.assertEqual(self.runtime.state,'ERROR'); self.assertEqual(len(calls),1)
         self.clock.advance(100*NANOSECOND); self.runtime.pump(); self.assertEqual(len(calls),1)
     def test_optimizer_divergence_disables_future_shared_without_auto_resume(self):
-        self.events(4); self.earn()
-        with patch.object(shared_candidate,'_validate_batch',side_effect=ValueError('fault')):
+        self.world, _target = payment_world(4)
+        self.runtime=RuntimeController(self.world,clock=self.clock,max_batch_events=2)
+        history_before=len(self.world['world_state']['event_history'])
+        self.earn()
+        with patch.object(shared_candidate,'_validate_batch',side_effect=ValueError('fault')) as gate:
             self.runtime.pump()
+        gate.assert_called_once()
         self.assertEqual(self.runtime.state,'ERROR'); self.assertFalse(self.runtime.execution_state.enabled)
-        self.assertEqual(len(self.world['world_state']['event_history']),2)
+        self.assertEqual(len(self.world['world_state']['event_history']),history_before+2)
         before=deepcopy(self.world); self.runtime.pump(); self.assertEqual(before,self.world)
         self.runtime.resume(); settle(self.runtime); self.assertFalse(self.runtime.execution_state.enabled)
-        self.assertEqual(len(self.world['world_state']['event_history']),4)
+        self.assertEqual(len(self.world['world_state']['event_history']),history_before+4)
     def test_close_replacement_prevents_stale_callbacks(self):
         self.events(); self.earn(); self.runtime.pump(); self.runtime.close()
         before=deepcopy(self.world); self.clock.advance(100*NANOSECOND); self.runtime.pump()

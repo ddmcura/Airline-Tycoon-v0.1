@@ -18,6 +18,7 @@ from game.world_state import validate_world
 from tests.resolution_oracle import assert_equivalent, canonical_world, save_reload
 from tests.test_stage1_event_kernel import make_world, schedule
 from tests.test_simulation_resolver import ph_world, published_pair
+from tests.payment_fixtures import payment_world
 
 
 DUE = '2026-08-20T05:00:00Z'
@@ -55,7 +56,7 @@ class SharedCandidateTests(unittest.TestCase):
     def test_all_eight_initial_contracts_and_callable_identity(self):
         registry = initialize_runtime_handlers()
         expected = {
-            'NO_OP': ExecutionMode.SHARED,
+            'NO_OP': ExecutionMode.STRICT,
             'DAILY_BOOKING_CHECKPOINT': ExecutionMode.FENCE,
             'STAGE1_WEEKLY_PUBLICATION': ExecutionMode.FENCE,
             'AIRCRAFT_CONTRACT_EXPIRY': ExecutionMode.FENCE,
@@ -82,7 +83,7 @@ class SharedCandidateTests(unittest.TestCase):
         for index in range(65):
             schedule(self.world, DUE, priority=index % 3)
         expected = deepcopy(self.world)
-        kernel.process_events_through(expected, DUE)
+        strict = kernel.process_events_through(expected, DUE)
         for size in (1, 2, 8, 64):
             with self.subTest(size=size):
                 world = deepcopy(self.world)
@@ -94,6 +95,85 @@ class SharedCandidateTests(unittest.TestCase):
                     self.assertTrue(validate_world(world).is_valid)
                     turn += 1
                 self.assertEqual(canonical_world(world), canonical_world(expected))
+                self.assertEqual(request.result, strict)
+
+    def test_builtin_noop_uses_clone_free_strict_lifecycle_in_every_mode(self):
+        ids = [schedule(self.world, DUE, priority=p) for p in (2, 0, 0, 1)]
+        expected = deepcopy(self.world)
+        strict = kernel.process_events_through(expected, DUE)
+        self.assertEqual(strict.completed_event_ids, (ids[1], ids[2], ids[3], ids[0]))
+        for options in ({}, {'shared': True}, {'shared': True, 'shadow': True}):
+            with self.subTest(options=options):
+                world = deepcopy(self.world)
+                with patch.object(kernel, '_apply_handler_candidate', side_effect=AssertionError(
+                        'NO_OP must not invoke a handler')), patch.object(
+                        shared.SharedResolutionRequest, '_shared_batch', side_effect=AssertionError(
+                            'NO_OP must not create a shared candidate')), patch.object(
+                        kernel, '_clone_runtime_world', wraps=kernel._clone_runtime_world) as clones:
+                    result = resolve_until(world, DUE, **options)
+                self.assertEqual(clones.call_count, 0)
+                self.assertEqual(result, strict)
+                self.assertEqual(world, expected)
+
+    def test_noop_stale_limits_and_refresh_keep_exact_prefix(self):
+        stale = schedule(self.world, DUE)
+        owner = self.world['world_state']['player']['primary_airline_id']
+        kernel.set_operation_revision(self.world, owner, 1)
+        ids = [schedule(self.world, DUE) for _ in range(3)]
+        expected = deepcopy(self.world)
+        strict = kernel.process_events_through(expected, DUE, max_events=3)
+        for shadow in (False, True):
+            world = deepcopy(self.world)
+            request = begin_resolution(world, DUE, shared=True, shadow=shadow,
+                                       max_events=3, max_batch_events=8)
+            request.step()
+            while not request.finished:
+                request.step(management_changed=True)
+            self.assertEqual(request.result, strict)
+            self.assertEqual(world, expected)
+            self.assertEqual(request.result.skipped_event_ids, (stale,))
+            self.assertEqual(request.result.completed_event_ids, tuple(ids[:2]))
+            self.assertEqual(request.result.failure.event_id, ids[2])
+            request.close()
+
+    def test_mixed_certified_payments_noops_and_saved_steps_match_strict(self):
+        base, target = payment_world(4, near=True)
+        payments = sorted((e for e in base['world_state']['pending_events'].values()
+                           if e['event_type'] == 'AIRCRAFT_CONTRACT_PAYMENT'), key=kernel._event_key)
+        for event in payments:
+            schedule(base, event['due_at_utc'], priority=event['order_key'][0] + 1)
+        expected = deepcopy(base)
+        strict = kernel.process_events_through(expected, target)
+        self.assertEqual(len(strict.completed_event_ids), 8)
+        for shadow in (False, True):
+            for cap in (1, 2, 8):
+                with self.subTest(shadow=shadow, cap=cap):
+                    world = deepcopy(base)
+                    request = begin_resolution(world, target, shared=True, shadow=shadow,
+                                               max_batch_events=cap)
+                    transitions = []
+                    original = shared._shared_transition
+                    def observe(candidate, event_id, *args, **kwargs):
+                        transitions.append(candidate['world_state']['pending_events'][event_id]['event_type'])
+                        return original(candidate, event_id, *args, **kwargs)
+                    with patch.object(shared, '_shared_transition', side_effect=observe):
+                        request.step()  # Certified payment, before the NO_OP.
+                        request.step()  # Clone-free lifecycle boundary.
+                        prefix_ids = tuple(request._completed_ids)
+                        restored = save_reload(world)
+                        self.assertEqual(restored, world)
+                        while not request.finished:
+                            request.max_batch_events = 1 if request._completed % 2 else cap
+                            request.step()
+                            self.assertTrue(validate_world(world).is_valid)
+                    self.assertEqual(transitions, ['AIRCRAFT_CONTRACT_PAYMENT'] * 4)
+                    self.assertEqual(request.result, strict)
+                    self.assertEqual(world, expected)
+                    request.close()
+                    tail = resolve_until(restored, target, shared=True, shadow=shadow,
+                                         max_batch_events=cap)
+                    self.assertEqual(prefix_ids + tail.completed_event_ids, strict.completed_event_ids)
+                    self.assertEqual(restored, expected)
 
     def test_shadow_compares_each_intermediate_transition(self):
         registry = probe_registry(record)
@@ -244,14 +324,17 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertEqual(self.world, before)
 
     def test_final_validation_failure_replays_whole_segment_and_disables(self):
+        registry = probe_registry(record)
         for _ in range(3):
-            schedule(self.world, DUE)
+            schedule(self.world, DUE, event_type='PROBE', payload={'label': 'replay'})
         expected = deepcopy(self.world)
-        kernel.process_events_through(expected, DUE)
+        kernel.process_events_through(expected, DUE, registry=registry)
         invalid = validate_world({})
         state = SharedExecutionState()
-        with patch.object(shared, '_validate_batch', return_value=invalid):
-            result = resolve_until(self.world, DUE, shared=True, execution_state=state)
+        with patch.object(shared, '_validate_batch', return_value=invalid) as gate:
+            result = resolve_until(self.world, DUE, registry=registry, shared=True,
+                                   shadow=True, execution_state=state)
+        gate.assert_called_once()
         self.assertEqual(result.failure.code, 'OPTIMIZER_DIVERGENCE')
         self.assertIsNone(result.failure.event_id)
         self.assertEqual(self.world, expected)
@@ -281,11 +364,13 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertEqual(self.world['world_state']['history']['operations'], ['a', 'b'])
 
     def test_event_ceiling_is_request_wide_across_flushes(self):
+        registry = probe_registry(record)
         for _ in range(8):
-            schedule(self.world, DUE)
+            schedule(self.world, DUE, event_type='PROBE', payload={'label': 'limited'})
         expected = deepcopy(self.world)
-        strict = kernel.process_events_through(expected, DUE, max_events=5)
-        actual = resolve_until(self.world, DUE, shared=True, max_batch_events=2, max_events=5)
+        strict = kernel.process_events_through(expected, DUE, registry=registry, max_events=5)
+        actual = resolve_until(self.world, DUE, registry=registry, shared=True,
+                               shadow=True, max_batch_events=2, max_events=5)
         self.assertEqual(actual, strict)
         self.assertEqual(self.world, expected)
 
@@ -303,9 +388,12 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertEqual(self.world, expected)
 
     def test_requested_boundary_and_pause_preserve_committed_prefix(self):
+        registry = probe_registry(record)
         kernel.set_clock_mode(self.world, 'NORMAL')
-        ids = [schedule(self.world, DUE) for _ in range(4)]
-        request = begin_resolution(self.world, DUE, shared=True, max_batch_events=2)
+        ids = [schedule(self.world, DUE, event_type='PROBE', payload={'label': 'pause'})
+               for _ in range(4)]
+        request = begin_resolution(self.world, DUE, registry=registry, shared=True,
+                                   shadow=True, max_batch_events=2)
         before = deepcopy(self.world)
         self.assertIsNone(request.step(boundary_requested=True).event_id)
         self.assertEqual(self.world, before)
@@ -328,9 +416,11 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertEqual(result.failure.event_id, last)
 
     def test_close_retains_no_candidate_and_does_not_undo_prefix(self):
+        registry = probe_registry(record)
         for _ in range(3):
-            schedule(self.world, DUE)
-        request = begin_resolution(self.world, DUE, shared=True, max_batch_events=2)
+            schedule(self.world, DUE, event_type='PROBE', payload={'label': 'close'})
+        request = begin_resolution(self.world, DUE, registry=registry, shared=True,
+                                   shadow=True, max_batch_events=2)
         request.step()
         self.assertNotIn('candidate', request.__dict__)
         prefix = deepcopy(self.world)
@@ -367,9 +457,7 @@ class SharedCandidateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             session = Stage1Session(save_root=root)
             session.new_game('Owner', 'Candidate Air', 'MNL')
-            due = session.world['simulation']['time_utc']
-            for _ in range(2):
-                schedule(session.world, due)
+            session.world, due = payment_world(2)
             session._management_changed()
             session.fleet()
             old_context = session._read_views
@@ -381,9 +469,10 @@ class SharedCandidateTests(unittest.TestCase):
                 session.fleet()
                 self.assertIsNot(candidate, session.world)
                 return original(candidate)
-            with patch.object(shared, '_validate_batch', side_effect=inspect):
+            with patch.object(shared, '_validate_batch', side_effect=inspect) as gate:
                 request = begin_resolution(session.world, due, shared=True)
                 request.step()
+            gate.assert_called_once()
             self.assertFalse(old_context.matches(session.world, session.progression_revision))
             session._mark_progress()
             self.assertIsNot(session._read_views, old_context)
@@ -424,10 +513,12 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertEqual(actual.failure.event_id, ids[1])
 
     def test_optimizer_exception_recovers_and_disables_without_losing_events(self):
-        event = schedule(self.world, DUE)
+        registry = probe_registry(record)
+        event = schedule(self.world, DUE, event_type='PROBE', payload={'label': 'replay'})
         state = SharedExecutionState()
         with patch.object(shared, '_shared_transition', side_effect=RuntimeError('optimizer defect')):
-            result = resolve_until(self.world, DUE, shared=True, execution_state=state)
+            result = resolve_until(self.world, DUE, registry=registry, shared=True,
+                                   shadow=True, execution_state=state)
         self.assertEqual(result.completed_event_ids, (event,))
         self.assertEqual(result.failure.code, 'OPTIMIZER_DIVERGENCE')
         self.assertFalse(state.enabled)
@@ -437,9 +528,10 @@ class SharedCandidateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             now = [0]
             session = Stage1Session(save_root=root, runtime_clock=lambda: now[0])
-            session.new_game('Owner', 'Strict Runtime', 'MNL')
-            due = session.world['simulation']['time_utc']
-            ids = [schedule(session.world, due) for _ in range(3)]
+            session.world, due = payment_world(3)
+            ids = [e['event_id'] for e in sorted(
+                session.world['world_state']['pending_events'].values(), key=kernel._event_key)
+                if e['due_at_utc'] <= due]
             session.resume()
             now[0] = 1_000_000_000
             session.pump()
@@ -478,17 +570,21 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertEqual(run.call_count, 0)
 
     def test_final_validation_recovery_stops_at_strict_failure_with_prefix(self):
-        ids = [schedule(self.world, DUE) for _ in range(3)]
+        registry = probe_registry(record)
+        ids = [schedule(self.world, DUE, event_type='PROBE', payload={'label': 'replay'})
+               for _ in range(3)]
         original = kernel._execute_event
         def strict_fault(world, event_id, registry):
-            if event_id == ids[1]:
+            if event_id == ids[1] and (world is self.world or world is expected):
                 return None, kernel.EventFailure('HANDLER_FAILED', 'strict failure', event_id), ()
             return original(world, event_id, registry)
         expected = deepcopy(self.world)
         with patch.object(kernel, '_execute_event', side_effect=strict_fault):
-            strict = kernel.process_events_through(expected, DUE)
-            with patch.object(shared, '_validate_batch', return_value=validate_world({})):
-                actual = resolve_until(self.world, DUE, shared=True)
+            strict = kernel.process_events_through(expected, DUE, registry=registry)
+            with patch.object(shared, '_validate_batch', return_value=validate_world({})) as gate:
+                actual = resolve_until(self.world, DUE, registry=registry, shared=True,
+                                       shadow=True)
+        gate.assert_called_once()
         self.assertEqual(actual, strict)
         self.assertEqual(self.world, expected)
         self.assertEqual(actual.completed_event_ids, (ids[0],))
@@ -540,10 +636,12 @@ class SharedCandidateTests(unittest.TestCase):
         self.assertTrue(request.boundary().current_utc_fully_resolved)
 
     def test_shadow_reference_exception_recovers_without_leaking_candidate(self):
-        first = schedule(self.world, DUE)
+        registry = probe_registry(record)
+        first = schedule(self.world, DUE, event_type='PROBE', payload={'label': 'replay'})
         state = SharedExecutionState()
         with patch.object(kernel, 'process_next_event', side_effect=RuntimeError('oracle defect')):
-            result = resolve_until(self.world, DUE, shared=True, shadow=True, execution_state=state)
+            result = resolve_until(self.world, DUE, registry=registry, shared=True,
+                                   shadow=True, execution_state=state)
         self.assertEqual(result.completed_event_ids, (first,))
         self.assertEqual(result.failure.code, 'OPTIMIZER_DIVERGENCE')
         self.assertFalse(state.enabled)

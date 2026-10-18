@@ -1,3 +1,9 @@
+# Simplification Stage 5B (2026-10-18): exact built-in NO_OP uses the existing
+# clone-free strict lifecycle in every resolver mode, one event per shared step.
+# Remove only shared eligibility; custom names/aliases, certified gameplay batching,
+# shadow probes, limits, recovery and saves retain existing contracts.
+# No persistent fields/version change. Supersedes dated NO_OP routing notes below.
+# Canonical source: Docs/03 Technical/Stage 1 State Schema.md clock/event contract.
 # Stage 3G-B1 / AT-058 future policy only: 90x standard, capped 24h offline catch-up.
 # No Schema 9 structure, clock values or persistent metadata changed in B1.
 # Existing named ratios/no-offline notes below record implemented/historical scopes.

@@ -1,5 +1,16 @@
 # Production Cooperative Runtime — Stage 3E
 
+## Simplification Stage 5B successor (2026-10-18)
+
+The exact built-in `NO_OP` follows the existing strict lifecycle shortcut, including
+inside a shared request. It flushes preceding certified work and processes one event
+per step without a candidate copy or handler invocation. Certified gameplay batches
+retain their existing cap, proofs, full final validation and detached commit.
+Credit, pause/drain, request limits, management refresh, recovery and save/load
+contracts remain unchanged. This supersedes the dated NO_OP infrastructure routing
+below; see the [canonical contract](Stage%201%20State%20Schema.md#clock-and-event-contract)
+and [current verification](Current%20Development%20Status.md).
+
 ## Quarterly Stage 3G-B1 policy successor (2026-10-12)
 
 [Stage 3G-B1 runtime contract](Single%20Speed%2C%20Advancement%20%26%20Offline%20Progression.md) / AT-058 changes future pacing/activation policy only: standard 90×,

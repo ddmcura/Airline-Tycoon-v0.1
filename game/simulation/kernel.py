@@ -13,7 +13,7 @@ import heapq
 from typing import Callable
 import json
 
-from .execution_contracts import ExecutionMode, HandlerExecutionContract
+from .execution_contracts import HandlerExecutionContract
 
 from game.world_state.ids import allocate_id
 from game.world_state.schema import (
@@ -88,11 +88,6 @@ class EventHandlerRegistry:
         contract = self._execution_contracts.get(event_type)
         if contract is not None and contract.handler is handler:
             return contract
-        if event_type == 'NO_OP' and handler is _no_op:
-            return HandlerExecutionContract(handler, ExecutionMode.SHARED,
-                'kernel-no-op-v1', 'Exact kernel callable has no handler writes; '
-                'Stage 3A also fully validates every completed transition.',
-                True, (1, 2, 3, 4, 5, 6, 7, 8, 9))
         return HandlerExecutionContract(handler)
 
 
