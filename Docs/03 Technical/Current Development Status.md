@@ -2,6 +2,116 @@
 
 Last updated: **2026-10-18**. Current snapshot, not operational authorization.
 
+## Simplification Stage 3B — single-pass Booking allocation (2026-10-18)
+
+Implemented and verified in the working tree on `codex/simplify-engine-stage1`,
+based on `8dabb1061e9f485a6d9d95411f8cdc7adbc7af1e`. The closure commit identity
+belongs to Git history; no push is authorized or performed.
+The pre-existing untracked `.venv/` remains untouched. This section records
+implementation evidence, not authorization for another optimization.
+
+[Booking's private checkpoint transition](../../game/booking/checkpoint.py)
+is shared by public commitment and the built-in daily event. Public preparation
+remains detached and public apply recomputes with exact caller witnesses. The
+event captures Booking/demand/configuration, event-cursor, finance and quarterly
+source witnesses before allocation, preserves checkpoint-ID allocation timing,
+allocates once and persists that same plan and its new cohort markers. Inventory
+witnesses come from the plan; paid finance membership selects only the affected
+airlines from the pre-allocation finance snapshot. Completed reuse allocates zero
+times. Late domain checks, provider fences, full kernel validation, detached
+commit, atomic rollback and successful-prefix recovery remain in place.
+
+The removed work is the event's preparation probe, one whole-world probe clone
+and the repeated allocation/shopping/demand pipeline. There is no new execution
+mode, framework, capability, flag, cache or persistent index. Existing historical
+scans remain; one redundant index rebuild disappears with the removed allocation.
+The shared transition uses only local runtime witnesses and the existing kernel
+ownership token. No gameplay formula, persistent field, schema version, save
+meaning or public signature changed. The [canonical contract](Stage%201%20State%20Schema.md#envelope-version-3--milestone-5a-booking-foundation)
+and [Booking architecture](../01%20Core%20Simulation/Passenger%20Demand%2C%20Booking%20%26%20Network%20Simulation.md#milestone-5c-architecture-boundary)
+describe the ownership distinction; the template mirrors it in comments.
+
+Stage 3A's exact `fresh.json` and `retained.json` inputs were replayed from the
+temporary artifact directory `airline-stage3a-booking-20261018`. They are the
+existing `QuarterlyBackendTests.fixture()` advanced to 2027-01-01/02 23:59:59Z.
+Stage 3B artifacts are in the sibling `airline-stage3b-booking-20261018` directory:
+`comparison.json`, `diagnostics.json`, `quiet.py`, `diagnostics.py`, fixture copies
+and profiles. No benchmark infrastructure or generated fixtures were added to
+the repository. Windows / `.venv` Python 3.12.10; one warmup, five quiet sequential
+`process_next_event` calls on fresh copies, copying/setup/hashing outside timing.
+Separate diagnostic instrumentation; no concurrent test commands during timings.
+
+| Exact workload | Stage 3A median (range), s | Stage 3B median (range), s | Reduction |
+| --- | --- | --- | --- |
+| 2 Jan, 0 existing / 1,176 new Bookings | .742800 (.731275–.772754) | .477680 (.468511–.487178) | .265120 s / 35.69% |
+| 3 Jan, 1,176 existing / 1,165 new Bookings | 1.269585 (1.223966–1.298915) | .811424 (.805454–.854900) | .458161 s / 36.09% |
+
+Allocation calls **2 -> 1**, probe copies **1 -> 0**, total runtime-world clones
+**3 -> 2**; the two kernel clones and two full Next Event validation gates remain.
+Separate inclusive allocation timings: **.532333 -> .267432 s** (49.76% lower)
+and **.894075 -> .431792 s** (51.71% lower). These diagnostic timings include
+nested work and are not additive to quiet wall times. Provider detachment remains;
+Stage 3B instrumentation observes five full-envelope deepcopies per event.
+The retained workload's Booking index visits change **2,352 -> 1,176**, plus the
+unchanged 1,176-record commitment capacity scan; validation/provider traversals
+are additional. No historical indexing or fleet-scale improvement is claimed.
+
+Both complete-envelope output hashes exactly match Stage 3A:
+
+- 2 Jan: `b0f789c528c9e3fb6b58a2f8fb872c35a9b32df1b5a2abbec4fccf551612518e`.
+- 3 Jan: `3e738332829094ba10dea01bbc9e3d99e37cabc7e7789fb0b3f2a9fd35bfb650`.
+
+Pending event-order digests also match. Exactly one Booking event completes:
+`event-000000000001` / `event-000000000189`; history counts 6->7 / 13->14,
+pending counts 4->182 / 180->180. New passengers remain 2,993 / 2,987.
+[Focused tests](../../tests/test_booking_single_pass.py) bind reconstructed inputs
+to the Stage 3A input/output/order hashes, prove same-plan consumption and the
+pending checkpoint ID before allocation, and cover strict/shared resolver equality,
+public preview isolation/recomputation, existing markers, paid membership and
+liabilities, legacy zero-fare/capacity contention, late witness failures, provider
+mutation/exception/retained values and failed-prefix paused save/load/retry.
+
+Final affected regression command, using `.venv/Scripts/python.exe`:
+
+```text
+-B -m unittest tests.test_booking_single_pass tests.test_stage1_booking_checkpoint tests.test_stage1_booking_allocation tests.test_stage1_booking_shopping tests.test_quarterly_backend tests.test_quarterly_provider_isolation tests.test_performance_boundaries tests.test_step7_save_load tests.test_quarterly_boundaries.QuarterlyBoundaryTests.test_booking_enqueued_before_publication_observes_commit tests.test_quarterly_boundaries.QuarterlyBoundaryTests.test_booking_provider_failure_preserves_publication_prefix_and_isolation tests.test_quarterly_boundaries.QuarterlyBoundaryTests.test_strict_shared_and_cooperative_caps_have_exact_world_equivalence -q
+```
+
+**162 pass, 182.410 s**, zero failures/errors/skips, final source/test scope.
+The retry injection now targets the shared transition; the fully validated
+reference event uses detached public prepare/apply rather than replacing the
+kernel ownership token. Neither change removes a correctness assertion.
+Explicit-scope compilation with
+`-m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+passed. Relevant documentation link targets/anchors, final diff/scope inspection
+and `git diff --check` passed. No full-suite discovery or long benchmark ran.
+
+Final closure verification (2026-10-18) retained the unchanged 162-test and exact
+hash/order/performance evidence above. Production-caller/import review confirms
+the scenario bootstrap still uses public prepare/apply, the registered event uses
+the private shared transition, and no kernel/provider/dispatch/save implementation
+changed. Ordinary self-review found no additional abstraction or duplicated
+allocation requiring a correction. No production or test changes were needed.
+
+The missing application integration checks were run with `.venv/Scripts/python.exe`:
+
+```text
+-B -m unittest tests.test_runtime_startup.RuntimeStartupTests.test_fresh_load_executes_booking_and_matches_explicit_import_reference tests.test_runtime_startup.RuntimeStartupTests.test_fresh_new_game_has_same_complete_handlers_and_processes_booking tests.test_closed_session.ClosedSessionTests.test_failed_event_retry_preserves_exact_prefix_and_owner tests.test_quarterly_development_start.QuarterlyDevelopmentStartTests.test_failed_boundary_save_correction_retry_from_development_entry -q
+```
+
+**4 pass, 9.564 s**, zero failures/errors/skips. Fresh-process direct Load/New Game
+registration, Booking recurrence and exact paused save/reload, closed-session
+failure/prefix ownership and development-entry publication/correction/save/retry
+are covered. The earlier 162-test batch and benchmarks were not repeated.
+`python -m compileall -q game/booking/checkpoint.py tests/test_booking_single_pass.py tests/test_stage1_booking_checkpoint.py tests/test_performance_boundaries.py`
+passed. Relevant documentation links/anchors, exact eight-file scope, staged diff
+review and whitespace checks passed for closure. Commit scope is one production
+file, three test files and the four contract/status/template files in this slice.
+
+Remaining costs include full validation/copying, provider isolation, retained
+history scans and quarterly supply construction. This is a bounded one-aircraft
+result; no further implementation slice is started or authorized by this record.
+
 ## Simplification Stage 2B — automatic publication transaction ownership (2026-10-18)
 
 Implementation on `codex/simplify-engine-stage1` based on policy-only

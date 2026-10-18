@@ -383,6 +383,37 @@ def process_daily_booking_checkpoint(
     _event_transaction=False,
 ):
     """Atomically persist the current UTC date's complete Booking outcome."""
+    return _checkpoint_transition(
+        envelope,
+        expected={
+            "booking_revision": expected_booking_revision,
+            "demand_revision": expected_demand_revision,
+            "market_pack_revision": expected_market_pack_revision,
+            "configuration_revision": expected_booking_configuration_revision,
+            "configuration_fingerprint": expected_booking_configuration_fingerprint,
+            "inventory_revisions": expected_inventory_revisions,
+            "finance_revisions": expected_finance_revisions,
+            "event_order_cursor": expected_event_order_cursor,
+        },
+        multipliers_by_market=multipliers_by_market, demand_indexes=demand_indexes,
+        activation_providers=activation_providers,
+        dated_flight_indexes=dated_flight_indexes,
+        _event_transaction=_event_transaction,
+    )
+
+
+def _checkpoint_transition(
+    envelope, *, expected=None, multipliers_by_market=None, demand_indexes=None,
+    activation_providers=None, dated_flight_indexes=None, _event_transaction=False,
+):
+    """Persist one plan on the public command or kernel-owned candidate.
+
+    Only the kernel-owned call can derive witnesses without a public preview.
+    Its finance/source witnesses precede allocation; inventory comes from the
+    actual validated plan, which is consumed synchronously within this boundary.
+    """
+    if expected is None and _event_transaction is not _EVENT_TRANSACTION_TOKEN:
+        raise ValueError("checkpoint witness derivation requires the event transaction")
     if _event_transaction is not _EVENT_TRANSACTION_TOKEN:
         try:
             validation = validate_world(envelope)
@@ -404,6 +435,29 @@ def process_daily_booking_checkpoint(
         return _reject(envelope, "INVALID_BOOKING_CHECKPOINT", _message(exc))
 
     configuration = envelope["simulation"]["configuration"]["booking"]
+    derive_inventory = expected is None
+    if expected is None:
+        expected = {
+            "booking_revision": envelope["world_state"]["booking_state"]["booking_revision"],
+            "demand_revision": envelope["world_state"]["demand_state"]["demand_model_revision"],
+            "market_pack_revision": envelope["simulation"]["configuration"]["demand"]["market_pack_configuration"]["revision"],
+            "configuration_revision": configuration["revision"],
+            "configuration_fingerprint": configuration["configuration_fingerprint"],
+            "inventory_revisions": {},
+            "finance_revisions": {
+                key: airline["finance_revision"]
+                for key, airline in envelope["world_state"]["airlines"].items()
+            },
+            "event_order_cursor": envelope["simulation"]["event_order_cursor"],
+        }
+    expected_booking_revision = expected["booking_revision"]
+    expected_demand_revision = expected["demand_revision"]
+    expected_market_pack_revision = expected["market_pack_revision"]
+    expected_booking_configuration_revision = expected["configuration_revision"]
+    expected_booking_configuration_fingerprint = expected["configuration_fingerprint"]
+    expected_inventory_revisions = expected["inventory_revisions"]
+    expected_finance_revisions = expected["finance_revisions"]
+    expected_event_order_cursor = expected["event_order_cursor"]
     observed = (
         envelope["world_state"]["booking_state"]["booking_revision"],
         envelope["world_state"]["demand_state"]["demand_model_revision"],
@@ -450,6 +504,7 @@ def process_daily_booking_checkpoint(
             multipliers_by_market=multipliers_by_market, demand_indexes=demand_indexes,
             activation_providers=activation_providers,
             dated_flight_indexes=dated_flight_indexes,
+            _derive_expected_inventory=derive_inventory,
             _validated=_event_transaction is _EVENT_TRANSACTION_TOKEN,
             _event_transaction=_event_transaction,
         )
@@ -468,6 +523,8 @@ def process_daily_booking_checkpoint(
         if world["booking_state"]["booking_revision"] != expected_booking_revision:
             raise RuntimeError("late Booking revision change")
         observed_inventory = {item.dated_flight_id: item.observed_inventory_revision for item in plan.observed_inventory_revisions}
+        if derive_inventory:
+            inventory_expectations = observed_inventory.copy()
         if quarterly_sources is not None and any(candidate['world_state'][name] != value
                                                  for name, value in quarterly_sources.items()):
             raise RuntimeError('late quarterly publication/dependency change')
@@ -504,6 +561,11 @@ def process_daily_booking_checkpoint(
             if total:
                 gross_by_airline[row[3]] = gross_by_airline.get(row[3], 0) + total
                 paid_booking_ids_by_airline.setdefault(row[3], []).append(booking_id)
+        if derive_inventory:
+            finance_expectations = {
+                airline_id: finance_expectations[airline_id]
+                for airline_id in gross_by_airline
+            }
         if set(finance_expectations) != set(gross_by_airline):
             return _reject(envelope, "INVALID_FINANCE_REVISION", "expected_finance_revisions must contain exactly paid affected airlines")
         for airline_id in sorted(gross_by_airline):
@@ -684,29 +746,7 @@ def _event_handler(context):
     if type(payload) is not dict or payload != {"checkpoint_date": context.event["due_at_utc"][:10]}:
         raise ValueError("invalid Booking checkpoint event payload")
     envelope = context.envelope
-    existing = _checkpoint_for_date(envelope, envelope["simulation"]["time_utc"][:10])
-    if type(existing) is dict and existing.get("status") == "COMPLETED":
-        reused = process_daily_booking_checkpoint(
-            envelope,
-            expected_booking_revision=0,
-            expected_demand_revision=0,
-            expected_market_pack_revision=0,
-            expected_booking_configuration_revision=0,
-            expected_booking_configuration_fingerprint="",
-            expected_inventory_revisions={},
-            expected_finance_revisions={},
-            expected_event_order_cursor=0,
-            _event_transaction=context._transaction_token,
-        )
-        if not reused.succeeded or not reused.reused:
-            raise ValueError(
-                reused.issues[0].message if reused.issues else "completed checkpoint was not reusable"
-            )
-        return
-    prepared = prepare_daily_booking_checkpoint(envelope, _event_transaction=context._transaction_token)
-    if not prepared.succeeded:
-        raise ValueError(prepared.issues[0].message)
-    result = process_daily_booking_checkpoint(envelope, **prepared.as_kwargs(), _event_transaction=context._transaction_token)
+    result = _checkpoint_transition(envelope, _event_transaction=context._transaction_token)
     if not result.succeeded:
         raise ValueError(result.issues[0].message)
 

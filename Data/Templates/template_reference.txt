@@ -355,6 +355,11 @@ The curated scenario may carry the same optional air_suitability_configuration
 at its root and the airport inputs in active airport_pack.records.
 Absence preserves legacy contracts. Calibration values belong in versioned
 reference data, not production airport-code branches.
+# Simplification Stage 3B: public checkpoint prepare stays detached; apply recomputes.
+# Built-in Booking uses one plan on the kernel-owned isolated event candidate;
+# pre-allocation finance/source witnesses and late domain checks remain. Kernel
+# validates the complete result and publishes detached; failures roll back.
+# Completed reuse allocates nothing. No new persistent field or save meaning.
 # Quarterly Stage 3E isolated operational extension (Schema 9)
 # Canonical: Docs/03 Technical/Stage 1 State Schema.md
 # Optional simulation.operational_authority = QUARTERLY_BACKEND_V1; absent is legacy.

@@ -1099,10 +1099,18 @@ and rebuildable Booking indexes are forbidden persistent fields.
 
 The event type `DAILY_BOOKING_CHECKPOINT` is owned by the completed checkpoint
 that scheduled it. Its payload is exactly the following checkpoint date. One
-pending next-day event exists after success; event dispatch calls the same
-atomic command, and the kernel resolves the firing event only after the whole
-candidate validates. Completed-checkpoint reuse allocates nothing and leaves
-serialized authority byte-identical.
+pending next-day event exists after success. Public commitment and built-in event
+dispatch share one private Booking transition. Public preparation remains detached
+and public commitment recomputes against current authority with exact caller
+witnesses. The built-in event captures Booking, demand, configuration, event-cursor,
+finance and quarterly-source witnesses before allocation on its kernel-owned
+isolated candidate. It allocates once, derives inventory witnesses and paid-airline
+finance membership from that plan, preserves newly resolved cohort markers, and persists
+the same plan with all late freshness, capacity, conservation and source checks.
+No external plan is accepted as authority. The kernel resolves the firing event,
+validates the complete result and publishes a detached commit; failures discard
+the candidate. Completed-checkpoint reuse allocates nothing and leaves serialized
+authority byte-identical. This changes no persistent fields, IDs or save meaning.
 
 ### Milestone 4.5B-2 Model 4 travel-scope contract
 

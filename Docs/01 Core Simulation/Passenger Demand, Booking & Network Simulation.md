@@ -757,7 +757,8 @@ recomputed overflow-round minima and weights remain ephemeral rather than
 becoming saved or cached authority.
 
 The 5C public plan remains detached and uses selected/capacity-assigned
-terminology. Milestone 5D's `process_daily_booking_checkpoint` is the only
+terminology. Milestone 5D's private Booking checkpoint transition, shared by
+`process_daily_booking_checkpoint` and the built-in daily event, is the only
 production persistence boundary: it converts positive selections into one
 strict direct itinerary and one aggregate Booking per batch, commits capacity,
 posts paid ticket cash to the unflown-service obligation, persists terminal
@@ -769,6 +770,19 @@ and commits its fully detached candidate only after complete schema and
 conservation validation. Connecting itineraries, passenger objects, carriage,
 check-in/boarding, disruption handling, refunds, revenue recognition, operating
 costs, and playable interfaces remain deferred.
+
+Simplification Stage 3B retains detached public checkpoint preparation and
+apply-time recomputation with exact expected revisions. The built-in event instead
+uses the kernel's existing isolated candidate: capture Booking/demand/configuration,
+event-cursor, finance and quarterly-source witnesses before allocation, allocate
+once, and persist that same validated plan and its new cohort markers. Inventory
+witnesses come from the plan; paid-airline finance membership is derived from its
+canonical batches using the pre-allocation finance revisions. All late source,
+inventory, capacity, finance, event and conservation checks remain. Providers retain
+their detached-input/output fences. The kernel retains final complete validation,
+detached publication, atomic rollback and successful-prefix recovery. Completed
+checkpoint reuse allocates nothing. No preview plan is accepted as external
+authority, and no schema, formula, save or public API contract changes.
 
 ## Philippines v1 recovery boundary
 

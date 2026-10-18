@@ -1,8 +1,6 @@
 """Structural checks for session-owned GUI reads and kernel event validation."""
 
 from copy import deepcopy
-from contextlib import ExitStack
-import importlib
 import json
 import sys
 import tempfile
@@ -12,7 +10,9 @@ from unittest.mock import patch
 from app.session import Stage1Session
 from game.booking.checkpoint import prepare_daily_booking_checkpoint
 from game.simulation.kernel import process_events_through
+from game.simulation import kernel
 from game.world_state.validation import validate_world
+from tests.test_booking_single_pass import public_checkpoint_handler
 
 
 class PerformanceBoundaryTests(unittest.TestCase):
@@ -55,12 +55,10 @@ class PerformanceBoundaryTests(unittest.TestCase):
             target = '2026-09-02T00:00:00Z'
 
             fast_result = process_events_through(optimized, target)
-            with ExitStack() as stack:
-                for name in ('game.booking.checkpoint', 'game.booking.allocation',
-                             'game.booking.shopping', 'game.demand.model4'):
-                    module = importlib.import_module(name)
-                    stack.enter_context(patch.object(
-                        module, '_EVENT_TRANSACTION_TOKEN', object()))
+            # Independent public prepare/apply retains every nested full gate.
+            # Replacing the ownership token no longer models a valid event call.
+            with patch.dict(kernel.DEFAULT_EVENT_HANDLERS._handlers,
+                            DAILY_BOOKING_CHECKPOINT=public_checkpoint_handler):
                 slow_result = process_events_through(fully_validated, target)
             self.assertEqual(fast_result, slow_result)
             self.assertTrue(fast_result.succeeded)

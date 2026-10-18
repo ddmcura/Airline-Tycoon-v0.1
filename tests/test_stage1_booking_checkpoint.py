@@ -355,7 +355,7 @@ class DailyBookingCheckpointTests(unittest.TestCase):
         uninterrupted = deepcopy(retry_world)
         before_failure = deepcopy(retry_world)
         with patch(
-            "game.booking.checkpoint.process_daily_booking_checkpoint",
+            "game.booking.checkpoint._checkpoint_transition",
             side_effect=RuntimeError("injected event failure"),
         ):
             failed = process_next_event(retry_world)
