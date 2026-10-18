@@ -64,13 +64,9 @@ class AirlineTycoonApp(GameplayViews, App):
     """One Kivy/UI owner calls one shared session at completed event boundaries."""
 
     def __init__(self, *, session_factory=Stage1Session, quarterly_development=False,
-                 closed_owner=False, scoped_completion=False, **kwargs):
-        if scoped_completion and not closed_owner:
-            raise ValueError('scoped Completion requires --closed-owner')
+                 closed_owner=False, **kwargs):
         super().__init__(**kwargs)
         options = {'closed_owner': True} if closed_owner else {}
-        if scoped_completion:
-            options['scoped_completion'] = True
         self.session = session_factory(**options)
         self.quarterly_development = quarterly_development
         self.quarterly_controller = QuarterlyPlanningController(self.session)
@@ -827,9 +823,8 @@ class AirlineTycoonApp(GameplayViews, App):
         self._guard_unsaved(exit_app)
 
 
-def main(*, quarterly_development=False, closed_owner=False, scoped_completion=False):
-    AirlineTycoonApp(quarterly_development=quarterly_development, closed_owner=closed_owner,
-                    scoped_completion=scoped_completion).run()
+def main(*, quarterly_development=False, closed_owner=False):
+    AirlineTycoonApp(quarterly_development=quarterly_development, closed_owner=closed_owner).run()
     return 0
 
 

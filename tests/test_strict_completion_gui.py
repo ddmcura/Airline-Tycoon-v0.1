@@ -1,7 +1,6 @@
-"""Actual Kivy pilot refresh and deferred-action identity through scoped commit."""
+"""GUI refresh and deferred actions through strict quarterly Completion."""
 import os
 os.environ.setdefault('KIVY_NO_ARGS','1')
-from copy import deepcopy
 import tempfile
 import unittest
 
@@ -14,16 +13,16 @@ from tests import test_scoped_completion_experiment as fixtures
 from tests.test_stage1_runtime import Clock
 
 
-class PilotGuiTests(unittest.TestCase):
+class StrictCompletionGuiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls): fixtures.ScopedCompletionTests.setUpClass()
 
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(); self.clock=Clock()
-        self.app=AirlineTycoonApp(closed_owner=True,scoped_completion=True,
+        self.app=AirlineTycoonApp(closed_owner=True,
             session_factory=lambda **options:Stage1Session(runtime_clock=self.clock,
                 save_root=self.temp.name,**options))
-        self.app.build(); self.app.create_new_game('CEO','Pilot GUI','MNL')
+        self.app.build(); self.app.create_new_game('CEO','Strict GUI','MNL')
         self.app.session.world=fixtures.ScopedCompletionTests.source
         self.app.session._ensure_runtime(); self.app.session._reset_autosave_clocks()
         self.app.refresh(force=True)
@@ -34,13 +33,13 @@ class PilotGuiTests(unittest.TestCase):
     def test_next_event_refresh_uses_closed_projections_and_keeps_binding(self):
         s=self.app.session; binding=s.runtime_binding
         self.app._next_event(); self.app.tick(0)
-        self.assertEqual(s.scoped_completion_status()['counts']['committed'],1)
+        self.assertIn(fixtures.ScopedCompletionTests.fid, s._world['world_state']['flight_results'])
         self.assertEqual(binding,s.runtime_binding)
         self.assertIn(s.simulation_time_utc,self.app.status.text)
         self.assertEqual(s.ownership_counts()['full_world_exports'],0)
         self.assertIsNone(self.app._popup)
 
-    def test_deferred_action_survives_scoped_commit_and_runs_once(self):
+    def test_deferred_action_survives_strict_completion_and_runs_once(self):
         s=self.app.session; source=s._world
         kernel.schedule_event(source,event_type='NO_OP',due_at_utc=s.simulation_time_utc,
                               owner_type='airline',owner_id=s.airline_id)
@@ -54,7 +53,7 @@ class PilotGuiTests(unittest.TestCase):
             self.app.tick(0)
             if called: break
         self.assertEqual(called,['done']); self.assertEqual(binding,s.runtime_binding)
-        self.assertEqual(s.scoped_completion_status()['counts']['committed'],1)
+        self.assertIn(fixtures.ScopedCompletionTests.fid, s._world['world_state']['flight_results'])
         self.assertEqual(s.ownership_counts()['full_world_exports'],0)
 
 

@@ -2,43 +2,129 @@
 
 Last updated: **2026-10-18**. Current snapshot, not operational authorization.
 
-## Phase 3G — opt-in production scoped Completion pilot (2026-10-18)
+## Simplification Stage 1 — scoped Completion retired (2026-10-18)
 
-[Implementation and evidence](Scoped%20Completion%20Production%20Pilot%20Phase%203G.md):
-`Stage1Session(closed_owner=True, scoped_completion=True)` and GUI
-`--closed-owner --scoped-completion` explicitly activate only built-in Schema 9
-quarterly passenger Completion. Defaults remain off; unsupported/legacy execution
-is strict. Confined outputs, unchanged manifest/full gates, stable outer root and
-recoverable receipts preserve retained requests and normal event/runtime accounting.
-Precommit failure retries the existing strict path; strict success reports optimizer
-divergence and disables the shared latch. Installed events are counted once despite
-postcommit faults. New/Load/rebind/close revoke prior capabilities. No schema, save,
-gameplay, pacing, Booking/demand or reconciliation optimization is introduced.
+Implemented on `codex/simplify-engine-stage1`, based
+on verified checkpoint `2fb3c9457b47b07e561ef6413c8f7394024e971d` on
+`codex/checkpoint-pre-simplification-2026-10-18`. Initial tracked tree was clean;
+only untracked `.venv/` existed. Master/checkpoint refs, existing stash and excluded
+local files are preserved. Verification and commit closure are recorded below; no push.
 
-Final pilot/GUI/foundation run passes **33 / 72.258s**. Affected owner/runtime/
-resolver/shared/ownership run passes 119 / 51.657s; existing quarterly GUI/closed GUI/
-cooperative GUI/publication regression run passes 73 / 66.120s. Earlier overlapping
-pilot runs and exact commands are in the report. Scoped application compilation and
-whitespace checks pass. Bounded full discovery stops after 240.031s with 158 passing
-rows and no reported failure/error: **incomplete**, before the final test additions
-and GUI flag wiring. Full-suite certification remains outstanding.
+[Retirement scope](Scoped%20Completion%20Production%20Pilot%20Phase%203G.md#retirement--simplification-stage-1-2026-10-18):
+removed GUI `--scoped-completion`, session-private scoped capability/lifecycle and
+diagnostics, the exclusive domain admission/protected execution module, stable-root
+publication/receipt module, private forwarding/accounting and Phase 3G-only
+optimizer-disable behavior. Production caller inspection found no other users of
+the two deleted modules. The pilot-only measurement driver and obsolete pilot fault
+tests are removed; useful differential/failure/GUI tests are adapted to strict
+Completion. No compatibility shims or new execution abstraction.
 
-Ordinary, 1,176-Booking quarterly and bounded 42,923-Booking retained comparisons
-have exact complete typed-world/canonical-byte/report equality. Eligible pilot
-Completion has **zero candidate/commit world clones**, versus one each in control;
-copies nine existing records, detaches ten outputs and shallow-copies nine tables.
-No per-event ownership reacquisition or automatic world export. Backend copies
-remain one; full validations are three versus two (fresh source admission retained).
-Measured command+selected-read times control/pilot: small quarterly 0.271613/0.377000s;
-retained 8.306342/9.945917s. These single instrumented samples show slower execution;
-no speedup or memory reduction is claimed. No 90-day benchmark was run.
+Preserved: strict handler/candidate/full validation/detached commit, existing
+certified shared execution and its recovery latch, closed session ownership,
+Candidate 1, earlier Phase 3B/3D/3F experiments, Booking/Demand/Departure/Completion/
+Finance, quarterly publication, exact event ordering, schema/template fields, save
+meaning, event limits and time pacing. Complete-world/byte/report differentials,
+settlement/manifest/aircraft destination checks and rollback/retry coverage pass.
+Production search has no scoped capability/import/activation references remaining.
 
-Recommendation: **READY FOR EXTENDED VALIDATION** within the Phase 3F serialized,
-non-reentrant, single-fault recovery model. Next work is complete discovery, broader
-manual GUI validation and isolated measurements before any default activation.
-All earlier uncommitted work is preserved; no staging, commit or push.
-The pre-edit source inventory confirms all 344 existing source files outside the
-seven intended existing-file edits are unchanged. Final links/whitespace checks pass.
+Verification on 2026-10-18 uses `.venv/Scripts/python.exe`; all commands exit zero:
+
+- Pre-edit baseline: `-B -m unittest tests.test_stage1_flight_fulfilment tests.test_closed_session tests.test_simulation_resolver.ResolverBoundaryTests -q`
+  — **52 pass / 30.510s**.
+- `-B -m unittest tests.test_strict_completion_session tests.test_stage1_flight_fulfilment tests.test_stage1_event_kernel.Stage1EventLifecycleTests tests.test_stage1_event_kernel.Stage1DeterminismAndPerformanceTests.test_equal_time_order_matches_next_advance_and_fast_forward tests.test_simulation_resolver.ResolverBoundaryTests tests.test_closed_session tests.test_step7_save_load -q`
+  — **97 pass / 96.633s**.
+- `-B -m unittest tests.test_strict_completion_gui tests.test_gui_entrypoint tests.test_closed_session_gui tests.test_gui_foundation -q`
+  — **16 pass / 46.641s**, actual Kivy build/refresh/deferred-action coverage and
+  mocked entrypoint checks for default, closed-owner and quarterly startup.
+- `-B -m unittest tests.test_flight_certification.CompletionProofTests tests.test_flight_certification.CompletionSharedTests tests.test_shared_candidate tests.test_stable_root_publication.StableRootTests.test_success_stable_root_exact_strict_world_and_private_sharing tests.test_stable_root_publication.StableRootTests.test_actual_retained_runtime_request_counts_event_once_and_keeps_identity -q`
+  — **53 pass / 65.228s**.
+- After strengthening explicit aircraft destination/manifest assertions:
+  `-B -m unittest tests.test_strict_completion_session.StrictCompletionSessionTests.test_next_event_uses_strict_transaction_and_exact_result -q`
+  — **1 pass / 3.080s** (one of the 166 distinct post-change tests above).
+- `-m compileall -q app game tests main.py make_snapshot.py settings.py test.py`,
+  documentation link/anchor checks, final diff inspection and `git diff --check`
+  pass. No full suite, long benchmark or manual gameplay playthrough was run,
+  per this bounded scope. No test failures.
+
+### Prior commit gate — incomplete full discovery (2026-10-18)
+
+Requested final verification ran on the same 18-file working-tree scope above
+checkpoint `2fb3c9457b47b07e561ef6413c8f7394024e971d`.
+`.venv/Scripts/python.exe -B -m unittest discover -s tests -v` was stopped by a
+600-second subprocess watchdog at **600.172s** (timeout classification 124).
+The completed log contains **357 pass, 0 FAIL, 0 ERROR, 0 skipped**; discovery
+is **incomplete**, not a full-suite pass. The worker process tree was terminated.
+The final completed test was
+`test_management_gui.ManagementGuiTests.test_inactive_not_refreshed_running_and_transient_not_saved`.
+Earlier focused 166-test evidence remains valid; no production code changed during
+this final-verification attempt. No regression was demonstrated.
+
+Complete diff review confirms the intended 18 files only. Searches and AST checks
+of 209 production modules find no deleted scoped imports/capabilities/callers.
+Only the three scoped entry/forwarding functions differ in the kernel; domain
+formulas, strict transaction gates/commit, shared certification/recovery, ownership,
+ordering, publication, save meaning, limits and pacing remain intact by source
+inspection and the completed/focused tests. Explicit-scope compilation and
+`git diff --check` pass. No performance benchmark was run.
+
+Full output is outside the repository at
+`%TEMP%/airline-stage1-final-discovery-20261018.log`; a conservative remaining-module
+list (including the partially completed management GUI module) is at
+`%TEMP%/airline-stage1-remaining-modules-20261018.txt`.
+At that prior gate, incomplete verification blocked staging and commit. HEAD stayed
+at the checkpoint; master/checkpoint refs, stash and excluded local files were
+preserved. The bounded continuation below supersedes that blocker.
+
+### Final verification continuation — complete combined coverage (2026-10-18)
+
+Verified branch `codex/simplify-engine-stage1`, HEAD at the checkpoint, the exact
+18 intended changed paths and an empty index before resuming. The prior log's
+357 successful test IDs match current collection. The 72-module continuation list
+is a correct conservative list: it includes the partially completed management GUI
+module and omits no unfinished module. Collection only found **96 modules / 1,828
+unique test IDs**; full discovery was not restarted.
+
+Reused the 357 prior discovery passes and 166 focused passes (43 overlap), giving
+**480 unique prior passes**. Exact-ID filtering excluded those completed tests,
+leaving **1,348 tests across 67 modules**; five modules in the conservative list
+were already wholly covered by focused evidence. Resumed with only the management
+GUI module's 11 unfinished tests. The external worker uses
+`unittest.TestLoader.loadTestsFromNames` for each module's unfinished IDs and
+`unittest.TextTestRunner(verbosity=2)`, without changing repository tests.
+
+All **67 bounded batches** completed in **743.907 seconds** total wall time with
+two isolated workers (management GUI first), a 180-second per-batch watchdog and
+a 30-minute overall ceiling. New results: **1,347 pass, 1 intentional skip,
+0 failures, 0 errors, 0 timeouts, 0 interrupted/unstarted batches**.
+The skip is
+`test_quarterly_completion_certificate.QuarterlyCompletionCertificateTests.test_opt_in_component_measurements`:
+existing reason `opt-in diagnostic measurement`. It remains excluded under the
+no-performance-benchmark instruction. No benchmark command was run.
+
+Combined intended coverage is complete: **1,827 unique passes and 1 intentional
+diagnostic skip across all 1,828 collected test IDs**, with no unverified functional
+tests remaining. This is combined evidence from the recorded runs; the earlier
+monolithic discovery itself remains incomplete. No regression was demonstrated,
+and no production/test source changed during this continuation (source hash
+inventory verified). Domain formulas, strict Completion transactions, certified
+shared recovery, closed ownership, ordering, quarterly publication, save meaning,
+limits and pacing are preserved. Production searches show no removed Phase 3G
+callers or broken imports. Explicit-scope compilation and `git diff --check` pass.
+
+Detailed module completion, per-test results, skipped reason and timings are outside
+the repository in `%TEMP%/airline-stage1-continuation-20261018/`:
+`plan.json` (remaining IDs), `coverage.json` (prior evidence and collection),
+`ledger.jsonl` (all 67 completed batches), `verification-summary.json` (complete
+coverage reconciliation), and module-specific logs/results. Generated tooling and
+evidence are not included in the Stage 1 commit.
+
+Stage 1 verification is ready for the user-authorized commit
+`refactor: retire scoped Completion execution path`, restricted to the 18 intended
+paths. Actual commit identity is recorded by Git history and the closure report;
+no pending hash is asserted here. Master/checkpoint and stash references are
+unchanged. No push. Further experiment retirement, architectural/policy changes,
+transaction consolidation and scheduling-era retirement remain outside this task.
+Following dated sections retain historical checkpoint evidence and recommendations.
 
 ## Phase 3F — test-only stable-root publication proof (2026-10-18)
 

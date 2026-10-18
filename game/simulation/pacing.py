@@ -54,7 +54,7 @@ class RuntimeController:
                  overload_seconds=DEFAULT_OVERLOAD_SECONDS,
                  overload_grace_seconds=DEFAULT_OVERLOAD_GRACE_SECONDS,
                  max_batch_events=DEFAULT_BATCH_EVENTS, shared=True,
-                 execution_state=None, _owned_event=None):
+                 execution_state=None):
         from .execution_contracts import SharedExecutionState
         if registry is DEFAULT_EVENT_HANDLERS:
             initialize_runtime_handlers()
@@ -63,7 +63,6 @@ class RuntimeController:
         if overload_seconds <= 0 or overload_grace_seconds < 0:
             raise ValueError('invalid overload policy')
         self.world = world
-        self._owned_event = _owned_event
         self.clock = clock
         self.registry = registry
         self.credit_ns = 0
@@ -80,7 +79,7 @@ class RuntimeController:
         self.overloaded_since = None
         self.max_batch_events = max_batch_events
         self.shared = shared
-        self.execution_state = execution_state or (_owned_event.execution_state if _owned_event is not None else SharedExecutionState())
+        self.execution_state = execution_state or SharedExecutionState()
         self.state = 'PAUSED'
         self.commit_serial = 0
         self.last_pump = None
@@ -225,10 +224,9 @@ class RuntimeController:
             if self.credit_ns < NANOSECOND:
                 if self.draining: self._finish_pause(self.state == 'OVERLOAD_DRAIN')
                 return None
-            options = {} if self._owned_event is None else {'_owned_event': self._owned_event}
             self.work = begin_resolution(self.world, self.earned_target_utc,
                 registry=self.registry, shared=self.shared,
-                max_batch_events=self.max_batch_events, execution_state=self.execution_state, **options)
+                max_batch_events=self.max_batch_events, execution_state=self.execution_state)
             self.refresh = False
         work = self.work
         before = parse_canonical_utc(self.world['simulation']['time_utc'])

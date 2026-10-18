@@ -53,14 +53,9 @@ class AdvancementReport:
 class Stage1Session:
     """Holds authority in memory; runtime preferences never enter the world."""
 
-    def __init__(self, *, runtime_clock=None, save_root=None, closed_owner=False,
-                 scoped_completion=False):
+    def __init__(self, *, runtime_clock=None, save_root=None, closed_owner=False):
         if type(closed_owner) is not bool:
             raise ValueError('closed_owner must be a boolean')
-        if type(scoped_completion) is not bool or (scoped_completion and not closed_owner):
-            raise ValueError('scoped_completion requires an explicitly closed-owner session')
-        self._scoped_completion_enabled = scoped_completion
-        self._owned_event = None
         self._closed_owner = closed_owner
         self._ownership_acquisitions = 0
         self._ownership_clones = 0
@@ -160,9 +155,6 @@ class Stage1Session:
     def _replace_world(self, value):
         # Only private constructors and validated detached SaveStore results use
         # this transfer boundary. No public trusted/adopt switch is admitted.
-        if self._owned_event is not None:
-            self._owned_event.close()
-        self._owned_event = None
         if self.closed_owner and value is not None:
             self._ownership_acquisitions += 1
         if self.closed_owner and getattr(self, '_runtime', None) is not None:
@@ -173,9 +165,6 @@ class Stage1Session:
             self._bulk_work.close()
             self._bulk_work = None
         self._world = value
-        if self._scoped_completion_enabled and value is not None:
-            from game.simulation.owned_event import _new_owned_completion_authority
-            self._owned_event = _new_owned_completion_authority(value)
         self.binding_revision = getattr(self, 'binding_revision', 0) + 1
         self._read_views = None
         # Runtime-only owner-issued preparations die on New/Load/foreign rebind.
@@ -189,13 +178,6 @@ class Stage1Session:
 
     def _bind_owned_reads(self):
         self._read_views = _OwnedReadViews(self._world, self.progression_revision)
-
-    def _event_options(self):
-        return {} if self._owned_event is None else {'_owned_event': self._owned_event}
-
-    def scoped_completion_status(self):
-        """Detached runtime-only pilot diagnostics; no execution capability."""
-        return None if self._owned_event is None else self._owned_event.diagnostics()
 
     def _owned_reads(self):
         if not self.active:
@@ -448,9 +430,6 @@ class Stage1Session:
         self.autosave_error = None
         self.display_currency = 'USD'
         self._runtime = new_runtime
-        if self._owned_event is not None:
-            self._runtime._owned_event = self._owned_event
-            self._runtime.execution_state = self._owned_event.execution_state
         self._runtime_generation += 1
         self._active_start_ns = now
         self._last_auto_active_ns = now
@@ -504,7 +483,7 @@ class Stage1Session:
             self._runtime.cancel_work()
             self._runtime.closed = True
         options = {} if self.runtime_clock is None else {'clock': self.runtime_clock}
-        self._runtime = RuntimeController(self._world, **options, **self._event_options())
+        self._runtime = RuntimeController(self._world, **options)
         self._runtime_generation += 1
 
     def resume(self, speed=None):
@@ -542,8 +521,6 @@ class Stage1Session:
         self.cancel_advance()
         if self._runtime is not None:
             self._runtime.close()
-        if self._owned_event is not None:
-            self._owned_event.close()
 
     def leave_game(self):
         self.cancel_advance()
@@ -1023,7 +1000,7 @@ class Stage1Session:
     def advance_next_event(self):
         self._manual_start()
         try:
-            return self._report(resolve_next_event(self._world, **self._event_options()))
+            return self._report(resolve_next_event(self._world))
         finally:
             stop_fast_forward(self._world)
             self._refresh_owned_reads()
@@ -1075,7 +1052,7 @@ class Stage1Session:
         self._bulk_work = begin_resolution(self._world, target_time_utc,
             max_generated_events=DEFAULT_MAX_EVENTS_PER_ADVANCE,
             shared=True, max_batch_events=self._runtime.max_batch_events,
-            execution_state=self._runtime.execution_state, **self._event_options())
+            execution_state=self._runtime.execution_state)
 
     def advance_tick(self):
         """Return None after a committed event, or the final advancement report."""

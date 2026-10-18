@@ -7,12 +7,8 @@ if quarterly_development:
 closed_owner = '--closed-owner' in sys.argv
 if closed_owner:
     sys.argv.remove('--closed-owner')
-scoped_completion = '--scoped-completion' in sys.argv
-if scoped_completion:
-    sys.argv.remove('--scoped-completion')
 
 from .app import main
 
 
-raise SystemExit(main(quarterly_development=quarterly_development, closed_owner=closed_owner,
-                     scoped_completion=scoped_completion))
+raise SystemExit(main(quarterly_development=quarterly_development, closed_owner=closed_owner))

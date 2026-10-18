@@ -1,5 +1,38 @@
 # Scoped Completion Production Pilot — Phase 3G
 
+## Retirement — Simplification Stage 1 (2026-10-18)
+
+The Phase 3G production pilot is retired on `codex/simplify-engine-stage1`,
+based on checkpoint `2fb3c9457b47b07e561ef6413c8f7394024e971d`.
+The user approved this bounded deletion. `--scoped-completion`, session capability
+creation/revocation/diagnostics, domain admission/protected execution, stable-root
+publication/receipts and private forwarding through kernel/resolver/pacing/shared
+requests are removed. Production caller inspection found no other users of
+`game/aircraft_operations/scoped_completion.py` or `game/simulation/owned_event.py`.
+Both modules and the pilot-only measurement driver are deleted.
+
+The existing strict Completion handler, isolated candidate validation and detached
+commit remain. Existing certified shared execution, its strict recovery and optimizer
+latch, closed ownership, Candidate 1, and earlier Phase 3B/3D/3F test experiments
+remain. Phase 3G tests specific to removed admission/publication faults are retired;
+useful differentials, allocation failure/prefix/retry, custom-handler detachment,
+equal-UTC, quarterly event and GUI deferred-action tests are adapted to strict
+execution in [session regressions](../../tests/test_strict_completion_session.py)
+and [GUI regressions](../../tests/test_strict_completion_gui.py).
+[Entrypoint coverage](../../tests/test_gui_entrypoint.py) checks supported startup
+options without the removed flag.
+
+No persistent field, schema/template, gameplay formula, event limit, pacing,
+Booking/Demand/Departure/Finance/publication behavior or save meaning changes.
+The [canonical event contract](Stage%201%20State%20Schema.md#clock-and-event-contract)
+and [save contract](Game%20State%20%26%20Save%20Technical%20Specification.md) still
+apply. Current commands/results and limitations are in
+[Current Development Status](Current%20Development%20Status.md#simplification-stage-1--scoped-completion-retired-2026-10-18).
+
+The remainder of this report is historical pilot evidence. Its activation commands,
+production module/test paths and extended-pilot recommendation no longer describe
+available execution or next work. No further simplification is implemented here.
+
 Date: 2026-10-18. Working-tree implementation above HEAD
 `120aa5f5c8d1047750cd29f4c14a5212231945de`; earlier uncommitted work is preserved.
 No staging, commit or push. This report records implementation evidence, not
