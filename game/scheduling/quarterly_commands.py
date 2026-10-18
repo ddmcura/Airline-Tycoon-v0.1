@@ -249,6 +249,40 @@ def prepare_quarterly_command(envelope, *, airline_id, request, _indexes=None):
         return rejected('INVALID_REQUEST', 'quarterly_command', str(exc))
 
 
+def _publish_candidate(candidate, airline_id, intent, index=None):
+    """Publish on caller-owned state; the caller validates, detaches or rolls back.
+
+    Public commands own a separate candidate and staged index. The strict event
+    handler owns neither live indexes nor a nested transaction. No candidate or
+    mutable publication row escapes this transition.
+    """
+    plan, _read, rows, _baseline, skipped = resolve_publication(
+        candidate, airline_id, intent, index)
+    if skipped:
+        return plan['weekly_plan_id'], plan['current_revision'], index
+    rows = deepcopy(rows)
+    pid = intent['weekly_plan_id']
+    if pid is None:
+        pid = create_weekly_plan(candidate, airline_id, intent['quarter_id'], slots=rows)
+        revision = 1
+    else:
+        revision = intent['expected_revision']
+    commit_weekly_plan_publication(candidate, pid, expected_revision=revision)
+    candidate_index = index.updated(candidate, plan_id=pid, service_id=None) if index is not None else None
+    if index is not None:
+        index.verify_delta(candidate_index, candidate, plan_id=pid, service_id=None)
+    aircraft_ids = {s['planned_aircraft_id'] for s in rows}
+    gaps = []
+    try:
+        certify_quarterly_feasibility(candidate, aircraft_ids,
+            through_utc=parse_quarter_id(candidate['world_state']['weekly_plans'][pid]['quarter_id']).end_exclusive_utc,
+            index=candidate_index, _execution_blockers=gaps)
+    except ValueError as exc:
+        _fail('INFEASIBLE_PLAN', 'weekly_plan.aircraft_chronology', str(exc))
+    require_execution(candidate, airline_id, pid, aircraft_ids, gaps, candidate_index)
+    return pid, revision, candidate_index
+
+
 def apply_quarterly_command(envelope, *, airline_id, prepared, _indexes=None):
     """Owner-authenticated preparation required. No candidate or writable result escapes."""
     try:
@@ -260,7 +294,7 @@ def apply_quarterly_command(envelope, *, airline_id, prepared, _indexes=None):
         if _sources(envelope, airline_id, intent, index) != prepared.sources:
             _fail('STALE_CONTEXT', 'prepared', 'dependency facts or simulation UTC changed; refresh')
         if intent['kind'] == 'PUBLISH':
-            plan, old_read, publication_rows, baseline, skipped = resolve_publication(envelope, airline_id, intent, index)
+            plan, old_read, _rows, _baseline, skipped = resolve_publication(envelope, airline_id, intent, index)
             if skipped:
                 result = QuarterlyCommandResult(True, weekly_plan_id=plan['weekly_plan_id'],
                     revision=plan['current_revision'], read=old_read, dependencies=old_read.dependencies,
@@ -275,7 +309,9 @@ def apply_quarterly_command(envelope, *, airline_id, prepared, _indexes=None):
         if pid is None and intent['kind'] in {'CREATE', 'CONTINUE'}:
             _, _, seed_rows = carry_forward_selection(candidate, airline_id, intent['quarter_id'], index)
         if intent['kind'] == 'PUBLISH':
-            rows = deepcopy(publication_rows); sid = number = None
+            pid, revision, candidate_index = _publish_candidate(candidate, airline_id, intent, index)
+            rows = state['weekly_plans'][pid]['revisions'][str(revision)]['slots']
+            sid = number = None
         elif intent['kind'] in {'CREATE', 'REPLACE'}:
             sid = create_service(candidate, airline_id, flight_number_prefix=intent['flight_number_prefix'])
             number = allocate_service_slot(candidate, sid)
@@ -300,19 +336,19 @@ def apply_quarterly_command(envelope, *, airline_id, prepared, _indexes=None):
                 merged = {(s['service_id'], s['slot_number']): s for s in deepcopy(seed_rows)}
                 merged.update({(s['service_id'], s['slot_number']): s for s in rows})
                 rows = [merged[key] for key in sorted(merged)]
-        if pid is None:
-            pid = create_weekly_plan(candidate, airline_id, intent['quarter_id'], slots=rows); revision = 1
-        elif intent['kind'] in {'RETIRE', 'PUBLISH'}:
-            revision = intent['expected_revision']
-        else:
-            revision = append_weekly_plan_revision(candidate, pid,
-                expected_revision=intent['expected_revision'], slots=rows)
-        if intent['kind'] == 'PUBLISH':
-            commit_weekly_plan_publication(candidate, pid, expected_revision=revision)
+        if intent['kind'] != 'PUBLISH':
+            if pid is None:
+                pid = create_weekly_plan(candidate, airline_id, intent['quarter_id'], slots=rows); revision = 1
+            elif intent['kind'] == 'RETIRE':
+                revision = intent['expected_revision']
+            else:
+                revision = append_weekly_plan_revision(candidate, pid,
+                    expected_revision=intent['expected_revision'], slots=rows)
         _entry(candidate)
-        candidate_index = index.updated(candidate, plan_id=pid, service_id=sid) if index is not None else None
-        if index is not None:
-            index.verify_delta(candidate_index, candidate, plan_id=pid, service_id=sid)
+        if intent['kind'] != 'PUBLISH':
+            candidate_index = index.updated(candidate, plan_id=pid, service_id=sid) if index is not None else None
+            if index is not None:
+                index.verify_delta(candidate_index, candidate, plan_id=pid, service_id=sid)
         old_rows = [] if intent['weekly_plan_id'] is None else envelope['world_state']['weekly_plans'][
             intent['weekly_plan_id']]['revisions'][str(intent['expected_revision'])]['slots']
         old_by_key = {(s['service_id'], s['slot_number']): s for s in old_rows}
@@ -323,16 +359,13 @@ def apply_quarterly_command(envelope, *, airline_id, prepared, _indexes=None):
             changed = old_by_key.keys() | new_by_key.keys()
         aircraft_ids = {s['planned_aircraft_id'] for key in changed
                        for s in (old_by_key.get(key), new_by_key.get(key)) if s is not None}
-        try:
-            gaps = []
-            proof_arguments = {'_execution_blockers': gaps} if intent['kind'] == 'PUBLISH' else {}
-            certify_quarterly_feasibility(candidate, aircraft_ids,
-                through_utc=parse_quarter_id(state['weekly_plans'][pid]['quarter_id']).end_exclusive_utc,
-                index=candidate_index, **proof_arguments)
-        except ValueError as exc:
-            _fail('INFEASIBLE_PLAN', 'weekly_plan.aircraft_chronology', str(exc))
-        if intent['kind'] == 'PUBLISH':
-            require_execution(candidate, airline_id, pid, aircraft_ids, gaps, candidate_index)
+        if intent['kind'] != 'PUBLISH':
+            try:
+                certify_quarterly_feasibility(candidate, aircraft_ids,
+                    through_utc=parse_quarter_id(state['weekly_plans'][pid]['quarter_id']).end_exclusive_utc,
+                    index=candidate_index)
+            except ValueError as exc:
+                _fail('INFEASIBLE_PLAN', 'weekly_plan.aircraft_chronology', str(exc))
         detached = deepcopy(candidate)
         _entry(detached)
         read = resolve_quarterly_reads(detached, airline_id=airline_id,

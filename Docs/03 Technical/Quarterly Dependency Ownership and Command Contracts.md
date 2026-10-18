@@ -3,7 +3,10 @@
 Stage 3D successor: [boundary orchestration](Quarterly%20Boundary%20Orchestration.md)
 provides isolated automatic events, a publication-before-Booking barrier, persisted
 failure obligations, narrowly certified corrections and fresh retry/reconciliation.
-It preserves Stage 2 gates/copies, identity/chronology and existing consumers. Normal
+Standalone commands preserve Stage 2 gates/copies. Simplification Stage 2B uses the
+same publication domain transition directly inside the kernel-owned automatic event
+transaction, retaining full result validation, detached commit and failure fences.
+Identity/chronology, provider isolation and existing consumers are preserved. Normal
 PH/quarterly operational activation remains deferred; older checkpoint scopes follow.
 
 Stage 3C successor: [shared publication workflow](Quarterly%20Shared%20Publication.md)

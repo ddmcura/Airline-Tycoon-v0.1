@@ -27,7 +27,7 @@ fences, ordering, Booking and save/load contracts are unchanged. Measurement and
 verification are recorded in the [Phase 2B report](Publication%20Reconciliation%20No-Op%20Optimization.md).
 
 Scheduling owns the strict `QUARTERLY_PUBLICATION` handler and fresh Stage 3C
-prepare/apply work. Simulation owns queue selection, complete-event transactions,
+candidate-owned publication work. Simulation owns queue selection, complete-event transactions,
 strict/shared fences, time and failure pause. World State owns optional obligation
 construction/validation. The session remains the serialized application owner.
 
@@ -87,8 +87,11 @@ No arbitrary past-quarter editor or operational exception/amendment policy exist
 
 Explicit retry processes the original obligation with fresh owner/current revisions,
 sources, chronology, literal positioning and confirmed lease horizon checks. Stage 3C
-retains all four full gates and both world copies; the outer event transaction adds
-its existing isolation/validation/detachment. Readiness is never a certificate.
+uses Scheduling's shared publication transition directly on the kernel-owned
+candidate. The kernel retains full result validation, detached commit and rollback;
+there is no nested standalone transaction. Standalone publication and correction
+retain their independent validation, candidate/commit isolation and freshness.
+Provider boundaries remain unchanged. Readiness is never a certificate.
 Before frontier advancement, the handler confirms the actual target commitment.
 Repeated unchanged failures preserve identical world bytes. A confirmed prior manual
 commit is skipped without recommitment; only event lifecycle/frontier bookkeeping
@@ -128,6 +131,12 @@ processed/stale events per request, counts across yields and shared flushes, res
 only on chronological progress. Later-time children stay queued and do not consume
 the same-time budget. Explicit Advance retains its existing configured generation
 limit. Quarterly duplicates count as events; no publication-specific bypass exists.
+
+The following measurements record the original Stage 3D checkpoint. Simplification
+Stage 2B replaces the nested automatic gate/copy count assertion with checks for
+the retained kernel candidate, full result validation and detached commit, plus
+per-event standalone-reference, late-failure and retained-reference regressions.
+Current verification is recorded in Current Development Status.
 
 Focused tests in [test_quarterly_boundaries.py](../../tests/test_quarterly_boundaries.py)
 cover four calendar boundaries, leap/year rollover, manual skip, earlier-enqueued

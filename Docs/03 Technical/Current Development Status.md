@@ -2,6 +2,141 @@
 
 Last updated: **2026-10-18**. Current snapshot, not operational authorization.
 
+## Simplification Stage 2B — automatic publication transaction ownership (2026-10-18)
+
+Implementation on `codex/simplify-engine-stage1` based on policy-only
+commit `fcb3ac3f1649302542671838adb770d910ffb630` (`docs: establish architectural
+simplicity policy`). That commit contains exactly AGENTS.md, Project Foundation
+and AT-070 in the Decision Register, 54 added lines reviewed before implementation.
+Prior production baseline remains `dd979fdd21575866b52a1e71e8d9673c828f5f13`.
+Commit scope is the 11 Stage 2B files below; no push. Initial unrelated untracked
+`.venv/` is preserved. Git history records the closure commit identity.
+
+[Ownership contract](Quarterly%20Shared%20Publication.md#atomic-boundary-readiness-and-retry),
+[boundary recovery](Quarterly%20Boundary%20Orchestration.md#versioned-reconciliation-and-save-recovery)
+and AT-071 record the approved slice. Scheduling's private `_publish_candidate`
+shares eligibility, carry-forward, timestamp construction, finite chronology and
+literal execution proofs between standalone publication and the automatic handler.
+The handler operates directly on the kernel's isolated event candidate; it no
+longer prepares/applies a nested standalone transaction. Kernel result validation,
+detached commit, actual-commit verification, failure fence, successful prefix,
+ordering, frontier/successor generation and provider isolation remain intact.
+
+Standalone commands retain four full gates, both full-world copies, freshness,
+issued preparations, detached results and staged index publication. Their candidate
+gate now follows the complete domain transition; all fallible work still precedes
+exposure. Non-publication command behavior retains its existing proofs. Changes
+are confined to two Scheduling modules and boundary regression coverage, plus
+contract/status documentation and template comments. No kernel/provider/Booking/
+dispatch/Completion/history algorithm, public execution flag, capability system,
+framework, persistent field, schema version, migration or gameplay formula changed.
+The new helper's returned IDs and staged index are runtime-only, not new authority.
+
+### Bounded performance and equivalence
+
+Uses the exact frozen Stage 2A backend one-aircraft/two-service fixtures, interpreter
+and measurement script, rather than the historical Booking-heavy B2/90-day workload.
+Windows 10 build 19045, CPython 3.12.10 AMD64, Intel Family 6 Model 165, 12 logical
+CPUs. Each quiet sample uses a fresh session/TEMP save root; setup and independent
+final validation/audit are outside command timing. Same 60-second between-events
+budget, Jan 2 08:00 -> Jan 3 08:00 operating target and Nov 30 -> Dec 1 publication
+target. Counts include real entry reconciliation and all same-UTC consumers.
+
+| Metric | Operating before -> after | Publication before -> after |
+| --- | --- | --- |
+| Stage 2A quiet median -> final quiet median | 2.473804 -> 2.460994 s (-0.012810 s, -0.52%) | 1.085503 -> 0.946836 s (-0.138666 s, -12.77%) |
+| Alternating paired quiet medians | 2.466431 -> 2.468068 s (+0.001637 s, +0.07%) | 1.079892 -> 0.937582 s (-0.142310 s, -13.18%) |
+| Complete events | 7 -> 7 | 3 -> 3 |
+| Whole-world copies | 24 -> 24 (0%) | 20 -> 18 (-10%) |
+| Full-world validations | 9 -> 9 (0%) | 10 -> 6 (-40%) |
+| Instrumented copy time, Stage 2A -> final | 0.849546 -> 0.868927 s (+2.28%) | 0.112520 -> 0.104822 s (-6.84%) |
+| Instrumented full validation time | 1.111279 -> 1.113248 s (+0.18%) | 0.391625 -> 0.296003 s (-24.42%) |
+
+Three quiet repetitions and one instrumented repetition per scenario reproduce
+counts/hashes. The fresh pre-edit reproduction also confirmed Stage 2A's counts;
+its operating median was 2.872463 s, showing environmental drift. To avoid crediting
+that drift, the additional three-pair comparison alternates the exact archived
+pre-change command/handler functions from policy commit `fcb3ac3` with current
+functions in one process, using the same measurement function and frozen inputs.
+Publication's paired ranges are 1.073869–1.089115 s before and 0.934106–0.945525 s
+after. Operating ranges overlap: 2.439347–2.512886 s before, 2.455210–2.474428 s
+after. Routine-day movement, including increased diagnostic copy time, is noise;
+publication improvement is consistent on this bounded fixture. No fleet-scale,
+long-history, ordinary-day speedup or incremental peak-memory claim is made.
+
+All quiet/instrumented/archived-reference outputs match the original Stage 2A
+authoritative SHA256 values: operating
+`cc1893585f39a16050a70ff2d96e775ef426c64f6f97980159186f7db8478497`, publication
+`d02ac4f3c0efef00582098de22db73d4d50f0a938817c40defc8d61ca0ee6b3b`.
+Event types/counts are unchanged: operating Booking 1, dispatch 2, Departure 2,
+Completion 2; publication 1, Booking 1, market rotation 1. New regression tests
+compare full encoded worlds and progress/results after every event against the
+standalone transaction ownership reference for explicit, skipped, carried and
+rejected publication; that reference shares domain formulas, not their ownership.
+
+Reproduction artifacts remain outside tracked files at
+`%TEMP%/airline-stage2a-20261018` (frozen inputs/original script/results) and
+`%TEMP%/airline-stage2b-20261018` (`before/`, `after/`, `paired_measurements.py`,
+`paired-results.json`, `compare_results.py`, `comparison.json`). From repository
+root, use `.venv/Scripts/python.exe -B` with Stage 2A's `measure_baseline.py` and
+the before/after directory argument; `paired_measurements.py` takes the Stage 2B
+directory argument and reads baseline functions from Git without changing refs.
+No permanent benchmark instrumentation was added.
+
+### Stage 2B verification and limits
+
+Verification uses `.venv/Scripts/python.exe` on 2026-10-18, working tree above
+`fcb3ac3`; commands/results are recorded below. No full discovery or 90-day run.
+
+- Development standalone/provider gate: `-B -m unittest tests.test_quarterly_publication tests.test_quarterly_provider_isolation -q`
+  — 49 pass, 66.929 s.
+- Initial expanded boundary run: 44 tests, one failure and three subtest errors
+  in new tests only (wrong progress field, invalid historical fixture timestamp,
+  retry comparison started at different UTC). Fixed test construction/comparison;
+  targeted corrected pairs passed 2/8.617 s and 2/4.982 s. No production regression
+  was demonstrated by those test-authoring errors.
+- Final affected regression: `-B -m unittest tests.test_quarterly_boundaries tests.test_quarterly_publication tests.test_quarterly_provider_isolation tests.test_quarterly_transactions tests.test_quarterly_backend tests.test_step7_save_load -q`
+  — **188 pass, 386.688 s; zero failures, errors or skips**. Covers public command
+  boundaries, per-event references, late faults/aliases, ordering, idempotent retry,
+  successful prefixes, provider mutation/exception isolation, Booking/flight/finance,
+  indexes and Save/Load/recovery. All final source changes are included in this run.
+- `-m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+  — exit 0. Publication-contract local links and new anchors pass; final diff/scope
+  inspection and `git diff --check` pass. No full-suite claim is made.
+
+Final verification closure (2026-10-18) reviewed the exact implementation and the
+unchanged 188-test/performance evidence above. No benchmark or full-suite rerun.
+Additional application integration:
+
+- `-B -m unittest tests.test_quarterly_development_start.QuarterlyDevelopmentStartTests.test_failed_boundary_save_correction_retry_from_development_entry tests.test_closed_session.ClosedSessionTests.test_quarterly_controller_edits_detached_results_and_stale_preparation tests.test_closed_session.ClosedSessionTests.test_failed_event_retry_preserves_exact_prefix_and_owner -q`
+  — **3 pass, 6.788 s; zero failures, errors or skips**. This closes development
+  controller correction/save/retry and closed-session result/ownership coverage
+  outside the earlier batch, for 191 distinct affected/integration tests overall.
+- Final explicit-scope compilation with the command above: exit 0. Documentation
+  links/anchors, whitespace and exact staged inventory reviewed before commit.
+  No production or test edits were needed for closure; only this snapshot changed.
+
+Final tracked inventory (11 files):
+
+- Production: `game/scheduling/quarterly_commands.py`, `game/scheduling/quarterly_boundary.py`.
+- Tests: `tests/test_quarterly_boundaries.py`.
+- Mirror comments: `Data/Templates/template_reference.txt`.
+- Under `Docs/03 Technical/`: `Stage 1 State Schema.md`, `Quarterly Shared Publication.md`,
+  `Quarterly Boundary Orchestration.md`, `Quarterly Dependency Ownership and Command Contracts.md`,
+  `Quarterly Transaction Certification.md`, `Decision Register.md`, `Current Development Status.md`.
+
+Closure commit message: `refactor: simplify automatic quarterly publication transaction`.
+Only this inventory belongs to that commit. No push, branch switch, reset, clean,
+merge or cherry-pick. Master/checkpoint refs, stashes, protected tooling and
+unrelated files are preserved. Next step is review of the Stage 2B slice;
+no later optimization is implemented or authorized here.
+
+Simplicity review: one existing-package candidate transition replaces nested
+automatic command execution. Standalone ownership remains explicit and safe; no
+third path or new transaction machinery. Remaining limitations are bounded fixture
+coverage and the unchanged cost of provider copies, full event validation and
+retained history. Later optimization is outside this slice.
+
 ## Simplification Stage 1 — scoped Completion retired (2026-10-18)
 
 Implemented on `codex/simplify-engine-stage1`, based

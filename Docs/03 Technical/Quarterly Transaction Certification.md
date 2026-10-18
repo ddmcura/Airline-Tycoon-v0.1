@@ -22,6 +22,11 @@ the four gates and two whole-world copies in order and distinguishes their objec
 The first copy isolates staging; the second detaches committed facts from staged
 objects. These checks supplement validation, rather than replacing any gate.
 
+Simplification Stage 2B keeps these standalone command boundaries. Automatic
+publication events use the same domain transition within the kernel-owned event
+transaction, whose full result validation, detached commit and failure fence
+replace nested command machinery. See [publication ownership](Quarterly%20Shared%20Publication.md#atomic-boundary-readiness-and-retry).
+
 The command matrix covers `CreateQuarterlyService`, `ReviseQuarterlyFare`,
 `ReviseQuarterlySlot`, `AddQuarterlyFrequency`, `ContinueQuarterlySlot`,
 `ReplaceQuarterlyService`, `RemoveQuarterlySlots` and `RetireQuarterlyService`.

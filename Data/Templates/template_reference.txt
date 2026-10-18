@@ -30,6 +30,10 @@ simulation.quarterly_publication (optional): airline_id -> {next_quarter_id, fai
 # and cannot discharge mandatory obligations via STALE or replay historical Booking.
 # Retained quarterly publication history requires its owner's enrollment entry.
 # Certified correction restricted to failed unpublished target; fresh Stage 3C retry.
+# Automatic publication reuses the kernel-owned event candidate and shared domain transition.
+# Full kernel result validation/detached commit include publication, frontier and events.
+# Standalone commands retain independent validation/isolation/freshness/detached publication.
+# Provider isolation unchanged; no nested automatic command transaction or saved metadata.
 # Dormant foundation; legacy operational scheduling remains the current consumer.
 world_state.services: service_id -> {service_id, airline_id, flight_number_number, next_slot_number, retired_at_utc}
 world_state.service_numbering: airline_id -> {flight_number_prefix, next_number}

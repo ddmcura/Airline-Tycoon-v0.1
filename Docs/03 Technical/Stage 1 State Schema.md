@@ -141,7 +141,13 @@ Failure commits only the boundary clock/pause and deterministic diagnostic while
 the failed event and dependent work stay pending. A certified command may correct
 only that genuinely fenced unpublished quarter, including initialization from its
 existing published baseline; published revisions remain immutable. Retry uses fresh
-Stage 3C preparation, all four full gates and both world copies. Existing Schema 9
+owner/current observations and the shared publication domain transition. The strict
+automatic handler mutates only its kernel-owned isolated event candidate; full
+kernel result validation and detached commit protect publication, frontier and
+generated events together. It creates no nested standalone command transaction.
+Standalone publication/correction commands retain independent source validation,
+candidate isolation, full result validation, freshness and detached publication.
+Provider isolation is unchanged. Existing Schema 9
 saves omit this optional field and require no migration. No ordinary activation,
 quarterly operational supply, Booking migration or GUI integration is introduced.
 

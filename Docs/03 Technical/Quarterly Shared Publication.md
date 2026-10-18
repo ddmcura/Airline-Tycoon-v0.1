@@ -1,7 +1,7 @@
 # Shared Quarterly Publication Workflow — Stage 3C
 
 Stage 3D successor: [boundary orchestration and recovery](Quarterly%20Boundary%20Orchestration.md)
-invokes this unchanged transaction from isolated strict boundary events. Optional
+uses the same publication domain transition from isolated strict boundary events. Optional
 Schema 9 obligations/fences, the publication ordering barrier, certified correction
 eligibility and deterministic queue recovery are implemented there. Ordinary PH
 and quarterly operational consumers remain dormant; earlier 3C statements are its
@@ -20,9 +20,11 @@ Authority: [Schema 9](Stage%201%20State%20Schema.md#schema-9--reusable-flight-nu
 
 Scheduling owns `PublishQuarterlyPlan(mode, quarter_id, weekly_plan_id=None,
 expected_revision=0, expected_time_utc=None)`. `mode` is exactly `MANUAL` or
-`AUTOMATIC`. Both enter the existing session `prepare_quarterly_command` /
-`apply_quarterly_command` transaction and exact-object issuance boundary. No GUI,
-timer or runtime event invokes this command. A readiness/occurrence snapshot never
+`AUTOMATIC`. Standalone requests enter the session `prepare_quarterly_command` /
+`apply_quarterly_command` transaction and exact-object issuance boundary. Automatic
+boundary events invoke Scheduling's private `_publish_candidate` transition on the
+kernel-owned candidate. Both entry contexts use that transition for eligibility,
+carry-forward, commitment, chronology and execution proof. A readiness/occurrence snapshot never
 substitutes for an issued preparation. Pause/completed-boundary requirements remain.
 
 Manual target is the currently eligible unpublished future quarter, starting from
@@ -66,9 +68,14 @@ new plan/version facts and permanent IDs fully resolve dated lineage.
 
 ## Atomic boundary, readiness and retry
 
-Actual publications retain all four full gates: prepare source, apply source,
-candidate and detached commit state; both whole-world copies retain their separate
-isolation/alias roles. Existing Stage 2 commands keep their certified paths.
+Standalone publications retain four full gates: prepare source, apply source,
+candidate and detached commit state, with separate candidate/commit copies. The
+shared domain transition completes before the candidate gate; every fallible
+operation still precedes exposure. Automatic events use the kernel's validated
+entry, isolated candidate, full event-result validation and detached commit instead
+of nesting the standalone transaction. The frontier and generated events commit
+with publication, or only the existing failure fence commits. Provider isolation
+is unchanged; no live index is bound to the event candidate. Existing Stage 2 commands keep their certified paths.
 Stage 2D stages/verifies the affected plan delta and prepares the rebound immutable
 index before exposure. All selected aircraft participate even for unchanged rows.
 Stage 2C complete finite chronology covers neighboring quarters, service/date/slot
@@ -87,10 +94,11 @@ an unchanged valid issued preparation can retry deterministically after transien
 failure. Correcting source plans/dependencies requires fresh preparation, preserving
 all existing commitments. Load/rebind revoke issuance. No failure state is saved.
 
-An already-committed automatic skip has no mutation candidate or index delta. It
+An already-committed standalone automatic skip has no mutation candidate or index delta. It
 uses source validation/freshness and immutable committed reads, consumes issuance,
 and leaves world bytes/root, accepted index and unsaved status unchanged. It does
-not bypass validation on any write or relax the four gates/two copies of publication.
+not bypass validation on any write. In a kernel event, the same committed skip
+retains the outer transaction for event lifecycle/frontier work without recommitment.
 
 ## Persistence, performance and deferred integration
 

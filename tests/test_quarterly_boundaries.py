@@ -422,19 +422,161 @@ class QuarterlyBoundaryTests(unittest.TestCase):
         self.assertEqual(result.failure.code,'HANDLER_CONTRACT_VIOLATION')
         self.assertEqual(self.world,before)
 
-    def test_boundary_publication_retains_four_command_gates_and_two_world_copies(self):
-        self.enroll(); gates=[]; copies=[]
-        original_entry=commands._entry; original_copy=commands.deepcopy
-        def gate(world):
-            gates.append(world['simulation']['time_utc']); return original_entry(world)
+    def test_boundary_publication_uses_only_kernel_candidate_validation_and_commit(self):
+        self.enroll(); copies=[]; original_copy=commands.deepcopy
         def copy(value):
-            if type(value) is dict and 'metadata' in value: copies.append(value)
+            if type(value) is dict and 'metadata' in value:
+                self.fail('automatic publication created a standalone world copy')
             return original_copy(value)
-        with patch.object(commands,'_entry',side_effect=gate),patch.object(commands,'deepcopy',side_effect=copy):
-            result=self.run_to()
+        clone=kernel._clone_runtime_world
+        def cloned(world):
+            result=clone(world); copies.append(result); return result
+        with patch.object(commands,'_entry',side_effect=AssertionError('nested gate')), \
+                patch.object(commands,'deepcopy',side_effect=copy), \
+                patch.object(kernel,'_clone_runtime_world',side_effect=cloned), \
+                patch.object(kernel,'validate_world',wraps=validate_world) as gates:
+            result=kernel.process_next_event(self.world)
         self.assertTrue(result.succeeded,result.failure)
-        self.assertEqual(gates,[self.due]*4)
-        self.assertEqual(len(copies),2)
+        self.assertEqual(result.completed_event_ids,(self.event_id_from_history(),))
+        self.assertEqual(gates.call_count,2)  # Entry and complete event result.
+        self.assertEqual(len(copies),2)  # Isolated event candidate and detached commit.
+        self.assertIsNot(copies[0]['world_state'],self.world['world_state'])
+        self.assertIs(copies[1]['world_state'],self.world['world_state'])
+        copies[0]['world_state']['weekly_plans'][self.pid]['revisions']['1']['slots'].clear()
+        self.assertEqual(len(self.world['world_state']['weekly_plans'][self.pid]['revisions']['1']['slots']),2)
+
+    def test_candidate_publication_matches_standalone_transaction_at_every_event(self):
+        transition=commands._publish_candidate
+        def standalone(candidate, owner, intent, index=None):
+            request=PublishQuarterlyPlan(intent['mode'],intent['quarter_id'],intent['weekly_plan_id'],
+                intent['expected_revision'],intent['expected_time_utc'])
+            # Reference ownership path: fresh prepare, independent candidate,
+            # four full gates and detached commit, including the shared domain rules.
+            with patch.object(commands,'_publish_candidate',transition):
+                prepared=commands.prepare_quarterly_command(candidate,airline_id=owner,request=request)
+                result=(commands.apply_quarterly_command(candidate,airline_id=owner,prepared=prepared.prepared)
+                        if prepared.succeeded else prepared)
+            if not result.succeeded:
+                issue=result.issues[0]
+                raise commands._ReadFailure(issue.code,issue.path,issue.message)
+            return result.weekly_plan_id,result.revision,None
+        for case in ('draft','skip','carry_forward','failure'):
+            with self.subTest(case=case):
+                world=deepcopy(self.world)
+                plan=world['world_state']['weekly_plans'][self.pid]
+                if case in ('skip','carry_forward'):
+                    plan['revisions']['1']['published_at_utc']=world['simulation']['time_utc']
+                    if case=='carry_forward':
+                        plan['quarter_id']='2027-Q1'
+                        plan['revisions']['1']['published_at_utc']='2027-01-01T00:00:00Z'
+                elif case=='failure':
+                    plan['revisions']['1']['slots'].pop()
+                self.enroll(world); reference=deepcopy(world)
+                actual=begin_resolution(world,self.due,shared=True)
+                expected=begin_resolution(reference,self.due,shared=True)
+                try:
+                    while not actual.finished:
+                        progress=actual.step()
+                        with patch.object(commands,'_publish_candidate',side_effect=standalone):
+                            reference_progress=expected.step()
+                        self.assertEqual(progress,reference_progress)
+                        self.assertEqual(foundation.encoded(world),foundation.encoded(reference))
+                    self.assertTrue(expected.finished)
+                    self.assertEqual(actual.result,expected.result)
+                finally:
+                    actual.close(); expected.close()
+
+    def test_late_publication_failure_discards_candidate_and_retry_is_exact(self):
+        self.enroll(); before=deepcopy(self.world); retained=[]
+        proof=commands.require_execution
+        def fail(candidate,*args,**kwargs):
+            proof(candidate,*args,**kwargs)
+            self.assertEqual(self.published(candidate),self.due)
+            retained.append(candidate)
+            raise ValueError('after publication proof')
+        with patch.object(commands,'require_execution',side_effect=fail):
+            result=self.run_to()
+        self.assertEqual(result.failure.code,'QUARTERLY_PUBLICATION_FAILED')
+        self.assertEqual(self.world['world_state'],before['world_state'])
+        self.assertEqual(self.world['deterministic_state'],before['deterministic_state'])
+        fenced=foundation.encoded(self.world)
+        retained[0]['world_state']['weekly_plans'].clear()
+        self.assertEqual(foundation.encoded(self.world),fenced)
+        control=deepcopy(before)
+        control['simulation']['time_utc']=self.due
+        self.assertEqual(self.run_to(),self.run_to(world=control))
+        self.assertEqual(self.world,control)
+
+    def test_retained_publication_proof_reference_cannot_mutate_committed_world(self):
+        self.enroll(); retained=[]; proof=commands.require_execution
+        def retain(candidate,*args,**kwargs):
+            retained.append(candidate)
+            return proof(candidate,*args,**kwargs)
+        with patch.object(commands,'require_execution',side_effect=retain):
+            result=kernel.process_next_event(self.world)
+        self.assertTrue(result.succeeded,result.failure)
+        committed=foundation.encoded(self.world)
+        retained[0]['world_state']['weekly_plans'].clear()
+        retained[0]['simulation']['event_order_cursor']=0
+        self.assertEqual(foundation.encoded(self.world),committed)
+        self.assertTrue(validate_world(self.world).is_valid)
+
+    def test_late_publication_failure_preserves_earlier_successful_event(self):
+        earlier=kernel.schedule_event(self.world,event_type='NO_OP',
+            due_at_utc=self.world['simulation']['time_utc'],owner_type='airline',owner_id=self.owner)
+        self.enroll()
+        prefix=deepcopy(self.world)
+        self.assertTrue(kernel.process_next_event(prefix).succeeded)
+        with patch.object(commands,'require_execution',side_effect=ValueError('late failure')):
+            result=self.run_to()
+        self.assertEqual(result.completed_event_ids,(earlier,))
+        self.assertEqual(result.failure.code,'QUARTERLY_PUBLICATION_FAILED')
+        self.assertEqual(self.world['world_state'],prefix['world_state'])
+        self.assertEqual(self.world['deterministic_state'],prefix['deterministic_state'])
+
+    def test_kernel_rejects_invalid_complete_publication_result(self):
+        self.enroll(); before=deepcopy(self.world); proof=commands.require_execution
+        def corrupt(candidate,*args,**kwargs):
+            proof(candidate,*args,**kwargs)
+            candidate['world_state']['weekly_plans'][self.pid]['revisions']['1']['published_at_utc']='2099-01-01T00:00:00Z'
+        with patch.object(commands,'require_execution',side_effect=corrupt):
+            result=self.run_to()
+        self.assertEqual(result.failure.code,'RESULT_VALIDATION_FAILED')
+        self.assertEqual(self.world['world_state'],before['world_state'])
+        self.assertEqual(self.world['deterministic_state'],before['deterministic_state'])
+        self.assertEqual(obligations(self.world)[self.owner]['next_quarter_id'],'2027-Q2')
+
+    def test_booking_provider_failure_preserves_publication_prefix_and_isolation(self):
+        from tests.test_quarterly_backend import QuarterlyBackendTests
+        from game.scheduling.quarterly_supply import QuarterlyActivationProvider
+        for raises in (False,True):
+            with self.subTest(raises=raises):
+                world=QuarterlyBackendTests.fixture(start='2026-11-30T00:00:00Z',
+                    quarter='2027-Q1',published=False)[0]
+                request=begin_resolution(world,'2026-12-01T00:00:00Z',shared=True)
+                retained=[]
+                def bad_provider(provider,envelope,*args,**kwargs):
+                    retained.append(envelope)
+                    envelope['metadata']['provider_sentinel']='mutation'
+                    if raises: raise RuntimeError('provider interrupted')
+                    return ()
+                try:
+                    progress=request.step()
+                    self.assertEqual(world['world_state']['event_history'][progress.event_id]['event_type'],EVENT_TYPE)
+                    prefix=deepcopy(world)
+                    with patch.object(QuarterlyActivationProvider,'active_market_ids',bad_provider):
+                        while not request.finished: request.step()
+                    self.assertEqual(request.result.failure.code,'HANDLER_FAILED')
+                    self.assertEqual(world,prefix)
+                    self.assertTrue(retained)
+                    retained[0]['world_state']['weekly_plans'].clear()
+                    self.assertEqual(world,prefix)
+                    control=deepcopy(prefix)
+                    self.assertEqual(resolve_until(world,'2026-12-01T00:00:00Z'),
+                                     resolve_until(control,'2026-12-01T00:00:00Z'))
+                    self.assertEqual(world,control)
+                finally:
+                    request.close()
 
     def test_month_three_initial_target_enrollment_never_invents_incoming_plan(self):
         world,pid,_=self.at(self.due,'2027-Q3')
@@ -477,8 +619,7 @@ class QuarterlyBoundaryTests(unittest.TestCase):
 
     def test_false_success_cannot_discharge_a_mandatory_obligation(self):
         self.enroll(); before=deepcopy(self.world)
-        fake=commands.QuarterlyCommandResult(succeeded=True,weekly_plan_id=self.pid,revision=1)
-        with patch.object(commands,'apply_quarterly_command',return_value=fake):
+        with patch.object(commands,'_publish_candidate',return_value=(self.pid,1,None)):
             result=self.run_to()
         self.assertEqual(result.failure.code,'QUARTERLY_PUBLICATION_FAILED')
         self.assertEqual(result.failure.validation_errors[0]['code'],'INVALID_PUBLICATION_RESULT')

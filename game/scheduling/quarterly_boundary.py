@@ -102,8 +102,9 @@ def initialize_quarterly_handler():
 
 
 def _publication_handler(context):
-    from .quarterly_publication import PublishQuarterlyPlan
-    from .quarterly_commands import prepare_quarterly_command, apply_quarterly_command
+    from .quarterly_publication import PublishQuarterlyPlan, publication_intent
+    from .quarterly_commands import _publish_candidate
+    from .quarterly_reads import _ReadFailure, ReadIssue
     from game.simulation.kernel import HandlerFailure, EventFailure
     envelope = context.envelope
     owner = context.event['owner_id']; quarter = context.payload['quarter_id']
@@ -117,23 +118,28 @@ def _publication_handler(context):
     request = PublishQuarterlyPlan('AUTOMATIC', quarter,
         None if plan is None else plan['weekly_plan_id'],
         0 if plan is None else plan['current_revision'], envelope['simulation']['time_utc'])
-    prepared = prepare_quarterly_command(envelope, airline_id=owner, request=request)
-    result = (apply_quarterly_command(envelope, airline_id=owner, prepared=prepared.prepared)
-              if prepared.succeeded else prepared)
-    if not result.succeeded:
-        details = tuple({'code': i.code, 'path': i.path, 'message': i.message} for i in result.issues)
+    try:
+        pid, revision, _index = _publish_candidate(envelope, owner, publication_intent(request))
+    except _ReadFailure as exc:
+        issues = (exc.issue,)
+    except (ValueError, TypeError, KeyError, OverflowError) as exc:
+        issues = (ReadIssue('INVALID_REQUEST', 'quarterly_command', str(exc)),)
+    else:
+        issues = ()
+    if issues:
+        details = tuple({'code': i.code, 'path': i.path, 'message': i.message} for i in issues)
         raise HandlerFailure(EventFailure('QUARTERLY_PUBLICATION_FAILED',
             f'{owner} {quarter}: correct the unpublished candidate and retry',
             context.event['event_id'], details))
-    committed = envelope['world_state']['weekly_plans'].get(result.weekly_plan_id)
+    committed = envelope['world_state']['weekly_plans'].get(pid)
     if (committed is None or committed['airline_id'] != owner or committed['quarter_id'] != quarter
-            or committed['current_revision'] != result.revision
-            or committed['revisions'][str(result.revision)]['published_at_utc'] is None):
+            or committed['current_revision'] != revision
+            or committed['revisions'][str(revision)]['published_at_utc'] is None):
         raise HandlerFailure(EventFailure('QUARTERLY_PUBLICATION_FAILED',
             f'{owner} {quarter}: publication did not establish a committed target',
             context.event['event_id'], ({'code':'INVALID_PUBLICATION_RESULT',
                 'path':'weekly_plan.published_at_utc', 'message':'committed target required'},)))
-    # Stage 3C detached publication replaced the envelope; reacquire its entry.
+    # Publication and frontier advancement share the kernel-owned candidate.
     entry = obligations(envelope)[owner]
     entry['next_quarter_id'] = parse_quarter_id(quarter).shift().quarter_id
     entry['failure'] = None
