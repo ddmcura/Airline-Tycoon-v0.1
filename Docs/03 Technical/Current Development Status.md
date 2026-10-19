@@ -1,6 +1,61 @@
 # Current Development Status
 
-Last updated: **2026-10-18**. Current snapshot, not operational authorization.
+Last updated: **2026-10-19**. Current snapshot, not operational authorization.
+
+## Human playability Bug 1 — Acquire manufacturer selection (2026-10-19)
+
+Bounded GUI fix on `codex/simplify-engine-stage1`, starting at verified
+`ea928b4756b9b30ad76a8f10d8caf53e2afc3577`. Tracked tree/index were clean;
+pre-existing untracked `.venv/` is preserved. Master, checkpoints and previous
+commits are unchanged. Commit identity belongs to Git history; no push or merge.
+
+Confirmed input failure: Acquire replaced its complete content on every rendered
+refresh. A manufacturer button pressed before replacement no longer received its
+release through the active widget tree, so selection never ran. A real Kivy
+MotionEvent regression failed before the fix in both paused forced-refresh and
+running runtime-refresh cases. Direct release callbacks and catalog filtering
+already worked; this is a widget-lifetime defect, not a measured simulation
+performance problem or a missing transaction command.
+
+Acquire now retains its widgets when manufacturer/model and the selected model's
+detached lease/used offers are unchanged. Changed offers still rebuild the view.
+Manufacturer buttons remain available while browsing models and acquisition modes;
+a selected-manufacturer label and button highlight identify the choice. The existing
+model selection, delivery choice, preview and original-quote confirmation paths
+remain authoritative. The retained comparison is runtime-only presentation state;
+there are no schema, catalog, pricing, domain, runtime-speed or save changes.
+Simplicity review: one local presentation comparison avoids replacing unchanged
+controls; no new page framework, engine mechanism or global input override.
+
+Verification on 2026-10-19 uses `.venv/Scripts/python.exe -B`, temporary save roots
+and temporary Kivy configuration, on the working-tree source above the starting
+revision. Focused command:
+
+```text
+-m unittest tests.test_gui_gameplay tests.test_gui_foundation tests.test_stage1_aircraft_acquisition tests.test_stage1_aircraft_marketplace tests.test_stage1_aircraft_catalog -q
+```
+
+**64 tests pass / 57.539 s**. The final visual-selection assertions and additional
+changed-offer regression were then checked with:
+
+```text
+-m unittest tests.test_gui_gameplay.GameplayGuiTests.test_manufacturer_buttons_switch_models_and_confirm_selected_aircraft tests.test_gui_gameplay.GameplayGuiTests.test_acquisition_refresh_retains_controls_but_updates_changed_offers -v
+```
+
+**2 tests pass / 2.030 s**, giving **65 distinct focused tests**. Coverage includes
+touch press/refresh/release in paused and running sessions, correct manufacturer
+bindings/model filtering, direct Airbus-to-Boeing switching, visible selection,
+selected Boeing review and confirmed delivery, changed offer availability, existing
+new/lease/used acquisition, stale/unaffordable rejection and the graphical
+schedule/run/save/load smoke. Native widgets and EventLoop input were exercised;
+this is not a claim of a manually observed desktop playthrough.
+
+`-m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+and `git diff --check` pass. No full simulation suite or benchmark was run.
+Exact intended scope: `app/gui/app.py`, `app/gui/gameplay.py`,
+`tests/test_gui_gameplay.py`, and this status document. Existing quarterly-entry,
+fixed-speed/release limitations remain unchanged. Stop after this bug fix;
+next is manual Windows confirmation of selection while paused and running.
 
 ## Simplification Stage 5B — built-in NO_OP strict lifecycle (2026-10-18)
 

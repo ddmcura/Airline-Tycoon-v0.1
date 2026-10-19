@@ -98,6 +98,7 @@ class AirlineTycoonApp(GameplayViews, App):
         self._schedule_scroll_x = 0
         self._acquire_maker = None
         self._acquire_model = None
+        self._acquisition_render_state = None
 
     def build(self):
         self.title = 'Airline Tycoon - PH 1.0'
@@ -476,6 +477,11 @@ class AirlineTycoonApp(GameplayViews, App):
             return
         # Existing non-redesigned pages render offscreen, then swap once. Their
         # outer viewport survives refresh; inactive viewports stop all momentum.
+        if (view == 'Acquire' and self._active_page is not None
+                and self._acquisition_render_state == self.acquisition_view_state()):
+            # Replacing a pressed button loses Kivy's eventual touch release.
+            # Catalog navigation is static; model offers still refresh on change.
+            return
         old_content = self.content
         replacement = _column()
         self.content = replacement
@@ -496,6 +502,8 @@ class AirlineTycoonApp(GameplayViews, App):
             for w in list(old.walk()):
                 if isinstance(w,AxisScrollView):w.dispose()
             scroll.remove_widget(old);scroll.add_widget(replacement)
+        if view == 'Acquire':
+            self._acquisition_render_state = self.acquisition_view_state()
 
     def _render_compatibility_content(self):
         view = self.current_view

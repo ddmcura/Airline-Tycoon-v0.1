@@ -15,6 +15,10 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
+from kivy.base import EventLoop
+from kivy.clock import Clock
+from kivy.core.window import Window
+from kivy.input.motionevent import MotionEvent
 
 from app.gui.app import AirlineTycoonApp
 from app.gui.airport_selector import AirportSelector
@@ -106,6 +110,112 @@ class GameplayGuiTests(unittest.TestCase):
             self.assertTrue(any(w.text.startswith(button_prefix)
                                 for w in self.app.content.children if isinstance(w, Button)), mode)
             self.app.back_to_acquisition_makers()
+
+    def test_manufacturer_touch_survives_paused_and_running_refresh(self):
+        class Tap(MotionEvent):
+            def __init__(self, x, y):
+                super().__init__('acquisition-test', 1,
+                                 (x / (Window.width - 1), y / (Window.height - 1)),
+                                 is_touch=True, type_id='touch')
+                self.profile = ['pos']
+
+            def depack(self, args):
+                self.sx, self.sy = args
+                super().depack(args)
+
+        self.app.root = self.app.screens
+        Window.add_widget(self.app.root)
+        try:
+            for running in (False, True):
+                with self.subTest(running=running):
+                    self.app.show_view('Acquire')
+                    self.app.back_to_acquisition_makers()
+                    if running:
+                        self.app.session.resume()
+                    for _ in range(35):
+                        Clock.tick()
+                    button = next(w for w in self.app.content.children
+                                  if isinstance(w, Button) and w.text == 'Airbus')
+                    touch = Tap(*button.to_window(*button.center))
+                    EventLoop.post_dispatch_input('begin', touch)
+                    for _ in range(35):
+                        Clock.tick()
+                    self.assertEqual(button.state, 'down')
+                    if running:
+                        self.clock.advance(1)
+                        self.app._last_render_time = 0
+                        self.app.tick(0)
+                    else:
+                        self.app.refresh(force=True)
+                    EventLoop.post_dispatch_input('end', touch)
+                    for _ in range(5):
+                        Clock.tick()
+                    self.assertEqual(self.app._acquire_maker, 'airbus')
+                    self.assertEqual(self.app.session.world['simulation']['clock_state'] != 'PAUSED', running)
+        finally:
+            Window.remove_widget(self.app.root)
+
+    def test_manufacturer_buttons_switch_models_and_confirm_selected_aircraft(self):
+        session = self.app.session
+        self.app.show_view('Acquire')
+        before = session.authoritative_bytes()
+        for maker_id, caption in (('airbus', 'Airbus'), ('boeing', 'Boeing')):
+            with self.subTest(manufacturer=caption):
+                next(w for w in self.app.content.children
+                     if isinstance(w, Button) and w.text == caption).dispatch('on_release')
+                self.assertEqual(self.app._acquire_maker, maker_id)
+                self.assertIsNone(self.app._acquire_model)
+                self.assertEqual(
+                    {w.text for w in self.app.content.children
+                     if isinstance(w, Button) and w.text.startswith('Select ')},
+                    {f"Select {m['display_name']}" for m in session.aircraft_catalog().models(maker_id)})
+                self.assertTrue(any(isinstance(w, Label) and
+                                    w.text == f'Selected manufacturer: {caption}'
+                                    for w in self.app.content.children))
+                selected = next(w for w in self.app.content.children
+                                if isinstance(w, Button) and w.text == caption)
+                other = next(w for w in self.app.content.children
+                             if isinstance(w, Button) and w.text in {'Airbus', 'Boeing'}
+                             and w is not selected)
+                self.assertNotEqual(selected.background_color, other.background_color)
+        self.assertEqual(session.authoritative_bytes(), before)
+        model = session.aircraft_catalog().models('boeing')[0]
+        next(w for w in self.app.content.children if isinstance(w, Button) and
+             w.text == f"Select {model['display_name']}").dispatch('on_release')
+        self.assertEqual(self.app._acquire_model, model['model_id'])
+        next(w for w in self.app.content.children if isinstance(w, Button) and
+             w.text == 'Review new aircraft purchase').dispatch('on_release')
+        self.click('Continue')
+        self.assertEqual(self.app._popup.title, 'Review acquisition')
+        self.assertTrue(any(model['display_name'] in w.text for w in
+                            self.app._popup.content.walk() if isinstance(w, Label)))
+        old_ids = {r['aircraft_id'] for r in session.fleet(limit=100)}
+        self.click('Confirm')
+        acquired = [r for r in session.fleet(limit=100) if r['aircraft_id'] not in old_ids]
+        self.assertEqual(len(acquired), 1)
+        self.assertEqual(acquired[0]['model_reference'], model['model_id'])
+
+    def test_acquisition_refresh_retains_controls_but_updates_changed_offers(self):
+        session = self.app.session
+        offers = session.leasing_offers()
+        model = session.aircraft_catalog().model(offers[0]['model_id'])['model']
+        self.app.show_view('Acquire')
+        self.app.choose_acquisition_maker(model['manufacturer_id'])
+        self.app.choose_acquisition_model(model['model_id'])
+        content = self.app.content
+        self.app.refresh(force=True)
+        self.assertIs(self.app.content, content)
+        changed = [dict(row, available_quantity=0) if row['model_id'] == model['model_id']
+                   else row for row in offers]
+        with patch.object(session, 'leasing_offers', return_value=changed):
+            self.app.refresh(force=True)
+            self.assertIsNot(self.app.content, content)
+            self.assertFalse(any(isinstance(w, Button) and
+                                 w.text == 'Review operating lease or lease-to-own'
+                                 for w in self.app.content.children))
+            self.assertTrue(any(isinstance(w, Button) and
+                                w.text == 'Review new aircraft purchase'
+                                for w in self.app.content.children))
 
     def test_suggested_fare_uses_exact_authoritative_distance_and_editable_form(self):
         session = self.app.session

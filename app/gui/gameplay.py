@@ -83,6 +83,17 @@ class GameplayViews(WeeklyWorkspace):
         self._research_destination = airport_id or None
         self.refresh(force=True)
 
+    def acquisition_view_state(self):
+        """Detached presentation inputs; unchanged controls must retain touches."""
+        model_id = self._acquire_model
+        offers = listings = ()
+        if model_id is not None:
+            offers = tuple(row for row in self.session.leasing_offers()
+                           if row['model_id'] == model_id)
+            listings = tuple(row for row in self.session.used_listings()
+                             if row['model_id'] == model_id)
+        return self._acquire_maker, model_id, offers, listings
+
     def render_acquisition(self):
         from app.gui.app import _button, _label
         catalog = self.session.aircraft_catalog()
@@ -93,12 +104,17 @@ class GameplayViews(WeeklyWorkspace):
         if maker_id not in makers:
             self._acquire_maker = self._acquire_model = None
             maker_id = model_id = None
+        self.content.add_widget(_label(
+            'Choose manufacturer' if maker_id is None else
+            f"Selected manufacturer: {makers[maker_id]['display_name']}"))
+        for maker in makers.values():
+            button = _button(
+                maker['display_name'],
+                lambda identity=maker['manufacturer_id']: self.choose_acquisition_maker(identity))
+            if maker['manufacturer_id'] == maker_id:
+                button.background_color = (.25, .6, 1, 1)
+            self.content.add_widget(button)
         if maker_id is None:
-            self.content.add_widget(_label('Choose manufacturer'))
-            for maker in makers.values():
-                self.content.add_widget(_button(
-                    maker['display_name'],
-                    lambda identity=maker['manufacturer_id']: self.choose_acquisition_maker(identity)))
             return
 
         maker = makers[maker_id]
