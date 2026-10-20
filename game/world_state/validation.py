@@ -140,6 +140,10 @@ def _plain_authority_tree(envelope):
     """
     if type(envelope) is not dict:
         return False
+    # Reuse these immutable type groups across the millions of scalar leaves
+    # in a retained world, rather than rebuilding a tuple for every value.
+    primitive_types = (str, bool, int)
+    container_types = (dict, list)
     seen = set()
     key_flags = {}
     # Parallel stacks avoid allocating a GC-tracked tuple per container. The
@@ -166,35 +170,35 @@ def _plain_authority_tree(envelope):
                         name = key in _FORBIDDEN_AUTHORITY_FIELDS
                         money = key.endswith('_minor')
                         timestamp = key.endswith('_utc')
-                        flags = (name, money, timestamp) if name or money or timestamp else (False, False, False)
+                        flags = (name, money, timestamp) if name or money or timestamp else False
                         key_flags[key] = flags
-                    name_field, money_field, time_field = flags
-                    if name_field or (money_field and type(nested) is not int):
-                        return False
-                    if time_field and nested is not None and (type(nested) is not str or not _canonical_utc(nested)):
-                        return False
-                child_authority = authority or (depth == 0 and key == 'world_state')
+                    if flags:
+                        name_field, money_field, time_field = flags
+                        if name_field or (money_field and type(nested) is not int):
+                            return False
+                        if time_field and nested is not None and (type(nested) is not str or not _canonical_utc(nested)):
+                            return False
                 kind = type(nested)
-                if nested is None or kind in (str, bool, int):
+                if nested is None or kind in primitive_types:
                     continue
                 if kind is float:
                     if not math.isfinite(nested):
                         return False
-                elif kind in (dict, list):
+                elif kind in container_types:
                     values.append(nested)
-                    authorities.append(child_authority)
+                    authorities.append(authority or (depth == 0 and key == 'world_state'))
                     depths.append(depth + 1)
                 else:
                     return False
         else:
             for nested in value:
                 kind = type(nested)
-                if nested is None or kind in (str, bool, int):
+                if nested is None or kind in primitive_types:
                     continue
                 if kind is float:
                     if not math.isfinite(nested):
                         return False
-                elif kind in (dict, list):
+                elif kind in container_types:
                     values.append(nested)
                     authorities.append(authority)
                     depths.append(depth + 1)

@@ -1,6 +1,145 @@
 # Current Development Status
 
-Last updated: **2026-10-19**. Current snapshot, not operational authorization.
+Last updated: **2026-10-20**. Current snapshot, not operational authorization.
+
+## Runtime validator loop optimization (2026-10-20)
+
+Bounded implementation on `codex/simplify-engine-stage1` above verified starting
+revision `b9581285755a69021e30c83777b48a06bbe8e6ca`. Initial tracked tree/index
+were clean; pre-existing untracked `.venv/` is preserved. Master, checkpoints,
+previous commits and production saves are unchanged. Commit identity belongs
+to Git history; no push, merge, reset, cleanup or quarterly integration work.
+
+The two-aircraft overload investigation identified retained whole-world
+validation as the dominant cost. The actual ordinary rolling-career autosave
+`Saves/stage1/cfb04ffd43314cb19883f284162a1ab5/autosave-0.json` is 269,608,509
+bytes, starts at `2026-11-01T08:04:40Z`, and contains 125,475 Bookings and
+itineraries, 1,764 dated flights and 1,084 completed results. All comparisons
+verify initial canonical world SHA-256
+`6bdceb08752fcacbae48693ba8da79b809bfd7ccca220602f000968a22f7f411`;
+the save wrapper integrity is
+`c38f58c9e26b2d47b6459f58bfc7cd42df98326b679d1092a1286d810585352a`.
+No source save is written. Session save roots and Kivy configuration use TEMP.
+
+Booking/itinerary lookups are already linear. Complete validations traverse
+retained authority for different necessary checks: JSON/aliases/authority field
+rules, collection identity, Booking/itinerary/flight relationships, checkpoint
+coverage, journals and fulfilled-flight witnesses. Their validation-local source
+graphs must be rebuilt from current values; borrowed deep mutations cannot
+inherit validity from a prior clock callback. Request entry, candidate result,
+final clock-gap and save/load/recovery gates remain mandatory and unchanged.
+
+Only `game/world_state/validation.py:_plain_authority_tree` changes: build its
+two immutable type groups once per invocation, omit special-rule unpacking for
+keys whose existing classification has no authority-specific rule, and compute
+child authority only when visiting a container. Every value is still inspected;
+aliases/cycles, nonfinite floats, exact primitive/container types, forbidden names,
+integer money, UTC syntax and depth fallback retain the same predicates. The
+original ordered diagnostics and compatibility fallbacks are unchanged. There
+is no new cache, ownership mechanism, cross-call proof, persistent field, schema,
+template, gameplay, event ordering, transaction, pacing or overload-policy change.
+Simplicity review: one existing helper, with repeated allocations/branches removed;
+no framework or additional validation path.
+
+Measurements use Python 3.12.10 / Windows / Kivy 2.3.1 SDL2 on the same host.
+Before controls install the exact pre-edit graph function from the starting
+revision into the otherwise identical current validator. After controls use the
+working-tree function. Quiet component and Normal widget callbacks alternate
+before/after/after/before, two samples each. Runtime controls use the existing
+`tests.certify_runtime_capacity.measure`, cap eight, default limits/overload policy
+and `ServiceClock`: actual processing wall time plus unoccupied 200-ms callback
+interval, with simulated idle. Setup, cloning the input, hashing, post-validation
+and diagnostic I/O are outside service timing. Runtime timers count full
+validation, graph and clone calls only inside the production pump; no cProfile.
+Both versions receive identical timer hooks. The earlier 55.7-second instrumented
+Normal investigation is context, **not** an equivalent before timing.
+
+| Matched control | Before | After |
+| --- | ---: | ---: |
+| Quiet graph pass, median seconds | 2.4624 | 1.9463 (-21.0%) |
+| Quiet full validation, median seconds | 6.4380 | 5.9008 (-8.3%) |
+| Actual Normal Kivy `tick`, median seconds | 12.8637 | 11.8263 (-8.1%) |
+| Normal full validations / completed game seconds, each callback | 2 / 6 | 2 / 6 |
+| Fixed 13,520-game-second target, engine seconds | 28.4430 | 26.7962 (-5.8%) |
+| Fixed target full-validation seconds / calls | 19.8029 / 3 | 18.1022 / 3 |
+| Fixed target clone seconds / calls | 6.6303 / 2 | 6.6455 / 2 |
+
+The fixed target completes four departures and four completions, with identical
+event vectors and full-world SHA-256
+`7648bf394aed34bbc967cfe1ae03599b92f9a145ae0546eaec6ee4ad8961c897`.
+Normal callbacks use actual Kivy widgets/main-thread dispatch, two full gates and
+zero events; this is not sustained native event-loop or GPU responsiveness
+certification. Refresh remains about 2 ms. The fixed target's clone cost changes
+by approximately 0.2%, with essentially identical 2.62-GB process high-water
+memory; no material extra operation or cost is established outside validation.
+
+Ultra live probes each have a **235-engine-second between-callback stop budget**
+and 864,000-game-second pacing ceiling. They overshoot by a complete callback;
+neither completes the ceiling. Earned time is the actual obligation, not that
+diagnostic ceiling. These are censored observations, not sustainable capacity.
+
+| Ultra live measurement | Before | After |
+| --- | ---: | ---: |
+| Actual engine seconds | 246.543 | 236.973 |
+| Completed events | 74 (36 departures, 36 completions, 2 fences) | 79 (39 departures, 38 completions, 2 fences) |
+| Earned / completed game seconds | 374,990.908 / 129,320 | 400,365.123 / 138,320 |
+| Ending debt, game seconds | 245,670.908 | 262,045.123 |
+| Active pacing seconds before overload freezes accrual | 208.328 | 222.425 |
+| Full-validation seconds / calls | 133.661 / 20 | 122.983 / 20 |
+| Graph seconds / calls | 51.997 / 20 | 41.074 / 20 |
+| Clone seconds / calls | 85.705 / 26 | 86.129 / 26 |
+| Maximum callback seconds | 21.447 | 20.458 |
+| Overload entries / completed recoveries | 1 / 0 | 1 / 0 |
+
+Both end in `OVERLOAD_DRAIN`, keep exact nanosecond credit ledgers, freeze accrual
+while draining, and pass final validation. The after run owes more because it
+accrued for longer before overload, then had less drain time before the budget
+stop; no credit is dropped. Its first 74 event records match the control exactly.
+Each probe runs one ordinary weekly publication and one Booking checkpoint, with
+no autosave or safety-limit failure. Cleanup hard-pauses at a committed boundary;
+neither unfinished drain is presented as recovered. Clone counts stay unchanged;
+their live cost differs by about 0.5% while after processes more events.
+
+Raw scripts/results are outside Git in TEMP `at-runtime-validator-20261020`:
+`baseline_graph.py`, `compare.py`, `quiet.json`, `gui.json`,
+`finite-{before,after}.json` and `live-{before,after}.json`. From repository root,
+the diagnostic invocation is `.venv/Scripts/python.exe -B <TEMP>/compare.py
+<TEMP> <mode> [variant]`, where `<TEMP>` is that directory, modes are `quiet`,
+`gui`, `finite` and `live`, and runtime variants are `before` or `after`.
+The baseline snapshot was captured before editing; its function can also be
+reconstructed from `git show b958128:game/world_state/validation.py`. All other
+engine code is identical in both controls. Performance probes run serially,
+separate from regression tests.
+
+Verification on the working-tree scope above the starting revision, 2026-10-20:
+`.venv/Scripts/python.exe -B` with temporary Kivy configuration, arguments disabled
+and file logging disabled, then:
+
+```text
+-m unittest tests.test_runtime_validator_optimization tests.test_atomic_boundary_optimization tests.test_booking_lineage_optimization tests.test_stage1_world_state tests.test_stage1_flight_fulfilment tests.test_step7_save_load tests.test_simulation_resolver tests.test_cooperative_runtime tests.test_gui_cooperative_runtime tests.test_quarterly_booking_validation -q
+```
+
+**194 tests pass / 255.805 seconds.** Six new regressions cover ordinary/special
+field values changing after validation, nested authority/alias handling, invalid
+Booking/itinerary/flight relationships with identical ordered diagnostics,
+candidate-validation failure with exact rollback, failed save preserving the
+valid file, checksum-valid invalid load rejection, and exact strict/shared/reference
+world equality. Existing coverage includes compatibility, mutation matrices,
+request gate counts, failure/recovery, paused save/load and GUI drain behavior.
+The quarterly validation module is a compatibility regression only; no quarterly
+integration is implemented. The actual-save fixed-target and live prefix oracles
+described above also pass. Compilation with
+`-m compileall -q app game tests main.py make_snapshot.py settings.py test.py`
+and `git diff --check` pass. The full multi-hour suite is not run, as requested.
+Intended files are this status document,
+[`validation.py`](../../game/world_state/validation.py) and
+[`test_runtime_validator_optimization.py`](../../tests/test_runtime_validator_optimization.py).
+
+**Two-aircraft Ultra overload remains unresolved.** Complete-world traversals,
+Booking/fulfilment checks and cloning remain expensive, and an 11.83-second Normal
+callback still blocks interaction. This stage establishes a modest, repeatable
+improvement without weakening guards. Further performance work needs separately
+bounded scope; no ownership redesign, new certificate or later milestone begins.
 
 ## Human playability Bug 1 — Acquire manufacturer selection (2026-10-19)
 
